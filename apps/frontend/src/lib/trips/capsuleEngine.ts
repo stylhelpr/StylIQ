@@ -28,7 +28,7 @@ import {
 } from './logging/tripAI.logger';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 9;
+export const CAPSULE_VERSION = 11;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ██  GLOBAL CLIMATE GATING (minimal layer)
@@ -886,6 +886,103 @@ export function detectPresentation(
   return 'mixed';
 }
 
+// ── Core slot validation gate ──
+
+/**
+ * Hard gate: does this outfit contain the minimum core garment slots?
+ * For masculine: tops + bottoms + shoes — NO exceptions, NO activity bypass.
+ */
+function hasCoreSlots(
+  items: TripPackingItem[],
+  presentation: Presentation,
+): boolean {
+  const slots = new Set(
+    items.map(i => CATEGORY_MAP[i.mainCategory] || 'other'),
+  );
+
+  if (presentation === 'masculine') {
+    // Swimwear-bottom items (trunks/board shorts) satisfy the bottoms slot
+    // when picked via getBeachBottomCandidates
+    const hasBottomsEquivalent = slots.has('bottoms') || slots.has('swimwear');
+    return slots.has('tops') && hasBottomsEquivalent && slots.has('shoes');
+  }
+
+  return true;
+}
+
+// ── Beach/Active bottom-picking helpers ──
+
+/**
+ * Detects whether a swimwear item covers the lower body (trunks, board shorts, etc.).
+ * Used to allow swim-bottom items to satisfy the masculine "bottoms" requirement at Beach.
+ */
+function isSwimwearBottom(item: TripWardrobeItem): boolean {
+  const sub = (item.subcategory || '').toLowerCase();
+  const name = (item.name || '').toLowerCase();
+  return (
+    sub.includes('trunk') ||
+    sub.includes('board short') ||
+    sub.includes('swim short') ||
+    sub.includes('swim trunk') ||
+    name.includes('trunk') ||
+    name.includes('board short') ||
+    name.includes('swim short')
+  );
+}
+
+/**
+ * Beach bottoms: regular bottoms first, swim-bottom items as fallback.
+ * Both are merged so weightedPick can choose the best candidate.
+ */
+function getBeachBottomCandidates(
+  gatedBuckets: Record<CategoryBucket, TripWardrobeItem[]>,
+): TripWardrobeItem[] {
+  const regular = gatedBuckets.bottoms;
+  const swimBottoms = gatedBuckets.swimwear.filter(isSwimwearBottom);
+  return regular.length > 0 ? [...regular, ...swimBottoms] : swimBottoms;
+}
+
+/**
+ * Active bottoms: regular bottoms bucket (shorts, joggers, leggings, etc.).
+ */
+function getActiveBottomCandidates(
+  gatedBuckets: Record<CategoryBucket, TripWardrobeItem[]>,
+): TripWardrobeItem[] {
+  return gatedBuckets.bottoms;
+}
+
+// ── Final validation gate & used-item exclusion ──
+
+/**
+ * FINAL validation gate — runs AFTER all assembly, pruning, mutation, and fallback.
+ * For masculine: tops + bottoms (or swimwear) + shoes. No exceptions.
+ */
+function isFinalOutfitValid(
+  items: TripPackingItem[],
+  presentation: Presentation,
+): boolean {
+  if (items.length === 0) return false;
+  const slots = new Set(
+    items.map(i => CATEGORY_MAP[i.mainCategory] || 'other'),
+  );
+  if (presentation === 'masculine') {
+    const hasBottomsEquivalent = slots.has('bottoms') || slots.has('swimwear');
+    return slots.has('tops') && hasBottomsEquivalent && slots.has('shoes');
+  }
+  return true;
+}
+
+/**
+ * Centralized used-item exclusion — removes any item whose id is in usedIds.
+ * Use for: backups, alternates, fallbacks, support pools.
+ */
+function filterUsed<T extends {id: string}>(
+  pool: T[],
+  usedIds: Set<string>,
+): T[] {
+  return pool.filter(item => !usedIds.has(item.id));
+}
+
 function buildOutfitForActivity(
   activity: TripActivity,
   dayIndex: number,
@@ -978,45 +1075,66 @@ function buildOutfitForActivity(
 
   switch (activity) {
     case 'Beach': {
-      if (gatedBuckets.swimwear.length > 0) {
-        pickAndPush(gatedBuckets.swimwear, 'swimwear');
-      } else {
+      if (isMasculine) {
+        // Masculine beach: tops + bottoms (regular or swim trunks) + shoes
         pickAndPush(gatedBuckets.tops, 'tops');
+        const beachBottoms = getBeachBottomCandidates(gatedBuckets);
+        if (beachBottoms.length > 0) {
+          pickAndPush(beachBottoms, 'beach-bottoms');
+        }
+        pickShoeW();
+      } else {
+        // Non-masculine: swimwear-first, no bottoms required
+        if (gatedBuckets.swimwear.length > 0) {
+          pickAndPush(gatedBuckets.swimwear, 'swimwear');
+        } else {
+          pickAndPush(gatedBuckets.tops, 'tops');
+        }
+        pickShoeW();
       }
-      pickShoeW();
       if (mode === 'anchor') {
         pickAndPush(gatedBuckets.accessories, 'accessories');
       }
       break;
     }
     case 'Active': {
-      if (gatedBuckets.activewear.length > 0) {
-        const firstResult = pickW(gatedBuckets.activewear, 'activewear-1');
-        if (firstResult) {
-          items.push(toPackingItem(firstResult.picked, locationLabel));
-          annotateLastPick(items, firstResult.runners);
-          // Pick second item from remaining (exclude first)
-          if (gatedBuckets.activewear.length > 1) {
-            const remaining = gatedBuckets.activewear.filter(i => i.id !== firstResult.picked.id);
-            if (remaining.length > 0) {
-              const first = firstResult.picked;
-              if (isUpperActivewear(first) && remaining.every(r => isUpperActivewear(r))) {
-                pickAndPush(gatedBuckets.bottoms, 'bottoms');
-              } else {
-                const secondResult = pickW(remaining, 'activewear-2');
-                if (secondResult) {
-                  items.push(toPackingItem(secondResult.picked, locationLabel));
-                  annotateLastPick(items, secondResult.runners);
+      if (isMasculine) {
+        // Masculine active: tops + bottoms + shoes (standard separates)
+        pickAndPush(gatedBuckets.tops, 'tops');
+        const activeBottoms = getActiveBottomCandidates(gatedBuckets);
+        if (activeBottoms.length > 0) {
+          pickAndPush(activeBottoms, 'active-bottoms');
+        }
+        pickShoeW();
+      } else {
+        // Non-masculine: activewear pairing logic preserved
+        if (gatedBuckets.activewear.length > 0) {
+          const firstResult = pickW(gatedBuckets.activewear, 'activewear-1');
+          if (firstResult) {
+            items.push(toPackingItem(firstResult.picked, locationLabel));
+            annotateLastPick(items, firstResult.runners);
+            if (gatedBuckets.activewear.length > 1) {
+              const remaining = gatedBuckets.activewear.filter(i => i.id !== firstResult.picked.id);
+              if (remaining.length > 0) {
+                const first = firstResult.picked;
+                if (isUpperActivewear(first) && remaining.every(r => isUpperActivewear(r))) {
+                  pickAndPush(gatedBuckets.bottoms, 'bottoms');
+                } else {
+                  const secondResult = pickW(remaining, 'activewear-2');
+                  if (secondResult) {
+                    items.push(toPackingItem(secondResult.picked, locationLabel));
+                    annotateLastPick(items, secondResult.runners);
+                  }
                 }
               }
             }
           }
+        } else {
+          pickAndPush(gatedBuckets.tops, 'tops');
+          pickAndPush(gatedBuckets.bottoms, 'bottoms');
         }
-      } else {
-        pickAndPush(gatedBuckets.tops, 'tops');
-        pickAndPush(gatedBuckets.bottoms, 'bottoms');
+        pickShoeW();
       }
-      pickShoeW();
       break;
     }
     case 'Business': {
@@ -1086,13 +1204,6 @@ function buildOutfitForActivity(
     });
   }
 
-  // Track all used items with day index for diversity scoring
-  for (const item of normalized) {
-    const days = usageTracker.get(item.wardrobeItemId) || [];
-    days.push(dayIndex);
-    usageTracker.set(item.wardrobeItemId, days);
-  }
-
   if (__DEV__) {
     console.log('[TripCapsule][OUTFIT_PICK]', {
       activity,
@@ -1109,6 +1220,26 @@ function buildOutfitForActivity(
         subCategory: i.subCategory,
       })),
     });
+  }
+
+  // Hard validation gate: reject structurally incomplete outfits
+  if (!hasCoreSlots(normalized, presentation)) {
+    console.warn('[TripCapsule][CORE_REJECT]', {
+      path: mode,
+      dayIndex,
+      activity,
+      presentation,
+      slots: normalized.map(i => CATEGORY_MAP[i.mainCategory] || 'other'),
+      items: normalized.map(i => i.name),
+    });
+    return [];
+  }
+
+  // Track used items AFTER validation — rejected outfits must not pollute rotation scoring
+  for (const item of normalized) {
+    const days = usageTracker.get(item.wardrobeItemId) || [];
+    days.push(dayIndex);
+    usageTracker.set(item.wardrobeItemId, days);
   }
 
   return normalized;
@@ -1453,6 +1584,22 @@ export function buildCapsule(
     buckets[key] = buckets[key].filter(item => !reservedItemIds.has(item.id));
   }
 
+  // Safety: if reserves starved a core slot, return ALL reserves to the pool
+  const coreOutfitSlots: CategoryBucket[] = ['tops', 'bottoms', 'shoes'];
+  if (reservedItemIds.size > 0 && coreOutfitSlots.some(s => buckets[s].length === 0)) {
+    if (__DEV__) {
+      console.warn(
+        '[TripCapsule][RESERVE_STARVE] Reserves emptied a core slot — returning all reserves to pool',
+      );
+    }
+    for (const c of preSelectedReserves) {
+      const b = getBucket(c.item);
+      if (b) buckets[b].push(c.item);
+    }
+    reservedItemIds.clear();
+    preSelectedReserves = [];
+  }
+
   // Step 4: Select shoes
   const maxShoes = numDays <= 5 ? 2 : 3;
   const selectedShoes = buckets.shoes.slice(0, maxShoes);
@@ -1505,13 +1652,15 @@ export function buildCapsule(
       'anchor',
       presentation,
     );
-    outfits.push({
-      id: `outfit_${day}`,
-      dayLabel: `Day ${day + 1}`,
-      type: 'anchor',
-      occasion: schedule.primary,
-      items: anchorItems,
-    });
+    if (anchorItems.length > 0) {
+      outfits.push({
+        id: `outfit_${day}`,
+        dayLabel: `Day ${day + 1}`,
+        type: 'anchor',
+        occasion: schedule.primary,
+        items: anchorItems,
+      });
+    }
   }
 
   // Step 7: Build SUPPORT outfits (second pass — reuse-first)
@@ -1565,6 +1714,21 @@ export function buildCapsule(
           after: outfit.items.length,
           detail: `outfit ${outfit.id}: removed ${before - outfit.items.length} dress-bucket items`,
         });
+      }
+    }
+
+    // Re-validate after dress strip — stripping may have broken core slots
+    for (let i = outfits.length - 1; i >= 0; i--) {
+      if (!hasCoreSlots(outfits[i].items, presentation)) {
+        console.warn('[TripCapsule][CORE_REJECT]', {
+          path: 'post_dress_strip',
+          outfitId: outfits[i].id,
+          activity: outfits[i].occasion,
+          presentation,
+          slots: outfits[i].items.map(item => CATEGORY_MAP[item.mainCategory] || 'other'),
+          items: outfits[i].items.map(item => item.name),
+        });
+        outfits.splice(i, 1);
       }
     }
   }
@@ -1633,16 +1797,16 @@ export function buildCapsule(
       reason: buildReserveReason(c),
     }));
   } else {
-    // FALLBACK: no unused reserves found pre-outfit. Allow used items with logging.
+    // FALLBACK: no unused reserves found pre-outfit. Backups must not duplicate outfit items.
     const backupCandidateCategories: CategoryBucket[] = ['tops', 'shoes', 'outerwear'];
-    const rawCandidates: TripWardrobeItem[] = [];
-    for (const cat of backupCandidateCategories) {
-      // Use FULL original eligibleItems since buckets were filtered
-      for (const item of eligibleItems) {
-        if (getBucket(item) === cat) rawCandidates.push(item);
-      }
-    }
-    const fallbackGated = gateBackupPoolFallback(rawCandidates, activities, weather, presentation, usedItemIds);
+    const rawCandidates = filterUsed(
+      eligibleItems.filter(item => {
+        const b = getBucket(item);
+        return b !== null && backupCandidateCategories.includes(b);
+      }),
+      usedItemIds,
+    );
+    const fallbackGated = gateBackupPoolFallback(rawCandidates, activities, weather, presentation);
     const fallbackThreshold = Math.ceil(anchorOutfits.length * 0.3);
     const fallbackCandidates: ReserveCandidate[] = [];
 
@@ -1721,7 +1885,7 @@ export function buildCapsule(
   // ── DEV: Hard isolation assertions ──
   if (__DEV__) {
     for (const b of tripBackupKit) {
-      if (usedItemIds.has(b.wardrobeItemId) && preSelectedReserves.length > 0) {
+      if (usedItemIds.has(b.wardrobeItemId)) {
         throw new Error(
           `[TripCapsule] ISOLATION VIOLATION: backup "${b.name}" (${b.wardrobeItemId}) overlaps planned outfit`,
         );
@@ -1741,6 +1905,34 @@ export function buildCapsule(
         }
       }
     }
+  }
+
+  // ── FINAL VALIDATION GATE — absolute last line of defense ──
+  // Runs AFTER all assembly, pruning, dress-strip, item-cap, and reserve handling.
+  // No outfit leaves buildCapsule without passing this gate.
+  for (let i = outfits.length - 1; i >= 0; i--) {
+    if (!isFinalOutfitValid(outfits[i].items, presentation)) {
+      console.warn('[TripCapsule][FINAL_REJECT]', {
+        dayIndex: i,
+        activity: outfits[i].occasion,
+        presentation,
+        slots: outfits[i].items.map(item => CATEGORY_MAP[item.mainCategory] || 'other'),
+        items: outfits[i].items.map(item => item.name),
+      });
+      outfits.splice(i, 1);
+    }
+  }
+
+  if (outfits.length === 0) {
+    console.error('[TripCapsule][FATAL_EMPTY]', {
+      presentation,
+      activities,
+      wardrobeSize: wardrobeItems.length,
+      eligibleCount: eligibleItems.length,
+      bucketSizes: Object.fromEntries(
+        (Object.keys(buckets) as CategoryBucket[]).map(k => [k, buckets[k].length]),
+      ),
+    });
   }
 
   // Step 10: Build packing list

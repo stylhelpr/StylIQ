@@ -21,7 +21,11 @@ import {
 } from './logic/scoring';
 import type { UserStyle } from './logic/style';
 import type { WeatherContext } from './logic/weather';
-import { finalizeOutfitSlots } from './logic/finalize';
+import {
+  finalizeOutfitSlots,
+  validateOutfits,
+  validateOutfitCore,
+} from './logic/finalize';
 import { enforceConstraintsOnOutfits } from './logic/enforce';
 import { buildOutfitPrompt } from './prompts/outfitPrompt';
 import {
@@ -1540,6 +1544,12 @@ ${lockedLines}
         effectiveQuery,
       ) as any;
 
+      // Hard validation gate — discard structurally invalid outfits
+      outfits = validateOutfitCore(outfits, effectiveQuery);
+      if (outfits.length === 0) {
+        outfits = validateOutfits(effectiveQuery, reranked, []);
+      }
+
       outfits = outfits.map((o) => {
         const { title, why } = this.retitleOutfit(o);
         return { ...o, title, why };
@@ -2279,7 +2289,7 @@ ${lockedLines}
         );
       }
 
-      const outfits = assembledOutfits.map((assembled, outfitIdx) => {
+      let outfits = assembledOutfits.map((assembled, outfitIdx) => {
         const { outfitPlan, slotResults } = assembled;
 
         // Pick best match for each slot
@@ -2383,6 +2393,9 @@ ${lockedLines}
           why: (outfitPlan as any).why || '',
         };
       });
+
+      // Hard validation gate — discard structurally invalid outfits
+      outfits = validateOutfitCore(outfits, query);
 
       // ── 5) PATH #2 POST-PARSE VALIDATION ──
       // CRITICAL: Enforce centerpiece + composition constraints - fail closed on violation

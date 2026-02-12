@@ -419,3 +419,68 @@ export function validateOutfits(
 
   return out;
 }
+
+/**
+ * Hard validation gate — discards any outfit that is not structurally wearable.
+ *
+ * Valid structures (gender-neutral, slot-based):
+ *   1. SEPARATES  → tops + bottoms + shoes
+ *   2. ONE-PIECE  → dresses + shoes  (covers Formalwear, TraditionalWear via slot mapping)
+ *   3. ACTIVEWEAR → activewear + shoes
+ *   4. SWIMWEAR   → swimwear  (shoes NOT required)
+ *
+ * Accessories / outerwear / undergarments may exist but never satisfy core requirements.
+ */
+export function validateOutfitCore<
+  T extends { title?: string; items: Array<{ main_category?: string | null }> },
+>(outfits: T[], query?: string): T[] {
+  return outfits.filter((outfit, idx) => {
+    const items = outfit.items ?? [];
+    if (items.length === 0) {
+      console.log(
+        `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": no items`,
+      );
+      return false;
+    }
+
+    const hasTop = items.some((it) => isSlot(it, 'tops'));
+    const hasBottom = items.some((it) => isSlot(it, 'bottoms'));
+    const hasShoes = items.some((it) => isSlot(it, 'shoes'));
+    const hasDress = items.some((it) => isSlot(it, 'dresses'));
+    const hasActivewear = items.some((it) => isSlot(it, 'activewear'));
+    const hasSwimwear = items.some((it) => isSlot(it, 'swimwear'));
+
+    // 4. SWIMWEAR — shoes optional
+    if (hasSwimwear) return true;
+
+    // 3. ACTIVEWEAR — needs shoes
+    if (hasActivewear) {
+      if (hasShoes) return true;
+      console.log(
+        `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": activewear missing shoes`,
+      );
+      return false;
+    }
+
+    // 2. ONE-PIECE — dresses (incl. Formalwear, TraditionalWear) + shoes
+    if (hasDress) {
+      if (hasShoes) return true;
+      console.log(
+        `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": dress/one-piece missing shoes`,
+      );
+      return false;
+    }
+
+    // 1. SEPARATES — tops + bottoms + shoes
+    if (hasTop && hasBottom && hasShoes) return true;
+
+    const missing: string[] = [];
+    if (!hasTop) missing.push('tops');
+    if (!hasBottom) missing.push('bottoms');
+    if (!hasShoes) missing.push('shoes');
+    console.log(
+      `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": separates missing ${missing.join(', ')}`,
+    );
+    return false;
+  });
+}

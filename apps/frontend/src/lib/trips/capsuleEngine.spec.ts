@@ -442,7 +442,9 @@ describe('Global Climate Gating', () => {
       makeWardrobeItem({id: 't1', name: 'Hawaiian Shirt', main_category: 'Tops', subcategory: 'Hawaiian'}),
       makeWardrobeItem({id: 's1', name: 'Flip-Flops', main_category: 'Shoes', subcategory: 'Flip-Flops'}),
     ];
-    const capsule = buildCapsule(wardrobe, hotWeather, ['Beach'], 'Home');
+    // Explicit 'feminine' — wardrobe contains Bikini (swimwear), detectPresentation
+    // early-outs to 'masculine' for small wardrobes with no gendered signals
+    const capsule = buildCapsule(wardrobe, hotWeather, ['Beach'], 'Home', 'feminine');
     const allItems = capsule.outfits.flatMap(o => o.items);
 
     // Beach allows swimwear
@@ -528,9 +530,9 @@ describe('Global Climate Gating', () => {
     expect(result).toContain(shortSleeveShirt);
   });
 
-  // Additional: CAPSULE_VERSION is 4 (bumped for eligibility pre-filter)
-  it('CAPSULE_VERSION is 9 (weighted pick, unified formality)', () => {
-    expect(CAPSULE_VERSION).toBe(9);
+  // Additional: CAPSULE_VERSION bumped for final validation gate
+  it('CAPSULE_VERSION is 11 (final validation gate)', () => {
+    expect(CAPSULE_VERSION).toBe(11);
   });
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -2702,5 +2704,257 @@ describe('Backup isolation — reserve-first architecture', () => {
       const items2 = c2.outfits[i].items.map(it => it.wardrobeItemId);
       expect(items1).toEqual(items2);
     }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  BEACH / ACTIVE — MASCULINE COMPLETENESS TESTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Beach/Active masculine outfit completeness', () => {
+  const hotWeather: DayWeather[] = [
+    {date: '2025-07-15', dayLabel: 'Tue', highF: 95, lowF: 78, condition: 'sunny', rainChance: 5},
+    {date: '2025-07-16', dayLabel: 'Wed', highF: 93, lowF: 77, condition: 'sunny', rainChance: 5},
+  ];
+
+  // ── Beach: masculine with regular bottoms ──
+  it('beach + masculine: produces tops + bottoms + shoes', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Tank Top', main_category: 'Tops'}),
+      makeWardrobeItem({id: 't2', name: 'Linen Shirt', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Board Shorts', main_category: 'Bottoms', subcategory: 'Shorts'}),
+      makeWardrobeItem({id: 'b2', name: 'Chino Shorts', main_category: 'Bottoms', subcategory: 'Shorts'}),
+      makeWardrobeItem({id: 's1', name: 'Flip-Flops', main_category: 'Shoes'}),
+      makeWardrobeItem({id: 's2', name: 'Sneakers', main_category: 'Shoes'}),
+      makeWardrobeItem({id: 'sw1', name: 'Swim Trunks', main_category: 'Swimwear', subcategory: 'Swim Trunks'}),
+    ];
+    const capsule = buildCapsule(wardrobe, hotWeather, ['Beach'], 'Home', 'masculine');
+
+    expect(capsule.outfits.length).toBeGreaterThan(0);
+    for (const outfit of capsule.outfits) {
+      const cats = outfit.items.map(i => i.mainCategory);
+      expect(cats).toContain('Tops');
+      expect(cats.some(c => c === 'Bottoms' || c === 'Swimwear')).toBe(true);
+      expect(cats).toContain('Shoes');
+    }
+  });
+
+  // ── Beach: masculine with ONLY swim trunks (no regular bottoms) ──
+  it('beach + masculine (swim trunks only): trunks satisfy bottoms', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'T-Shirt', main_category: 'Tops'}),
+      makeWardrobeItem({id: 't2', name: 'Tank Top', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'sw1', name: 'Swim Trunks', main_category: 'Swimwear', subcategory: 'Swim Trunks'}),
+      makeWardrobeItem({id: 's1', name: 'Flip-Flops', main_category: 'Shoes'}),
+    ];
+    const capsule = buildCapsule(wardrobe, hotWeather, ['Beach'], 'Home', 'masculine');
+
+    expect(capsule.outfits.length).toBeGreaterThan(0);
+    for (const outfit of capsule.outfits) {
+      const cats = outfit.items.map(i => i.mainCategory);
+      expect(cats).toContain('Tops');
+      // Swim trunks satisfy the bottoms requirement via hasCoreSlots swimwear exception
+      expect(cats.some(c => c === 'Bottoms' || c === 'Swimwear')).toBe(true);
+      expect(cats).toContain('Shoes');
+    }
+  });
+
+  // ── Beach: feminine still uses swimwear-first (no bottoms required) ──
+  it('beach + feminine: swimwear-first, no bottoms required', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 'sw1', name: 'Bikini', main_category: 'Swimwear'}),
+      makeWardrobeItem({id: 't1', name: 'Cover-Up', main_category: 'Tops'}),
+      makeWardrobeItem({id: 's1', name: 'Flip-Flops', main_category: 'Shoes'}),
+    ];
+    const capsule = buildCapsule(wardrobe, hotWeather, ['Beach'], 'Home', 'feminine');
+    const allItems = capsule.outfits.flatMap(o => o.items);
+
+    // Swimwear is picked (feminine path)
+    expect(allItems.some(i => i.mainCategory === 'Swimwear')).toBe(true);
+  });
+
+  // ── Active: masculine produces tops + bottoms + shoes ──
+  it('active + masculine: produces tops + bottoms + shoes', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Dri-Fit Tee', main_category: 'Tops'}),
+      makeWardrobeItem({id: 't2', name: 'Performance Polo', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Athletic Shorts', main_category: 'Bottoms', subcategory: 'Shorts'}),
+      makeWardrobeItem({id: 'b2', name: 'Joggers', main_category: 'Bottoms', subcategory: 'Joggers'}),
+      makeWardrobeItem({id: 's1', name: 'Running Shoes', main_category: 'Shoes'}),
+      makeWardrobeItem({id: 's2', name: 'Trail Shoes', main_category: 'Shoes'}),
+    ];
+    const capsule = buildCapsule(wardrobe, hotWeather, ['Active'], 'Home', 'masculine');
+
+    expect(capsule.outfits.length).toBeGreaterThan(0);
+    for (const outfit of capsule.outfits) {
+      const cats = outfit.items.map(i => i.mainCategory);
+      expect(cats).toContain('Tops');
+      expect(cats).toContain('Bottoms');
+      expect(cats).toContain('Shoes');
+    }
+  });
+
+  // ── Active: feminine still uses activewear pairing ──
+  it('active + feminine: activewear pairing preserved', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 'aw1', name: 'Sports Bra', main_category: 'Activewear', subcategory: 'Sports Bra'}),
+      makeWardrobeItem({id: 'aw2', name: 'Leggings', main_category: 'Activewear', subcategory: 'Leggings'}),
+      makeWardrobeItem({id: 's1', name: 'Running Shoes', main_category: 'Shoes'}),
+    ];
+    const capsule = buildCapsule(wardrobe, hotWeather, ['Active'], 'Home', 'feminine');
+    const allItems = capsule.outfits.flatMap(o => o.items);
+
+    // Activewear items are picked (feminine path)
+    expect(allItems.some(i => i.mainCategory === 'Activewear')).toBe(true);
+  });
+
+  // ── Mixed trip: Beach + Casual masculine produces complete outfits for both ──
+  it('beach + casual + masculine: all outfits have tops + bottoms + shoes', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'T-Shirt', main_category: 'Tops'}),
+      makeWardrobeItem({id: 't2', name: 'Polo', main_category: 'Tops'}),
+      makeWardrobeItem({id: 't3', name: 'Linen Shirt', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Shorts', main_category: 'Bottoms', subcategory: 'Shorts'}),
+      makeWardrobeItem({id: 'b2', name: 'Chinos', main_category: 'Bottoms'}),
+      makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes'}),
+      makeWardrobeItem({id: 's2', name: 'Sandals', main_category: 'Shoes'}),
+      makeWardrobeItem({id: 'sw1', name: 'Swim Trunks', main_category: 'Swimwear', subcategory: 'Swim Trunks'}),
+    ];
+    const capsule = buildCapsule(wardrobe, hotWeather, ['Beach', 'Casual'], 'Home', 'masculine');
+
+    expect(capsule.outfits.length).toBeGreaterThan(0);
+    for (const outfit of capsule.outfits) {
+      const cats = outfit.items.map(i => i.mainCategory);
+      expect(cats).toContain('Tops');
+      expect(cats.some(c => c === 'Bottoms' || c === 'Swimwear')).toBe(true);
+      expect(cats).toContain('Shoes');
+    }
+  });
+
+  // ── Deterministic: same inputs → same outputs ──
+  it('beach + masculine: deterministic output', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Tank Top', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Board Shorts', main_category: 'Bottoms', subcategory: 'Shorts'}),
+      makeWardrobeItem({id: 's1', name: 'Flip-Flops', main_category: 'Shoes'}),
+      makeWardrobeItem({id: 'sw1', name: 'Swim Trunks', main_category: 'Swimwear', subcategory: 'Swim Trunks'}),
+    ];
+    const c1 = buildCapsule(wardrobe, hotWeather, ['Beach'], 'Home', 'masculine');
+    const c2 = buildCapsule(wardrobe, hotWeather, ['Beach'], 'Home', 'masculine');
+
+    expect(c1.outfits.length).toBe(c2.outfits.length);
+    for (let i = 0; i < c1.outfits.length; i++) {
+      const ids1 = c1.outfits[i].items.map(it => it.wardrobeItemId);
+      const ids2 = c2.outfits[i].items.map(it => it.wardrobeItemId);
+      expect(ids1).toEqual(ids2);
+    }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  REGRESSION: NEVER EMIT INCOMPLETE MASCULINE OUTFITS
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('INVARIANT: never emits incomplete masculine outfits', () => {
+  const SLOT_MAP: Record<string, string> = {
+    Tops: 'tops', Bottoms: 'bottoms', Skirts: 'bottoms', Shoes: 'shoes',
+    Dresses: 'dresses', Formalwear: 'dresses', TraditionalWear: 'dresses',
+    Outerwear: 'outerwear', Accessories: 'accessories', Jewelry: 'accessories',
+    Activewear: 'activewear', Swimwear: 'swimwear', Bags: 'accessories',
+    Undergarments: 'undergarments',
+  };
+
+  function assertMasculineComplete(capsule: TripCapsule) {
+    for (const outfit of capsule.outfits) {
+      const slots = new Set(outfit.items.map(i => SLOT_MAP[i.mainCategory] || 'other'));
+      const hasTop = slots.has('tops');
+      const hasBottomsEquiv = slots.has('bottoms') || slots.has('swimwear');
+      const hasShoes = slots.has('shoes');
+      expect({
+        outfitId: outfit.id,
+        activity: outfit.occasion,
+        hasTop,
+        hasBottomsEquiv,
+        hasShoes,
+        items: outfit.items.map(i => `${i.name} (${i.mainCategory})`),
+      }).toEqual(expect.objectContaining({
+        hasTop: true,
+        hasBottomsEquiv: true,
+        hasShoes: true,
+      }));
+    }
+  }
+
+  const activities: TripActivity[][] = [
+    ['Casual'],
+    ['Beach'],
+    ['Active'],
+    ['Business'],
+    ['Dinner'],
+    ['Beach', 'Casual'],
+    ['Active', 'Casual'],
+    ['Beach', 'Active', 'Dinner'],
+  ];
+
+  const hotWeather: DayWeather[] = [
+    {date: '2025-07-15', dayLabel: 'Tue', highF: 95, lowF: 78, condition: 'sunny', rainChance: 5},
+    {date: '2025-07-16', dayLabel: 'Wed', highF: 93, lowF: 77, condition: 'sunny', rainChance: 5},
+    {date: '2025-07-17', dayLabel: 'Thu', highF: 90, lowF: 75, condition: 'partly-cloudy', rainChance: 10},
+  ];
+
+  const coldWeather: DayWeather[] = [
+    {date: '2025-01-10', dayLabel: 'Fri', highF: 40, lowF: 28, condition: 'cloudy', rainChance: 20},
+    {date: '2025-01-11', dayLabel: 'Sat', highF: 38, lowF: 25, condition: 'snowy', rainChance: 40},
+  ];
+
+  // Large wardrobe — exercises all activity paths
+  const largeWardrobe: TripWardrobeItem[] = [
+    makeWardrobeItem({id: 't1', name: 'T-Shirt', main_category: 'Tops'}),
+    makeWardrobeItem({id: 't2', name: 'Polo', main_category: 'Tops'}),
+    makeWardrobeItem({id: 't3', name: 'Dress Shirt', main_category: 'Tops', formalityScore: 80}),
+    makeWardrobeItem({id: 't4', name: 'Linen Shirt', main_category: 'Tops'}),
+    makeWardrobeItem({id: 'b1', name: 'Chinos', main_category: 'Bottoms'}),
+    makeWardrobeItem({id: 'b2', name: 'Shorts', main_category: 'Bottoms', subcategory: 'Shorts'}),
+    makeWardrobeItem({id: 'b3', name: 'Trousers', main_category: 'Bottoms', formalityScore: 80}),
+    makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes'}),
+    makeWardrobeItem({id: 's2', name: 'Loafers', main_category: 'Shoes', formalityScore: 75}),
+    makeWardrobeItem({id: 's3', name: 'Sandals', main_category: 'Shoes'}),
+    makeWardrobeItem({id: 'sw1', name: 'Swim Trunks', main_category: 'Swimwear', subcategory: 'Swim Trunks'}),
+    makeWardrobeItem({id: 'ow1', name: 'Jacket', main_category: 'Outerwear'}),
+    makeWardrobeItem({id: 'ac1', name: 'Watch', main_category: 'Accessories'}),
+  ];
+
+  // Minimal wardrobe — tests starvation edge case
+  const minimalWardrobe: TripWardrobeItem[] = [
+    makeWardrobeItem({id: 't1', name: 'T-Shirt', main_category: 'Tops'}),
+    makeWardrobeItem({id: 'b1', name: 'Shorts', main_category: 'Bottoms', subcategory: 'Shorts'}),
+    makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes'}),
+  ];
+
+  for (const acts of activities) {
+    it(`${acts.join('+')} (hot): every masculine outfit has tops+bottoms+shoes`, () => {
+      const capsule = buildCapsule(largeWardrobe, hotWeather, acts, 'Home', 'masculine');
+      assertMasculineComplete(capsule);
+    });
+  }
+
+  it('cold weather + Business: every masculine outfit has tops+bottoms+shoes', () => {
+    const capsule = buildCapsule(largeWardrobe, coldWeather, ['Business'], 'Home', 'masculine');
+    assertMasculineComplete(capsule);
+  });
+
+  it('minimal wardrobe + Casual: every masculine outfit has tops+bottoms+shoes', () => {
+    const capsule = buildCapsule(minimalWardrobe, hotWeather, ['Casual'], 'Home', 'masculine');
+    assertMasculineComplete(capsule);
+  });
+
+  it('minimal wardrobe + Beach: every masculine outfit has tops+bottoms+shoes (or swimwear)', () => {
+    const beachMinimal: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Tank Top', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'sw1', name: 'Swim Trunks', main_category: 'Swimwear', subcategory: 'Swim Trunks'}),
+      makeWardrobeItem({id: 's1', name: 'Flip-Flops', main_category: 'Shoes'}),
+    ];
+    const capsule = buildCapsule(beachMinimal, hotWeather, ['Beach'], 'Home', 'masculine');
+    assertMasculineComplete(capsule);
   });
 });
