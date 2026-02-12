@@ -62,9 +62,13 @@ const PackingListSection = ({
       alignItems: 'center',
       gap: 12,
       paddingVertical: 10,
+      paddingHorizontal: 8,
+      marginHorizontal: -8,
+      borderRadius: 10,
       borderBottomWidth: tokens.borderWidth.hairline,
       borderBottomColor: theme.colors.surfaceBorder,
     },
+    itemRowPacked: {},
     checkbox: {
       width: 24,
       height: 24,
@@ -87,6 +91,9 @@ const PackingListSection = ({
       borderRadius: 8,
       backgroundColor: theme.colors.surface2,
       overflow: 'hidden',
+    },
+    thumbPacked: {
+      opacity: 0.4,
     },
     thumb: {
       width: '100%',
@@ -168,10 +175,15 @@ const PackingListSection = ({
         <View key={group.category}>
           <Text style={styles.groupHeader}>{group.category}</Text>
           {group.items.map(item => (
-            <View key={item.id} style={styles.itemRow}>
-              <AppleTouchFeedback
-                onPress={() => onTogglePacked(item.id)}
-                hapticStyle="impactLight">
+            <AppleTouchFeedback
+              key={item.id}
+              onPress={() => onTogglePacked(item.id)}
+              hapticStyle="impactLight">
+              <View
+                style={[
+                  styles.itemRow,
+                  item.packed && styles.itemRowPacked,
+                ]}>
                 <View
                   style={[
                     styles.checkbox,
@@ -183,63 +195,67 @@ const PackingListSection = ({
                     <Icon name="check" size={16} color="#FFFFFF" />
                   )}
                 </View>
-              </AppleTouchFeedback>
 
-              <View style={styles.thumbWrap}>
-                {item.imageUrl ? (
-                  <FastImage
-                    source={{
-                      uri: item.imageUrl,
-                      priority: FastImage.priority.low,
-                    }}
-                    style={styles.thumb}
-                    resizeMode={FastImage.resizeMode.contain}
-                  />
-                ) : null}
-              </View>
-
-              <View style={styles.itemInfo}>
-                <Text
+                <View
                   style={[
-                    styles.itemName,
-                    item.packed && styles.itemNamePacked,
-                  ]}
-                  numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <View style={styles.itemMeta}>
-                  {item.color && (
-                    <View
-                      style={[
-                        styles.colorDot,
-                        {backgroundColor: item.color},
-                      ]}
+                    styles.thumbWrap,
+                    item.packed && styles.thumbPacked,
+                  ]}>
+                  {item.imageUrl ? (
+                    <FastImage
+                      source={{
+                        uri: item.imageUrl,
+                        priority: FastImage.priority.low,
+                      }}
+                      style={styles.thumb}
+                      resizeMode={FastImage.resizeMode.contain}
                     />
-                  )}
-                  <View style={styles.locationBadge}>
-                    <Icon
-                      name="place"
-                      size={11}
-                      color={theme.colors.foreground2}
-                    />
-                    <Text style={styles.locationText}>
-                      {item.locationLabel}
-                    </Text>
+                  ) : null}
+                </View>
+
+                <View style={styles.itemInfo}>
+                  <Text
+                    style={[
+                      styles.itemName,
+                      item.packed && styles.itemNamePacked,
+                    ]}
+                    numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <View style={styles.itemMeta}>
+                    {item.color && (
+                      <View
+                        style={[
+                          styles.colorDot,
+                          {backgroundColor: item.color},
+                        ]}
+                      />
+                    )}
+                    <View style={styles.locationBadge}>
+                      <Icon
+                        name="place"
+                        size={11}
+                        color={theme.colors.foreground2}
+                      />
+                      <Text style={styles.locationText}>
+                        {item.locationLabel}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
 
-              <AppleTouchFeedback
-                onPress={() => onReplaceItem(item)}
-                style={styles.replaceBtn}
-                hapticStyle="impactLight">
-                <Icon
-                  name="swap-horiz"
-                  size={20}
-                  color={theme.colors.foreground2}
-                />
-              </AppleTouchFeedback>
-            </View>
+                <AppleTouchFeedback
+                  onPress={() => onReplaceItem(item)}
+                  style={styles.replaceBtn}
+                  hapticStyle="impactLight">
+                  <Icon
+                    name="swap-horiz"
+                    size={20}
+                    color={theme.colors.foreground2}
+                  />
+                </AppleTouchFeedback>
+              </View>
+            </AppleTouchFeedback>
           ))}
         </View>
       ))}
