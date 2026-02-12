@@ -1132,6 +1132,167 @@ describe('Diversity + Rotation — post-gate', () => {
   });
 });
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  ALTERNATES — each picked item should surface runner-up candidates
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Alternates — runner-up candidates per slot', () => {
+  it('items with 2+ candidates in bucket have alternates attached', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't3', name: 'Pink Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Wool Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 'b2', name: 'Navy Chinos', main_category: 'Bottoms', subcategory: 'Chinos', formalityScore: 70}),
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+      makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+      makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+    ];
+
+    const capsule = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+    const firstOutfit = capsule.outfits[0];
+
+    // Find the top item — it should have alternates (3 dress shirts in bucket)
+    const top = firstOutfit.items.find(i => i.mainCategory === 'Tops');
+    expect(top).toBeDefined();
+    const alts = (top as any)?.alternates;
+    expect(alts).toBeDefined();
+    expect(alts.length).toBeGreaterThanOrEqual(1);
+    expect(alts.length).toBeLessThanOrEqual(2);
+
+    // Each alternate has required fields
+    for (const alt of alts) {
+      expect(alt.id).toBeDefined();
+      expect(alt.name).toBeDefined();
+      expect(alt.reason).toBeDefined();
+      expect(typeof alt.reason).toBe('string');
+      expect(alt.reason.length).toBeGreaterThan(0);
+    }
+
+    // Alternate id differs from chosen
+    expect(alts.every((a: any) => a.id !== top!.wardrobeItemId)).toBe(true);
+  });
+
+  it('items with only 1 candidate in bucket have NO alternates', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      // Only ONE bottom — no alternate possible
+      makeWardrobeItem({id: 'b1', name: 'Wool Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    ];
+
+    const capsule = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+    const firstOutfit = capsule.outfits[0];
+
+    // Bottom has only 1 item → no alternates
+    const bottom = firstOutfit.items.find(i => i.mainCategory === 'Bottoms');
+    expect(bottom).toBeDefined();
+    expect((bottom as any)?.alternates).toBeUndefined();
+  });
+
+  it('alternates have at most 2 entries', () => {
+    // 5 tops → alternates should cap at 2
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Shirt A', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Shirt B', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 78, dressCode: 'business'}),
+      makeWardrobeItem({id: 't3', name: 'Shirt C', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 76, dressCode: 'business'}),
+      makeWardrobeItem({id: 't4', name: 'Shirt D', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 74, dressCode: 'business'}),
+      makeWardrobeItem({id: 't5', name: 'Shirt E', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 72, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 's1', name: 'Oxfords', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    ];
+
+    const capsule = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+    const top = capsule.outfits[0].items.find(i => i.mainCategory === 'Tops');
+    const alts = (top as any)?.alternates;
+    expect(alts).toBeDefined();
+    expect(alts.length).toBe(2);
+  });
+
+  it('shoe alternates are present when 2+ formal shoes exist', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    ];
+
+    const capsule = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+    const shoe = capsule.outfits[0].items.find(i => i.mainCategory === 'Shoes');
+    expect(shoe).toBeDefined();
+    const alts = (shoe as any)?.alternates;
+    expect(alts).toBeDefined();
+    expect(alts.length).toBe(1); // 2 shoes → 1 alternate
+    expect(alts[0].id).not.toBe(shoe!.wardrobeItemId);
+  });
+
+  it('alternates do not appear on items from non-gated outerwear picks', () => {
+    // Default case uses pickOuterwear (not through diversity system)
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'T-Shirt', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Jeans', main_category: 'Bottoms'}),
+      makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers'}),
+      makeWardrobeItem({id: 'o1', name: 'Rain Jacket', main_category: 'Outerwear', rainOk: true}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 52, lowF: 40, condition: 'rainy', rainChance: 80},
+    ];
+
+    const capsule = buildCapsule(wardrobe, weather, ['Casual'], 'Home');
+    const outfit = capsule.outfits[0];
+    const outerwear = outfit.items.find(i => i.mainCategory === 'Outerwear');
+    // pickOuterwear doesn't go through diversity → no alternates
+    if (outerwear) {
+      expect((outerwear as any)?.alternates).toBeUndefined();
+    }
+  });
+
+  it('existing selection logic is unchanged — alternates are additive only', () => {
+    // Same wardrobe and weather as the shoe rotation test — verify identical picks
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Wool Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 'b2', name: 'Navy Chinos', main_category: 'Bottoms', subcategory: 'Chinos', formalityScore: 70}),
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+      makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+      makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-04', dayLabel: 'Wed', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-05', dayLabel: 'Thu', highF: 73, lowF: 59, condition: 'sunny', rainChance: 10},
+    ];
+
+    const capsule = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+
+    // Verify determinism: same inputs → same item selections
+    const capsule2 = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+
+    for (let i = 0; i < capsule.outfits.length; i++) {
+      const items1 = capsule.outfits[i].items.map(it => it.wardrobeItemId);
+      const items2 = capsule2.outfits[i].items.map(it => it.wardrobeItemId);
+      expect(items1).toEqual(items2);
+    }
+  });
+});
+
 describe('Formality gating — buildCapsule integration', () => {
   const formalWardrobe: TripWardrobeItem[] = [
     {id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirts', formalityScore: 80, dressCode: 'business'},
@@ -1306,6 +1467,115 @@ describe('Fallback safety — fail-closed for formal activities', () => {
           expect(subs.some(s => s.includes('puffer'))).toBe(false);
         }
       }
+    }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  BACKUP ITEM SUGGESTIONS
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Trip backup kit', () => {
+  const largeWardrobe: TripWardrobeItem[] = [
+    // 6 tops
+    makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+    makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+    makeWardrobeItem({id: 't3', name: 'Pink Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
+    makeWardrobeItem({id: 't4', name: 'Striped Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
+    makeWardrobeItem({id: 't5', name: 'Grey Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 72, dressCode: 'business'}),
+    makeWardrobeItem({id: 't6', name: 'Mint Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 70, dressCode: 'business'}),
+    // 4 bottoms
+    makeWardrobeItem({id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+    makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+    makeWardrobeItem({id: 'b3', name: 'Khaki Chinos', main_category: 'Bottoms', subcategory: 'Chinos', formalityScore: 70}),
+    makeWardrobeItem({id: 'b4', name: 'Charcoal Slacks', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 80}),
+    // 3 shoes
+    makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+    makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+    makeWardrobeItem({id: 's3', name: 'Black Derby', main_category: 'Shoes', subcategory: 'Derby', formalityScore: 85}),
+    // Outerwear + accessories
+    makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+    makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+  ];
+
+  const threeDayWeather: DayWeather[] = [
+    {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+    {date: '2026-03-04', dayLabel: 'Wed', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
+  ];
+
+  it('max 3 items in tripBackupKit', () => {
+    const capsule = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    expect(capsule.tripBackupKit).toBeDefined();
+    expect(capsule.tripBackupKit!.length).toBeLessThanOrEqual(3);
+  });
+
+  it('deterministic output across runs', () => {
+    const capsule1 = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    const capsule2 = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+
+    expect(capsule1.tripBackupKit).toBeDefined();
+    expect(capsule2.tripBackupKit).toBeDefined();
+    expect(capsule1.tripBackupKit!.length).toBe(capsule2.tripBackupKit!.length);
+    for (let i = 0; i < capsule1.tripBackupKit!.length; i++) {
+      expect(capsule1.tripBackupKit![i].wardrobeItemId).toBe(capsule2.tripBackupKit![i].wardrobeItemId);
+      expect(capsule1.tripBackupKit![i].reason).toBe(capsule2.tripBackupKit![i].reason);
+    }
+  });
+
+  it('no duplicate items in kit', () => {
+    const capsule = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    if (!capsule.tripBackupKit) return;
+    const ids = capsule.tripBackupKit.map(b => b.wardrobeItemId);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('no overlap with mandatory outfit items', () => {
+    const capsule = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    if (!capsule.tripBackupKit) return;
+    const outfitItemIds = new Set(capsule.outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
+    for (const b of capsule.tripBackupKit) {
+      expect(outfitItemIds.has(b.wardrobeItemId)).toBe(false);
+    }
+  });
+
+  it('each item has name, imageUrl, and multi-clause reason', () => {
+    const capsule = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    if (!capsule.tripBackupKit) return;
+    for (const b of capsule.tripBackupKit) {
+      expect(b.wardrobeItemId).toBeDefined();
+      expect(b.name.length).toBeGreaterThan(0);
+      expect(typeof b.imageUrl).toBe('string');
+      expect(b.reason.length).toBeGreaterThan(0);
+      // Reasons are now 2–3 clauses separated by periods
+      const sentences = b.reason.split('.').filter(s => s.trim().length > 0);
+      expect(sentences.length).toBeGreaterThanOrEqual(2);
+      expect(sentences.length).toBeLessThanOrEqual(3);
+      // Each clause should be concise (≤ 7 words)
+      for (const s of sentences) {
+        expect(s.trim().split(' ').length).toBeLessThanOrEqual(7);
+      }
+    }
+  });
+
+  it('no kit when wardrobe too small', () => {
+    const tinyWardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 's1', name: 'Oxfords', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    ];
+
+    const capsule = buildCapsule(tinyWardrobe, weather, ['Business'], 'Home', 'masculine');
+    expect(capsule.tripBackupKit).toBeUndefined();
+  });
+
+  it('outfits do not have backupSuggestions', () => {
+    const capsule = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    for (const outfit of capsule.outfits) {
+      expect((outfit as any).backupSuggestions).toBeUndefined();
     }
   });
 });

@@ -4,17 +4,19 @@ import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
-import {PackingGroup, TripPackingItem} from '../../types/trips';
+import {BackupSuggestion, PackingGroup, TripPackingItem} from '../../types/trips';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
 
 type Props = {
   packingList: PackingGroup[];
+  tripBackupKit?: BackupSuggestion[];
   onTogglePacked: (itemId: string) => void;
   onReplaceItem: (item: TripPackingItem) => void;
 };
 
 const PackingListSection = ({
   packingList,
+  tripBackupKit,
   onTogglePacked,
   onReplaceItem,
 }: Props) => {
@@ -58,10 +60,10 @@ const PackingListSection = ({
     itemRow: {
       flexDirection: 'row',
       alignItems: 'center',
+      gap: 12,
       paddingVertical: 10,
       borderBottomWidth: tokens.borderWidth.hairline,
       borderBottomColor: theme.colors.surfaceBorder,
-      gap: 12,
     },
     checkbox: {
       width: 24,
@@ -128,6 +130,29 @@ const PackingListSection = ({
     replaceBtn: {
       padding: 6,
     },
+    backupHeader: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.colors.foreground,
+      marginTop: tokens.spacing.lg,
+      marginBottom: tokens.spacing.xs,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    backupRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 10,
+      borderBottomWidth: tokens.borderWidth.hairline,
+      borderBottomColor: theme.colors.surfaceBorder,
+    },
+    backupLabel: {
+      fontSize: 11,
+      fontWeight: '500',
+      color: theme.colors.foreground2,
+      marginTop: 2,
+    },
   });
 
   return (
@@ -185,7 +210,10 @@ const PackingListSection = ({
                 <View style={styles.itemMeta}>
                   {item.color && (
                     <View
-                      style={[styles.colorDot, {backgroundColor: item.color}]}
+                      style={[
+                        styles.colorDot,
+                        {backgroundColor: item.color},
+                      ]}
                     />
                   )}
                   <View style={styles.locationBadge}>
@@ -215,6 +243,34 @@ const PackingListSection = ({
           ))}
         </View>
       ))}
+
+      {tripBackupKit && tripBackupKit.length > 0 && (
+        <View>
+          <Text style={styles.backupHeader}>Backup Items</Text>
+          {tripBackupKit.map(b => (
+            <View key={b.wardrobeItemId} style={styles.backupRow}>
+              <View style={styles.thumbWrap}>
+                {b.imageUrl ? (
+                  <FastImage
+                    source={{
+                      uri: b.imageUrl,
+                      priority: FastImage.priority.low,
+                    }}
+                    style={styles.thumb}
+                    resizeMode={FastImage.resizeMode.contain}
+                  />
+                ) : null}
+              </View>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName} numberOfLines={1}>
+                  {b.name}
+                </Text>
+                <Text style={styles.backupLabel}>(backup)</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 };

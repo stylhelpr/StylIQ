@@ -3,16 +3,18 @@ import {View, Text, ScrollView, StyleSheet, Dimensions} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
-import {CapsuleOutfit} from '../../types/trips';
+import {CapsuleOutfit, BackupSuggestion} from '../../types/trips';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.75;
 const THUMB_SIZE = (CARD_WIDTH - 48 - 10) / 2;
+const BACKUP_KIT_IMG = 70;
 
 type Props = {
   outfits: CapsuleOutfit[];
+  tripBackupKit?: BackupSuggestion[];
 };
 
-const OutfitCarousel = ({outfits}: Props) => {
+const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
   const {theme} = useAppTheme();
 
   const styles = StyleSheet.create({
@@ -116,6 +118,56 @@ const OutfitCarousel = ({outfits}: Props) => {
       fontSize: 14,
       color: theme.colors.foreground2,
     },
+    backupKitSection: {
+      paddingHorizontal: tokens.spacing.md,
+      marginTop: tokens.spacing.lg,
+    },
+    backupKitTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.colors.foreground,
+      marginBottom: 4,
+    },
+    backupKitSubtitle: {
+      fontSize: 12,
+      fontWeight: '400',
+      color: theme.colors.foreground2,
+      marginBottom: 14,
+    },
+    backupKitItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 14,
+      paddingVertical: 12,
+    },
+    backupKitDivider: {
+      height: tokens.borderWidth.hairline,
+      backgroundColor: theme.colors.surfaceBorder,
+    },
+    backupKitImage: {
+      width: BACKUP_KIT_IMG,
+      height: BACKUP_KIT_IMG,
+      borderRadius: tokens.borderRadius.md,
+      backgroundColor: theme.colors.surface2,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.surfaceBorder,
+    },
+    backupKitInfo: {
+      flex: 1,
+      paddingTop: 2,
+    },
+    backupKitName: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.colors.foreground,
+    },
+    backupKitReason: {
+      fontSize: 13,
+      fontWeight: '400',
+      color: theme.colors.foreground2,
+      marginTop: 4,
+      lineHeight: 18,
+    },
   });
 
   if (outfits.length === 0) {
@@ -129,57 +181,92 @@ const OutfitCarousel = ({outfits}: Props) => {
   }
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
-      decelerationRate="fast"
-      snapToInterval={CARD_WIDTH + 14}
-      snapToAlignment="start">
-      {outfits.map(outfit => {
-        const isSupport = (outfit.type ?? 'anchor') === 'support';
-        return (
-        <View key={outfit.id} style={isSupport ? styles.supportCard : styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.headerRow}>
-              <Text style={styles.dayLabel}>
-                {outfit.dayLabel}{isSupport ? ' +' : ''}
+    <View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        decelerationRate="fast"
+        snapToInterval={CARD_WIDTH + 14}
+        snapToAlignment="start">
+        {outfits.map(outfit => {
+          const isSupport = (outfit.type ?? 'anchor') === 'support';
+          return (
+          <View key={outfit.id} style={isSupport ? styles.supportCard : styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.headerRow}>
+                <Text style={styles.dayLabel}>
+                  {outfit.dayLabel}{isSupport ? ' +' : ''}
+                </Text>
+                {outfit.occasion ? (
+                  <View style={styles.occasionBadge}>
+                    <Text style={styles.occasionText}>{outfit.occasion}</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={styles.itemCount}>
+                {outfit.items.length} item{outfit.items.length !== 1 ? 's' : ''}
               </Text>
-              {outfit.occasion ? (
-                <View style={styles.occasionBadge}>
-                  <Text style={styles.occasionText}>{outfit.occasion}</Text>
-                </View>
-              ) : null}
             </View>
-            <Text style={styles.itemCount}>
-              {outfit.items.length} item{outfit.items.length !== 1 ? 's' : ''}
-            </Text>
+            <View style={styles.grid}>
+              {outfit.items.slice(0, 6).map(item => (
+                <View key={item.id} style={styles.thumbWrap}>
+                  {item.imageUrl ? (
+                    <FastImage
+                      source={{
+                        uri: item.imageUrl,
+                        priority: FastImage.priority.normal,
+                      }}
+                      style={styles.thumb}
+                      resizeMode={FastImage.resizeMode.contain}
+                    />
+                  ) : null}
+                  <View style={styles.itemLabel}>
+                    <Text style={styles.itemName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
-          <View style={styles.grid}>
-            {outfit.items.slice(0, 6).map(item => (
-              <View key={item.id} style={styles.thumbWrap}>
-                {item.imageUrl ? (
+          );
+        })}
+      </ScrollView>
+      {tripBackupKit && tripBackupKit.length > 0 && (
+        <View style={styles.backupKitSection}>
+          <Text style={styles.backupKitTitle}>
+            {'🧳 Smart Backup Kit'}
+          </Text>
+          <Text style={styles.backupKitSubtitle}>
+            Reusable safety pieces for your whole trip
+          </Text>
+          {tripBackupKit.map((b, idx) => (
+            <React.Fragment key={b.wardrobeItemId}>
+              {idx > 0 && <View style={styles.backupKitDivider} />}
+              <View style={styles.backupKitItem}>
+                {b.imageUrl ? (
                   <FastImage
                     source={{
-                      uri: item.imageUrl,
-                      priority: FastImage.priority.normal,
+                      uri: b.imageUrl,
+                      priority: FastImage.priority.low,
                     }}
-                    style={styles.thumb}
+                    style={styles.backupKitImage}
                     resizeMode={FastImage.resizeMode.contain}
                   />
-                ) : null}
-                <View style={styles.itemLabel}>
-                  <Text style={styles.itemName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
+                ) : (
+                  <View style={styles.backupKitImage} />
+                )}
+                <View style={styles.backupKitInfo}>
+                  <Text style={styles.backupKitName}>{b.name}</Text>
+                  <Text style={styles.backupKitReason}>{b.reason}</Text>
                 </View>
               </View>
-            ))}
-          </View>
+            </React.Fragment>
+          ))}
         </View>
-        );
-      })}
-    </ScrollView>
+      )}
+    </View>
   );
 };
 

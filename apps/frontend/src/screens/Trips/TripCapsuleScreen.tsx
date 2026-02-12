@@ -519,12 +519,13 @@ didRebuildRef.current = true;
             Designed for key moments. We've packed everything else below.
           </Text>
         </View>
-        <OutfitCarousel outfits={capsule.outfits} />
+        <OutfitCarousel outfits={capsule.outfits} tripBackupKit={capsule.tripBackupKit} />
 
         {/* Packing List */}
         <View style={{marginTop: tokens.spacing.lg}}>
           <PackingListSection
             packingList={capsule.packingList}
+            tripBackupKit={capsule.tripBackupKit}
             onTogglePacked={handleTogglePacked}
             onReplaceItem={setReplaceItem}
           />

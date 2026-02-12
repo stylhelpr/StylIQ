@@ -81,6 +81,13 @@ export type TripPackingItem = {
   packed: boolean;
 };
 
+export type BackupSuggestion = {
+  wardrobeItemId: string;
+  name: string;
+  imageUrl: string;
+  reason: string;
+};
+
 export type CapsuleOutfit = {
   id: string;
   dayLabel: string;
@@ -100,6 +107,7 @@ export type TripCapsule = {
   packingList: PackingGroup[];
   version?: number;
   fingerprint?: string;
+  tripBackupKit?: BackupSuggestion[];
 };
 
 export type Trip = {
