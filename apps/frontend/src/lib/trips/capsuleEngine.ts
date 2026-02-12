@@ -28,7 +28,7 @@ import {
 } from './logging/tripAI.logger';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 8;
+export const CAPSULE_VERSION = 9;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ██  GLOBAL CLIMATE GATING (minimal layer)
@@ -196,6 +196,15 @@ export function gatePool(
 const DEFAULT_UNKNOWN_FORMALITY = 30;
 
 /**
+ * Single source of truth for an item's effective formality score (0–100).
+ * Replaces all scattered `item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY`
+ * and `item.formalityScore ?? 50` patterns.
+ */
+export function getNormalizedFormality(item: TripWardrobeItem): number {
+  return item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY;
+}
+
+/**
  * Derive the minimum formalityScore an item needs to be acceptable for a trip.
  * Based on the trip's highest-formality activity, not garment names.
  *   formality 0–1 (Casual/Sightseeing/Active): no floor (all items pass)
@@ -226,7 +235,7 @@ export function gateBackupPool(
   return items.filter(item => {
     const flags = inferGarmentFlags(item);
     const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
-    const effectiveFormality = item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY;
+    const effectiveFormality = getNormalizedFormality(item);
 
     // GATE 1 — Presentation (never relax)
     if (isMasculine && flags.isFeminineOnly) {
@@ -286,7 +295,7 @@ export function gateBackupPoolFallback(
   return items.filter(item => {
     const flags = inferGarmentFlags(item);
     const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
-    const effectiveFormality = item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY;
+    const effectiveFormality = getNormalizedFormality(item);
 
     // GATE 1 — Presentation (never relax)
     if (isMasculine && flags.isFeminineOnly) {
@@ -519,7 +528,7 @@ function activityScore(
   let score = 0;
   const occasions = (item.occasionTags || []).map(t => t.toLowerCase());
   const dressCode = (item.dressCode || '').toLowerCase();
-  const formality = item.formalityScore ?? 50;
+  const formality = getNormalizedFormality(item);
 
   for (const activity of activities) {
     switch (activity) {
@@ -647,59 +656,26 @@ function planDaySchedules(
 
 // ── Outfit building helpers ──
 
-function pickFromBucket(
-  bucket: TripWardrobeItem[],
-  dayIndex: number,
-  items: TripPackingItem[],
-  locationLabel: string,
-): void {
-  if (bucket.length === 0) return;
-  const idx = dayIndex % bucket.length;
-  items.push(toPackingItem(bucket[idx], locationLabel));
-}
-
-function pickFromBucketReuse(
-  bucket: TripWardrobeItem[],
-  dayIndex: number,
-  items: TripPackingItem[],
-  locationLabel: string,
-  usageTracker: Map<string, number[]>,
-): void {
-  if (bucket.length === 0) return;
-  const reusable = bucket.filter(b => usageTracker.has(b.id));
-  if (reusable.length > 0) {
-    const idx = dayIndex % reusable.length;
-    items.push(toPackingItem(reusable[idx], locationLabel));
-    return;
-  }
-  const idx = dayIndex % bucket.length;
-  items.push(toPackingItem(bucket[idx], locationLabel));
-}
-
-function pickShoe(
-  selectedShoes: TripWardrobeItem[],
-  dayIndex: number,
-  items: TripPackingItem[],
-  locationLabel: string,
-): void {
-  if (selectedShoes.length === 0) return;
-  const shoe = selectedShoes[dayIndex % selectedShoes.length];
-  items.push(toPackingItem(shoe, locationLabel));
-}
-
 function pickOuterwear(
-  selectedOuterwear: TripWardrobeItem[],
+  outerwear: TripWardrobeItem[],
   dayWeather: DayWeather | undefined,
   items: TripPackingItem[],
   locationLabel: string,
+  usageTracker: Map<string, number[]>,
+  dayIndex: number,
+  numDays: number,
 ): void {
-  if (selectedOuterwear.length === 0 || !dayWeather) return;
+  if (outerwear.length === 0 || !dayWeather) return;
   if (dayWeather.lowF < 55 || dayWeather.rainChance > 50) {
-    const outer =
-      dayWeather.rainChance > 50
-        ? selectedOuterwear.find(i => i.rainOk) || selectedOuterwear[0]
-        : selectedOuterwear[0];
-    items.push(toPackingItem(outer, locationLabel));
+    // Prefer rain-ready item if rainy
+    const candidates = dayWeather.rainChance > 50
+      ? [outerwear.find(i => i.rainOk), ...outerwear].filter(Boolean) as TripWardrobeItem[]
+      : outerwear;
+    const maxUses = Math.ceil(numDays / outerwear.length) + 1;
+    const result = weightedPick(candidates, usageTracker, dayIndex, maxUses);
+    if (result) {
+      items.push(toPackingItem(result.picked, locationLabel));
+    }
   }
 }
 
@@ -730,93 +706,6 @@ type AlternateItem = {
   reason: string;
 };
 
-type DiversityResult = {
-  ordered: TripWardrobeItem[];
-  candidates: CandidateInfo[];
-};
-
-/**
- * Reorders a gated bucket so that `dayIndex % len` lands on the best
- * (least-used, longest-cooldown) candidate.
- *
- * 1. Filter items exceeding maxUsesPerItem.
- * 2. Score each item: useCount * 50 + recency cooldown.
- * 3. Sort ascending (best first).
- * 4. Rotation-align: place best candidate at index (dayIndex % len).
- *
- * usageTracker maps TripWardrobeItem.id → array of dayIndexes where used.
- */
-function applyDiversityAndRotate(
-  items: TripWardrobeItem[],
-  dayIndex: number,
-  usageTracker: Map<string, number[]>,
-  maxUsesPerItem: number,
-  debugLabel?: string,
-): DiversityResult {
-  if (items.length <= 1) {
-    if (__DEV__ && debugLabel) {
-      console.log(
-        `[TripCapsule][DIVERSITY] day=${dayIndex} ${debugLabel}: only ${items.length} eligible after gating`,
-      );
-    }
-    return {ordered: items, candidates: []};
-  }
-
-  // 1. Filter items exceeding max uses
-  let eligible = items.filter(item => {
-    const uses = (usageTracker.get(item.id) || []).length;
-    return uses < maxUsesPerItem;
-  });
-  if (eligible.length === 0) eligible = [...items]; // safety: all maxed → reset
-
-  // 2. Score each item (lower = better candidate)
-  const scored = eligible.map(item => {
-    const uses = usageTracker.get(item.id) || [];
-    const useCount = uses.length;
-    const lastUsedDay = uses.length > 0 ? uses[uses.length - 1] : -Infinity;
-    const daysSinceUse = dayIndex - lastUsedDay;
-    const cooldownPenalty =
-      daysSinceUse <= 1 ? 40 :
-      daysSinceUse === 2 ? 20 :
-      daysSinceUse === 3 ? 10 : 0;
-    const penalty = useCount * 50 + cooldownPenalty;
-    return {item, penalty, useCount, cooldownPenalty};
-  });
-
-  // 3. Sort by penalty ascending — stable sort preserves original order for ties
-  scored.sort((a, b) => a.penalty - b.penalty);
-
-  // 4. Rotation alignment: place best candidate at (dayIndex % len)
-  const len = scored.length;
-  const targetIdx = dayIndex % len;
-  const aligned: TripWardrobeItem[] = new Array(len);
-  for (let i = 0; i < len; i++) {
-    aligned[(targetIdx + i) % len] = scored[i].item;
-  }
-
-  // 5. __DEV__ diagnostic: per-pick proof of diversity
-  if (__DEV__ && debugLabel) {
-    const picked = scored[0]; // best candidate (placed at targetIdx)
-    const top3 = scored.slice(0, 3);
-    console.log(
-      `[TripCapsule][DIVERSITY] day=${dayIndex} ${debugLabel}: ` +
-      `bucketLen=${len} moduloIdx=${targetIdx} ` +
-      `picked=${picked.item.name}(${picked.item.id}) penalty=${picked.penalty}`,
-      {
-        candidates: top3.map(s => ({
-          name: s.item.name,
-          id: s.item.id,
-          penalty: s.penalty,
-          uses: s.useCount,
-          cooldown: s.cooldownPenalty,
-        })),
-      },
-    );
-  }
-
-  return {ordered: aligned, candidates: scored};
-}
-
 /**
  * Produces a human-readable reason explaining why an alternate was
  * not selected over the chosen item.  Deterministic — no LLM calls.
@@ -837,7 +726,7 @@ function explainAlternate(alt: CandidateInfo, chosen: CandidateInfo): string {
 /**
  * Attaches up to `maxAlts` alternate items to the most-recently
  * pushed TripPackingItem.  Uses the scored candidate list from
- * applyDiversityAndRotate to find the next-best options.
+ * weightedPick to find the next-best options.
  */
 function annotateLastPick(
   items: TripPackingItem[],
@@ -872,6 +761,69 @@ function annotateLastPick(
       );
     }
   }
+}
+
+// ── Weighted pick (replaces all modulo item selection) ──
+
+type WeightedPickResult = {
+  picked: TripWardrobeItem;
+  runners: CandidateInfo[];
+};
+
+/**
+ * Scores candidates and picks the best item. NO modulo rotation.
+ *
+ * Score = qualityScore * 10 - timesUsed * 20 - recentlyUsedPenalty
+ *
+ * qualityFn: optional per-item quality score (defaults to 0).
+ *            For outfit building: activityScore(item, activities).
+ *            For reserves: compatibleDays.
+ */
+function weightedPick(
+  candidates: TripWardrobeItem[],
+  usageTracker: Map<string, number[]>,
+  dayIndex: number,
+  maxUsesPerItem: number,
+  qualityFn?: (item: TripWardrobeItem) => number,
+  debugLabel?: string,
+): WeightedPickResult | null {
+  if (candidates.length === 0) return null;
+
+  // 1. Filter items exceeding max uses
+  let eligible = candidates.filter(item => {
+    const uses = (usageTracker.get(item.id) || []).length;
+    return uses < maxUsesPerItem;
+  });
+  if (eligible.length === 0) eligible = [...candidates]; // safety reset
+
+  // 2. Score each candidate
+  const scored: CandidateInfo[] = eligible.map(item => {
+    const uses = usageTracker.get(item.id) || [];
+    const useCount = uses.length;
+    const lastUsedDay = uses.length > 0 ? uses[uses.length - 1] : -Infinity;
+    const daysSinceUse = dayIndex - lastUsedDay;
+    const cooldownPenalty =
+      daysSinceUse <= 1 ? 40 :
+      daysSinceUse === 2 ? 20 :
+      daysSinceUse === 3 ? 10 : 0;
+    const quality = qualityFn ? qualityFn(item) : 0;
+    const penalty = -(quality * 10) + useCount * 20 + cooldownPenalty;
+    return { item, penalty, useCount, cooldownPenalty };
+  });
+
+  // 3. Sort by penalty ascending (lowest = best) — id tiebreak for determinism
+  scored.sort((a, b) => a.penalty - b.penalty || a.item.id.localeCompare(b.item.id));
+
+  if (__DEV__ && debugLabel) {
+    const top = scored[0];
+    console.log(
+      `[TripCapsule][WPICK] day=${dayIndex} ${debugLabel}: ` +
+      `picked=${top.item.name}(${top.item.id}) penalty=${top.penalty} ` +
+      `uses=${top.useCount} cooldown=${top.cooldownPenalty}`,
+    );
+  }
+
+  return { picked: scored[0].item, runners: scored };
 }
 
 // ── Wardrobe presentation detection ──
@@ -990,146 +942,134 @@ function buildOutfitForActivity(
     finalShoes = selectedShoes;
   }
 
-  // ── Apply diversity + rotation alignment (POST-GATE) ──
+  // ── Weighted pick helpers (replaces modulo rotation) ──
   const maxUsesForBucket = (len: number) =>
     len > 0 ? Math.ceil(numDays / len) + 1 : Infinity;
-  const gatedCandidates = {} as Record<CategoryBucket, CandidateInfo[]>;
-  for (const key of Object.keys(gatedBuckets) as CategoryBucket[]) {
-    const dr = applyDiversityAndRotate(
-      gatedBuckets[key], dayIndex, usageTracker,
-      maxUsesForBucket(gatedBuckets[key].length),
-      __DEV__ ? `${activity}/${key}` : undefined,
+
+  // Quality function: activity-specific scoring
+  const qualityFn = (item: TripWardrobeItem) => activityScore(item, [activity]);
+
+  const pickW = (bucket: TripWardrobeItem[], label?: string): WeightedPickResult | null => {
+    return weightedPick(
+      bucket, usageTracker, dayIndex,
+      maxUsesForBucket(bucket.length),
+      qualityFn, __DEV__ ? `${activity}/${label}` : undefined,
     );
-    gatedBuckets[key] = dr.ordered;
-    gatedCandidates[key] = dr.candidates;
-  }
-  const shoeResult = applyDiversityAndRotate(
-    finalShoes, dayIndex, usageTracker,
-    maxUsesForBucket(finalShoes.length),
-    __DEV__ ? `${activity}/shoes` : undefined,
-  );
-  finalShoes = shoeResult.ordered;
-  const shoeCandidates = shoeResult.candidates;
-
-  const pick = mode === 'support'
-    ? (b: TripWardrobeItem[], idx: number, arr: TripPackingItem[], loc: string) =>
-        pickFromBucketReuse(b, idx, arr, loc, usageTracker)
-    : pickFromBucket;
-
-  // Wrappers that annotate the last-picked item with alternates
-  const pickA = (bucket: TripWardrobeItem[], candidates: CandidateInfo[]) => {
-    const prevLen = items.length;
-    pick(bucket, dayIndex, items, locationLabel);
-    if (items.length > prevLen) annotateLastPick(items, candidates);
   };
-  const pickShoeA = () => {
-    const prevLen = items.length;
-    pickShoe(finalShoes, dayIndex, items, locationLabel);
-    if (items.length > prevLen) annotateLastPick(items, shoeCandidates);
+
+  // Wrapper that picks, pushes to items, and annotates alternates
+  const pickAndPush = (bucket: TripWardrobeItem[], label?: string) => {
+    const result = pickW(bucket, label);
+    if (!result) return;
+    items.push(toPackingItem(result.picked, locationLabel));
+    annotateLastPick(items, result.runners);
+  };
+
+  const pickShoeW = () => {
+    const result = weightedPick(
+      finalShoes, usageTracker, dayIndex,
+      maxUsesForBucket(finalShoes.length),
+      qualityFn, __DEV__ ? `${activity}/shoes` : undefined,
+    );
+    if (!result) return;
+    items.push(toPackingItem(result.picked, locationLabel));
+    annotateLastPick(items, result.runners);
   };
 
   switch (activity) {
     case 'Beach': {
       if (gatedBuckets.swimwear.length > 0) {
-        const swimIdx = dayIndex % gatedBuckets.swimwear.length;
-        items.push(toPackingItem(gatedBuckets.swimwear[swimIdx], locationLabel));
-        annotateLastPick(items, gatedCandidates.swimwear);
+        pickAndPush(gatedBuckets.swimwear, 'swimwear');
       } else {
-        pickA(gatedBuckets.tops, gatedCandidates.tops);
+        pickAndPush(gatedBuckets.tops, 'tops');
       }
-      pickShoeA();
+      pickShoeW();
       if (mode === 'anchor') {
-        pickA(gatedBuckets.accessories, gatedCandidates.accessories);
+        pickAndPush(gatedBuckets.accessories, 'accessories');
       }
       break;
     }
     case 'Active': {
       if (gatedBuckets.activewear.length > 0) {
-        const firstIdx = dayIndex % gatedBuckets.activewear.length;
-        const first = gatedBuckets.activewear[firstIdx];
-        items.push(toPackingItem(first, locationLabel));
-        annotateLastPick(items, gatedCandidates.activewear);
-        // Try second activewear item for bottom (disambiguate upper vs lower)
-        if (gatedBuckets.activewear.length > 1) {
-          const secondIdx = (dayIndex + 1) % gatedBuckets.activewear.length;
-          const second = gatedBuckets.activewear[secondIdx];
-          if (second.id !== first.id) {
-            // Avoid 2 upper-body activewear items; fall back to regular bottoms
-            if (isUpperActivewear(first) && isUpperActivewear(second)) {
-              pickA(gatedBuckets.bottoms, gatedCandidates.bottoms);
-            } else {
-              items.push(toPackingItem(second, locationLabel));
-              annotateLastPick(items, gatedCandidates.activewear);
+        const firstResult = pickW(gatedBuckets.activewear, 'activewear-1');
+        if (firstResult) {
+          items.push(toPackingItem(firstResult.picked, locationLabel));
+          annotateLastPick(items, firstResult.runners);
+          // Pick second item from remaining (exclude first)
+          if (gatedBuckets.activewear.length > 1) {
+            const remaining = gatedBuckets.activewear.filter(i => i.id !== firstResult.picked.id);
+            if (remaining.length > 0) {
+              const first = firstResult.picked;
+              if (isUpperActivewear(first) && remaining.every(r => isUpperActivewear(r))) {
+                pickAndPush(gatedBuckets.bottoms, 'bottoms');
+              } else {
+                const secondResult = pickW(remaining, 'activewear-2');
+                if (secondResult) {
+                  items.push(toPackingItem(secondResult.picked, locationLabel));
+                  annotateLastPick(items, secondResult.runners);
+                }
+              }
             }
           }
         }
       } else {
-        pickA(gatedBuckets.tops, gatedCandidates.tops);
-        pickA(gatedBuckets.bottoms, gatedCandidates.bottoms);
+        pickAndPush(gatedBuckets.tops, 'tops');
+        pickAndPush(gatedBuckets.bottoms, 'bottoms');
       }
-      pickShoeA();
+      pickShoeW();
       break;
     }
     case 'Business': {
-      pickA(gatedBuckets.tops, gatedCandidates.tops);
-      pickA(gatedBuckets.bottoms, gatedCandidates.bottoms);
-      pickShoeA();
+      pickAndPush(gatedBuckets.tops, 'tops');
+      pickAndPush(gatedBuckets.bottoms, 'bottoms');
+      pickShoeW();
       if (mode === 'anchor' && gatedBuckets.outerwear.length > 0) {
-        const outerIdx = dayIndex % gatedBuckets.outerwear.length;
-        items.push(toPackingItem(gatedBuckets.outerwear[outerIdx], locationLabel));
-        annotateLastPick(items, gatedCandidates.outerwear);
+        pickAndPush(gatedBuckets.outerwear, 'outerwear');
       }
       break;
     }
     case 'Formal': {
       if (presentation !== 'masculine' && gatedBuckets.dresses.length > 0) {
-        const formalDress = gatedBuckets.dresses.find(
-          d => (d.formalityScore ?? 50) >= 70,
+        // Quality-weighted: prefer highest-formality dress
+        const formalQuality = (d: TripWardrobeItem) => getNormalizedFormality(d);
+        const dressResult = weightedPick(
+          gatedBuckets.dresses, usageTracker, dayIndex,
+          maxUsesForBucket(gatedBuckets.dresses.length),
+          formalQuality,
         );
-        if (formalDress) {
-          items.push(toPackingItem(formalDress, locationLabel));
-        } else {
-          items.push(toPackingItem(gatedBuckets.dresses[0], locationLabel));
+        if (dressResult) {
+          items.push(toPackingItem(dressResult.picked, locationLabel));
+          annotateLastPick(items, dressResult.runners);
         }
-        annotateLastPick(items, gatedCandidates.dresses);
       } else {
-        pickA(gatedBuckets.tops, gatedCandidates.tops);
-        pickA(gatedBuckets.bottoms, gatedCandidates.bottoms);
+        pickAndPush(gatedBuckets.tops, 'tops');
+        pickAndPush(gatedBuckets.bottoms, 'bottoms');
       }
-      pickShoeA();
-      pickA(gatedBuckets.accessories, gatedCandidates.accessories);
+      pickShoeW();
+      pickAndPush(gatedBuckets.accessories, 'accessories');
       break;
     }
     case 'Dinner': {
-      if (
-        presentation !== 'masculine' &&
-        gatedBuckets.dresses.length > 0 &&
-        dayIndex % 2 === 0
-      ) {
-        const dressIdx =
-          Math.floor(dayIndex / 2) % gatedBuckets.dresses.length;
-        items.push(
-          toPackingItem(gatedBuckets.dresses[dressIdx], locationLabel),
-        );
-        annotateLastPick(items, gatedCandidates.dresses);
+      if (presentation !== 'masculine' && gatedBuckets.dresses.length > 0) {
+        pickAndPush(gatedBuckets.dresses, 'dresses');
       } else {
-        pickA(gatedBuckets.tops, gatedCandidates.tops);
-        pickA(gatedBuckets.bottoms, gatedCandidates.bottoms);
+        pickAndPush(gatedBuckets.tops, 'tops');
+        pickAndPush(gatedBuckets.bottoms, 'bottoms');
       }
-      pickShoeA();
+      pickShoeW();
       if (mode === 'anchor') {
-        pickA(gatedBuckets.accessories, gatedCandidates.accessories);
+        pickAndPush(gatedBuckets.accessories, 'accessories');
       }
       break;
     }
     default: {
       // Casual, Sightseeing, Cold Weather
-      pickA(gatedBuckets.tops, gatedCandidates.tops);
-      pickA(gatedBuckets.bottoms, gatedCandidates.bottoms);
-      pickShoeA();
+      pickAndPush(gatedBuckets.tops, 'tops');
+      pickAndPush(gatedBuckets.bottoms, 'bottoms');
+      pickShoeW();
       if (mode === 'anchor') {
-        pickOuterwear(selectedOuterwear, dayWeather, items, locationLabel);
-        pickA(gatedBuckets.accessories, gatedCandidates.accessories);
+        pickOuterwear(selectedOuterwear, dayWeather, items, locationLabel, usageTracker, dayIndex, numDays);
+        pickAndPush(gatedBuckets.accessories, 'accessories');
       }
       break;
     }
@@ -1445,7 +1385,7 @@ export function buildCapsule(
       const colorLower = (item.color || '').toLowerCase();
       const isVersatileColor = VERSATILE_COLORS.has(colorLower);
       const catBonus = CATEGORY_BONUS[getBucket(item) ?? ''] ?? 0;
-      const formalityBonus = hasFormalAct ? Math.floor((item.formalityScore ?? 50) / 25) : 0;
+      const formalityBonus = hasFormalAct ? Math.floor(getNormalizedFormality(item) / 25) : 0;
       const coverageGapBonus = underrepSlots.has(getBucket(item) as CategoryBucket) ? 15 : 0;
       return compat * 10 + (isVersatileColor ? 5 : 0) + catBonus + formalityBonus + coverageGapBonus;
     }
@@ -1662,7 +1602,7 @@ export function buildCapsule(
 
     if (isColdTrip && (c.item.thermalRating ?? 0) > 60) {
       clauses.push('Warm layer for cooler days.');
-    } else if (hasFormalActivity && (c.item.formalityScore ?? 0) >= 70) {
+    } else if (hasFormalActivity && getNormalizedFormality(c.item) >= 70) {
       clauses.push('Formal-appropriate substitute.');
     } else if (isRainyTrip) {
       clauses.push('Backup if weather turns.');
@@ -1746,7 +1686,7 @@ export function buildCapsule(
       }
       if (isColdTrip && (c.item.thermalRating ?? 0) > 60) {
         clauses.push('Weather-safe layer.');
-      } else if (hasFormalActivity && (c.item.formalityScore ?? 0) >= 70) {
+      } else if (hasFormalActivity && getNormalizedFormality(c.item) >= 70) {
         clauses.push('Formal-appropriate substitute.');
       } else {
         clauses.push('Flexible backup.');

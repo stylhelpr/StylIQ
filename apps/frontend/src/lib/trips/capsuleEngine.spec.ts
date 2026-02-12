@@ -11,6 +11,7 @@ import {
   gatePool,
   gateBackupPool,
   gateBackupPoolFallback,
+  getNormalizedFormality,
 } from './capsuleEngine';
 import {TripPackingItem, TripCapsule, TripWardrobeItem, DayWeather, TripActivity} from '../../types/trips';
 
@@ -528,8 +529,8 @@ describe('Global Climate Gating', () => {
   });
 
   // Additional: CAPSULE_VERSION is 4 (bumped for eligibility pre-filter)
-  it('CAPSULE_VERSION is 8 (post-gate diversity + rotation)', () => {
-    expect(CAPSULE_VERSION).toBe(8);
+  it('CAPSULE_VERSION is 9 (weighted pick, unified formality)', () => {
+    expect(CAPSULE_VERSION).toBe(9);
   });
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1138,10 +1139,10 @@ describe('Formality gating — gatePool blocks informal items for formal activit
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ██  DIVERSITY + ROTATION — POST-GATE
+// ██  WEIGHTED PICK — USAGE-BASED DIVERSITY (POST-GATE)
 // ══════════════════════════════════════════════════════════════════════════════
 
-describe('Diversity + Rotation — post-gate', () => {
+describe('Weighted pick — usage-based diversity', () => {
   it('alternates formal shoes across Business days when 2+ eligible shoes exist', () => {
     const wardrobe: TripWardrobeItem[] = [
       makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
@@ -1180,7 +1181,7 @@ describe('Diversity + Rotation — post-gate', () => {
     }
   });
 
-  it('rotation survives gating shrinkage (3 shoes → 2 after formality gate)', () => {
+  it('diversity survives gating shrinkage (3 shoes → 2 after formality gate)', () => {
     const wardrobe: TripWardrobeItem[] = [
       makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
       makeWardrobeItem({id: 't2', name: 'Blue Button-Down', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
@@ -1221,6 +1222,137 @@ describe('Diversity + Rotation — post-gate', () => {
         expect(shoeIds[i]).not.toBe(shoeIds[i - 1]);
       }
     }
+  });
+
+  it('items distribute across days via usage penalty', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Shirt A', main_category: 'Tops', subcategory: 'Button-Down', formalityScore: 60}),
+      makeWardrobeItem({id: 't2', name: 'Shirt B', main_category: 'Tops', subcategory: 'Button-Down', formalityScore: 60}),
+      makeWardrobeItem({id: 't3', name: 'Shirt C', main_category: 'Tops', subcategory: 'Button-Down', formalityScore: 60}),
+      makeWardrobeItem({id: 'b1', name: 'Chinos', main_category: 'Bottoms', subcategory: 'Chinos', formalityScore: 60}),
+      makeWardrobeItem({id: 'b2', name: 'Jeans', main_category: 'Bottoms', subcategory: 'Jeans', formalityScore: 50}),
+      makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers', formalityScore: 40}),
+      makeWardrobeItem({id: 's2', name: 'Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 60}),
+    ];
+    const weather: DayWeather[] = Array.from({length: 5}, (_, i) => ({
+      date: `2026-03-0${i + 1}`,
+      dayLabel: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][i],
+      highF: 75, lowF: 60, condition: 'sunny' as const, rainChance: 5,
+    }));
+
+    const capsule = buildCapsule(wardrobe, weather, ['Casual'], 'Home');
+    const anchorOutfits = capsule.outfits.filter(o => o.type === 'anchor');
+
+    // All 3 tops should appear at least once across 5 days
+    const topIds = anchorOutfits.flatMap(o =>
+      o.items.filter(i => i.mainCategory === 'Tops').map(i => i.wardrobeItemId),
+    );
+    const uniqueTops = new Set(topIds);
+    expect(uniqueTops.size).toBeGreaterThanOrEqual(2); // at least 2 of 3 (one may be reserved)
+
+    // No item exceeds ceil(5/3) + 1 = 3 uses
+    const usageCounts = new Map<string, number>();
+    for (const id of topIds) usageCounts.set(id, (usageCounts.get(id) || 0) + 1);
+    for (const [, count] of usageCounts) {
+      expect(count).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('recently-used items are deprioritized', () => {
+    // Need 3+ tops so reserve system takes one and 2+ remain for outfit rotation
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Top A', main_category: 'Tops', subcategory: 'T-Shirt', formalityScore: 50}),
+      makeWardrobeItem({id: 't2', name: 'Top B', main_category: 'Tops', subcategory: 'T-Shirt', formalityScore: 50}),
+      makeWardrobeItem({id: 't3', name: 'Top C', main_category: 'Tops', subcategory: 'T-Shirt', formalityScore: 50}),
+      makeWardrobeItem({id: 'b1', name: 'Shorts', main_category: 'Bottoms', subcategory: 'Shorts', formalityScore: 40}),
+      makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers', formalityScore: 40}),
+      makeWardrobeItem({id: 's2', name: 'Sandals', main_category: 'Shoes', subcategory: 'Sandals', formalityScore: 30}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-01', dayLabel: 'Mon', highF: 80, lowF: 65, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-02', dayLabel: 'Tue', highF: 80, lowF: 65, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-03', dayLabel: 'Wed', highF: 80, lowF: 65, condition: 'sunny', rainChance: 5},
+    ];
+
+    const capsule = buildCapsule(wardrobe, weather, ['Casual'], 'Home');
+    const anchors = capsule.outfits.filter(o => o.type === 'anchor');
+
+    const day1Top = anchors[0]?.items.find(i => i.mainCategory === 'Tops')?.wardrobeItemId;
+    const day2Top = anchors[1]?.items.find(i => i.mainCategory === 'Tops')?.wardrobeItemId;
+
+    // Day 2 should pick different top than day 1 (cooldown penalty)
+    if (day1Top && day2Top) {
+      expect(day2Top).not.toBe(day1Top);
+    }
+  });
+
+  it('deterministic output — identical calls produce identical capsules', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'White Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Blue Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 80}),
+      makeWardrobeItem({id: 's1', name: 'Oxfords', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 85}),
+      makeWardrobeItem({id: 's2', name: 'Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 70}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-04', dayLabel: 'Wed', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
+    ];
+
+    const capsule1 = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+    const capsule2 = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+
+    // Same items in same order
+    for (let i = 0; i < capsule1.outfits.length; i++) {
+      const items1 = capsule1.outfits[i].items.map(it => it.wardrobeItemId);
+      const items2 = capsule2.outfits[i].items.map(it => it.wardrobeItemId);
+      expect(items1).toEqual(items2);
+    }
+  });
+
+  it('no empty outfits produced', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Top', main_category: 'Tops', subcategory: 'T-Shirt', formalityScore: 50}),
+      makeWardrobeItem({id: 'b1', name: 'Jeans', main_category: 'Bottoms', subcategory: 'Jeans', formalityScore: 50}),
+      makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers', formalityScore: 40}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-01', dayLabel: 'Mon', highF: 75, lowF: 60, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-02', dayLabel: 'Tue', highF: 75, lowF: 60, condition: 'sunny', rainChance: 5},
+    ];
+
+    const capsule = buildCapsule(wardrobe, weather, ['Casual'], 'Home');
+    for (const outfit of capsule.outfits) {
+      expect(outfit.items.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  getNormalizedFormality
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('getNormalizedFormality', () => {
+  it('returns formalityScore when present', () => {
+    const item = makeWardrobeItem({id: 'x', name: 'Test', main_category: 'Tops', formalityScore: 80});
+    expect(getNormalizedFormality(item)).toBe(80);
+  });
+
+  it('returns DEFAULT_UNKNOWN_FORMALITY (30) when formalityScore is null', () => {
+    const item = makeWardrobeItem({id: 'x', name: 'Test', main_category: 'Tops', formalityScore: null as any});
+    expect(getNormalizedFormality(item)).toBe(30);
+  });
+
+  it('returns DEFAULT_UNKNOWN_FORMALITY (30) when formalityScore is undefined', () => {
+    const item = makeWardrobeItem({id: 'x', name: 'Test', main_category: 'Tops'});
+    delete (item as any).formalityScore;
+    expect(getNormalizedFormality(item)).toBe(30);
+  });
+
+  it('returns 0 when formalityScore is explicitly 0', () => {
+    const item = makeWardrobeItem({id: 'x', name: 'Test', main_category: 'Tops', formalityScore: 0});
+    expect(getNormalizedFormality(item)).toBe(0);
   });
 });
 
@@ -1690,7 +1822,7 @@ describe('Backup kit — formality and climate gating', () => {
     // Dinner has formality 2 → floor is 40. All backup items must meet that.
     for (const b of capsule.tripBackupKit) {
       const item = mixedWardrobe.find(w => w.id === b.wardrobeItemId)!;
-      expect(item.formalityScore ?? 50).toBeGreaterThanOrEqual(40);
+      expect(getNormalizedFormality(item)).toBeGreaterThanOrEqual(40);
     }
   });
 
