@@ -160,6 +160,24 @@ const PackingListSection = ({
       color: theme.colors.foreground2,
       marginTop: 2,
     },
+    reminderCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      backgroundColor: `${theme.colors.foreground2}10`,
+      borderRadius: 10,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: '#FFFFFF',
+      padding: 12,
+      marginBottom: tokens.spacing.sm,
+    },
+    reminderText: {
+      flex: 1,
+      fontSize: 12.5,
+      fontWeight: '500',
+      color: '#FFFFFF',
+      lineHeight: 18,
+    },
   });
 
   return (
@@ -168,6 +186,13 @@ const PackingListSection = ({
         <Text style={styles.title}>Packing List</Text>
         <Text style={styles.packedCount}>
           {packedItems}/{totalItems} packed
+        </Text>
+      </View>
+
+      <View style={styles.reminderCard}>
+        <Icon name="lightbulb" size={20} color="#FFD600" />
+        <Text style={styles.reminderText}>
+          Don't forget to pack: socks, sleepwear, undergarments, swimwear, chargers, etc...
         </Text>
       </View>
 
