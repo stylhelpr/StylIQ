@@ -434,11 +434,11 @@ function planDaySchedules(
   const schedules: DaySchedule[] = [];
 
   for (let day = 0; day < numDays; day++) {
-    let primary: TripActivity;
+    let primary: TripActivity | null = null;
     let secondary: TripActivity | null = null;
     const dayLabel = weather[day]?.dayLabel;
 
-    // Determine PRIMARY (priority cascade)
+    // Determine PRIMARY (priority cascade — only from user-selected activities)
     if (has.has('Formal') && day === numDays - 1) {
       primary = 'Formal';
     } else if (has.has('Business') && isWeekday(dayLabel)) {
@@ -447,8 +447,11 @@ function planDaySchedules(
       primary = 'Beach';
     } else if (has.has('Active') && (day - 1) % 3 === 0 && day > 0) {
       primary = 'Active';
-    } else {
-      primary = 'Casual';
+    }
+
+    // Fallback: cycle through user-selected activities (NEVER invent Casual)
+    if (!primary) {
+      primary = activities[day % activities.length];
     }
 
     // Determine SECONDARY

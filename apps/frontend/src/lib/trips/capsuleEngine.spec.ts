@@ -1472,6 +1472,81 @@ describe('Fallback safety — fail-closed for formal activities', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ██  ANCHOR ACTIVITY SCHEDULING — no phantom Casual
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Anchor activity scheduling — no phantom Casual', () => {
+  const businessWardrobe: TripWardrobeItem[] = [
+    makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+    makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+    makeWardrobeItem({id: 't3', name: 'Pink Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
+    makeWardrobeItem({id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+    makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+    makeWardrobeItem({id: 'b3', name: 'Charcoal Slacks', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 80}),
+    makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+    makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+    makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+    makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+  ];
+
+  it('[Business, Dinner, Formal] produces NO Casual anchor outfits', () => {
+    const weather: DayWeather[] = [
+      {date: '2026-03-07', dayLabel: 'Sat', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-08', dayLabel: 'Sun', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-09', dayLabel: 'Mon', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
+    ];
+
+    const capsule = buildCapsule(businessWardrobe, weather, ['Business', 'Dinner', 'Formal'], 'Home', 'masculine');
+    const anchorOccasions = capsule.outfits
+      .filter(o => o.type === 'anchor')
+      .map(o => o.occasion);
+
+    expect(anchorOccasions).not.toContain('Casual');
+    // Every anchor must be one of the selected activities
+    for (const occ of anchorOccasions) {
+      expect(['Business', 'Dinner', 'Formal']).toContain(occ);
+    }
+  });
+
+  it('[Business] only produces Business anchor outfits', () => {
+    const weather: DayWeather[] = [
+      {date: '2026-03-07', dayLabel: 'Sat', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-08', dayLabel: 'Sun', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-09', dayLabel: 'Mon', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
+    ];
+
+    const capsule = buildCapsule(businessWardrobe, weather, ['Business'], 'Home', 'masculine');
+    const anchorOccasions = capsule.outfits
+      .filter(o => o.type === 'anchor')
+      .map(o => o.occasion);
+
+    for (const occ of anchorOccasions) {
+      expect(occ).toBe('Business');
+    }
+  });
+
+  it('more days than activities cycles through selected activities', () => {
+    const weather: DayWeather[] = [
+      {date: '2026-03-07', dayLabel: 'Sat', highF: 85, lowF: 72, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-08', dayLabel: 'Sun', highF: 86, lowF: 73, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-09', dayLabel: 'Mon', highF: 84, lowF: 71, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-10', dayLabel: 'Tue', highF: 83, lowF: 70, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-11', dayLabel: 'Wed', highF: 82, lowF: 69, condition: 'sunny', rainChance: 5},
+    ];
+
+    const capsule = buildCapsule(businessWardrobe, weather, ['Dinner', 'Sightseeing'], 'Home', 'masculine');
+    const anchorOccasions = capsule.outfits
+      .filter(o => o.type === 'anchor')
+      .map(o => o.occasion);
+
+    expect(anchorOccasions).not.toContain('Casual');
+    for (const occ of anchorOccasions) {
+      expect(['Dinner', 'Sightseeing']).toContain(occ);
+    }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ██  BACKUP ITEM SUGGESTIONS
 // ══════════════════════════════════════════════════════════════════════════════
 
