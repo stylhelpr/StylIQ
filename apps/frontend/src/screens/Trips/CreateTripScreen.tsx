@@ -633,10 +633,19 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
         animationType="fade"
         onRequestClose={returnToPicker}>
         <Pressable
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, {justifyContent: 'center'}]}
           onPress={returnToPicker}>
           <Pressable
-            style={[styles.modalSheet, {borderColor: theme.colors.muted, borderWidth: 0, justifyContent: 'center', paddingHorizontal: 20, paddingTop: 20, marginBottom: 400}]}
+            style={{
+              backgroundColor: theme.colors.background,
+              borderRadius: 16,
+              borderColor: theme.colors.muted,
+              borderWidth: tokens.borderWidth.hairline,
+              paddingHorizontal: 20,
+              paddingTop: 20,
+              paddingBottom: 24,
+              marginHorizontal: 20,
+            }}
             onPress={e => e.stopPropagation()}>
             <Text style={[styles.modalTitle, {paddingHorizontal: 0}]}>Edit Location</Text>
             {/* Rename */}
@@ -686,14 +695,13 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
             </TouchableOpacity>
 
             {/* Actions */}
-            <View style={{flexDirection: 'row', gap: 10}}>
+            <View style={{flexDirection: 'row', gap: 10, paddingVertical: 2,  paddingHorizontal: 4}}>
               <AppleTouchFeedback
                 onPress={returnToPicker}
                 hapticStyle="impactLight">
                 <View style={{
-                  flex: 1,
-                  paddingVertical: 4,
-                  paddingHorizontal: 24,
+                  paddingVertical: 6,
+                  paddingHorizontal: 14,
                   borderRadius: tokens.borderRadius.md,
                   alignItems: 'center',
                   backgroundColor: theme.colors.surface,
@@ -706,9 +714,8 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
                 onPress={handleSaveEditLocation}
                 hapticStyle="impactLight">
                 <View style={{
-                  flex: 1,
-                  paddingVertical: 4,
-                  paddingHorizontal: 24,
+                  paddingVertical: 6,
+                  paddingHorizontal: 14,
                   borderRadius: tokens.borderRadius.md,
                   alignItems: 'center',
                   backgroundColor: theme.colors.button1,
