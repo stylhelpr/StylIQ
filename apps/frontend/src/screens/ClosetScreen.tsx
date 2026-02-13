@@ -44,6 +44,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 const DRY_CLEANER_EVENT_KEY = '@styliq_dry_cleaner_event_id';
 const DRY_CLEANER_PROMPTED_KEY = '@styliq_dry_cleaner_prompted';
+const DRY_CLEANER_NAME_KEY = '@styliq_dry_cleaner_name';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const NUM_COLUMNS = 2;
@@ -508,6 +509,9 @@ export default function ClosetScreen({navigate}: Props) {
       const newCareStatus = variables.care_status;
 
       if (prevCareStatus !== 'at_cleaner' && newCareStatus === 'at_cleaner') {
+        if (variables.cleaner_info?.trim()) {
+          await AsyncStorage.setItem(DRY_CLEANER_NAME_KEY, variables.cleaner_info.trim());
+        }
         await promptPickupReminder();
       }
 
@@ -621,11 +625,12 @@ export default function ClosetScreen({navigate}: Props) {
       }
       await AsyncStorage.removeItem(DRY_CLEANER_EVENT_KEY);
     }
+    const cleanerName = (await AsyncStorage.getItem(DRY_CLEANER_NAME_KEY))?.trim();
     const eventId = await saveEventToIOSCalendar({
       title: '🧺 Dry Cleaning Pickup',
       startDate: date,
       endDate: new Date(date.getTime() + 30 * 60000),
-      notes: 'From StylHelpr wardrobe',
+      notes: cleanerName || 'Dry cleaner pickup',
     });
     if (eventId) {
       await AsyncStorage.setItem(DRY_CLEANER_EVENT_KEY, eventId);
@@ -640,7 +645,7 @@ export default function ClosetScreen({navigate}: Props) {
     if (eventId) {
       await deleteEventFromIOSCalendar(eventId);
     }
-    await AsyncStorage.multiRemove([DRY_CLEANER_EVENT_KEY, DRY_CLEANER_PROMPTED_KEY]);
+    await AsyncStorage.multiRemove([DRY_CLEANER_EVENT_KEY, DRY_CLEANER_PROMPTED_KEY, DRY_CLEANER_NAME_KEY]);
     setHasPickupEvent(false);
   }, []);
 
