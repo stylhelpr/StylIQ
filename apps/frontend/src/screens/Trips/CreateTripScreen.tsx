@@ -427,7 +427,7 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.md,
       paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingVertical: 16,
       fontSize: 15,
       color: theme.colors.foreground,
     },
@@ -636,10 +636,9 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
           style={styles.modalOverlay}
           onPress={returnToPicker}>
           <Pressable
-            style={[styles.modalSheet, {justifyContent: 'center', paddingHorizontal: 20, paddingTop: 20}]}
+            style={[styles.modalSheet, {borderColor: theme.colors.muted, borderWidth: 0, justifyContent: 'center', paddingHorizontal: 20, paddingTop: 20, marginBottom: 400}]}
             onPress={e => e.stopPropagation()}>
             <Text style={[styles.modalTitle, {paddingHorizontal: 0}]}>Edit Location</Text>
-
             {/* Rename */}
             <Text style={{fontSize: 12, color: theme.colors.foreground2, marginBottom: 4}}>Name</Text>
             <TextInput
@@ -651,7 +650,7 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
             />
 
             {/* Color Picker */}
-            <Text style={{fontSize: 12, color: theme.colors.foreground2, marginBottom: 6}}>Color</Text>
+            <Text style={{fontSize: 12, color: theme.colors.foreground2, marginBottom: 16}}>Color</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 16}}>
               {EDIT_COLOR_OPTIONS.map(opt => {
                 const isActive = editLocColor === opt.key;
@@ -693,13 +692,14 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
                 hapticStyle="impactLight">
                 <View style={{
                   flex: 1,
-                  paddingVertical: 12,
+                  paddingVertical: 4,
                   paddingHorizontal: 24,
                   borderRadius: tokens.borderRadius.md,
                   alignItems: 'center',
                   backgroundColor: theme.colors.surface,
+              
                 }}>
-                  <Text style={{fontSize: 15, color: theme.colors.foreground, fontWeight: '600'}}>Cancel</Text>
+                  <Text style={{fontSize: 15, color: theme.colors.buttonText1, fontWeight: '600'}}>Cancel</Text>
                 </View>
               </AppleTouchFeedback>
               <AppleTouchFeedback
@@ -707,13 +707,13 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
                 hapticStyle="impactLight">
                 <View style={{
                   flex: 1,
-                  paddingVertical: 12,
+                  paddingVertical: 4,
                   paddingHorizontal: 24,
                   borderRadius: tokens.borderRadius.md,
                   alignItems: 'center',
                   backgroundColor: theme.colors.button1,
                 }}>
-                  <Text style={{fontSize: 15, color: '#FFFFFF', fontWeight: '600'}}>Save</Text>
+                  <Text style={{fontSize: 15, color: theme.colors.buttonText1, fontWeight: '600'}}>Save</Text>
                 </View>
               </AppleTouchFeedback>
             </View>

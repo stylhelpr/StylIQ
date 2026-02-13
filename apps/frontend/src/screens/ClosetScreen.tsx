@@ -885,6 +885,49 @@ export default function ClosetScreen({navigate}: Props) {
       justifyContent: 'space-between',
       paddingHorizontal: ITEM_SPACING,
     },
+    imageArea: {
+      width: '100%',
+      flex: 1,                 // 🔴 fills top of card
+      justifyContent: 'center',// 🔴 vertical center
+      alignItems: 'center',    // 🔴 horizontal center
+      paddingTop: 20,
+    },
+    imageSlot: {
+      width: '60%',            // 🔴 capped width
+      height: 110,             // 🔴 capped height
+      // backgroundColor: '#FFF',
+      borderRadius: 12,
+      overflow: 'hidden',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 8
+    },
+    image: {
+      width: '100%',
+      height: '100%',
+    },
+
+    horizImageArea: {
+      width: '100%',
+      flex: 1,                   // fills card space
+      justifyContent: 'center',  // vertical center
+      alignItems: 'center',      // horizontal center
+      paddingTop: 12,
+    },
+    horizImageSlot: {
+      width: '50%',              // capped width
+      height: HORIZ_CARD_HEIGHT, // reuse your constant
+      // backgroundColor: '#FFF',
+      borderRadius: 10,
+      overflow: 'hidden',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    horizImage: {
+      width: '100%',
+      height: '100%',
+    },
+
   });
 
   const openSubmenu = (view: 'filter' | 'sort') => {
@@ -968,22 +1011,18 @@ export default function ClosetScreen({navigate}: Props) {
                 setShowEditModal(true);
               }
             }}>
-            <View
-              style={{
-                width: '100%',
-                backgroundColor: theme.colors.surface,
-                padding: 12,
-                opacity: item.care_status === 'at_cleaner' ? 0.5 : 1,
-              }}>
-              <FastImage
-                source={{
-                  uri: imageUri,
-                  priority: FastImage.priority.normal,
-                  cache: FastImage.cacheControl.immutable,
-                }}
-                style={globalStyles.image11}
-                resizeMode={FastImage.resizeMode.contain}
-              />
+            <View style={styles.imageArea}>
+              <View style={styles.imageSlot}>
+                <FastImage
+                  source={{
+                    uri: imageUri,
+                    priority: FastImage.priority.normal,
+                    cache: FastImage.cacheControl.immutable,
+                  }}
+                  style={styles.image}
+                  resizeMode={FastImage.resizeMode.contain}
+                />
+              </View>
             </View>
 
             {/* Favorite - hide for demo items */}
@@ -994,7 +1033,7 @@ export default function ClosetScreen({navigate}: Props) {
                   top: 8,
                   right: 8,
                   zIndex: 10,
-                  padding: 4,
+                  padding: 2,
                 }}>
                 <AppleTouchFeedback
                   hapticStyle="impactLight"
@@ -1006,14 +1045,14 @@ export default function ClosetScreen({navigate}: Props) {
                   }>
                   <MaterialIcons
                     name="favorite"
-                    size={28}
+                    size={26}
                     color={item.favorite ? 'red' : theme.colors.inputBorder}
                   />
                 </AppleTouchFeedback>
                 <View style={{marginTop: 8}}>
                   <MaterialIcons
                     name="place"
-                    size={28}
+                    size={26}
                     color={getLocationDotColor(item.location_id, theme.colors, locColorMap[item.location_id ?? 'home'])}
                   />
                 </View>
@@ -1061,7 +1100,7 @@ export default function ClosetScreen({navigate}: Props) {
             </View>
 
             {/* Try On - hide for demo items */}
-            {!isDemo && (
+            {/* {!isDemo && (
               <AppleTouchFeedback
                 hapticStyle="impactLight"
                 onPress={() =>
@@ -1079,7 +1118,7 @@ export default function ClosetScreen({navigate}: Props) {
                 }
                 style={{
                   position: 'absolute',
-                  top: 10,
+                  bottom: 150,
                   left: 8,
                   backgroundColor: 'black',
                   paddingHorizontal: 10,
@@ -1095,7 +1134,7 @@ export default function ClosetScreen({navigate}: Props) {
                   Try On
                 </Text>
               </AppleTouchFeedback>
-            )}
+            )} */}
           </ScalePressable>
         </View>
       );
@@ -1170,24 +1209,19 @@ export default function ClosetScreen({navigate}: Props) {
                 setShowEditModal(true);
               }
             }}>
-            <View
-              style={{
-                width: '100%',
-                backgroundColor: theme.colors.surface,
-                // backgroundColor: 'white',
-                padding: 8,
-                opacity: item.care_status === 'at_cleaner' ? 0.5 : 1,
-              }}>
+         <View style={styles.horizImageArea}>
+            <View style={styles.horizImageSlot}>
               <FastImage
                 source={{
                   uri: imageUri,
                   priority: FastImage.priority.normal,
                   cache: FastImage.cacheControl.immutable,
                 }}
-                style={{width: '100%', height: HORIZ_CARD_HEIGHT}}
+                style={styles.horizImage}
                 resizeMode={FastImage.resizeMode.contain}
               />
             </View>
+          </View>
 
             {/* Favorite - hide for demo items */}
             {!isDemo && (
@@ -1195,7 +1229,7 @@ export default function ClosetScreen({navigate}: Props) {
                 style={{
                   position: 'absolute',
                   top: 8,
-                  right: 8,
+                  right: 0,
                   zIndex: 10,
                   padding: 4,
                 }}>
@@ -1209,25 +1243,20 @@ export default function ClosetScreen({navigate}: Props) {
                   }>
                   <MaterialIcons
                     name="favorite"
-                    size={28}
+                    size={18}
                     color={item.favorite ? 'red' : theme.colors.inputBorder}
                   />
                 </AppleTouchFeedback>
-                <View
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: 999,
-                    backgroundColor: getLocationDotColor(item.location_id, theme.colors, locColorMap[item.location_id ?? 'home']),
-                    borderWidth: 1,
-                    borderColor: theme.colors.background,
-                    alignSelf: 'center',
-                    marginTop: 2,
-                  }}
-                />
+                 <View style={{marginTop: 6}}>
+                  <MaterialIcons
+                    name="place"
+                    size={18}
+                    color={getLocationDotColor(item.location_id, theme.colors, locColorMap[item.location_id ?? 'home'])}
+                  />
+                </View>
                 {item.care_status === 'at_cleaner' && (
                   <View style={{marginTop: 4, alignSelf: 'center'}}>
-                    <MaterialIcons name="dry-cleaning" size={16} color={theme.colors.warning ?? '#F59E0B'} />
+                    <MaterialIcons name="dry-cleaning" size={18} color={theme.colors.warning ?? '#F59E0B'} />
                   </View>
                 )}
               </View>
@@ -1270,7 +1299,7 @@ export default function ClosetScreen({navigate}: Props) {
             </View>
 
             {/* Try On - hide for demo items */}
-            {!isDemo && (
+            {/* {!isDemo && (
               <AppleTouchFeedback
                 hapticStyle="impactLight"
                 onPress={() =>
@@ -1304,7 +1333,7 @@ export default function ClosetScreen({navigate}: Props) {
                   Try On
                 </Text>
               </AppleTouchFeedback>
-            )}
+            )} */}
           </ScalePressable>
         </View>
       );
@@ -1332,6 +1361,7 @@ export default function ClosetScreen({navigate}: Props) {
           flex: 1,
           backgroundColor: theme.colors.background,
           paddingBottom: 0,
+          // alignItems: 'center',
         },
       ]}>
       <Animated.View

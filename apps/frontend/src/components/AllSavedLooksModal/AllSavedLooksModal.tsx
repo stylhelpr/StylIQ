@@ -434,6 +434,7 @@ export default function AllSavedLooksModal({
               width: '100%',
               aspectRatio: 3 / 4,
               backgroundColor: theme.colors.surface,
+              //  backgroundColor: 'white',
             }}>
             {imageUri ? (
               <FastImage
