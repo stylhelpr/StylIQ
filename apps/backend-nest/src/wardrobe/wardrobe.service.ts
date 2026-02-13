@@ -3292,6 +3292,9 @@ ${lockedLines}
     // Location
     add('location_id', dto.location_id ?? 'home');
 
+    // Availability
+    add('care_status', dto.care_status ?? 'available');
+
     // System
     add('constraints', dto.constraints);
 

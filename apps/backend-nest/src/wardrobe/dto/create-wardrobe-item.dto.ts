@@ -520,6 +520,11 @@ export class CreateWardrobeItemDto {
   @IsString()
   location_id?: string;
 
+  // Availability
+  @IsOptional()
+  @IsString()
+  care_status?: string;
+
   // System
   @IsOptional()
   @IsObject()

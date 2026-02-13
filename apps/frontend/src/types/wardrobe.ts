@@ -173,6 +173,9 @@ export type WardrobeItem = {
   // Location
   locationId?: string; // ↔ location_id
 
+  // Availability
+  careStatus?: 'available' | 'at_cleaner';
+
   // System
   metadata?: Record<string, any>;
   constraints?: string; // ✅ single string

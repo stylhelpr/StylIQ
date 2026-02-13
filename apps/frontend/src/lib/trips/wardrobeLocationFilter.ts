@@ -1,6 +1,7 @@
 /**
- * Filters wardrobe items by location_id, falling back to full wardrobe
- * if the filtered set is too small to build a useful capsule.
+ * Filters wardrobe items by location_id and excludes items at the cleaner,
+ * falling back to full wardrobe if the filtered set is too small to build
+ * a useful capsule.
  */
 export function filterWardrobeByLocation(
   wardrobe: any[],
@@ -8,7 +9,9 @@ export function filterWardrobeByLocation(
   min = 5,
 ): any[] {
   const filtered = wardrobe.filter(
-    item => (item.locationId ?? item.location_id ?? 'home') === locationId,
+    item =>
+      (item.locationId ?? item.location_id ?? 'home') === locationId &&
+      (item.careStatus ?? item.care_status ?? 'available') !== 'at_cleaner',
   );
   return filtered.length >= min ? filtered : wardrobe;
 }

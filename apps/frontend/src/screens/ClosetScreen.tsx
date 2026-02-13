@@ -113,6 +113,7 @@ type WardrobeItem = {
   height?: number;
   favorite?: boolean;
   location_id?: string;
+  care_status?: string;
 };
 
 type Props = {
@@ -257,6 +258,7 @@ export default function ClosetScreen({navigate}: Props) {
   const [selectedItemToEdit, setSelectedItemToEdit] =
     useState<WardrobeItem | null>(null);
   const [editedLocationId, setEditedLocationId] = useState('home');
+  const [editedCareStatus, setEditedCareStatus] = useState<'available' | 'at_cleaner'>('available');
   const [closetLocations, setClosetLocations] = useState<ClosetLocation[]>([]);
 
   // Edit-location modal state
@@ -440,19 +442,22 @@ export default function ClosetScreen({navigate}: Props) {
       name,
       color,
       location_id,
+      care_status,
     }: {
       id: string;
       name?: string;
       color?: string;
       location_id?: string;
+      care_status?: string;
     }) => {
       const body: Record<string, any> = {};
       if (name !== undefined) body.name = name;
       if (color !== undefined) body.color = color;
       if (location_id !== undefined) body.location_id = location_id;
+      if (care_status !== undefined) body.care_status = care_status;
       await apiClient.put(`/wardrobe/${id}`, body);
     },
-    onMutate: async ({id, name, color, location_id}) => {
+    onMutate: async ({id, name, color, location_id, care_status}) => {
       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
       const prev = queryClient.getQueryData<WardrobeItem[]>([
         'wardrobe',
@@ -468,6 +473,7 @@ export default function ClosetScreen({navigate}: Props) {
                   name: name ?? item.name,
                   color: color ?? item.color,
                   location_id: location_id ?? item.location_id,
+                  care_status: care_status ?? item.care_status,
                 }
               : item,
           ) || [],
@@ -858,6 +864,7 @@ export default function ClosetScreen({navigate}: Props) {
             onLongPress={() => {
               if (!isDemo) {
                 setEditedLocationId(item.location_id ?? 'home');
+                setEditedCareStatus((item.care_status as any) ?? 'available');
                 setSelectedItemToEdit(item);
                 setShowEditModal(true);
               }
@@ -867,6 +874,7 @@ export default function ClosetScreen({navigate}: Props) {
                 width: '100%',
                 backgroundColor: theme.colors.surface,
                 padding: 12,
+                opacity: item.care_status === 'at_cleaner' ? 0.5 : 1,
               }}>
               <FastImage
                 source={{
@@ -910,6 +918,11 @@ export default function ClosetScreen({navigate}: Props) {
                     color={getLocationDotColor(item.location_id, theme.colors, locColorMap[item.location_id ?? 'home'])}
                   />
                 </View>
+                {item.care_status === 'at_cleaner' && (
+                  <View style={{marginTop: 4, alignSelf: 'center'}}>
+                    <MaterialIcons name="dry-cleaning" size={20} color={theme.colors.warning ?? '#F59E0B'} />
+                  </View>
+                )}
               </View>
             )}
             {/* Demo badge */}
@@ -1052,6 +1065,7 @@ export default function ClosetScreen({navigate}: Props) {
             onLongPress={() => {
               if (!isDemo) {
                 setEditedLocationId(item.location_id ?? 'home');
+                setEditedCareStatus((item.care_status as any) ?? 'available');
                 setSelectedItemToEdit(item);
                 setShowEditModal(true);
               }
@@ -1061,7 +1075,8 @@ export default function ClosetScreen({navigate}: Props) {
                 width: '100%',
                 backgroundColor: theme.colors.surface,
                 // backgroundColor: 'white',
-                padding: 8
+                padding: 8,
+                opacity: item.care_status === 'at_cleaner' ? 0.5 : 1,
               }}>
               <FastImage
                 source={{
@@ -1110,6 +1125,11 @@ export default function ClosetScreen({navigate}: Props) {
                     marginTop: 2,
                   }}
                 />
+                {item.care_status === 'at_cleaner' && (
+                  <View style={{marginTop: 4, alignSelf: 'center'}}>
+                    <MaterialIcons name="dry-cleaning" size={16} color={theme.colors.warning ?? '#F59E0B'} />
+                  </View>
+                )}
               </View>
             )}
 
@@ -1812,6 +1832,42 @@ export default function ClosetScreen({navigate}: Props) {
                 </TouchableOpacity>
               </ScrollView>
 
+              <Text style={{color: theme.colors.foreground, fontSize: 13, marginTop: 12, marginBottom: 6, opacity: 0.5}}>
+                Availability
+              </Text>
+              <View style={{flexDirection: 'row', marginBottom: 4}}>
+                {([
+                  {value: 'available' as const, label: 'Available'},
+                  {value: 'at_cleaner' as const, label: 'At Dry Cleaner'},
+                ]).map(opt => {
+                  const sel = editedCareStatus === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      onPress={() => setEditedCareStatus(opt.value)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        marginRight: 8,
+                        backgroundColor: sel ? theme.colors.primary : theme.colors.surface3,
+                        borderWidth: 1,
+                        borderColor: sel ? theme.colors.primary : theme.colors.inputBorder,
+                      }}>
+                      <Text style={{
+                        fontSize: 13,
+                        color: sel ? theme.colors.background : theme.colors.foreground,
+                        fontWeight: sel ? '600' : '400',
+                      }}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               <AppleTouchFeedback
                 hapticStyle="impactLight"
                 onPress={() => {
@@ -1819,6 +1875,7 @@ export default function ClosetScreen({navigate}: Props) {
                     updateMutation.mutate({
                       id: selectedItemToEdit.id,
                       location_id: editedLocationId,
+                      care_status: editedCareStatus,
                     });
                     setShowEditModal(false);
                     setSelectedItemToEdit(null);
