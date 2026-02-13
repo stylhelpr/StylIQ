@@ -40,6 +40,7 @@ export type DayWeather = {
 export type ClosetLocation = {
   id: string;
   label: string;
+  color?: string; // theme color key (e.g. 'success', 'warning'); optional for legacy
 };
 
 /**

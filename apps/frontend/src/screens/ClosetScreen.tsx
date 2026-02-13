@@ -11,6 +11,7 @@ import {
   Easing,
   Alert,
   Pressable,
+  TextInput,
   NativeSyntheticEvent,
   NativeScrollEvent,
   ScrollView,
@@ -34,7 +35,7 @@ import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import LiquidGlassCard from '../components/LiquidGlassCard/LiquidGlassCard';
 import {useClosetVoiceCommands} from '../utils/VoiceUtils/VoiceContext';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
-import {getClosetLocations, addClosetLocation} from '../lib/trips/tripsStorage';
+import {getClosetLocations, addClosetLocation, updateClosetLocation, removeClosetLocation} from '../lib/trips/tripsStorage';
 import type {ClosetLocation} from '../types/trips';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -172,13 +173,35 @@ const LOCATION_FIXED_COLORS: Record<string, string> = {
   _pink: '#FF69B4',
 };
 
+/** Color options for the add-location picker. */
+const LOCATION_COLOR_OPTIONS: {key: string; label: string}[] = [
+  {key: 'success', label: 'Green'},
+  {key: 'button4', label: 'Blue'},
+  {key: 'warning', label: 'Yellow'},
+  {key: '_pink', label: 'Pink'},
+  {key: 'error', label: 'Red'},
+  {key: 'secondary', label: 'Teal'},
+  {key: 'muted', label: 'Gray'},
+];
+
+/** Resolve a color key to an actual color value. */
+function resolveColorKey(
+  key: string,
+  colors: Record<string, string>,
+): string {
+  return LOCATION_FIXED_COLORS[key] ?? colors[key] ?? colors.muted;
+}
+
 function getLocationDotColor(
   locationId: string | undefined,
   colors: Record<string, string>,
+  locationColor?: string,
 ): string {
+  // Prefer stored color from ClosetLocation.color
+  if (locationColor) return resolveColorKey(locationColor, colors);
   const id = locationId ?? 'home';
   const key = LOCATION_COLOR_KEY[id] ?? 'muted';
-  return LOCATION_FIXED_COLORS[key] ?? colors[key] ?? colors.muted;
+  return resolveColorKey(key, colors);
 }
 
 export default function ClosetScreen({navigate}: Props) {
@@ -236,6 +259,11 @@ export default function ClosetScreen({navigate}: Props) {
   const [editedLocationId, setEditedLocationId] = useState('home');
   const [closetLocations, setClosetLocations] = useState<ClosetLocation[]>([]);
 
+  // Edit-location modal state
+  const [editingLocation, setEditingLocation] = useState<ClosetLocation | null>(null);
+  const [editLocName, setEditLocName] = useState('');
+  const [editLocColor, setEditLocColor] = useState('');
+
   const handleAddClosetLocation = useCallback(() => {
     Alert.prompt('New Location', 'Enter a name for this location:', async (text) => {
       const trimmed = (text ?? '').trim();
@@ -248,6 +276,17 @@ export default function ClosetScreen({navigate}: Props) {
       setClosetLocations(prev => [...prev, loc]);
       setEditedLocationId(loc.id);
     });
+  }, []);
+
+  const openEditLocation = useCallback((loc: ClosetLocation) => {
+    if (loc.id === 'home') return; // Home is not editable
+    // Close item-edit modal first so they never overlap
+    setShowEditModal(false);
+    setTimeout(() => {
+      setEditLocName(loc.label);
+      setEditLocColor(loc.color ?? '');
+      setEditingLocation(loc);
+    }, 0);
   }, []);
 
   const screenFade = useRef(new Animated.Value(0)).current;
@@ -445,6 +484,67 @@ export default function ClosetScreen({navigate}: Props) {
     },
   });
 
+  const returnToItemModal = useCallback(() => {
+    setEditingLocation(null);
+    if (selectedItemToEdit) {
+      setTimeout(() => setShowEditModal(true), 0);
+    }
+  }, [selectedItemToEdit]);
+
+  const handleSaveEditLocation = useCallback(async () => {
+    if (!editingLocation) return;
+    const updates: {label?: string; color?: string} = {};
+    const trimmedName = editLocName.trim();
+    if (trimmedName && trimmedName !== editingLocation.label) {
+      updates.label = trimmedName;
+    }
+    if (editLocColor !== (editingLocation.color ?? '')) {
+      updates.color = editLocColor;
+    }
+    if (Object.keys(updates).length === 0) {
+      returnToItemModal();
+      return;
+    }
+    const ok = await updateClosetLocation(editingLocation.id, updates);
+    if (!ok) {
+      Alert.alert('Error', 'Could not update. Name may already be in use.');
+      return;
+    }
+    const fresh = await getClosetLocations();
+    setClosetLocations(fresh);
+    returnToItemModal();
+  }, [editingLocation, editLocName, editLocColor, returnToItemModal]);
+
+  const handleDeleteLocation = useCallback(async () => {
+    if (!editingLocation || editingLocation.id === 'home') return;
+    Alert.alert(
+      'Remove Location',
+      `Remove "${editingLocation.label}"? Items and trips using it will be moved to Home.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const itemsToReassign = (wardrobe ?? []).filter(
+              (item: WardrobeItem) => item.location_id === editingLocation.id,
+            );
+            for (const item of itemsToReassign) {
+              updateMutation.mutate({id: item.id, location_id: 'home'});
+            }
+            await removeClosetLocation(editingLocation.id);
+            const fresh = await getClosetLocations();
+            setClosetLocations(fresh);
+            if (editedLocationId === editingLocation.id) {
+              setEditedLocationId('home');
+            }
+            returnToItemModal();
+          },
+        },
+      ],
+    );
+  }, [editingLocation, wardrobe, updateMutation, editedLocationId, returnToItemModal]);
+
   const filtered = useMemo(() => {
     return (displayWardrobe as WardrobeItem[])
       .map(item => {
@@ -465,6 +565,13 @@ export default function ClosetScreen({navigate}: Props) {
         return 0;
       });
   }, [displayWardrobe, selectedCategory, sortOption]);
+
+  // Lookup: location_id → stored color key from closetLocations
+  const locColorMap = useMemo(() => {
+    const map: Record<string, string | undefined> = {};
+    closetLocations.forEach(loc => { map[loc.id] = loc.color; });
+    return map;
+  }, [closetLocations]);
 
   // Flatten categorized items for FlashList
   const flatListData = useMemo(() => {
@@ -800,7 +907,7 @@ export default function ClosetScreen({navigate}: Props) {
                   <MaterialIcons
                     name="place"
                     size={28}
-                    color={getLocationDotColor(item.location_id, theme.colors)}
+                    color={getLocationDotColor(item.location_id, theme.colors, locColorMap[item.location_id ?? 'home'])}
                   />
                 </View>
               </View>
@@ -996,7 +1103,7 @@ export default function ClosetScreen({navigate}: Props) {
                     width: 7,
                     height: 7,
                     borderRadius: 999,
-                    backgroundColor: getLocationDotColor(item.location_id, theme.colors),
+                    backgroundColor: getLocationDotColor(item.location_id, theme.colors, locColorMap[item.location_id ?? 'home']),
                     borderWidth: 1,
                     borderColor: theme.colors.background,
                     alignSelf: 'center',
@@ -1646,17 +1753,19 @@ export default function ClosetScreen({navigate}: Props) {
                 {selectedItemToEdit.name}
               </Text>
               <Text style={{color: theme.colors.foreground, fontSize: 13, marginBottom: 10, opacity: 0.5}}>
-                Set Location
+                Set Location/Closet
               </Text>
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 4}}>
                 {closetLocations.map(loc => {
                   const selected = editedLocationId === loc.id;
-                  const locColor = getLocationDotColor(loc.id, theme.colors);
+                  const locColor = getLocationDotColor(loc.id, theme.colors, loc.color);
                   return (
                     <TouchableOpacity
                       key={loc.id}
                       onPress={() => setEditedLocationId(loc.id)}
+                      onLongPress={() => openEditLocation(loc)}
+                      delayLongPress={400}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -1732,6 +1841,143 @@ export default function ClosetScreen({navigate}: Props) {
                 </Text>
               </AppleTouchFeedback>
             </Animated.View>
+          </View>
+        )}
+
+        {/* Edit Location Modal */}
+        {editingLocation && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+            <TouchableWithoutFeedback onPress={returnToItemModal}>
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                }}
+              />
+            </TouchableWithoutFeedback>
+            <View
+              style={{
+                padding: 24,
+                borderRadius: 12,
+                backgroundColor: theme.colors.surface,
+                width: '90%',
+                maxWidth: 720,
+              }}>
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontWeight: tokens.fontWeight.semiBold,
+                  color: theme.colors.foreground,
+                  marginBottom: 12,
+                }}>
+                Edit Location
+              </Text>
+
+              {/* Rename */}
+              <Text style={{fontSize: 12, color: theme.colors.foreground, opacity: 0.5, marginBottom: 4}}>
+                Name
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: theme.colors.surface3,
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 15,
+                  color: theme.colors.foreground,
+                  borderWidth: 1,
+                  borderColor: theme.colors.inputBorder,
+                  marginBottom: 14,
+                }}
+                value={editLocName}
+                onChangeText={setEditLocName}
+                placeholder="Location name"
+                placeholderTextColor={theme.colors.foreground + '60'}
+              />
+
+              {/* Color Picker */}
+              <Text style={{fontSize: 12, color: theme.colors.foreground, opacity: 0.5, marginBottom: 6}}>
+                Color
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 16}}>
+                {LOCATION_COLOR_OPTIONS.map(opt => {
+                  const isActive = editLocColor === opt.key;
+                  const dotColor = resolveColorKey(opt.key, theme.colors);
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      onPress={() => setEditLocColor(opt.key)}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: dotColor,
+                        marginRight: 10,
+                        borderWidth: isActive ? 3 : 1,
+                        borderColor: isActive ? theme.colors.foreground : theme.colors.inputBorder,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}>
+                      {isActive && (
+                        <MaterialIcons name="check" size={16} color={theme.colors.background} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Delete */}
+              <TouchableOpacity
+                onPress={handleDeleteLocation}
+                style={{marginBottom: 14}}>
+                <Text style={{fontSize: 14, color: theme.colors.error ?? '#FF3B30', fontWeight: '600'}}>
+                  Delete Location
+                </Text>
+              </TouchableOpacity>
+
+              {/* Actions */}
+              <View style={{flexDirection: 'row', gap: 10}}>
+                <TouchableOpacity
+                  onPress={returnToItemModal}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: tokens.borderRadius.sm,
+                    alignItems: 'center',
+                    backgroundColor: theme.colors.surface3,
+                  }}>
+                  <Text style={{fontSize: 15, color: theme.colors.foreground, fontWeight: '600'}}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSaveEditLocation}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: tokens.borderRadius.sm,
+                    alignItems: 'center',
+                    backgroundColor: theme.colors.primary,
+                  }}>
+                  <Text style={{fontSize: 15, color: theme.colors.background, fontWeight: '600'}}>
+                    Save
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         )}
       </Animated.View>

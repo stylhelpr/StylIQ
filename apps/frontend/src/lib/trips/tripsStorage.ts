@@ -93,6 +93,7 @@ export async function getClosetLocations(): Promise<ClosetLocation[]> {
 
 export async function addClosetLocation(
   label: string,
+  color?: string,
 ): Promise<ClosetLocation | null> {
   const trimmed = label.trim();
   if (!trimmed) return null;
@@ -105,6 +106,7 @@ export async function addClosetLocation(
     const newLoc: ClosetLocation = {
       id: `custom_${Date.now()}`,
       label: trimmed,
+      ...(color ? {color} : {}),
     };
     locations.push(newLoc);
     await AsyncStorage.setItem(LOCATIONS_KEY, JSON.stringify(locations));
@@ -112,5 +114,60 @@ export async function addClosetLocation(
   } catch (err) {
     console.error('[TripsStorage] addClosetLocation failed:', err);
     return null;
+  }
+}
+
+export async function updateClosetLocation(
+  id: string,
+  updates: {label?: string; color?: string},
+): Promise<boolean> {
+  if (id === 'home' && updates.label && updates.label !== 'Home') return false;
+  try {
+    const locations = await getClosetLocations();
+    const idx = locations.findIndex(l => l.id === id);
+    if (idx < 0) return false;
+    if (updates.label !== undefined) {
+      const trimmed = updates.label.trim();
+      if (!trimmed) return false;
+      const dup = locations.some(
+        (l, i) => i !== idx && l.label.toLowerCase() === trimmed.toLowerCase(),
+      );
+      if (dup) return false;
+      locations[idx].label = trimmed;
+    }
+    if (updates.color !== undefined) {
+      locations[idx].color = updates.color;
+    }
+    await AsyncStorage.setItem(LOCATIONS_KEY, JSON.stringify(locations));
+    return true;
+  } catch (err) {
+    console.error('[TripsStorage] updateClosetLocation failed:', err);
+    return false;
+  }
+}
+
+export async function removeClosetLocation(id: string): Promise<boolean> {
+  if (id === 'home') return false;
+  try {
+    const locations = await getClosetLocations();
+    const filtered = locations.filter(l => l.id !== id);
+    await AsyncStorage.setItem(LOCATIONS_KEY, JSON.stringify(filtered));
+    // Reassign trips using this location to 'home'
+    const trips = await getTrips();
+    let tripsChanged = false;
+    for (const trip of trips) {
+      if (trip.startingLocationId === id) {
+        trip.startingLocationId = 'home';
+        trip.startingLocationLabel = 'Home';
+        tripsChanged = true;
+      }
+    }
+    if (tripsChanged) {
+      await AsyncStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
+    }
+    return true;
+  } catch (err) {
+    console.error('[TripsStorage] removeClosetLocation failed:', err);
+    return false;
   }
 }

@@ -8,6 +8,7 @@ import {
   Modal,
   Pressable,
   ActivityIndicator,
+  TouchableOpacity,
   Platform,
   Alert,
 } from 'react-native';
@@ -24,6 +25,8 @@ import {
 import {
   getClosetLocations,
   addClosetLocation,
+  updateClosetLocation,
+  removeClosetLocation,
   saveTrip,
 } from '../../lib/trips/tripsStorage';
 import {fetchRealWeather, setResolvedLocation} from '../../lib/trips/weather/realWeather';
@@ -70,6 +73,11 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
   const [newLocationName, setNewLocationName] = useState('');
   const [isBuilding, setIsBuilding] = useState(false);
 
+  // Edit-location state
+  const [editingLocation, setEditingLocation] = useState<ClosetLocation | null>(null);
+  const [editLocName, setEditLocName] = useState('');
+  const [editLocColor, setEditLocColor] = useState('');
+
   useEffect(() => {
     getClosetLocations().then(setLocations);
   }, []);
@@ -100,6 +108,82 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
     setLocations(prev => [...prev, loc]);
     setSelectedLocationId(loc.id);
     setNewLocationName('');
+  };
+
+  const EDIT_COLOR_OPTIONS: {key: string; label: string}[] = [
+    {key: 'success', label: 'Green'},
+    {key: 'button4', label: 'Blue'},
+    {key: 'warning', label: 'Yellow'},
+    {key: '_pink', label: 'Pink'},
+    {key: 'error', label: 'Red'},
+    {key: 'secondary', label: 'Teal'},
+    {key: 'muted', label: 'Gray'},
+  ];
+  const FIXED_COLORS: Record<string, string> = {_pink: '#FF69B4'};
+  const resolveColor = (key: string) => FIXED_COLORS[key] ?? (theme.colors as any)[key] ?? theme.colors.foreground2;
+
+  const openEditLocation = (loc: ClosetLocation) => {
+    if (loc.id === 'home') return;
+    // Close picker first so two Modals never overlap
+    setShowLocationModal(false);
+    setTimeout(() => {
+      setEditLocName(loc.label);
+      setEditLocColor(loc.color ?? '');
+      setEditingLocation(loc);
+    }, 0);
+  };
+
+  const returnToPicker = () => {
+    setEditingLocation(null);
+    setTimeout(() => setShowLocationModal(true), 0);
+  };
+
+  const handleSaveEditLocation = async () => {
+    if (!editingLocation) return;
+    const updates: {label?: string; color?: string} = {};
+    const trimmedName = editLocName.trim();
+    if (trimmedName && trimmedName !== editingLocation.label) {
+      updates.label = trimmedName;
+    }
+    if (editLocColor !== (editingLocation.color ?? '')) {
+      updates.color = editLocColor;
+    }
+    if (Object.keys(updates).length === 0) {
+      returnToPicker();
+      return;
+    }
+    const ok = await updateClosetLocation(editingLocation.id, updates);
+    if (!ok) {
+      Alert.alert('Error', 'Could not update. Name may already be in use.');
+      return;
+    }
+    const fresh = await getClosetLocations();
+    setLocations(fresh);
+    returnToPicker();
+  };
+
+  const handleDeleteEditLocation = async () => {
+    if (!editingLocation || editingLocation.id === 'home') return;
+    Alert.alert(
+      'Remove Location',
+      `Remove "${editingLocation.label}"? Items and trips using it will be moved to Home.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            await removeClosetLocation(editingLocation.id);
+            const fresh = await getClosetLocations();
+            setLocations(fresh);
+            if (selectedLocationId === editingLocation.id) {
+              setSelectedLocationId('home');
+            }
+            returnToPicker();
+          },
+        },
+      ],
+    );
   };
 
   const handleBuildCapsule = async () => {
@@ -494,6 +578,7 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
                     setSelectedLocationId(loc.id);
                     setShowLocationModal(false);
                   }}
+                  onLongPress={() => openEditLocation(loc)}
                   hapticStyle="impactLight">
                   <View style={styles.locationOption}>
                     <Icon
@@ -510,6 +595,11 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
                       }
                     />
                     <Text style={styles.locationOptionText}>{loc.label}</Text>
+                    {loc.id !== 'home' && (
+                      <Text style={{fontSize: 11, color: theme.colors.foreground2, opacity: 0.5}}>
+                        Hold to edit
+                      </Text>
+                    )}
                   </View>
                 </AppleTouchFeedback>
               ))}
@@ -529,6 +619,101 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
                 hapticStyle="impactLight">
                 <View style={styles.addBtn}>
                   <Text style={styles.addBtnText}>Add</Text>
+                </View>
+              </AppleTouchFeedback>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Edit Location Modal */}
+      <Modal
+        visible={editingLocation !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={returnToPicker}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={returnToPicker}>
+          <Pressable
+            style={[styles.modalSheet, {justifyContent: 'center', paddingHorizontal: 20, paddingTop: 20}]}
+            onPress={e => e.stopPropagation()}>
+            <Text style={[styles.modalTitle, {paddingHorizontal: 0}]}>Edit Location</Text>
+
+            {/* Rename */}
+            <Text style={{fontSize: 12, color: theme.colors.foreground2, marginBottom: 4}}>Name</Text>
+            <TextInput
+              style={[styles.addLocationInput, {marginBottom: 14}]}
+              value={editLocName}
+              onChangeText={setEditLocName}
+              placeholder="Location name"
+              placeholderTextColor={theme.colors.foreground2}
+            />
+
+            {/* Color Picker */}
+            <Text style={{fontSize: 12, color: theme.colors.foreground2, marginBottom: 6}}>Color</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 16}}>
+              {EDIT_COLOR_OPTIONS.map(opt => {
+                const isActive = editLocColor === opt.key;
+                const dotColor = resolveColor(opt.key);
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    onPress={() => setEditLocColor(opt.key)}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: dotColor,
+                      marginRight: 10,
+                      borderWidth: isActive ? 3 : 1,
+                      borderColor: isActive ? theme.colors.foreground : theme.colors.surfaceBorder,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    {isActive && (
+                      <Icon name="check" size={16} color="#FFFFFF" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Delete */}
+            <TouchableOpacity onPress={handleDeleteEditLocation} style={{marginBottom: 14}}>
+              <Text style={{fontSize: 14, color: '#FF3B30', fontWeight: '600'}}>
+                Delete Location
+              </Text>
+            </TouchableOpacity>
+
+            {/* Actions */}
+            <View style={{flexDirection: 'row', gap: 10}}>
+              <AppleTouchFeedback
+                onPress={returnToPicker}
+                hapticStyle="impactLight">
+                <View style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  paddingHorizontal: 24,
+                  borderRadius: tokens.borderRadius.md,
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.surface,
+                }}>
+                  <Text style={{fontSize: 15, color: theme.colors.foreground, fontWeight: '600'}}>Cancel</Text>
+                </View>
+              </AppleTouchFeedback>
+              <AppleTouchFeedback
+                onPress={handleSaveEditLocation}
+                hapticStyle="impactLight">
+                <View style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  paddingHorizontal: 24,
+                  borderRadius: tokens.borderRadius.md,
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.button1,
+                }}>
+                  <Text style={{fontSize: 15, color: '#FFFFFF', fontWeight: '600'}}>Save</Text>
                 </View>
               </AppleTouchFeedback>
             </View>
