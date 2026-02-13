@@ -907,7 +907,16 @@ function hasCoreSlots(
     return slots.has('tops') && hasBottomsEquivalent && slots.has('shoes');
   }
 
-  return true;
+  // Feminine / mixed: require shoes + a valid outfit base
+  if (!slots.has('shoes')) return false;
+  if (slots.has('dresses')) return true;
+  if (slots.has('tops') && slots.has('bottoms')) return true;
+  if (slots.has('activewear')) {
+    const awCount = items.filter(i => (CATEGORY_MAP[i.mainCategory] || 'other') === 'activewear').length;
+    if (awCount >= 2 || slots.has('bottoms')) return true;
+  }
+  if (slots.has('swimwear')) return true;
+  return false;
 }
 
 // ── Beach/Active bottom-picking helpers ──
@@ -969,7 +978,16 @@ function isFinalOutfitValid(
     const hasBottomsEquivalent = slots.has('bottoms') || slots.has('swimwear');
     return slots.has('tops') && hasBottomsEquivalent && slots.has('shoes');
   }
-  return true;
+  // Feminine / mixed: require shoes + a valid outfit base
+  if (!slots.has('shoes')) return false;
+  if (slots.has('dresses')) return true;
+  if (slots.has('tops') && slots.has('bottoms')) return true;
+  if (slots.has('activewear')) {
+    const awCount = items.filter(i => (CATEGORY_MAP[i.mainCategory] || 'other') === 'activewear').length;
+    if (awCount >= 2 || slots.has('bottoms')) return true;
+  }
+  if (slots.has('swimwear')) return true;
+  return false;
 }
 
 /**
