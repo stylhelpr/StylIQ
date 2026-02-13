@@ -7,10 +7,8 @@ import {
   Dimensions,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  TextInput,
   Animated,
   Easing,
-  Alert,
   Pressable,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -164,9 +162,13 @@ type FlatListItem = {
 
 const LOCATION_COLOR_KEY: Record<string, string> = {
   home: 'success',
-  office: 'primary',
+  office: 'button4',
   parents: 'warning',
-  partner: 'secondary',
+  partner: '_pink',
+};
+
+const LOCATION_FIXED_COLORS: Record<string, string> = {
+  _pink: '#FF69B4',
 };
 
 function getLocationDotColor(
@@ -175,7 +177,7 @@ function getLocationDotColor(
 ): string {
   const id = locationId ?? 'home';
   const key = LOCATION_COLOR_KEY[id] ?? 'muted';
-  return colors[key] ?? colors.muted;
+  return LOCATION_FIXED_COLORS[key] ?? colors[key] ?? colors.muted;
 }
 
 export default function ClosetScreen({navigate}: Props) {
@@ -230,8 +232,6 @@ export default function ClosetScreen({navigate}: Props) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItemToEdit, setSelectedItemToEdit] =
     useState<WardrobeItem | null>(null);
-  const [editedName, setEditedName] = useState('');
-  const [editedColor, setEditedColor] = useState('');
   const [editedLocationId, setEditedLocationId] = useState('home');
   const [closetLocations, setClosetLocations] = useState<ClosetLocation[]>([]);
 
@@ -735,8 +735,6 @@ export default function ClosetScreen({navigate}: Props) {
             }}
             onLongPress={() => {
               if (!isDemo) {
-                setEditedName(item.name ?? '');
-                setEditedColor(item.color ?? '');
                 setEditedLocationId(item.location_id ?? 'home');
                 setSelectedItemToEdit(item);
                 setShowEditModal(true);
@@ -931,8 +929,6 @@ export default function ClosetScreen({navigate}: Props) {
             }}
             onLongPress={() => {
               if (!isDemo) {
-                setEditedName(item.name ?? '');
-                setEditedColor(item.color ?? '');
                 setEditedLocationId(item.location_id ?? 'home');
                 setSelectedItemToEdit(item);
                 setShowEditModal(true);
@@ -1624,40 +1620,46 @@ export default function ClosetScreen({navigate}: Props) {
                   },
                 ],
               }}>
-              <TextInput
-                value={editedName}
-                onChangeText={setEditedName}
-                placeholder="Name"
-                style={styles.input}
-                placeholderTextColor="#999"
-              />
-              <TextInput
-                value={editedColor}
-                onChangeText={setEditedColor}
-                placeholder="Color"
-                style={styles.input}
-                placeholderTextColor="#999"
-              />
-
-              <Text style={{color: theme.colors.foreground, fontSize: 13, marginTop: 12, marginBottom: 6, opacity: 0.6}}>
-                Location
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontWeight: tokens.fontWeight.semiBold,
+                  color: theme.colors.foreground,
+                  marginBottom: 4,
+                }}
+                numberOfLines={1}>
+                {selectedItemToEdit.name}
               </Text>
+              <Text style={{color: theme.colors.foreground, fontSize: 13, marginBottom: 10, opacity: 0.5}}>
+                Set Location
+              </Text>
+
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 4}}>
                 {closetLocations.map(loc => {
                   const selected = editedLocationId === loc.id;
+                  const locColor = getLocationDotColor(loc.id, theme.colors);
                   return (
                     <TouchableOpacity
                       key={loc.id}
                       onPress={() => setEditedLocationId(loc.id)}
                       style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
                         paddingHorizontal: 14,
                         paddingVertical: 8,
                         borderRadius: 20,
                         marginRight: 8,
-                        backgroundColor: selected ? theme.colors.primary : theme.colors.surface3,
+                        backgroundColor: selected ? locColor : theme.colors.surface3,
                         borderWidth: 1,
-                        borderColor: selected ? theme.colors.primary : theme.colors.inputBorder,
+                        borderColor: selected ? locColor : theme.colors.inputBorder,
                       }}>
+                      <View style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: 999,
+                        backgroundColor: selected ? theme.colors.background : locColor,
+                        marginRight: 6,
+                      }} />
                       <Text style={{
                         fontSize: 13,
                         color: selected ? theme.colors.background : theme.colors.foreground,
@@ -1676,8 +1678,6 @@ export default function ClosetScreen({navigate}: Props) {
                   if (selectedItemToEdit) {
                     updateMutation.mutate({
                       id: selectedItemToEdit.id,
-                      name: editedName || selectedItemToEdit.name,
-                      color: editedColor || selectedItemToEdit.color,
                       location_id: editedLocationId,
                     });
                     setShowEditModal(false);
@@ -1697,43 +1697,7 @@ export default function ClosetScreen({navigate}: Props) {
                     fontWeight: tokens.fontWeight.semiBold,
                     color: theme.colors.background,
                   }}>
-                  Save Changes
-                </Text>
-              </AppleTouchFeedback>
-
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() => {
-                  Alert.alert(
-                    'Delete Item',
-                    'Are you sure you want to delete this item?',
-                    [
-                      {text: 'Cancel', style: 'cancel'},
-                      {
-                        text: 'Delete',
-                        style: 'destructive',
-                        onPress: () => {
-                          deleteMutation.mutate(selectedItemToEdit.id);
-                          setShowEditModal(false);
-                          setSelectedItemToEdit(null);
-                        },
-                      },
-                    ],
-                  );
-                }}
-                style={{
-                  backgroundColor: '#cc0000',
-                  padding: 12,
-                  borderRadius: 8,
-                  marginTop: 16,
-                }}>
-                <Text
-                  style={{
-                    color: '#fff',
-                    textAlign: 'center',
-                    fontWeight: tokens.fontWeight.semiBold,
-                  }}>
-                  Delete Item
+                  Save
                 </Text>
               </AppleTouchFeedback>
             </Animated.View>
