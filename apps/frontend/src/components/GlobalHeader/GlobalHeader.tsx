@@ -327,7 +327,7 @@ export default function GlobalHeader({
                   <Text style={styles.dropdownText}>Profile</Text>
                 </AppleTouchFeedback>
                 
-                      <AppleTouchFeedback
+                <AppleTouchFeedback
                   hapticStyle="impactLight"
                   onPress={() => {
                     setMenuOpen(false);

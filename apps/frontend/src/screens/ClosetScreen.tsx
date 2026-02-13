@@ -919,8 +919,8 @@ export default function ClosetScreen({navigate}: Props) {
                   />
                 </View>
                 {item.care_status === 'at_cleaner' && (
-                  <View style={{marginTop: 4, alignSelf: 'center'}}>
-                    <MaterialIcons name="dry-cleaning" size={20} color={theme.colors.warning ?? '#F59E0B'} />
+                  <View style={{marginTop: 8, alignSelf: 'center'}}>
+                    <MaterialIcons name="dry-cleaning" size={26} color={theme.colors.warning ?? '#F59E0B'} />
                   </View>
                 )}
               </View>
