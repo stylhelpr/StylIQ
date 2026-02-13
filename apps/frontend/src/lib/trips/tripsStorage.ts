@@ -6,10 +6,21 @@ const LOCATIONS_KEY = '@styliq_closet_locations';
 
 const DEFAULT_LOCATIONS: ClosetLocation[] = [
   {id: 'home', label: 'Home'},
-  {id: 'office', label: 'Office'},
-  {id: 'parents', label: "Parents' House"},
-  {id: 'partner', label: "Partner's Place"},
 ];
+
+/** Labels for legacy location IDs that are no longer in defaults. */
+const LEGACY_LABELS: Record<string, string> = {
+  office: 'Office',
+  parents: "Parents' House",
+  partner: "Partner's Place",
+};
+
+/** Convert a raw location_id into a displayable label. */
+export function locationLabel(id: string, locations: ClosetLocation[]): string {
+  const found = locations.find(l => l.id === id);
+  if (found) return found.label;
+  return LEGACY_LABELS[id] ?? id.replace(/^custom_/, '').replace(/_/g, ' ');
+}
 
 // ── Trips CRUD ──
 
@@ -66,23 +77,34 @@ export async function deleteTrip(id: string): Promise<boolean> {
 
 export async function getClosetLocations(): Promise<ClosetLocation[]> {
   const raw = await AsyncStorage.getItem(LOCATIONS_KEY);
-  if (!raw) return DEFAULT_LOCATIONS;
+  if (!raw) return [...DEFAULT_LOCATIONS];
   try {
     const locations = JSON.parse(raw) as ClosetLocation[];
-    return locations.length > 0 ? locations : DEFAULT_LOCATIONS;
+    if (locations.length === 0) return [...DEFAULT_LOCATIONS];
+    // Ensure "home" is always present
+    if (!locations.some(l => l.id === 'home')) {
+      locations.unshift({id: 'home', label: 'Home'});
+    }
+    return locations;
   } catch {
-    return DEFAULT_LOCATIONS;
+    return [...DEFAULT_LOCATIONS];
   }
 }
 
 export async function addClosetLocation(
   label: string,
 ): Promise<ClosetLocation | null> {
+  const trimmed = label.trim();
+  if (!trimmed) return null;
   try {
     const locations = await getClosetLocations();
+    const duplicate = locations.some(
+      l => l.label.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (duplicate) return null;
     const newLoc: ClosetLocation = {
       id: `custom_${Date.now()}`,
-      label: label.trim(),
+      label: trimmed,
     };
     locations.push(newLoc);
     await AsyncStorage.setItem(LOCATIONS_KEY, JSON.stringify(locations));

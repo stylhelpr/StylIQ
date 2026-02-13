@@ -83,8 +83,16 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
   };
 
   const handleAddLocation = async () => {
-    if (!newLocationName.trim()) return;
-    const loc = await addClosetLocation(newLocationName);
+    const trimmed = newLocationName.trim();
+    if (!trimmed) return;
+    const isDuplicate = locations.some(
+      l => l.label.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (isDuplicate) {
+      Alert.alert('Duplicate', 'A location with that name already exists.');
+      return;
+    }
+    const loc = await addClosetLocation(trimmed);
     if (!loc) {
       Alert.alert('Error', "Couldn't save location. Please try again.");
       return;

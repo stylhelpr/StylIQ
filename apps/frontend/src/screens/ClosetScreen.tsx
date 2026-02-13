@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   Animated,
   Easing,
+  Alert,
   Pressable,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -33,7 +34,7 @@ import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import LiquidGlassCard from '../components/LiquidGlassCard/LiquidGlassCard';
 import {useClosetVoiceCommands} from '../utils/VoiceUtils/VoiceContext';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
-import {getClosetLocations} from '../lib/trips/tripsStorage';
+import {getClosetLocations, addClosetLocation} from '../lib/trips/tripsStorage';
 import type {ClosetLocation} from '../types/trips';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -234,6 +235,20 @@ export default function ClosetScreen({navigate}: Props) {
     useState<WardrobeItem | null>(null);
   const [editedLocationId, setEditedLocationId] = useState('home');
   const [closetLocations, setClosetLocations] = useState<ClosetLocation[]>([]);
+
+  const handleAddClosetLocation = useCallback(() => {
+    Alert.prompt('New Location', 'Enter a name for this location:', async (text) => {
+      const trimmed = (text ?? '').trim();
+      if (!trimmed) return;
+      const loc = await addClosetLocation(trimmed);
+      if (!loc) {
+        Alert.alert('Duplicate', 'A location with that name already exists.');
+        return;
+      }
+      setClosetLocations(prev => [...prev, loc]);
+      setEditedLocationId(loc.id);
+    });
+  }, []);
 
   const screenFade = useRef(new Animated.Value(0)).current;
   const screenTranslate = useRef(new Animated.Value(50)).current;
@@ -1670,6 +1685,22 @@ export default function ClosetScreen({navigate}: Props) {
                     </TouchableOpacity>
                   );
                 })}
+                <TouchableOpacity
+                  onPress={handleAddClosetLocation}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: theme.colors.inputBorder,
+                    borderStyle: 'dashed',
+                  }}>
+                  <Text style={{fontSize: 13, color: theme.colors.foreground, opacity: 0.6}}>
+                    + Add
+                  </Text>
+                </TouchableOpacity>
               </ScrollView>
 
               <AppleTouchFeedback
