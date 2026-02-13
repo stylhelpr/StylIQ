@@ -39,6 +39,11 @@ import {getClosetLocations, addClosetLocation, updateClosetLocation, removeClose
 import type {ClosetLocation} from '../types/trips';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {saveEventToIOSCalendar, deleteEventFromIOSCalendar, checkIOSCalendarEventExists} from '../utils/calendarSync';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
+const DRY_CLEANER_EVENT_KEY = '@styliq_dry_cleaner_event_id';
+const DRY_CLEANER_PROMPTED_KEY = '@styliq_dry_cleaner_prompted';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const NUM_COLUMNS = 2;
@@ -262,6 +267,12 @@ export default function ClosetScreen({navigate}: Props) {
   const [editedCareStatus, setEditedCareStatus] = useState<'available' | 'at_cleaner'>('available');
   const [editedCleanerInfo, setEditedCleanerInfo] = useState('');
   const [closetLocations, setClosetLocations] = useState<ClosetLocation[]>([]);
+
+  // Dry cleaner pickup reminder state
+  const [showPickupDatePicker, setShowPickupDatePicker] = useState(false);
+  const [pickupDate, setPickupDate] = useState(new Date());
+  const [hasPickupEvent, setHasPickupEvent] = useState(false);
+  const prevCareStatusRef = useRef<Record<string, string | undefined>>({});
 
   // Edit-location modal state
   const [editingLocation, setEditingLocation] = useState<ClosetLocation | null>(null);
@@ -491,6 +502,22 @@ export default function ClosetScreen({navigate}: Props) {
         queryClient.setQueryData(['wardrobe', userId], context.prev);
       }
     },
+    onSuccess: async (_data, variables) => {
+      const prevCareStatus = prevCareStatusRef.current[variables.id];
+      delete prevCareStatusRef.current[variables.id];
+      const newCareStatus = variables.care_status;
+
+      if (prevCareStatus !== 'at_cleaner' && newCareStatus === 'at_cleaner') {
+        await promptPickupReminder();
+      }
+
+      if (prevCareStatus === 'at_cleaner' && newCareStatus !== 'at_cleaner') {
+        const updatedWardrobe = (wardrobe ?? []).map((i: WardrobeItem) =>
+          i.id === variables.id ? {...i, care_status: newCareStatus} : i,
+        );
+        await cleanupPickupReminder(updatedWardrobe);
+      }
+    },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: ['wardrobe', userId]});
     },
@@ -556,6 +583,66 @@ export default function ClosetScreen({navigate}: Props) {
       ],
     );
   }, [editingLocation, wardrobe, updateMutation, editedLocationId, returnToItemModal]);
+
+  // Hydrate hasPickupEvent on mount and when edit modal opens
+  useEffect(() => {
+    AsyncStorage.getItem(DRY_CLEANER_EVENT_KEY).then(val => setHasPickupEvent(!!val));
+  }, [showEditModal]);
+
+  const promptPickupReminder = useCallback(async () => {
+    const alreadyPrompted = await AsyncStorage.getItem(DRY_CLEANER_PROMPTED_KEY);
+    if (alreadyPrompted === '1') return;
+    const existingId = await AsyncStorage.getItem(DRY_CLEANER_EVENT_KEY);
+    if (existingId) return;
+    await AsyncStorage.setItem(DRY_CLEANER_PROMPTED_KEY, '1');
+    Alert.alert(
+      'Schedule Dry Cleaning Pickup?',
+      'Would you like a reminder to pick up your clothes?',
+      [
+        {text: 'Later', style: 'cancel'},
+        {
+          text: 'Schedule',
+          onPress: () => {
+            setPickupDate(new Date());
+            setShowPickupDatePicker(true);
+          },
+        },
+      ],
+    );
+  }, []);
+
+  const createPickupEvent = useCallback(async (date: Date) => {
+    const existingId = await AsyncStorage.getItem(DRY_CLEANER_EVENT_KEY);
+    if (existingId) {
+      const exists = await checkIOSCalendarEventExists(existingId);
+      if (exists) {
+        setHasPickupEvent(true);
+        return;
+      }
+      await AsyncStorage.removeItem(DRY_CLEANER_EVENT_KEY);
+    }
+    const eventId = await saveEventToIOSCalendar({
+      title: '🧺 Dry Cleaning Pickup',
+      startDate: date,
+      endDate: new Date(date.getTime() + 30 * 60000),
+      notes: 'From StylHelpr wardrobe',
+    });
+    if (eventId) {
+      await AsyncStorage.setItem(DRY_CLEANER_EVENT_KEY, eventId);
+      setHasPickupEvent(true);
+    }
+  }, []);
+
+  const cleanupPickupReminder = useCallback(async (updatedWardrobe: WardrobeItem[]) => {
+    const anyAtCleaner = updatedWardrobe.some(i => i.care_status === 'at_cleaner');
+    if (anyAtCleaner) return;
+    const eventId = await AsyncStorage.getItem(DRY_CLEANER_EVENT_KEY);
+    if (eventId) {
+      await deleteEventFromIOSCalendar(eventId);
+    }
+    await AsyncStorage.multiRemove([DRY_CLEANER_EVENT_KEY, DRY_CLEANER_PROMPTED_KEY]);
+    setHasPickupEvent(false);
+  }, []);
 
   const filtered = useMemo(() => {
     return (displayWardrobe as WardrobeItem[])
@@ -1285,7 +1372,7 @@ export default function ClosetScreen({navigate}: Props) {
                 });
                 navigate('OutfitCanvas');
               }}>
-              <Text style={globalStyles.buttonPrimaryText}>+ Build An Outfit</Text>
+              <Text style={globalStyles.buttonPrimaryText}>+ Build Outfit</Text>
             </AppleTouchFeedback>
 
             {/* View Mode Toggle */}
@@ -1879,7 +1966,7 @@ export default function ClosetScreen({navigate}: Props) {
               {editedCareStatus === 'at_cleaner' && (
                 <>
                   <Text style={{color: theme.colors.foreground, fontSize: 13, marginTop: 12, marginBottom: 6, opacity: 0.5}}>
-                    Dry Cleaner Details
+                    Cleaner Details
                   </Text>
                   <TextInput
                     placeholder="Cleaner name, address..."
@@ -1898,6 +1985,18 @@ export default function ClosetScreen({navigate}: Props) {
                       borderColor: theme.colors.inputBorder,
                     }}
                   />
+                  {!hasPickupEvent && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setPickupDate(new Date());
+                        setShowPickupDatePicker(true);
+                      }}
+                      style={{marginTop: 8}}>
+                      <Text style={{color: theme.colors.primary, fontSize: 13}}>
+                        Schedule pickup reminder
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </>
               )}
 
@@ -1905,6 +2004,7 @@ export default function ClosetScreen({navigate}: Props) {
                 hapticStyle="impactLight"
                 onPress={() => {
                   if (selectedItemToEdit) {
+                    prevCareStatusRef.current[selectedItemToEdit.id] = selectedItemToEdit.care_status;
                     updateMutation.mutate({
                       id: selectedItemToEdit.id,
                       location_id: editedLocationId,
@@ -2066,6 +2166,57 @@ export default function ClosetScreen({navigate}: Props) {
                   <Text style={{fontSize: 15, color: theme.colors.background, fontWeight: '600'}}>
                     Save
                   </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Dry Cleaner Pickup DateTimePicker */}
+        {showPickupDatePicker && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+            <TouchableWithoutFeedback onPress={() => setShowPickupDatePicker(false)}>
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0,0,0,0.4)',
+                }}
+              />
+            </TouchableWithoutFeedback>
+            <View style={{backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20, width: '85%'}}>
+              <Text style={{color: theme.colors.foreground, fontSize: 16, fontWeight: '600', marginBottom: 12}}>
+                Pickup Date & Time
+              </Text>
+              <DateTimePicker
+                value={pickupDate}
+                mode="datetime"
+                display="compact"
+                minimumDate={new Date()}
+                onChange={(_e, date) => { if (date) setPickupDate(date); }}
+                accentColor={theme.colors.primary}
+              />
+              <View style={{flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16, gap: 16}}>
+                <TouchableOpacity onPress={() => setShowPickupDatePicker(false)}>
+                  <Text style={{color: theme.colors.foreground, opacity: 0.6, fontSize: 15}}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={async () => {
+                  setShowPickupDatePicker(false);
+                  await createPickupEvent(pickupDate);
+                }}>
+                  <Text style={{color: theme.colors.primary, fontWeight: '600', fontSize: 15}}>Confirm</Text>
                 </TouchableOpacity>
               </View>
             </View>
