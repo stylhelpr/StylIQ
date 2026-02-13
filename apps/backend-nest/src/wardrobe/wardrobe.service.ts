@@ -3294,6 +3294,7 @@ ${lockedLines}
 
     // Availability
     add('care_status', dto.care_status ?? 'available');
+    add('cleaner_info', dto.cleaner_info ?? null);
 
     // System
     add('constraints', dto.constraints);

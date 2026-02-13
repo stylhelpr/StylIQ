@@ -114,6 +114,7 @@ type WardrobeItem = {
   favorite?: boolean;
   location_id?: string;
   care_status?: string;
+  cleaner_info?: string;
 };
 
 type Props = {
@@ -259,6 +260,7 @@ export default function ClosetScreen({navigate}: Props) {
     useState<WardrobeItem | null>(null);
   const [editedLocationId, setEditedLocationId] = useState('home');
   const [editedCareStatus, setEditedCareStatus] = useState<'available' | 'at_cleaner'>('available');
+  const [editedCleanerInfo, setEditedCleanerInfo] = useState('');
   const [closetLocations, setClosetLocations] = useState<ClosetLocation[]>([]);
 
   // Edit-location modal state
@@ -443,21 +445,24 @@ export default function ClosetScreen({navigate}: Props) {
       color,
       location_id,
       care_status,
+      cleaner_info,
     }: {
       id: string;
       name?: string;
       color?: string;
       location_id?: string;
       care_status?: string;
+      cleaner_info?: string | null;
     }) => {
       const body: Record<string, any> = {};
       if (name !== undefined) body.name = name;
       if (color !== undefined) body.color = color;
       if (location_id !== undefined) body.location_id = location_id;
       if (care_status !== undefined) body.care_status = care_status;
+      if (cleaner_info !== undefined) body.cleaner_info = cleaner_info;
       await apiClient.put(`/wardrobe/${id}`, body);
     },
-    onMutate: async ({id, name, color, location_id, care_status}) => {
+    onMutate: async ({id, name, color, location_id, care_status, cleaner_info}) => {
       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
       const prev = queryClient.getQueryData<WardrobeItem[]>([
         'wardrobe',
@@ -474,6 +479,7 @@ export default function ClosetScreen({navigate}: Props) {
                   color: color ?? item.color,
                   location_id: location_id ?? item.location_id,
                   care_status: care_status ?? item.care_status,
+                  cleaner_info: cleaner_info !== undefined ? (cleaner_info ?? undefined) : item.cleaner_info,
                 }
               : item,
           ) || [],
@@ -865,6 +871,7 @@ export default function ClosetScreen({navigate}: Props) {
               if (!isDemo) {
                 setEditedLocationId(item.location_id ?? 'home');
                 setEditedCareStatus((item.care_status as any) ?? 'available');
+                setEditedCleanerInfo(item.cleaner_info ?? '');
                 setSelectedItemToEdit(item);
                 setShowEditModal(true);
               }
@@ -1066,6 +1073,7 @@ export default function ClosetScreen({navigate}: Props) {
               if (!isDemo) {
                 setEditedLocationId(item.location_id ?? 'home');
                 setEditedCareStatus((item.care_status as any) ?? 'available');
+                setEditedCleanerInfo(item.cleaner_info ?? '');
                 setSelectedItemToEdit(item);
                 setShowEditModal(true);
               }
@@ -1838,7 +1846,7 @@ export default function ClosetScreen({navigate}: Props) {
               <View style={{flexDirection: 'row', marginBottom: 4}}>
                 {([
                   {value: 'available' as const, label: 'Available'},
-                  {value: 'at_cleaner' as const, label: 'At Dry Cleaner'},
+                  {value: 'at_cleaner' as const, label: 'At Cleaner'},
                 ]).map(opt => {
                   const sel = editedCareStatus === opt.value;
                   return (
@@ -1868,6 +1876,31 @@ export default function ClosetScreen({navigate}: Props) {
                 })}
               </View>
 
+              {editedCareStatus === 'at_cleaner' && (
+                <>
+                  <Text style={{color: theme.colors.foreground, fontSize: 13, marginTop: 12, marginBottom: 6, opacity: 0.5}}>
+                    Dry Cleaner Details
+                  </Text>
+                  <TextInput
+                    placeholder="Cleaner name, address..."
+                    placeholderTextColor={theme.colors.foreground + '55'}
+                    value={editedCleanerInfo}
+                    onChangeText={setEditedCleanerInfo}
+                    multiline
+                    style={{
+                      maxHeight: 80,
+                      color: theme.colors.foreground,
+                      backgroundColor: theme.colors.surface3,
+                      borderRadius: 8,
+                      padding: 10,
+                      fontSize: 14,
+                      borderWidth: 1,
+                      borderColor: theme.colors.inputBorder,
+                    }}
+                  />
+                </>
+              )}
+
               <AppleTouchFeedback
                 hapticStyle="impactLight"
                 onPress={() => {
@@ -1876,6 +1909,7 @@ export default function ClosetScreen({navigate}: Props) {
                       id: selectedItemToEdit.id,
                       location_id: editedLocationId,
                       care_status: editedCareStatus,
+                      cleaner_info: editedCareStatus === 'at_cleaner' ? (editedCleanerInfo || null) : null,
                     });
                     setShowEditModal(false);
                     setSelectedItemToEdit(null);

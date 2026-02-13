@@ -108,6 +108,7 @@ export function toCreateDto(x: WardrobeItem) {
 
     location_id: x.locationId,
     care_status: x.careStatus,
+    cleaner_info: x.cleanerInfo,
 
     metadata: x.metadata,
     constraints: x.constraints, // string
@@ -225,6 +226,7 @@ export function fromApi(row: any): WardrobeItem {
 
     locationId: row.location_id ?? 'home',
     careStatus: (row.care_status ?? 'available') as 'available' | 'at_cleaner',
+    cleanerInfo: row.cleaner_info ?? undefined,
 
     metadata: row.metadata ?? undefined,
     constraints: row.constraints ?? undefined,

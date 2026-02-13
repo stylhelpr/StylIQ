@@ -175,6 +175,7 @@ export type WardrobeItem = {
 
   // Availability
   careStatus?: 'available' | 'at_cleaner';
+  cleanerInfo?: string;
 
   // System
   metadata?: Record<string, any>;

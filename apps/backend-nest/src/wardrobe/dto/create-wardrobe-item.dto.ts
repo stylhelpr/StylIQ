@@ -525,6 +525,10 @@ export class CreateWardrobeItemDto {
   @IsString()
   care_status?: string;
 
+  @IsOptional()
+  @IsString()
+  cleaner_info?: string;
+
   // System
   @IsOptional()
   @IsObject()
