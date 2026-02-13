@@ -3289,6 +3289,9 @@ ${lockedLines}
         : undefined,
     );
 
+    // Location
+    add('location_id', dto.location_id ?? 'home');
+
     // System
     add('constraints', dto.constraints);
 

@@ -230,12 +230,12 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
                 }
                 isActive={current === 'CommunityShowcaseScreen'}
               />
-              <TabButton
+              {/* <TabButton
                 icon="card-travel"
                 label="TRIPS"
                 onPress={() => current !== 'Trips' && navigate('Trips')}
                 isActive={current === 'Trips'}
-              />
+              /> */}
 
             </LiquidGlassView>
           </Animated.View>
@@ -282,12 +282,12 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
                 }
                 isActive={current === 'CommunityShowcaseScreen'}
               />
-              <TabButton
+              {/* <TabButton
                 icon="card-travel"
                 label="TRIPS"
                 onPress={() => current !== 'Trips' && navigate('Trips')}
                 isActive={current === 'Trips'}
-              />
+              /> */}
           </View>
         )}
       </SafeAreaView>

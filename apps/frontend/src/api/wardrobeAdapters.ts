@@ -106,6 +106,8 @@ export function toCreateDto(x: WardrobeItem) {
     })),
     disliked_features: x.dislikedFeatures,
 
+    location_id: x.locationId,
+
     metadata: x.metadata,
     constraints: x.constraints, // string
   };
@@ -219,6 +221,8 @@ export function fromApi(row: any): WardrobeItem {
         }))
       : undefined,
     dislikedFeatures: row.disliked_features ?? undefined,
+
+    locationId: row.location_id ?? 'home',
 
     metadata: row.metadata ?? undefined,
     constraints: row.constraints ?? undefined,

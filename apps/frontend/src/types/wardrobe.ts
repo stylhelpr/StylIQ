@@ -170,6 +170,9 @@ export type WardrobeItem = {
   outfitFeedback?: {outfitId: string; liked: boolean; reasonCodes?: string[]}[];
   dislikedFeatures?: string[];
 
+  // Location
+  locationId?: string; // ↔ location_id
+
   // System
   metadata?: Record<string, any>;
   constraints?: string; // ✅ single string

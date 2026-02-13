@@ -16,6 +16,7 @@ import {normalizeGenderToPresentation} from '../../lib/trips/styleEligibility';
 import {filterEligibleItems} from '../../lib/trips/styleEligibility';
 import {PACKING_CATEGORY_ORDER} from '../../lib/trips/constants';
 import {fetchRealWeather} from '../../lib/trips/weather/realWeather';
+import {filterWardrobeByLocation} from '../../lib/trips/wardrobeLocationFilter';
 import {useGenderPresentation} from '../../hooks/useGenderPresentation';
 import WeatherStrip from '../../components/Trips/WeatherStrip';
 import OutfitCarousel from '../../components/Trips/OutfitCarousel';
@@ -53,8 +54,8 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
   const rawGender = userGenderPresentation ?? hookGender;
 
   const adaptedWardrobe = useMemo(
-    () => wardrobe.map(adaptWardrobeItem),
-    [wardrobe],
+    () => filterWardrobeByLocation(wardrobe, trip.startingLocationId ?? 'home').map(adaptWardrobeItem),
+    [wardrobe, trip.startingLocationId],
   );
 
   // Auto-rebuild stale capsules (created before current engine version)

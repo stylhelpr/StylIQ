@@ -68,6 +68,7 @@ CREATE TABLE wardrobe_items (
   embedding_vector FLOAT8[], -- for Pinecone
   width INTEGER,
   height INTEGER,
+  location_id TEXT NOT NULL DEFAULT 'home',
   deleted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()

@@ -35,6 +35,8 @@ import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import LiquidGlassCard from '../components/LiquidGlassCard/LiquidGlassCard';
 import {useClosetVoiceCommands} from '../utils/VoiceUtils/VoiceContext';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
+import {getClosetLocations} from '../lib/trips/tripsStorage';
+import type {ClosetLocation} from '../types/trips';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
@@ -110,6 +112,7 @@ type WardrobeItem = {
   width?: number;
   height?: number;
   favorite?: boolean;
+  location_id?: string;
 };
 
 type Props = {
@@ -159,6 +162,22 @@ type FlatListItem = {
   item?: WardrobeItem & {inferredCategory?: any; effectiveMain?: MainCategory};
 };
 
+const LOCATION_COLOR_KEY: Record<string, string> = {
+  home: 'success',
+  office: 'primary',
+  parents: 'warning',
+  partner: 'secondary',
+};
+
+function getLocationDotColor(
+  locationId: string | undefined,
+  colors: Record<string, string>,
+): string {
+  const id = locationId ?? 'home';
+  const key = LOCATION_COLOR_KEY[id] ?? 'muted';
+  return colors[key] ?? colors.muted;
+}
+
 export default function ClosetScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
@@ -199,6 +218,11 @@ export default function ClosetScreen({navigate}: Props) {
     AsyncStorage.setItem('closet_view_mode', viewMode);
   }, [viewMode]);
 
+  // Load closet locations for edit modal
+  useEffect(() => {
+    getClosetLocations().then(setClosetLocations);
+  }, []);
+
   // Menu states
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuView, setMenuView] = useState<'main' | 'filter' | 'sort'>('main');
@@ -208,6 +232,8 @@ export default function ClosetScreen({navigate}: Props) {
     useState<WardrobeItem | null>(null);
   const [editedName, setEditedName] = useState('');
   const [editedColor, setEditedColor] = useState('');
+  const [editedLocationId, setEditedLocationId] = useState('home');
+  const [closetLocations, setClosetLocations] = useState<ClosetLocation[]>([]);
 
   const screenFade = useRef(new Animated.Value(0)).current;
   const screenTranslate = useRef(new Animated.Value(50)).current;
@@ -359,14 +385,20 @@ export default function ClosetScreen({navigate}: Props) {
       id,
       name,
       color,
+      location_id,
     }: {
       id: string;
       name?: string;
       color?: string;
+      location_id?: string;
     }) => {
-      await apiClient.put(`/wardrobe/${id}`, {name, color});
+      const body: Record<string, any> = {};
+      if (name !== undefined) body.name = name;
+      if (color !== undefined) body.color = color;
+      if (location_id !== undefined) body.location_id = location_id;
+      await apiClient.put(`/wardrobe/${id}`, body);
     },
-    onMutate: async ({id, name, color}) => {
+    onMutate: async ({id, name, color, location_id}) => {
       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
       const prev = queryClient.getQueryData<WardrobeItem[]>([
         'wardrobe',
@@ -377,7 +409,12 @@ export default function ClosetScreen({navigate}: Props) {
         old =>
           old?.map(item =>
             item.id === id
-              ? {...item, name: name ?? item.name, color: color ?? item.color}
+              ? {
+                  ...item,
+                  name: name ?? item.name,
+                  color: color ?? item.color,
+                  location_id: location_id ?? item.location_id,
+                }
               : item,
           ) || [],
       );
@@ -700,6 +737,7 @@ export default function ClosetScreen({navigate}: Props) {
               if (!isDemo) {
                 setEditedName(item.name ?? '');
                 setEditedColor(item.color ?? '');
+                setEditedLocationId(item.location_id ?? 'home');
                 setSelectedItemToEdit(item);
                 setShowEditModal(true);
               }
@@ -745,9 +783,15 @@ export default function ClosetScreen({navigate}: Props) {
                     color={item.favorite ? 'red' : theme.colors.inputBorder}
                   />
                 </AppleTouchFeedback>
+                <View style={{marginTop: 8}}>
+                  <MaterialIcons
+                    name="place"
+                    size={28}
+                    color={getLocationDotColor(item.location_id, theme.colors)}
+                  />
+                </View>
               </View>
             )}
-
             {/* Demo badge */}
             {isDemo && (
               <View
@@ -889,6 +933,7 @@ export default function ClosetScreen({navigate}: Props) {
               if (!isDemo) {
                 setEditedName(item.name ?? '');
                 setEditedColor(item.color ?? '');
+                setEditedLocationId(item.location_id ?? 'home');
                 setSelectedItemToEdit(item);
                 setShowEditModal(true);
               }
@@ -935,6 +980,18 @@ export default function ClosetScreen({navigate}: Props) {
                     color={item.favorite ? 'red' : theme.colors.inputBorder}
                   />
                 </AppleTouchFeedback>
+                <View
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 999,
+                    backgroundColor: getLocationDotColor(item.location_id, theme.colors),
+                    borderWidth: 1,
+                    borderColor: theme.colors.background,
+                    alignSelf: 'center',
+                    marginTop: 2,
+                  }}
+                />
               </View>
             )}
 
@@ -1582,6 +1639,37 @@ export default function ClosetScreen({navigate}: Props) {
                 placeholderTextColor="#999"
               />
 
+              <Text style={{color: theme.colors.foreground, fontSize: 13, marginTop: 12, marginBottom: 6, opacity: 0.6}}>
+                Location
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 4}}>
+                {closetLocations.map(loc => {
+                  const selected = editedLocationId === loc.id;
+                  return (
+                    <TouchableOpacity
+                      key={loc.id}
+                      onPress={() => setEditedLocationId(loc.id)}
+                      style={{
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        marginRight: 8,
+                        backgroundColor: selected ? theme.colors.primary : theme.colors.surface3,
+                        borderWidth: 1,
+                        borderColor: selected ? theme.colors.primary : theme.colors.inputBorder,
+                      }}>
+                      <Text style={{
+                        fontSize: 13,
+                        color: selected ? theme.colors.background : theme.colors.foreground,
+                        fontWeight: selected ? '600' : '400',
+                      }}>
+                        {loc.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
               <AppleTouchFeedback
                 hapticStyle="impactLight"
                 onPress={() => {
@@ -1590,6 +1678,7 @@ export default function ClosetScreen({navigate}: Props) {
                       id: selectedItemToEdit.id,
                       name: editedName || selectedItemToEdit.name,
                       color: editedColor || selectedItemToEdit.color,
+                      location_id: editedLocationId,
                     });
                     setShowEditModal(false);
                     setSelectedItemToEdit(null);

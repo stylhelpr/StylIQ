@@ -28,7 +28,7 @@ import {
 } from './logging/tripAI.logger';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 11;
+export const CAPSULE_VERSION = 12;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ██  GLOBAL CLIMATE GATING (minimal layer)

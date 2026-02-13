@@ -515,6 +515,11 @@ export class CreateWardrobeItemDto {
   @IsString({ each: true })
   disliked_features?: string[];
 
+  // Location
+  @IsOptional()
+  @IsString()
+  location_id?: string;
+
   // System
   @IsOptional()
   @IsObject()

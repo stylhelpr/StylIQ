@@ -326,6 +326,21 @@ export default function GlobalHeader({
                   />
                   <Text style={styles.dropdownText}>Profile</Text>
                 </AppleTouchFeedback>
+                
+                      <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => {
+                    setMenuOpen(false);
+                    navigate('Trips');
+                  }}
+                  style={styles.dropdownItem}>
+                  <MaterialIcons
+                    name="card-travel"
+                    size={19}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.dropdownText}>Trips</Text>
+                </AppleTouchFeedback>
 
                 <AppleTouchFeedback
                   hapticStyle="impactLight"

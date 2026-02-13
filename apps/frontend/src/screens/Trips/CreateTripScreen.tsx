@@ -28,6 +28,7 @@ import {
 } from '../../lib/trips/tripsStorage';
 import {fetchRealWeather, setResolvedLocation} from '../../lib/trips/weather/realWeather';
 import {buildCapsule, adaptWardrobeItem, validateCapsule, detectPresentation} from '../../lib/trips/capsuleEngine';
+import {filterWardrobeByLocation} from '../../lib/trips/wardrobeLocationFilter';
 import {normalizeGenderToPresentation} from '../../lib/trips/styleEligibility';
 import {useGenderPresentation} from '../../hooks/useGenderPresentation';
 import ActivityChips from '../../components/Trips/ActivityChips';
@@ -116,7 +117,8 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
       const weatherResult = await fetchRealWeather(selectedDestination.displayName, startStr, endStr);
       const locationLabel =
         locations.find(l => l.id === selectedLocationId)?.label || 'Home';
-      const adapted = wardrobe.map(adaptWardrobeItem);
+      const locationWardrobe = filterWardrobeByLocation(wardrobe, selectedLocationId);
+      const adapted = locationWardrobe.map(adaptWardrobeItem);
       const presentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
         ? normalizeGenderToPresentation(rawGender)
         : detectPresentation(adapted);
