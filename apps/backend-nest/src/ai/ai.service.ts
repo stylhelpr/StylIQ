@@ -145,6 +145,8 @@ export class AiService {
   private productSearch: ProductSearchService; // ✅ add this
   // 🧠 Fast in-memory cache for repeated TTS phrases
   private ttsCache = new Map<string, Buffer>();
+  // 🔄 Short-term exclusion cache for visual outfit variety (per user)
+  private visualExclusionCache = new Map<string, string[]>();
 
   constructor(vertexService?: VertexService) {
     const apiKey = getSecret('OPENAI_API_KEY');
@@ -3256,9 +3258,29 @@ Preferences: ${JSON.stringify(preferences || {})}
         })
       : wardrobe; // feminine / mixed → no filtering
 
+    // 🔄 VARIETY: Hard exclusion of previously suggested items from LLM input.
+    // categoryPools (completeness injection) still use filteredWardrobe — only LLM sees the reduced set.
+    const prevIds = userId ? this.visualExclusionCache.get(userId) : undefined;
+    const prevIdSet = prevIds?.length ? new Set(prevIds) : null;
+    let llmWardrobe = filteredWardrobe;
+    if (prevIdSet && filteredWardrobe.length >= 8) {
+      const candidate = filteredWardrobe.filter((item) => !prevIdSet.has(item.id));
+      const poolCount = (arr: any[], cat: string) =>
+        arr.filter((i) => this.mapToCategory(i.main_category || i.category) === cat).length;
+      const ok =
+        (poolCount(candidate, 'top') >= 3 && poolCount(candidate, 'bottom') >= 3 && poolCount(candidate, 'shoes') >= 3) ||
+        poolCount(candidate, 'dress') >= 2;
+      if (ok) llmWardrobe = candidate;
+    }
+
+    // 🔄 DEBUG: variety tracking (toggle via DEBUG_VARIETY env var)
+    if (process.env.DEBUG_VARIETY === 'true' && userId) {
+      console.log(`🔄 [Variety] req=${Date.now()} uid=${userId.slice(0, 8)} prevIds=${prevIdSet ? prevIds!.slice(0, 10).join(',') : 'none'} filtered=${filteredWardrobe.length} llm=${llmWardrobe.length}`);
+    }
+
     // Build wardrobe summary with IDs for AI to reference
     // Apply feedback-based filtering: boost high-score items, deprioritize low-score
-    const wardrobeSummary = filteredWardrobe
+    const wardrobeSummary = llmWardrobe
       .filter((item) => item.image_url || item.image)
       .map((item) => ({
         ...item,
@@ -3348,7 +3370,7 @@ Preferences: ${JSON.stringify(preferences || {})}
         ? `\n════════════════════════\nGENDER CONTEXT\n════════════════════════\nThis user presents feminine. Dresses, skirts, and all feminine garments are allowed and encouraged when appropriate.\n`
         : ''; // mixed → no additional guidance
 
-    const systemPrompt = `
+    let systemPrompt = `
 You are a PROFESSIONAL HUMAN FASHION STYLIST, not an assistant, not a chatbot, and not a creative experimenter.
 
 This recommendation appears ABOVE THE FOLD on app launch.
@@ -3518,6 +3540,30 @@ Output valid JSON only:
 }
 `;
 
+    // 🛡️ FORMALITY CONSISTENCY — generation-time guidance to prevent tier mismatches
+    systemPrompt += `
+════════════════════════
+FORMALITY CONSISTENCY RULE (STRICT)
+════════════════════════
+
+Each outfit must stay within a single formality tier.
+
+Tiers:
+0 - Athletic: activewear, gym shorts, performance sneakers
+1 - Casual: t-shirts, hoodies, denim, sneakers
+2 - Smart Casual: knitwear, polos, chinos, boots, loafers
+3 - Business: dress shirts, dress trousers, derbies, structured leather shoes
+4 - Formal: tuxedo, gown, patent shoes, eveningwear
+
+Do NOT mix items across tiers where the spread exceeds 2 levels.
+Examples of invalid mixes:
+- Athletic bottom + business or formal shoes
+- Swimwear + dress shoes
+- Gym shorts + blazer + leather dress shoes
+
+All items in a single outfit must feel coherent in social context.
+`;
+
     const userPrompt = `
 Client: ${user || 'The user'}
 Weather: ${tempDesc}
@@ -3594,8 +3640,8 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       }
     }
 
-    // Map item IDs back to full wardrobe items with images
-    const wardrobeMap = new Map(filteredWardrobe.map((item) => [item.id, item]));
+    // Map item IDs back to full wardrobe items with images (scoped to llmWardrobe)
+    const wardrobeMap = new Map(llmWardrobe.map((item) => [item.id, item]));
 
     const outfitsWithItems = parsed.outfits.map((outfit) => ({
       id: outfit.id,
@@ -3767,7 +3813,91 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       }
     }
 
-    return { weatherSummary, outfits: outfitsWithItems };
+    // 🛡️ FORMALITY COHERENCE GATE — reject outfits with extreme formality mismatches.
+    // Uses structured scoring (0–4) instead of fragile regex. If uncertain → default neutral (2).
+    // Scores: 0=athletic, 1=casual, 2=smart-casual, 3=business, 4=formal
+
+    // Base formality by simplified category (from mapToCategory)
+    const CATEGORY_FORMALITY: Record<string, number> = {
+      activewear: 0, swimwear: 0,
+      top: 2, bottom: 2, shoes: 2, outerwear: 2, dress: 2, accessory: 2,
+    };
+
+    // Subcategory signal words → formality override (first match wins)
+    const SUBCATEGORY_SIGNALS: Array<[number, string[]]> = [
+      [0, ['performance', 'running', 'training', 'gym', 'track', 'athletic', 'sport', 'jogger', 'sweatpant', 'sweatshort', 'slide', 'flip flop']],
+      [1, ['t-shirt', 'tee', 'hoodie', 'sweatshirt', 'sneaker', 'canvas', 'sandal', 'jean', 'denim', 'cargo', 'tank top', 'jersey', 'short']],
+      [2, ['polo', 'sweater', 'knit', 'cardigan', 'henley', 'boot', 'chino', 'khaki', 'loafer', 'moccasin', 'pullover']],
+      [3, ['button down', 'dress shirt', 'blouse', 'blazer', 'trouser', 'slack', 'dress pant', 'oxford', 'derby', 'brogue', 'wingtip', 'heel', 'pump', 'cocktail']],
+      [4, ['tuxedo', 'gown', 'formal', 'patent', 'evening', 'black tie']],
+    ];
+
+    // Lookup full item metadata by ID for subcategory access
+    const fullItemMap = new Map(filteredWardrobe.map((i) => [i.id, i]));
+
+    const getFormalityScore = (outfitItem: any): number => {
+      const cat = outfitItem?.category || '';
+      const full = fullItemMap.get(outfitItem?.id);
+      const mainCat = (full?.main_category || '').toLowerCase();
+      const sub = (full?.subcategory || '').toLowerCase();
+
+      // Main category overrides
+      if (mainCat === 'formalwear' || mainCat === 'suits') return 4;
+
+      // Base from simplified category
+      let score = CATEGORY_FORMALITY[cat] ?? 2;
+
+      // Refine via subcategory signals (first match wins)
+      for (const [formality, signals] of SUBCATEGORY_SIGNALS) {
+        if (signals.some((s) => sub.includes(s))) {
+          score = formality;
+          break;
+        }
+      }
+
+      return score;
+    };
+
+    // Reject outfits where max formality - min formality > 2 (e.g. gym shorts + dress shoes)
+    const coherentOutfits = outfitsWithItems.filter((outfit) => {
+      const scores = outfit.items
+        .filter((i) => i?.category && i.category !== 'accessory')
+        .map((i) => getFormalityScore(i));
+      if (scores.length < 2) return true; // can't compare with < 2 items
+      return (Math.max(...scores) - Math.min(...scores)) <= 2;
+    });
+    // Always return exactly 3 outfits: prioritize coherent, backfill from originals
+    const finalOutfits = [...coherentOutfits];
+    if (finalOutfits.length < 3) {
+      const remaining = outfitsWithItems.filter((o) => !finalOutfits.includes(o));
+      for (const outfit of remaining) {
+        if (finalOutfits.length === 3) break;
+        finalOutfits.push(outfit);
+      }
+    }
+    for (const outfit of outfitsWithItems) {
+      if (finalOutfits.length >= 3) break;
+      if (!finalOutfits.includes(outfit)) {
+        finalOutfits.push(outfit);
+      }
+    }
+
+    // 🔄 VARIETY: Cache current suggestion item IDs for next call
+    if (userId) {
+      const allSuggestedIds = finalOutfits.flatMap((o) =>
+        o.items.map((i) => i?.id).filter(Boolean),
+      );
+      if (allSuggestedIds.length > 0) {
+        this.visualExclusionCache.set(userId, allSuggestedIds);
+      }
+      // 🔄 DEBUG: log returned outfit IDs
+      if (process.env.DEBUG_VARIETY === 'true') {
+        const outIds = finalOutfits.map((o) => `R${o.rank}:[${o.items.map((i) => i?.id?.slice(0, 8)).join(',')}]`).join(' ');
+        console.log(`🔄 [Variety] result uid=${userId.slice(0, 8)} ${outIds}`);
+      }
+    }
+
+    return { weatherSummary, outfits: finalOutfits.slice(0, 3) };
   }
 
   /** Generate concise weather summary for UI (one line max) */
