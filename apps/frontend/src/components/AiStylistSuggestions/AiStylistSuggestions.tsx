@@ -475,7 +475,11 @@ const AiStylistSuggestions: React.FC<Props> = ({
     setAiData(updatedAiData);
 
     // Persist the updated data to cache so it survives navigation
-    AsyncStorage.setItem(AI_SUGGESTION_STORAGE_KEY, JSON.stringify(updatedAiData)).catch(() => {
+    AsyncStorage.setItem(AI_SUGGESTION_STORAGE_KEY, JSON.stringify({
+      ...updatedAiData,
+      __cacheDate: new Date().toDateString(),
+      __weatherTemp: weather?.fahrenheit?.main?.temp,
+    })).catch(() => {
       // Silent fail - swap still works locally
     });
 
@@ -849,7 +853,11 @@ const AiStylistSuggestions: React.FC<Props> = ({
         try {
           await AsyncStorage.setItem(
             AI_SUGGESTION_STORAGE_KEY,
-            JSON.stringify(data),
+            JSON.stringify({
+              ...data,
+              __cacheDate: new Date().toDateString(),
+              __weatherTemp: weather?.fahrenheit?.main?.temp,
+            }),
           );
         } catch (err) {
           // Failed to save AI suggestion
@@ -1047,11 +1055,22 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
         if (savedSuggestion) {
           const parsed = JSON.parse(savedSuggestion);
-          setAiData(parsed);
 
-          // restore refs for cooldown checks
-          if (parsed?.suggestion) {
-            lastSuggestionRef.current = parsed.suggestion;
+          // 🗓️ Daily invalidation: ignore cache from previous days
+          const isStaleDate = parsed?.__cacheDate && parsed.__cacheDate !== new Date().toDateString();
+
+          // 🌡️ Weather delta invalidation
+          const currentTemp = weather?.fahrenheit?.main?.temp;
+          const cachedTemp = parsed?.__weatherTemp;
+          const isStaleWeather = currentTemp != null && cachedTemp != null && Math.abs(currentTemp - cachedTemp) > 15;
+
+          if (!isStaleDate && !isStaleWeather) {
+            setAiData(parsed);
+
+            // restore refs for cooldown checks
+            if (parsed?.suggestion) {
+              lastSuggestionRef.current = parsed.suggestion;
+            }
           }
         }
 
@@ -1138,8 +1157,16 @@ const AiStylistSuggestions: React.FC<Props> = ({
           (parsed?.suggestion && isTextFormat(parsed)) ||
           (parsed?.outfits && isVisualFormat(parsed));
 
-        // ✅  Only fetch if nothing saved OR cooldown expired
-        if (!hasValidCache || cooldownPassed) {
+        // 🗓️ Daily invalidation
+        const isStaleDate = parsed?.__cacheDate && parsed.__cacheDate !== new Date().toDateString();
+
+        // 🌡️ Weather delta invalidation
+        const currentTemp = weather?.fahrenheit?.main?.temp;
+        const cachedTemp = parsed?.__weatherTemp;
+        const isStaleWeather = currentTemp != null && cachedTemp != null && Math.abs(currentTemp - cachedTemp) > 15;
+
+        // ✅  Only fetch if nothing saved OR cooldown expired OR date/weather stale
+        if (!hasValidCache || cooldownPassed || isStaleDate || isStaleWeather) {
           fetchSuggestion('initial');
           lastFetchTimeRef.current = now;
         } else {

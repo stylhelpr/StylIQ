@@ -7,6 +7,7 @@ import { ProductSearchService } from '../product-services/product-search.service
 import { Express } from 'express';
 import { redis } from '../utils/redisClient';
 import { pool } from '../db/pool';
+import { scoreItemForWeather, type WeatherContext } from '../wardrobe/logic/weather';
 import { getSecret, secretExists } from '../config/secrets';
 
 // 🧥 Basic capsule wardrobe templates
@@ -3278,10 +3279,23 @@ Preferences: ${JSON.stringify(preferences || {})}
       console.log(`🔄 [Variety] req=${Date.now()} uid=${userId.slice(0, 8)} prevIds=${prevIdSet ? prevIds!.slice(0, 10).join(',') : 'none'} filtered=${filteredWardrobe.length} llm=${llmWardrobe.length}`);
     }
 
+    // 🌡️ HARD WEATHER PRE-FILTER: Score items against structured weather context
+    const wxContext: WeatherContext | undefined = temp != null ? {
+      tempF: temp,
+      precipitation: (condition || '').toLowerCase().includes('rain') ? 'rain'
+        : (condition || '').toLowerCase().includes('snow') ? 'snow' : 'none',
+      windMph: weather?.fahrenheit?.wind?.speed,
+    } : undefined;
+
+    for (const item of filteredWardrobe) {
+      (item as any).__weatherScore = scoreItemForWeather(item, wxContext);
+    }
+
     // Build wardrobe summary with IDs for AI to reference
     // Apply feedback-based filtering: boost high-score items, deprioritize low-score
     const wardrobeSummary = llmWardrobe
       .filter((item) => item.image_url || item.image)
+      .filter((item) => (item as any).__weatherScore >= -5)
       .map((item) => ({
         ...item,
         feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
@@ -3579,7 +3593,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
     const completion = await this.openai.chat.completions.create({
       model: 'gpt-4o',
-      temperature: 0.4, // Lower temperature for more consistent, conservative outputs
+      temperature: 0.2, // Lower temperature for deterministic, conservative outputs
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -3668,71 +3682,35 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
     // 🛡️ OUTFIT COMPLETENESS ENFORCEMENT
     // Every outfit MUST have: 1 top, 1 bottom, 1 shoes (outerwear optional)
-    // Build category pools sorted by feedback score for fallback injection
+    // Build category pools — weather-aware with tiered fallback
+    const buildPoolAtThreshold = (cat: string, minScore: number) =>
+      filteredWardrobe
+        .filter((item) => this.mapToCategory(item.main_category || item.category) === cat)
+        .filter((item) => (item as any).__weatherScore >= minScore)
+        .map((item) => ({
+          ...item,
+          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
+        }))
+        .sort((a, b) => ((b as any).__weatherScore - (a as any).__weatherScore) || (b.feedbackScore - a.feedbackScore));
+
+    const buildPool = (cat: string) => {
+      // Tier 1: strict (>= 0)
+      let pool = buildPoolAtThreshold(cat, 0);
+      if (pool.length > 0) return pool;
+      // Tier 2: relaxed (>= -2)
+      pool = buildPoolAtThreshold(cat, -2);
+      if (pool.length > 0) return pool;
+      // Tier 3: degraded — allow any item in category
+      return buildPoolAtThreshold(cat, -Infinity);
+    };
+
     const categoryPools = {
-      top: filteredWardrobe
-        .filter(
-          (item) =>
-            this.mapToCategory(item.main_category || item.category) === 'top',
-        )
-        .map((item) => ({
-          ...item,
-          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
-        }))
-        .sort((a, b) => b.feedbackScore - a.feedbackScore),
-      bottom: filteredWardrobe
-        .filter(
-          (item) =>
-            this.mapToCategory(item.main_category || item.category) ===
-            'bottom',
-        )
-        .map((item) => ({
-          ...item,
-          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
-        }))
-        .sort((a, b) => b.feedbackScore - a.feedbackScore),
-      shoes: filteredWardrobe
-        .filter(
-          (item) =>
-            this.mapToCategory(item.main_category || item.category) === 'shoes',
-        )
-        .map((item) => ({
-          ...item,
-          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
-        }))
-        .sort((a, b) => b.feedbackScore - a.feedbackScore),
-      dress: filteredWardrobe
-        .filter(
-          (item) =>
-            this.mapToCategory(item.main_category || item.category) === 'dress',
-        )
-        .map((item) => ({
-          ...item,
-          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
-        }))
-        .sort((a, b) => b.feedbackScore - a.feedbackScore),
-      activewear: filteredWardrobe
-        .filter(
-          (item) =>
-            this.mapToCategory(item.main_category || item.category) ===
-            'activewear',
-        )
-        .map((item) => ({
-          ...item,
-          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
-        }))
-        .sort((a, b) => b.feedbackScore - a.feedbackScore),
-      swimwear: filteredWardrobe
-        .filter(
-          (item) =>
-            this.mapToCategory(item.main_category || item.category) ===
-            'swimwear',
-        )
-        .map((item) => ({
-          ...item,
-          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
-        }))
-        .sort((a, b) => b.feedbackScore - a.feedbackScore),
+      top: buildPool('top'),
+      bottom: buildPool('bottom'),
+      shoes: buildPool('shoes'),
+      dress: buildPool('dress'),
+      activewear: buildPool('activewear'),
+      swimwear: buildPool('swimwear'),
     };
 
     // Enforce completeness for each outfit
@@ -3813,6 +3791,68 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       }
     }
 
+    // 🔗 INTER-OUTFIT ANCHOR DEDUPE
+    // Prevent multiple outfits from sharing the same anchor (top+bottom or dress)
+    // If a duplicate is found, attempt to swap the anchor piece from categoryPools
+    const getAnchor = (outfit: any): string => {
+      const hasDress = outfit.items.some((i: any) => i?.category === 'dress');
+      if (hasDress) {
+        const dressItem = outfit.items.find((i: any) => i?.category === 'dress');
+        return `dress:${dressItem?.id}`;
+      }
+      const topItem = outfit.items.find((i: any) => i?.category === 'top');
+      const bottomItem = outfit.items.find((i: any) => i?.category === 'bottom');
+      return `${topItem?.id || 'none'}+${bottomItem?.id || 'none'}`;
+    };
+
+    const usedAnchors = new Set<string>();
+    const usedItemIds = new Set<string>();
+    // Collect all item IDs already committed across outfits
+    for (const outfit of outfitsWithItems) {
+      for (const item of outfit.items) if (item?.id) usedItemIds.add(item.id);
+    }
+
+    for (const outfit of outfitsWithItems) {
+      let anchor = getAnchor(outfit);
+
+      if (usedAnchors.has(anchor)) {
+        // Attempt to swap the anchor piece with an unused alternative
+        const hasDress = outfit.items.some((i: any) => i?.category === 'dress');
+
+        if (hasDress) {
+          const alt = categoryPools.dress.find((d) => !usedItemIds.has(d.id));
+          if (alt) {
+            const idx = outfit.items.findIndex((i: any) => i?.category === 'dress');
+            outfit.items[idx] = { id: alt.id, name: alt.name || alt.ai_title || 'Item', imageUrl: alt.touched_up_image_url || alt.processed_image_url || alt.image_url || alt.image, category: 'dress' };
+            usedItemIds.add(alt.id);
+            anchor = getAnchor(outfit);
+          }
+        } else {
+          // Try swapping top first, then bottom
+          const topIdx = outfit.items.findIndex((i: any) => i?.category === 'top');
+          const altTop = categoryPools.top.find((t) => !usedItemIds.has(t.id));
+          if (topIdx >= 0 && altTop) {
+            outfit.items[topIdx] = { id: altTop.id, name: altTop.name || altTop.ai_title || 'Item', imageUrl: altTop.touched_up_image_url || altTop.processed_image_url || altTop.image_url || altTop.image, category: 'top' };
+            usedItemIds.add(altTop.id);
+            anchor = getAnchor(outfit);
+          }
+          if (usedAnchors.has(anchor)) {
+            const bottomIdx = outfit.items.findIndex((i: any) => i?.category === 'bottom');
+            const altBottom = categoryPools.bottom.find((b) => !usedItemIds.has(b.id));
+            if (bottomIdx >= 0 && altBottom) {
+              outfit.items[bottomIdx] = { id: altBottom.id, name: altBottom.name || altBottom.ai_title || 'Item', imageUrl: altBottom.touched_up_image_url || altBottom.processed_image_url || altBottom.image_url || altBottom.image, category: 'bottom' };
+              usedItemIds.add(altBottom.id);
+              anchor = getAnchor(outfit);
+            }
+          }
+        }
+      }
+
+      (outfit as any).__anchor = anchor;
+      (outfit as any).__uniqueAnchor = !usedAnchors.has(anchor);
+      usedAnchors.add(anchor);
+    }
+
     // 🛡️ FORMALITY COHERENCE GATE — reject outfits with extreme formality mismatches.
     // Uses structured scoring (0–4) instead of fragile regex. If uncertain → default neutral (2).
     // Scores: 0=athletic, 1=casual, 2=smart-casual, 3=business, 4=formal
@@ -3866,21 +3906,71 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       if (scores.length < 2) return true; // can't compare with < 2 items
       return (Math.max(...scores) - Math.min(...scores)) <= 2;
     });
-    // Always return exactly 3 outfits: prioritize coherent, backfill from originals
-    const finalOutfits = [...coherentOutfits];
-    if (finalOutfits.length < 3) {
-      const remaining = outfitsWithItems.filter((o) => !finalOutfits.includes(o));
+    // Gather candidates: prioritize coherent, backfill from originals
+    const candidateOutfits = [...coherentOutfits];
+    if (candidateOutfits.length < 3) {
+      const remaining = outfitsWithItems.filter((o) => !candidateOutfits.includes(o));
       for (const outfit of remaining) {
-        if (finalOutfits.length === 3) break;
-        finalOutfits.push(outfit);
+        if (candidateOutfits.length === 3) break;
+        candidateOutfits.push(outfit);
       }
     }
     for (const outfit of outfitsWithItems) {
-      if (finalOutfits.length >= 3) break;
-      if (!finalOutfits.includes(outfit)) {
-        finalOutfits.push(outfit);
+      if (candidateOutfits.length >= 3) break;
+      if (!candidateOutfits.includes(outfit)) {
+        candidateOutfits.push(outfit);
       }
     }
+
+    // 🎯 DETERMINISTIC FINAL SCORING
+    // Stable hash for daily tie-breaking (same user + day → same order)
+    const hashString = (str: string): number => {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) {
+        h = (h << 5) - h + str.charCodeAt(i);
+        h |= 0;
+      }
+      return Math.abs(h);
+    };
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const seedString = `${userId}-${todayKey}`;
+
+    const scoredOutfits = candidateOutfits.map((outfit) => {
+      const itemDetails = outfit.items.filter(Boolean).map((i: any) => {
+        const full = fullItemMap.get(i.id);
+        return {
+          weather: (full as any)?.__weatherScore || 0,
+          feedback: feedbackContext.itemScores.get(i.id) || 0,
+          formality: getFormalityScore(i),
+        };
+      });
+      const n = itemDetails.length || 1;
+      const avgWeather = itemDetails.reduce((s, d) => s + d.weather, 0) / n;
+      const avgFeedback = itemDetails.reduce((s, d) => s + d.feedback, 0) / n;
+      const fScores = itemDetails.map((d) => d.formality);
+      const formalitySpread = fScores.length >= 2
+        ? Math.max(...fScores) - Math.min(...fScores)
+        : 0;
+      const diversityBonus = (outfit as any).__uniqueAnchor ? 1 : 0;
+
+      const finalScore =
+        0.4 * avgWeather +
+        0.3 * avgFeedback -
+        0.2 * formalitySpread +
+        0.1 * diversityBonus;
+
+      const tieBreaker = hashString(seedString + (outfit as any).__anchor) % 1000;
+
+      return { ...outfit, __finalScore: finalScore, __tieBreaker: tieBreaker };
+    });
+
+    scoredOutfits.sort((a, b) => b.__finalScore - a.__finalScore || b.__tieBreaker - a.__tieBreaker);
+
+    // Strip internal scoring fields before return
+    const finalOutfits = scoredOutfits.slice(0, 3).map((outfit: any) => {
+      const { __finalScore, __tieBreaker, __anchor, __uniqueAnchor, ...rest } = outfit;
+      return rest;
+    });
 
     // 🔄 VARIETY: Cache current suggestion item IDs for next call
     if (userId) {
