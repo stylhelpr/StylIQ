@@ -8,6 +8,7 @@ export function buildOutfitPrompt(
   userQuery: string,
   styleAgent?: string,
   userStyleProfile?: any, // 👈 pass this in too
+  genderDirective?: string, // Layer 2 defense-in-depth
 ): string {
   const constraints = parseConstraints(userQuery);
   const constraintsLine = JSON.stringify(constraints);
@@ -86,7 +87,7 @@ OUTPUT FORMAT (STRICT JSON ONLY):
     }
   ]
 }
-`.trim();
+${genderDirective || ''}`.trim();
 }
 
 //////////////////////

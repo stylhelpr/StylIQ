@@ -1299,3 +1299,90 @@ describe('PATH #2: Centerpiece-First Enforcement (V4)', () => {
     });
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FIX 3 + FIX 4: Style profile injection + Gender directive
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('buildOutfitPlanPrompt — FIX 3: Style Profile Injection', () => {
+  it('includes style preferences when userStyleProfile is provided', () => {
+    const prompt = buildOutfitPlanPrompt('casual outfit', {
+      userStyleProfile: {
+        preferredColors: ['navy', 'olive'],
+        favoriteBrands: ['Ralph Lauren'],
+        styleKeywords: ['preppy', 'classic'],
+        dressBias: 'casual',
+      },
+    });
+    expect(prompt).toContain('STYLE PREFERENCES');
+    expect(prompt).toContain('navy, olive');
+    expect(prompt).toContain('Ralph Lauren');
+    expect(prompt).toContain('preppy, classic');
+    expect(prompt).toContain('casual');
+    expect(prompt).toContain('soft guidance');
+  });
+
+  it('omits style block when userStyleProfile is null', () => {
+    const prompt = buildOutfitPlanPrompt('casual outfit', {
+      userStyleProfile: null,
+    });
+    expect(prompt).not.toContain('STYLE PREFERENCES');
+  });
+
+  it('omits style block when userStyleProfile has empty arrays', () => {
+    const prompt = buildOutfitPlanPrompt('casual outfit', {
+      userStyleProfile: {
+        preferredColors: [],
+        favoriteBrands: [],
+        styleKeywords: [],
+      },
+    });
+    expect(prompt).not.toContain('STYLE PREFERENCES');
+  });
+
+  it('includes partial style profile (only colors)', () => {
+    const prompt = buildOutfitPlanPrompt('casual outfit', {
+      userStyleProfile: {
+        preferredColors: ['black', 'white'],
+      },
+    });
+    expect(prompt).toContain('STYLE PREFERENCES');
+    expect(prompt).toContain('black, white');
+    expect(prompt).not.toContain('Favorite brands');
+  });
+});
+
+describe('buildOutfitPlanPrompt — FIX 4: Gender Directive', () => {
+  it('includes masculine directive when passed', () => {
+    const masculineDirective =
+      '\n════════════════════════\nGENDER CONTEXT\n════════════════════════\nThis user presents masculine. NEVER include dresses, skirts, gowns, blouses, heels, ballet flats, purses, or any feminine-coded garments. Only use items from the wardrobe list provided.\n';
+    const prompt = buildOutfitPlanPrompt('casual outfit', {
+      genderDirective: masculineDirective,
+    });
+    expect(prompt).toContain('GENDER CONTEXT');
+    expect(prompt).toContain('presents masculine');
+    expect(prompt).toContain('NEVER include dresses');
+  });
+
+  it('includes feminine directive when passed', () => {
+    const feminineDirective =
+      '\n════════════════════════\nGENDER CONTEXT\n════════════════════════\nThis user presents feminine. Dresses, skirts, and all feminine garments are allowed and encouraged when appropriate.\n';
+    const prompt = buildOutfitPlanPrompt('date night outfit', {
+      genderDirective: feminineDirective,
+    });
+    expect(prompt).toContain('GENDER CONTEXT');
+    expect(prompt).toContain('presents feminine');
+  });
+
+  it('omits gender section when directive is empty', () => {
+    const prompt = buildOutfitPlanPrompt('casual outfit', {
+      genderDirective: '',
+    });
+    expect(prompt).not.toContain('GENDER CONTEXT');
+  });
+
+  it('omits gender section when directive is undefined', () => {
+    const prompt = buildOutfitPlanPrompt('casual outfit', {});
+    expect(prompt).not.toContain('GENDER CONTEXT');
+  });
+});

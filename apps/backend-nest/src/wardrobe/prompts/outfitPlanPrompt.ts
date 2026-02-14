@@ -103,7 +103,12 @@ export function buildOutfitPlanPrompt(
   userQuery: string,
   options?: {
     styleAgent?: string; // ignored - no personalization
-    userStyleProfile?: unknown; // ignored - no personalization
+    userStyleProfile?: {
+      preferredColors?: string[];
+      favoriteBrands?: string[];
+      styleKeywords?: string[];
+      dressBias?: string;
+    } | null;
     weather?: {
       temp_f?: number;
       condition?: string;
@@ -111,9 +116,11 @@ export function buildOutfitPlanPrompt(
     };
     availableItems?: string[];
     refinementAction?: RefinementAction; // Slot-level only - NO item names ever
+    genderDirective?: string; // Layer 2 defense-in-depth
   },
 ): string {
-  const { weather, availableItems, refinementAction } = options || {};
+  const { weather, availableItems, refinementAction, genderDirective } =
+    options || {};
 
   // Derive constraints from query
   const formality = deriveFormality(userQuery);
@@ -147,6 +154,20 @@ REFINEMENT MODE:
 - Output ONLY the slots that need to change`;
   }
 
+  // Build style profile soft guidance (FIX 3)
+  const sp = options?.userStyleProfile;
+  let styleProfileBlock = '';
+  if (sp && (sp.preferredColors?.length || sp.favoriteBrands?.length || sp.styleKeywords?.length || sp.dressBias)) {
+    const lines: string[] = [];
+    if (sp.preferredColors?.length) lines.push(`- Preferred colors: ${sp.preferredColors.join(', ')}`);
+    if (sp.favoriteBrands?.length) lines.push(`- Favorite brands: ${sp.favoriteBrands.join(', ')}`);
+    if (sp.styleKeywords?.length) lines.push(`- Style keywords: ${sp.styleKeywords.join(', ')}`);
+    if (sp.dressBias) lines.push(`- Dress bias: ${sp.dressBias}`);
+    styleProfileBlock = `
+STYLE PREFERENCES (soft guidance — prefer but do not override constraints):
+${lines.join('\n')}`;
+  }
+
   return `SYSTEM: Stateless outfit planning engine. Generate exactly 3 ranked outfits. No commentary.
 
 INPUT:
@@ -154,7 +175,7 @@ INPUT:
   "request": "${userQuery}",
   "constraints": ${JSON.stringify(constraints)}
 }
-${availableItemsConstraint}${refinementInstruction}
+${availableItemsConstraint}${refinementInstruction}${styleProfileBlock}${genderDirective || ''}
 
 OUTPUT (JSON only):
 {

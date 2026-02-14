@@ -44,6 +44,11 @@ import {
 } from './prompts/outfitPlanPrompt';
 import { extractStrictJson } from './logic/json';
 import { applyContextualFilters } from './logic/contextFilters';
+import {
+  resolveUserPresentation,
+  isFeminineItem,
+  buildGenderDirective,
+} from './logic/presentationFilter';
 import { STYLE_AGENTS } from './logic/style-agents';
 import { validateCategoryPair } from './logic/categoryValidator';
 import {
@@ -714,6 +719,21 @@ export class WardrobeService {
         lockedItemIds: lockedIds,
         styleAgent: opts?.styleAgent,
       });
+
+      // ── Gender/presentation query (mirrors ai.service.ts) ──────
+      let userPresentation: 'masculine' | 'feminine' | 'mixed' = 'mixed';
+      try {
+        const { rows: genderRows } = await pool.query(
+          'SELECT gender_presentation FROM users WHERE id = $1 LIMIT 1',
+          [userId],
+        );
+        userPresentation = resolveUserPresentation(
+          genderRows[0]?.gender_presentation || '',
+        );
+      } catch {
+        // Fail open — default to 'mixed' (no filtering)
+      }
+
       // ── Session & refinement handling ───────────────────────────
       const sessionId = opts?.sessionId?.trim();
       const refinement = (opts?.refinementPrompt ?? '').trim();
@@ -962,6 +982,22 @@ export class WardrobeService {
           rain_ok: !!meta.rain_ok,
         };
       });
+
+      // ── Masculine presentation filter (Layer 1: pre-pool) ──────
+      if (userPresentation === 'masculine') {
+        const beforeLen = catalog.length;
+        catalog = catalog.filter(
+          (item) =>
+            !isFeminineItem(
+              item.main_category || '',
+              item.subcategory || '',
+              item.label || '',
+            ),
+        );
+        console.log(
+          `[STD] Masculine filter: ${beforeLen} → ${catalog.length} items`,
+        );
+      }
 
       // 👇 ADD THIS
       const catalogPreAgent = [...catalog];
@@ -1337,7 +1373,13 @@ export class WardrobeService {
         .map((c) => `${c.index}. ${c.label}`)
         .join('\n');
 
-      let fullPrompt = buildOutfitPrompt(catalogLines, effectiveQuery);
+      let fullPrompt = buildOutfitPrompt(
+        catalogLines,
+        effectiveQuery,
+        undefined,
+        undefined,
+        buildGenderDirective(userPresentation),
+      );
       if (refinement) fullPrompt += `\n\nUser refinement: ${refinement}`;
       if (locked.length) {
         fullPrompt += `
@@ -1723,6 +1765,20 @@ ${lockedLines}
         isStartWithItem: lockedItemIds.length > 0 && !query.toLowerCase().includes('refinement'),
       });
 
+      // ── Gender/presentation query (mirrors ai.service.ts) ──────
+      let userPresentation: 'masculine' | 'feminine' | 'mixed' = 'mixed';
+      try {
+        const { rows: genderRows } = await pool.query(
+          'SELECT gender_presentation FROM users WHERE id = $1 LIMIT 1',
+          [userId],
+        );
+        userPresentation = resolveUserPresentation(
+          genderRows[0]?.gender_presentation || '',
+        );
+      } catch {
+        // Fail open — default to 'mixed' (no filtering)
+      }
+
       // ── 0) Fetch available item types from user's wardrobe ──
       const { rows: categoryRows } = await pool.query(
         `SELECT DISTINCT main_category, subcategory
@@ -1730,9 +1786,28 @@ ${lockedLines}
          WHERE user_id = $1 AND main_category IS NOT NULL`,
         [userId],
       );
-      const availableItems = categoryRows.map(
+
+      // ── Masculine presentation filter (Layer 1: pre-pool) ──────
+      const filteredCategoryRows =
+        userPresentation === 'masculine'
+          ? (categoryRows as any[]).filter(
+              (r: any) =>
+                !isFeminineItem(
+                  r.main_category || '',
+                  r.subcategory || '',
+                  '',
+                ),
+            )
+          : categoryRows;
+
+      const availableItems = (filteredCategoryRows as any[]).map(
         (r: any) => `${r.main_category}: ${r.subcategory || 'general'}`,
       );
+      if (userPresentation === 'masculine') {
+        console.log(
+          `⚡ [FAST] Masculine filter: ${(categoryRows as any[]).length} → ${filteredCategoryRows.length} category types`,
+        );
+      }
       console.log('⚡ [FAST] Available item types:', availableItems.join(', '));
 
       // ── 0b) For refinements, determine which SLOTS to keep vs change ──
@@ -2070,6 +2145,8 @@ ${lockedLines}
             : undefined,
           availableItems,
           refinementAction, // Slot-level only - NO item names ever sent to LLM
+          userStyleProfile: opts?.userStyle as any, // FIX 3: soft guidance
+          genderDirective: buildGenderDirective(userPresentation), // FIX 4
         });
       }
 
@@ -2375,6 +2452,28 @@ ${lockedLines}
           }
         }
 
+        // ── Masculine post-retrieval filter (Layer 1b: defense-in-depth) ──
+        if (userPresentation === 'masculine') {
+          const preLen = items.length;
+          for (let fi = items.length - 1; fi >= 0; fi--) {
+            const it = items[fi];
+            if (
+              isFeminineItem(
+                it.main_category || '',
+                (it as any).subcategory || '',
+                (it as any).name || it.label || '',
+              )
+            ) {
+              items.splice(fi, 1);
+            }
+          }
+          if (items.length < preLen) {
+            console.log(
+              `⚡ [FAST] Masculine post-filter: ${preLen} → ${items.length} items in outfit "${outfitPlan.title}"`,
+            );
+          }
+        }
+
         // Sort items: Tops, Bottoms, Shoes, Outerwear, Accessories
         const orderRank = (c: CatalogItem) => {
           const main = (c.main_category ?? '').toLowerCase();
@@ -2396,6 +2495,86 @@ ${lockedLines}
 
       // Hard validation gate — discard structurally invalid outfits
       outfits = validateOutfitCore(outfits, query);
+
+      // ── Deterministic fallback (FIX 2) ─────────────────────────
+      // If validateOutfitCore rejected ALL outfits, build a basic one from DB.
+      // Tries separates (top+bottom+shoes) first, then dress+shoes.
+      if (outfits.length === 0 && !isStartWithItem) {
+        console.warn(
+          '⚡ [FAST] All outfits rejected by validateOutfitCore — building deterministic fallback',
+        );
+        const { rows: fallbackRows } = await pool.query(
+          `SELECT id, name, main_category, subcategory, image_url, color
+           FROM wardrobe_items
+           WHERE user_id = $1 AND main_category IS NOT NULL
+           ORDER BY favorite DESC, updated_at DESC, id ASC`,
+          [userId],
+        );
+
+        // Apply masculine filter to fallback pool
+        const fallbackPool =
+          userPresentation === 'masculine'
+            ? (fallbackRows as any[]).filter(
+                (r) =>
+                  !isFeminineItem(
+                    r.main_category || '',
+                    r.subcategory || '',
+                    r.name || '',
+                  ),
+              )
+            : (fallbackRows as any[]);
+
+        const pickFirst = (slot: string) =>
+          fallbackPool.find(
+            (r: any) =>
+              mapMainCategoryToSlot(r.main_category) === slot,
+          );
+
+        const toItem = (r: any): CatalogItem => ({
+          index: 0,
+          id: r.id,
+          label: r.name || `${r.main_category}`,
+          main_category: r.main_category,
+          subcategory: r.subcategory,
+          color: r.color,
+          image_url: r.image_url,
+        });
+
+        // Path A: separates (top + bottom + shoes)
+        const top = pickFirst('tops');
+        const bottom = pickFirst('bottoms');
+        const shoes = pickFirst('shoes');
+
+        if (top && bottom && shoes) {
+          outfits = [
+            {
+              outfit_id: randomUUID(),
+              title: 'Your everyday essentials',
+              items: [toItem(top), toItem(bottom), toItem(shoes)],
+              why: 'Built from your wardrobe favorites as a reliable fallback.',
+            },
+          ];
+          console.log('⚡ [FAST] Deterministic fallback: separates path');
+        } else {
+          // Path B: dress + shoes (matches validateOutfitCore structure)
+          const dress = pickFirst('dresses');
+          if (dress && shoes) {
+            outfits = [
+              {
+                outfit_id: randomUUID(),
+                title: 'A classic one-piece look',
+                items: [toItem(dress), toItem(shoes)],
+                why: 'Built from your wardrobe favorites as a reliable fallback.',
+              },
+            ];
+            console.log('⚡ [FAST] Deterministic fallback: dress+shoes path');
+          } else {
+            console.warn(
+              '⚡ [FAST] Deterministic fallback: insufficient items for any valid outfit structure',
+            );
+          }
+        }
+      }
 
       // ── 5) PATH #2 POST-PARSE VALIDATION ──
       // CRITICAL: Enforce centerpiece + composition constraints - fail closed on violation
@@ -2440,9 +2619,9 @@ ${lockedLines}
       // Pick the best outfit (first one for now)
       const best = outfits[0] ?? {
         outfit_id: randomUUID(),
-        title: 'Outfit',
+        title: 'No complete outfit found',
         items: [],
-        why: '',
+        why: 'Your wardrobe may not have enough items to build a complete outfit for this request. Try adding more tops, bottoms, or shoes.',
       };
 
       const totalTime = Date.now() - startTime;
