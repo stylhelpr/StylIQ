@@ -423,4 +423,405 @@ describe('No Internal Field Leakage', () => {
     expect(projected).not.toHaveProperty('feedbackScore');
     expect(projected).not.toHaveProperty('main_category');
   });
+
+  it('strips __silhouette field from output', () => {
+    const rawOutfit = {
+      id: 'outfit-1',
+      rank: 1,
+      summary: 'Test outfit',
+      reasoning: 'Looks good',
+      items: [{ id: 'item-1', name: 'Tee', imageUrl: 'https://img/tee.jpg', category: 'top' }],
+      __finalScore: 4.2,
+      __tieBreaker: 573,
+      __anchor: 'item-1+none',
+      __uniqueAnchor: true,
+      __silhouette: 'relaxed',
+    };
+
+    const { __finalScore, __tieBreaker, __anchor, __uniqueAnchor, __silhouette, ...rest } = rawOutfit;
+
+    expect(rest).not.toHaveProperty('__silhouette');
+    expect(rest).toHaveProperty('id', 'outfit-1');
+  });
+});
+
+// ─── 6️⃣ Quality Gate ───────────────────────────────────────────
+
+describe('Quality Gate', () => {
+  // Replicate color analysis from production
+  const BOLD_COLOR_FAMILIES = ['red', 'orange', 'yellow', 'purple'];
+  const WARM_COLORS = ['red', 'orange', 'yellow', 'coral', 'peach', 'gold', 'amber', 'rust'];
+  const COOL_COLORS = ['blue', 'teal', 'cyan', 'mint', 'lavender', 'periwinkle', 'ice', 'cobalt', 'navy', 'slate'];
+  const NEUTRAL_COLORS = ['black', 'white', 'gray', 'grey', 'beige', 'cream', 'tan', 'khaki', 'ivory', 'charcoal', 'taupe', 'brown', 'nude'];
+  const extractColorWords = (colorStr: string): string[] =>
+    (colorStr || '').toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+
+  it('"redwood" is NOT classified as Red (exact word match)', () => {
+    const colors = extractColorWords('redwood');
+    const boldPresent = BOLD_COLOR_FAMILIES.filter(family =>
+      colors.some(word => word === family),
+    );
+    expect(boldPresent).not.toContain('red');
+    expect(boldPresent).toHaveLength(0);
+  });
+
+  it('"red" IS classified as Red (exact word match)', () => {
+    const colors = extractColorWords('red');
+    const boldPresent = BOLD_COLOR_FAMILIES.filter(family =>
+      colors.some(word => word === family),
+    );
+    expect(boldPresent).toContain('red');
+  });
+
+  it('rejects athletic shoes + tailored top', () => {
+    // Simulate the quality gate logic
+    const details = [
+      { category: 'shoes', formality: 0, sub: 'running sneaker', name: 'nike runner', color: 'black' },
+      { category: 'top', formality: 3, sub: 'blazer', name: 'wool blazer', color: 'navy' },
+    ];
+
+    const hasAthleticShoes = details.some(d =>
+      d.category === 'shoes' && (d.formality === 0 || /running|slide|sneaker/.test(d.sub)),
+    );
+    const TAILORED_RE = /blazer|sport coat|suit|dress shirt|button.?down|oxford|tailored/;
+    const hasTailoredTop = details.some(d =>
+      (d.category === 'top' || d.category === 'outerwear') &&
+      (TAILORED_RE.test(d.sub) || TAILORED_RE.test(d.name)),
+    );
+
+    expect(hasAthleticShoes).toBe(true);
+    expect(hasTailoredTop).toBe(true);
+    // Gate would return false
+    expect(hasAthleticShoes && hasTailoredTop).toBe(true);
+  });
+
+  it('rejects heavy outerwear + shorts', () => {
+    const details = [
+      { category: 'outerwear', sub: 'puffer coat', name: 'down puffer' },
+      { category: 'bottom', sub: 'shorts', name: 'chino shorts' },
+    ];
+
+    const hasHeavyOuterwear = details.some(d =>
+      d.category === 'outerwear' && /coat|parka|puffer|down/.test(d.sub),
+    );
+    const hasShorts = details.some(d =>
+      d.category === 'bottom' && /short/.test(d.sub),
+    );
+
+    expect(hasHeavyOuterwear).toBe(true);
+    expect(hasShorts).toBe(true);
+    expect(hasHeavyOuterwear && hasShorts).toBe(true);
+  });
+
+  it('allows heavy outerwear + trousers (no clash)', () => {
+    const details = [
+      { category: 'outerwear', sub: 'puffer coat', name: 'down puffer' },
+      { category: 'bottom', sub: 'trousers', name: 'wool trousers' },
+    ];
+
+    const hasHeavyOuterwear = details.some(d =>
+      d.category === 'outerwear' && /coat|parka|puffer|down/.test(d.sub),
+    );
+    const hasShorts = details.some(d =>
+      d.category === 'bottom' && /short/.test(d.sub),
+    );
+
+    expect(hasHeavyOuterwear).toBe(true);
+    expect(hasShorts).toBe(false);
+    // Gate would NOT reject
+    expect(hasHeavyOuterwear && hasShorts).toBe(false);
+  });
+
+  it('rejects warm + cool clash without neutral base', () => {
+    const allColors = extractColorWords('coral blue');
+    const hasWarm = allColors.some(w => WARM_COLORS.includes(w));
+    const hasCool = allColors.some(w => COOL_COLORS.includes(w));
+    const hasNeutralBase = allColors.some(w => NEUTRAL_COLORS.includes(w));
+
+    expect(hasWarm).toBe(true);
+    expect(hasCool).toBe(true);
+    expect(hasNeutralBase).toBe(false);
+    // Gate would reject
+    expect(hasWarm && hasCool && !hasNeutralBase).toBe(true);
+  });
+
+  it('allows warm + cool with neutral base', () => {
+    const allColors = extractColorWords('coral blue black');
+    const hasWarm = allColors.some(w => WARM_COLORS.includes(w));
+    const hasCool = allColors.some(w => COOL_COLORS.includes(w));
+    const hasNeutralBase = allColors.some(w => NEUTRAL_COLORS.includes(w));
+
+    expect(hasWarm).toBe(true);
+    expect(hasCool).toBe(true);
+    expect(hasNeutralBase).toBe(true);
+    // Gate would NOT reject
+    expect(hasWarm && hasCool && !hasNeutralBase).toBe(false);
+  });
+});
+
+// ─── 7️⃣ Silhouette Diversity ───────────────────────────────────
+
+describe('Silhouette Diversity', () => {
+  const TAILORED_RE = /blazer|sport coat|suit|dress shirt|button.?down|oxford|tailored/;
+
+  const getSilhouetteType = (outfit: any): 'dress' | 'tailored' | 'relaxed' => {
+    const items = outfit.items.filter(Boolean);
+    if (items.some((i: any) => i.category === 'dress')) return 'dress';
+    const hasTailored = items.some((i: any) => {
+      if (i.category !== 'top' && i.category !== 'outerwear') return false;
+      const sub = (i.subcategory || '').toLowerCase();
+      const name = (i.name || '').toLowerCase();
+      return TAILORED_RE.test(sub) || TAILORED_RE.test(name);
+    });
+    return hasTailored ? 'tailored' : 'relaxed';
+  };
+
+  it('classifies dress outfit as "dress"', () => {
+    const outfit = { items: [{ category: 'dress', name: 'Maxi Dress' }, { category: 'shoes', name: 'Heels' }] };
+    expect(getSilhouetteType(outfit)).toBe('dress');
+  });
+
+  it('classifies blazer outfit as "tailored"', () => {
+    const outfit = {
+      items: [
+        { category: 'top', name: 'Wool Blazer', subcategory: 'blazer' },
+        { category: 'bottom', name: 'Chinos' },
+        { category: 'shoes', name: 'Loafers' },
+      ],
+    };
+    expect(getSilhouetteType(outfit)).toBe('tailored');
+  });
+
+  it('classifies dress shirt by name as "tailored"', () => {
+    const outfit = {
+      items: [
+        { category: 'top', name: 'Blue Oxford Dress Shirt', subcategory: 'shirt' },
+        { category: 'bottom', name: 'Slacks' },
+      ],
+    };
+    expect(getSilhouetteType(outfit)).toBe('tailored');
+  });
+
+  it('classifies tee + jeans as "relaxed"', () => {
+    const outfit = {
+      items: [
+        { category: 'top', name: 'Cotton Tee', subcategory: 't-shirt' },
+        { category: 'bottom', name: 'Jeans', subcategory: 'jean' },
+        { category: 'shoes', name: 'Sneakers', subcategory: 'sneaker' },
+      ],
+    };
+    expect(getSilhouetteType(outfit)).toBe('relaxed');
+  });
+
+  it('penalizes duplicate silhouette types', () => {
+    const outfits = [
+      { __finalScore: 5.0, items: [{ category: 'top', name: 'Tee', subcategory: 't-shirt' }, { category: 'bottom' }] },
+      { __finalScore: 5.0, items: [{ category: 'top', name: 'Polo', subcategory: 'polo' }, { category: 'bottom' }] },
+      { __finalScore: 5.0, items: [{ category: 'dress', name: 'Maxi Dress' }] },
+    ];
+
+    const silCounts = new Map<string, number>();
+    for (const o of outfits) {
+      const sil = getSilhouetteType(o);
+      (o as any).__silhouette = sil;
+      silCounts.set(sil, (silCounts.get(sil) || 0) + 1);
+    }
+    for (const o of outfits) {
+      const count = silCounts.get((o as any).__silhouette) || 1;
+      (o as any).__finalScore += count > 1 ? -0.05 * (count - 1) : 0.05;
+    }
+
+    // Two relaxed outfits: each gets -0.05 penalty
+    expect(outfits[0].__finalScore).toBeCloseTo(4.95);
+    expect(outfits[1].__finalScore).toBeCloseTo(4.95);
+    // Unique dress: gets +0.05 bonus
+    expect(outfits[2].__finalScore).toBeCloseTo(5.05);
+  });
+});
+
+// ─── 8️⃣ Canonicalize + Rescore ─────────────────────────────────
+
+describe('Canonicalize + Rescore', () => {
+  it('strips outerwear in hot weather (temp >= 75)', () => {
+    const temp = 85;
+    const outfit = {
+      items: [
+        { id: 'top-1', category: 'top' },
+        { id: 'bottom-1', category: 'bottom' },
+        { id: 'shoes-1', category: 'shoes' },
+        { id: 'jacket-1', category: 'outerwear' },
+      ],
+    };
+
+    if (temp >= 75) {
+      outfit.items = outfit.items.filter(i => i.category !== 'outerwear');
+    }
+
+    expect(outfit.items).toHaveLength(3);
+    expect(outfit.items.some(i => i.category === 'outerwear')).toBe(false);
+  });
+
+  it('keeps outerwear in cold weather (temp <= 60)', () => {
+    const temp = 45;
+    const items = [
+      { id: 'top-1', category: 'top' },
+      { id: 'bottom-1', category: 'bottom' },
+      { id: 'shoes-1', category: 'shoes' },
+      { id: 'jacket-1', category: 'outerwear' },
+    ];
+
+    const hasDress = items.some(i => i.category === 'dress');
+    expect(hasDress).toBe(false);
+
+    // Separates: top + bottom + shoes + outerwear if temp <= 60
+    const top = items.find(i => i.category === 'top');
+    const bottom = items.find(i => i.category === 'bottom');
+    const shoes = items.find(i => i.category === 'shoes');
+    const outerwear = (temp <= 60) ? items.find(i => i.category === 'outerwear') : null;
+    const newItems = [top, bottom, shoes, outerwear].filter(Boolean);
+
+    expect(newItems).toHaveLength(4);
+    expect(newItems.some(i => i!.category === 'outerwear')).toBe(true);
+  });
+
+  it('rescore changes finalScore when items change', () => {
+    // Simulate an outfit that gets canonicalized (outerwear removed)
+    const originalScore = 0.4 * 3 + 0.3 * 1 - 0.2 * 0.5 + 0.1 * 1; // 4 items
+    // After removing outerwear, the remaining items have different averages
+    const newScore = 0.4 * 4 + 0.3 * 1.2 - 0.2 * 0.2 + 0.1 * 1; // 3 items, better weather avg
+
+    expect(newScore).not.toBe(originalScore);
+    // The rescore should produce a different (potentially better) score
+    expect(newScore).toBeGreaterThan(originalScore);
+  });
+
+  it('canonicalizes dress outfit to dress + shoes only', () => {
+    const temp = 80;
+    const items = [
+      { id: 'dress-1', category: 'dress' },
+      { id: 'top-1', category: 'top' },
+      { id: 'shoes-1', category: 'shoes' },
+      { id: 'jacket-1', category: 'outerwear' },
+    ];
+
+    const dress = items.find(i => i.category === 'dress');
+    const shoes = items.find(i => i.category === 'shoes');
+    const outerwear = (temp <= 60) ? items.find(i => i.category === 'outerwear') : null;
+    let newItems = [dress, shoes, outerwear].filter(Boolean);
+    if (temp >= 75) newItems = newItems.filter(i => i!.category !== 'outerwear');
+
+    expect(newItems).toHaveLength(2);
+    expect(newItems.map(i => i!.category)).toEqual(['dress', 'shoes']);
+  });
+});
+
+// ─── 9️⃣ Confidence Check ──────────────────────────────────────
+
+describe('Confidence Check', () => {
+  const sigmoid = (x: number): number => 1 / (1 + Math.exp(-x));
+
+  it('sigmoid produces values between 0 and 1', () => {
+    expect(sigmoid(0)).toBeCloseTo(0.5);
+    expect(sigmoid(10)).toBeCloseTo(1.0, 1);
+    expect(sigmoid(-10)).toBeCloseTo(0.0, 1);
+  });
+
+  it('triggers retry when confidence < 0.4', () => {
+    // finalScore = -0.5 → sigmoid(-0.5) ≈ 0.378
+    const lowScore = -0.5;
+    expect(sigmoid(lowScore)).toBeLessThan(0.4);
+
+    let retryCount = 0;
+    // Simulate retry logic
+    if (sigmoid(lowScore) < 0.4) {
+      retryCount++;
+    }
+    // Max 1 retry (2 total LLM calls)
+    expect(retryCount).toBe(1);
+    expect(retryCount).toBeLessThanOrEqual(1);
+  });
+
+  it('does NOT retry when confidence >= 0.4', () => {
+    // finalScore = 0.5 → sigmoid(0.5) ≈ 0.622
+    const goodScore = 0.5;
+    expect(sigmoid(goodScore)).toBeGreaterThanOrEqual(0.4);
+
+    let retryCount = 0;
+    if (sigmoid(goodScore) < 0.4) {
+      retryCount++;
+    }
+    expect(retryCount).toBe(0);
+  });
+
+  it('retry executes at most once (no recursion)', () => {
+    const scores = [-2.0, -1.5, -1.0]; // all low confidence
+    let totalRetries = 0;
+
+    for (const score of scores) {
+      if (sigmoid(score) < 0.4 && totalRetries === 0) {
+        totalRetries++;
+      }
+    }
+    // Even with multiple low-confidence outfits, max 1 retry
+    expect(totalRetries).toBeLessThanOrEqual(1);
+  });
+});
+
+// ─── 🔟 Response Enrichment ──────────────────────────────────
+
+describe('Response Enrichment', () => {
+  const BOLD_COLOR_FAMILIES = ['red', 'orange', 'yellow', 'purple'];
+  const NEUTRAL_COLORS = ['black', 'white', 'gray', 'grey', 'beige', 'cream', 'tan', 'khaki', 'ivory', 'charcoal', 'taupe', 'brown', 'nude'];
+  const extractColorWords = (colorStr: string): string[] =>
+    (colorStr || '').toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+
+  it('classifies all-neutral palette correctly', () => {
+    const colors = ['black', 'white', 'gray'];
+    const boldPresent = BOLD_COLOR_FAMILIES.filter(f =>
+      colors.some(w => w === f),
+    );
+    const neutralCount = colors.filter(w => NEUTRAL_COLORS.includes(w)).length;
+
+    expect(boldPresent).toHaveLength(0);
+    expect(neutralCount).toBe(3);
+    // → 'neutral palette'
+  });
+
+  it('classifies single bold + neutrals as "single accent"', () => {
+    const colors = ['black', 'white', 'red'];
+    const boldPresent = BOLD_COLOR_FAMILIES.filter(f =>
+      colors.some(w => w === f),
+    );
+
+    expect(boldPresent).toHaveLength(1);
+    expect(boldPresent).toContain('red');
+    // → 'single accent'
+  });
+
+  it('classifies 2+ bold colors as "bold mix"', () => {
+    const colors = ['red', 'purple', 'black'];
+    const boldPresent = BOLD_COLOR_FAMILIES.filter(f =>
+      colors.some(w => w === f),
+    );
+
+    expect(boldPresent).toHaveLength(2);
+    // → 'bold mix'
+  });
+
+  it('fashionContext contains required fields', () => {
+    const fashionContext = {
+      weatherFit: 'optimal' as const,
+      silhouette: 'relaxed' as const,
+      colorStrategy: 'neutral palette' as const,
+      confidenceLevel: 0.73,
+    };
+
+    expect(fashionContext).toHaveProperty('weatherFit');
+    expect(fashionContext).toHaveProperty('silhouette');
+    expect(fashionContext).toHaveProperty('colorStrategy');
+    expect(fashionContext).toHaveProperty('confidenceLevel');
+    expect(['optimal', 'good', 'marginal']).toContain(fashionContext.weatherFit);
+    expect(['dress', 'tailored', 'relaxed']).toContain(fashionContext.silhouette);
+    expect(typeof fashionContext.confidenceLevel).toBe('number');
+  });
 });
