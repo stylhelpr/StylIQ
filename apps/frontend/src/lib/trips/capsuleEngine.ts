@@ -245,7 +245,7 @@ export function gateBackupPool(
       return false;
     }
 
-    // GATE 2 — Trip-incompatible casual (metadata-driven)
+    /// GATE 2 — Trip-incompatible casual (metadata-driven)
     // Items that were used in anchor/support outfits already passed gatePool's
     // per-outfit formality check — they are proven-fit. Only apply the metadata-
     // based formality floor to unused items that haven't been validated yet.
