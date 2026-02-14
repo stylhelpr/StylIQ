@@ -3207,9 +3207,58 @@ Preferences: ${JSON.stringify(preferences || {})}
     // 🎯 LEARNING INTEGRATION: Fetch user feedback context
     const feedbackContext = await this.getUserFeedbackContext(userId, wardrobe);
 
+    // 🧑 GENDER/PRESENTATION-AWARE FILTERING
+    // Fetch user's gender_presentation to exclude inappropriate items for masculine profiles.
+    // Mirrors logic from frontend trips/styleEligibility.ts + capsuleEngine.inferGarmentFlags().
+    let userPresentation: 'masculine' | 'feminine' | 'mixed' = 'mixed';
+    if (userId) {
+      try {
+        const { rows } = await pool.query(
+          'SELECT gender_presentation FROM users WHERE id = $1 LIMIT 1',
+          [userId],
+        );
+        const gp = (rows[0]?.gender_presentation || '').toLowerCase().replace(/[\s_-]+/g, '');
+        if (gp === 'male') userPresentation = 'masculine';
+        else if (gp === 'female') userPresentation = 'feminine';
+        // "other", "nonbinary", "rathernotsay", empty → 'mixed' (allow all)
+      } catch {
+        // Fail open — default to 'mixed' (no filtering)
+      }
+    }
+
+    // Build filtered wardrobe: exclude feminine-only items for masculine users.
+    // Does NOT mutate the original wardrobe array.
+    const filteredWardrobe = userPresentation === 'masculine'
+      ? wardrobe.filter((item) => {
+          const cat = item.main_category || item.category || '';
+          const sub = (item.subcategory || '').toLowerCase();
+          const name = (item.name || '').toLowerCase();
+
+          // Main category hard blocks
+          if (cat === 'Dresses' || cat === 'Skirts') return false;
+
+          // Subcategory feminine-only detection (matches capsuleEngine.inferGarmentFlags)
+          const isDress = sub.endsWith('dress');
+          const isSkirt = sub.includes('skirt');
+          const isBlouse = sub.includes('blouse');
+          const isGown = sub.includes('gown');
+          const isHeels = (sub.includes('heel') && !name.includes('heel tab')) || sub.includes('stiletto') || sub.includes('pump') || sub.includes('slingback') || sub.includes('mary jane');
+          const isBalletFlat = sub.includes('ballet flat') || (name.includes('ballet') && name.includes('flat'));
+          const isEarring = sub.includes('earring') || name.includes('earring');
+          const isBracelet = sub.includes('bracelet') || name.includes('bracelet');
+          const isAnklet = sub.includes('anklet') || name.includes('anklet');
+          const isPurse = sub.includes('purse') || sub.includes('handbag') || sub.includes('clutch') || name.includes('purse') || name.includes('handbag');
+
+          if (isDress || isSkirt || isBlouse || isGown || isHeels || isBalletFlat || isEarring || isBracelet || isAnklet || isPurse) {
+            return false;
+          }
+          return true;
+        })
+      : wardrobe; // feminine / mixed → no filtering
+
     // Build wardrobe summary with IDs for AI to reference
     // Apply feedback-based filtering: boost high-score items, deprioritize low-score
-    const wardrobeSummary = wardrobe
+    const wardrobeSummary = filteredWardrobe
       .filter((item) => item.image_url || item.image)
       .map((item) => ({
         ...item,
@@ -3292,6 +3341,13 @@ Preferences: ${JSON.stringify(preferences || {})}
         ? `MODE: AUTOMATIC — Use proactive phrasing: "Styled for your day ahead...", "Ready for your evening"`
         : `MODE: MANUAL — Use responsive phrasing: "Here's what works...", "This should do the trick..."`;
 
+    // Gender-aware prompt guidance (visual mode only)
+    const genderGuidance = userPresentation === 'masculine'
+      ? `\n════════════════════════\nGENDER CONTEXT\n════════════════════════\nThis user presents masculine. NEVER include dresses, skirts, gowns, blouses, heels, ballet flats, purses, or any feminine-coded garments. Only use items from the wardrobe list provided.\n`
+      : userPresentation === 'feminine'
+        ? `\n════════════════════════\nGENDER CONTEXT\n════════════════════════\nThis user presents feminine. Dresses, skirts, and all feminine garments are allowed and encouraged when appropriate.\n`
+        : ''; // mixed → no additional guidance
+
     const systemPrompt = `
 You are a PROFESSIONAL HUMAN FASHION STYLIST, not an assistant, not a chatbot, and not a creative experimenter.
 
@@ -3302,6 +3358,7 @@ Your primary objective is NOT creativity.
 Your objective is ACCURACY, STYLE ALIGNMENT, and TRUST.
 
 ${modeGuidance}
+${genderGuidance}
 
 ════════════════════════
 NON-NEGOTIABLE RULES
@@ -3538,7 +3595,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     }
 
     // Map item IDs back to full wardrobe items with images
-    const wardrobeMap = new Map(wardrobe.map((item) => [item.id, item]));
+    const wardrobeMap = new Map(filteredWardrobe.map((item) => [item.id, item]));
 
     const outfitsWithItems = parsed.outfits.map((outfit) => ({
       id: outfit.id,
@@ -3567,7 +3624,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     // Every outfit MUST have: 1 top, 1 bottom, 1 shoes (outerwear optional)
     // Build category pools sorted by feedback score for fallback injection
     const categoryPools = {
-      top: wardrobe
+      top: filteredWardrobe
         .filter(
           (item) =>
             this.mapToCategory(item.main_category || item.category) === 'top',
@@ -3577,7 +3634,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
         }))
         .sort((a, b) => b.feedbackScore - a.feedbackScore),
-      bottom: wardrobe
+      bottom: filteredWardrobe
         .filter(
           (item) =>
             this.mapToCategory(item.main_category || item.category) ===
@@ -3588,7 +3645,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
         }))
         .sort((a, b) => b.feedbackScore - a.feedbackScore),
-      shoes: wardrobe
+      shoes: filteredWardrobe
         .filter(
           (item) =>
             this.mapToCategory(item.main_category || item.category) === 'shoes',
@@ -3598,7 +3655,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
         }))
         .sort((a, b) => b.feedbackScore - a.feedbackScore),
-      dress: wardrobe
+      dress: filteredWardrobe
         .filter(
           (item) =>
             this.mapToCategory(item.main_category || item.category) === 'dress',
@@ -3608,7 +3665,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
         }))
         .sort((a, b) => b.feedbackScore - a.feedbackScore),
-      activewear: wardrobe
+      activewear: filteredWardrobe
         .filter(
           (item) =>
             this.mapToCategory(item.main_category || item.category) ===
@@ -3619,7 +3676,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
         }))
         .sort((a, b) => b.feedbackScore - a.feedbackScore),
-      swimwear: wardrobe
+      swimwear: filteredWardrobe
         .filter(
           (item) =>
             this.mapToCategory(item.main_category || item.category) ===
