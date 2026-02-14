@@ -34,7 +34,7 @@ import {
   buildStartWithItemPrompt,
   buildStartWithItemPromptV4,
   normalizeStartWithItemIntent,
-  validateStartWithItemResponse,
+  validateStartWithItemComposition,
   validateStartWithItemIntentMode,
   MutualExclusionError,
   type OutfitPlan,
@@ -701,19 +701,22 @@ export class WardrobeService {
       refinementPrompt?: string;
       lockedItemIds?: string[];
       requestId?: string;
+      aaaaMode?: boolean;
     },
   ) {
     const reqId = opts?.requestId || randomUUID();
     const stdStartTime = Date.now();
+    const aaaaMode = opts?.aaaaMode ?? false;
     try {
       let lockedIds =
         (opts as any)?.lockedItemIds ?? (opts as any)?.locked_item_ids ?? [];
       console.log('[CTRL] lockedIds =', lockedIds);
+      if (aaaaMode) console.log('🎯 [AAAA] Mode active — max quality settings');
 
       logInput(reqId, {
         userId,
         query,
-        mode: 'standard',
+        mode: aaaaMode ? 'standard-aaaa' : 'standard',
         topK,
         weather: opts?.weather,
         userStyle: opts?.userStyle,
@@ -1377,8 +1380,8 @@ export class WardrobeService {
       let fullPrompt = buildOutfitPrompt(
         catalogLines,
         effectiveQuery,
-        undefined,
-        undefined,
+        opts?.styleAgent,
+        opts?.userStyle,
         buildGenderDirective(userPresentation),
       );
       if (refinement) fullPrompt += `\n\nUser refinement: ${refinement}`;
@@ -1403,7 +1406,10 @@ ${lockedLines}
 
       // 6) LLM call and parse
       const llmStartTime = Date.now();
-      const raw = await this.vertex.generateReasonedOutfit(fullPrompt);
+      const raw = await this.vertex.generateReasonedOutfit(
+        fullPrompt,
+        aaaaMode ? 0.4 : undefined,
+      );
       const llmLatencyMs = Date.now() - llmStartTime;
       const text =
         (raw?.candidates?.[0]?.content?.parts?.[0]?.text as string) ??
@@ -1576,6 +1582,26 @@ ${lockedLines}
         o.items = [...o.items].sort((a, b) => orderRank(a) - orderRank(b));
         return o;
       });
+
+      // ── Masculine post-assembly filter (Layer C: defense-in-depth) ──
+      if (userPresentation === 'masculine') {
+        for (const o of outfits) {
+          const preLen = o.items.length;
+          o.items = o.items.filter(
+            (it: any) =>
+              !isFeminineItem(
+                it.main_category || '',
+                it.subcategory || '',
+                it.name || it.label || '',
+              ),
+          );
+          if (o.items.length < preLen) {
+            console.log(
+              `🎯 [STD] Masculine post-filter: ${preLen} → ${o.items.length} items in "${o.title}"`,
+            );
+          }
+        }
+      }
 
       // finalize + enforce + retitle
       outfits = outfits.map((o) =>
@@ -2600,7 +2626,8 @@ ${lockedLines}
       }
 
       // ── Pad to 3 outfits if wardrobe has enough items ──
-      if (outfits.length < 3 && !isStartWithItem) {
+      // NOTE: Includes PATH #2 (isStartWithItem) — padded outfits may not contain centerpiece
+      if (outfits.length < 3) {
         const { rows: padRows } = await pool.query(
           `SELECT id, name, main_category, subcategory, image_url, color
            FROM wardrobe_items
@@ -2643,19 +2670,20 @@ ${lockedLines}
       }
 
       // ── 5) PATH #2 POST-PARSE VALIDATION ──
-      // CRITICAL: Enforce centerpiece + composition constraints - fail closed on violation
-      if (isStartWithItem && centerpieceDbItem) {
+      // Validate outfit[0] only — padded outfits (#2, #3) may not contain centerpiece
+      if (isStartWithItem && centerpieceDbItem && outfits.length > 0) {
         const centerpieceId = centerpieceDbItem.id;
         const centerpieceCategory =
           centerpieceDbItem.main_category?.toLowerCase() || '';
 
-        console.log('⚡ [FAST] PATH #2: Running composition validation...');
+        console.log('⚡ [FAST] PATH #2: Running composition validation on outfit[0]...');
 
-        // Use the dedicated PATH #2 validator for comprehensive checks
-        const validationResult = validateStartWithItemResponse(
-          outfits as any,
+        // Validate only the primary outfit (outfit[0]) for centerpiece constraints
+        const validationResult = validateStartWithItemComposition(
+          outfits[0] as any,
           centerpieceId,
           centerpieceCategory,
+          0,
         );
 
         // Log warnings (non-fatal)
@@ -2663,7 +2691,7 @@ ${lockedLines}
           console.warn(`⚠️ [FAST] PATH #2 WARNING: ${warning}`);
         }
 
-        // Fail closed on any validation errors
+        // Fail closed on any validation errors for outfit[0]
         if (!validationResult.valid) {
           for (const error of validationResult.errors) {
             console.error(`❌ [FAST] PATH #2 VALIDATION FAILED: ${error}`);
@@ -2675,20 +2703,51 @@ ${lockedLines}
 
         console.log('✅ [FAST] PATH #2: Composition validation PASSED');
         console.log(
-          `✅ [FAST] PATH #2: Centerpiece ${centerpieceDbItem.name} present in all 3 outfits`,
+          `✅ [FAST] PATH #2: Centerpiece ${centerpieceDbItem.name} present in outfit[0]`,
         );
         console.log(
-          `✅ [FAST] PATH #2: Each outfit has ${outfits[0]?.items?.length || 0}+ items`,
+          `✅ [FAST] PATH #2: ${outfits.length} outfits total (${outfits.length > 1 ? 'padded' : 'single'})`,
         );
       }
 
-      // Pick the best outfit (first one for now)
-      const best = outfits[0] ?? {
-        outfit_id: randomUUID(),
-        title: 'No complete outfit found',
-        items: [],
-        why: 'Your wardrobe may not have enough items to build a complete outfit for this request. Try adding more tops, bottoms, or shoes.',
-      };
+      // ── Pref-based ranking: pick best outfit by user preference scores ──
+      let best: any;
+      if (outfits.length <= 1) {
+        best = outfits[0];
+      } else {
+        const allIds = Array.from(
+          new Set(outfits.flatMap((o: any) => o.items?.map((it: any) => it?.id).filter(Boolean) ?? [])),
+        );
+        const prefRows =
+          allIds.length > 0
+            ? await pool.query(
+                'SELECT item_id, score FROM user_pref_item WHERE user_id = $1 AND item_id = ANY($2)',
+                [userId, allIds],
+              )
+            : { rows: [] as any[] };
+        const pref = new Map<string, number>(
+          prefRows.rows.map((r: any) => [String(r.item_id), Number(r.score)]),
+        );
+        const ranked = outfits
+          .map((o: any) => {
+            const items = o.items ?? [];
+            const boost =
+              items.length === 0
+                ? 0
+                : items.reduce((a: number, it: any) => a + (pref.get(it?.id) ?? 0), 0) / items.length;
+            return { o, boost };
+          })
+          .sort((a: any, b: any) => b.boost - a.boost);
+        best = ranked[0]?.o;
+      }
+      if (!best) {
+        best = {
+          outfit_id: randomUUID(),
+          title: 'No complete outfit found',
+          items: [],
+          why: 'Your wardrobe may not have enough items to build a complete outfit for this request. Try adding more tops, bottoms, or shoes.',
+        };
+      }
 
       const totalTime = Date.now() - startTime;
       console.log('⚡ [FAST] Total generateOutfitsFast time:', totalTime, 'ms');

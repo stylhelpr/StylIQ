@@ -22,6 +22,7 @@ import {
   AnalyzeImageRequestDto,
   AnalyzeImageResponseDto,
 } from './dto/analyze-image.dto';
+import { GenerateOutfitsDto } from './dto/generate-outfits.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Storage } from '@google-cloud/storage';
 import { getSecret, getSecretJson, secretExists } from '../config/secrets';
@@ -143,21 +144,7 @@ export class WardrobeController {
   @Post('outfits')
   generateOutfits(
     @Req() req,
-    @Body()
-    body: {
-      query: string;
-      topK?: number;
-      style_profile?: any;
-      weather?: import('./logic/weather').WeatherContext;
-      useWeather?: boolean;
-      useFeedback?: boolean;
-      weights?: import('./logic/scoring').ContextWeights;
-      styleAgent?: 'agent1' | 'agent2' | 'agent3';
-      session_id?: string;
-      refinementPrompt?: string;
-      lockedItemIds?: string[];
-      useFastMode?: boolean; // NEW: Use fast architecture (Flash + backend retrieval)
-    },
+    @Body() body: GenerateOutfitsDto,
   ) {
     const userId = req.user.userId;
     const weatherArg = body.useWeather === false ? undefined : body.weather;
@@ -169,8 +156,9 @@ export class WardrobeController {
 
     const requestId = randomUUID();
 
-    // Use fast mode if explicitly requested
-    if (body.useFastMode) {
+    // aaaaMode forces standard mode (overrides useFastMode)
+    // Use fast mode if explicitly requested (and not aaaaMode)
+    if (body.useFastMode && !body.aaaaMode) {
       // If there's a refinement prompt, append it to the query
       const queryWithRefinement = body.refinementPrompt
         ? `${body.query}. IMPORTANT REFINEMENT: User specifically requested: "${body.refinementPrompt}". You MUST incorporate this into ALL outfits.`
@@ -190,7 +178,7 @@ export class WardrobeController {
     return this.service.generateOutfits(userId, body.query, body.topK || 5, {
       userStyle,
       weather: weatherArg,
-      weights: body.weights,
+      weights: body.weights as import('./logic/scoring').ContextWeights | undefined,
       useWeather: body.useWeather ?? true,
       useFeedback: body.useFeedback,
       styleAgent: body.styleAgent,
@@ -198,6 +186,7 @@ export class WardrobeController {
       refinementPrompt: body.refinementPrompt,
       lockedItemIds: body.lockedItemIds ?? [],
       requestId,
+      aaaaMode: body.aaaaMode,
     });
   }
 

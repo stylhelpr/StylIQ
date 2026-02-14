@@ -724,9 +724,10 @@ export class VertexService {
   // Outfit Generation (Gemini Pro via Generative API)
   // DEPRECATED: Use generateOutfitPlan() for new architecture
   // -------------------
-  async generateReasonedOutfit(prompt: string): Promise<any> {
+  async generateReasonedOutfit(prompt: string, temperature?: number): Promise<any> {
     const model = this.vertexAI.getGenerativeModel({
       model: this.reasoningModel, // gemini-2.5-pro
+      ...(temperature != null ? { generationConfig: { temperature } } : {}),
     });
 
     const result = await this.withSemaphore(() =>
@@ -746,7 +747,7 @@ export class VertexService {
   // Returns slot descriptions for backend to query Pinecone
   // Uses gemini-2.0-flash for speed (no thinking overhead)
   // -------------------
-  async generateOutfitPlan(prompt: string): Promise<{
+  async generateOutfitPlan(prompt: string, temperature?: number): Promise<{
     // New format: single outfit
     outfit?: {
       title: string;
@@ -772,7 +773,7 @@ export class VertexService {
       model: 'gemini-2.0-flash', // Faster than 2.5-flash (no thinking)
       generationConfig: {
         responseMimeType: 'application/json',
-        temperature: 0.7,
+        temperature: temperature ?? 0.7,
         maxOutputTokens: 1024,
       },
     });

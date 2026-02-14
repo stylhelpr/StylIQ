@@ -87,6 +87,7 @@ import {
   useRenameRecreatedLook,
   useDeleteSavedLook,
 } from '../hooks/useHomeData';
+import {useStyleProfile} from '../hooks/useStyleProfile';
 
 // import {NativeModules} from 'react-native';
 // const {StylIQDynamicIslandModule} = NativeModules;
@@ -591,6 +592,18 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const globalStyles = useGlobalStyles();
   const [weather, setWeather] = useState<any>(null);
   const userId = useUUID();
+  const {styleProfile} = useStyleProfile(userId ?? '');
+
+  // Sanitize style profile for AI Stylist (mirrors useOutfitApi.ts pattern)
+  const stylistPreferences = useMemo(() => {
+    if (!styleProfile || typeof styleProfile !== 'object') return undefined;
+    const prefs: Record<string, any> = {};
+    if (styleProfile.favorite_colors) prefs.favoriteColors = styleProfile.favorite_colors;
+    if (styleProfile.preferred_brands) prefs.favoriteBrands = styleProfile.preferred_brands;
+    if (styleProfile.style_keywords) prefs.styleKeywords = styleProfile.style_keywords;
+    if (styleProfile.fashion_dislikes) prefs.dislikes = styleProfile.fashion_dislikes;
+    return Object.keys(prefs).length ? prefs : undefined;
+  }, [styleProfile]);
 
   // 🎯 TanStack Query: Community posts for hero section
   const {data: communityPosts = []} = useCommunityPosts(userId ?? undefined, 'all', 10);
@@ -2138,6 +2151,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     globalStyles={globalStyles}
                     navigate={navigate}
                     wardrobe={wardrobe}
+                    preferences={stylistPreferences}
                   />
                 </Animated.View>
               )}

@@ -326,3 +326,66 @@ describe('padToThreeOutfits', () => {
     expect(result).toHaveLength(1);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// M1 FIX: padToThreeOutfits with PATH #2 (start-with-item) centerpiece
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('padToThreeOutfits — PATH #2 centerpiece preservation', () => {
+  const poolItem = (id: string, cat: string) => ({
+    id,
+    name: `${cat}-${id}`,
+    main_category: cat,
+  });
+
+  const makeOutfit = (items: any[]) => ({
+    outfit_id: 'pad',
+    title: 'Backfill',
+    items: items.map((r) => ({ id: r.id, main_category: r.main_category })),
+    why: 'backfill',
+  });
+
+  it('pads PATH #2 from 1 outfit to 3, outfit[0] keeps centerpiece', () => {
+    const centerpieceId = 'cp1';
+    // outfit[0] has centerpiece (a polo) + bottom + shoes
+    const existing = [
+      makeOutfit([
+        poolItem(centerpieceId, 'Tops'),
+        poolItem('b1', 'Bottoms'),
+        poolItem('s1', 'Shoes'),
+      ]),
+    ];
+    const padPool = [
+      poolItem('t2', 'Tops'),
+      poolItem('t3', 'Tops'),
+      poolItem('b2', 'Bottoms'),
+      poolItem('b3', 'Bottoms'),
+      poolItem('s2', 'Shoes'),
+      poolItem('s3', 'Shoes'),
+    ];
+    const result = padToThreeOutfits(existing, padPool, makeOutfit);
+    expect(result).toHaveLength(3);
+    // outfit[0] still has the centerpiece
+    expect(result[0].items.some((it: any) => it.id === centerpieceId)).toBe(true);
+  });
+
+  it('sparse wardrobe returns <3 without crash', () => {
+    const existing = [
+      makeOutfit([
+        poolItem('cp1', 'Tops'),
+        poolItem('b1', 'Bottoms'),
+        poolItem('s1', 'Shoes'),
+      ]),
+    ];
+    // Only enough for 1 outfit — no new combos possible
+    const sparsePool = [
+      poolItem('cp1', 'Tops'),
+      poolItem('b1', 'Bottoms'),
+      poolItem('s1', 'Shoes'),
+    ];
+    const result = padToThreeOutfits(existing, sparsePool, makeOutfit);
+    // Should return original without crash — pool exhausted
+    expect(result.length).toBeGreaterThanOrEqual(1);
+    expect(result.length).toBeLessThanOrEqual(3);
+  });
+});

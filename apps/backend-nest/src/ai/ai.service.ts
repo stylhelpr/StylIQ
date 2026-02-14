@@ -8,6 +8,7 @@ import { Express } from 'express';
 import { redis } from '../utils/redisClient';
 import { pool } from '../db/pool';
 import { scoreItemForWeather, type WeatherContext } from '../wardrobe/logic/weather';
+import { isFeminineItem } from '../wardrobe/logic/presentationFilter';
 import { getSecret, secretExists } from '../config/secrets';
 
 // 🧥 Basic capsule wardrobe templates
@@ -3686,6 +3687,26 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         .filter(Boolean),
     }));
 
+    // 🛡️ POST-ASSEMBLY MASCULINE FILTER — PASS 1 (before completeness injection)
+    const rawLookup = new Map(wardrobe.map((i) => [i.id, i]));
+    if (userPresentation === 'masculine') {
+      for (const outfit of outfitsWithItems) {
+        const preLen = outfit.items.length;
+        outfit.items = outfit.items.filter((it) => {
+          if (!it) return false;
+          const raw = rawLookup.get(it.id);
+          return !isFeminineItem(
+            raw?.main_category || raw?.category || '',
+            raw?.subcategory || '',
+            raw?.name || it.name || '',
+          );
+        });
+        if (outfit.items.length < preLen) {
+          console.log(`🎯 [AI Stylist] Masculine post-filter pass 1: ${preLen} → ${outfit.items.length} items`);
+        }
+      }
+    }
+
     // 🛡️ OUTFIT COMPLETENESS ENFORCEMENT
     // Every outfit MUST have: 1 top, 1 bottom, 1 shoes (outerwear optional)
     // Build category pools — weather-aware with tiered fallback
@@ -4355,6 +4376,25 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         }
       } catch (retryErr) {
         console.warn('⚠️ [AI Stylist] Retry failed, keeping original results:', retryErr);
+      }
+    }
+
+    // 🛡️ POST-ASSEMBLY MASCULINE FILTER — PASS 2 (after injection/repair, before final gate)
+    if (userPresentation === 'masculine') {
+      for (const outfit of scoredOutfits) {
+        const preLen = (outfit.items || []).length;
+        outfit.items = (outfit.items || []).filter((it: any) => {
+          if (!it) return false;
+          const raw = rawLookup.get(it.id);
+          return !isFeminineItem(
+            raw?.main_category || raw?.category || '',
+            raw?.subcategory || '',
+            raw?.name || it.name || '',
+          );
+        });
+        if (outfit.items.length < preLen) {
+          console.log(`🎯 [AI Stylist] Masculine post-filter pass 2: ${preLen} → ${outfit.items.length} items`);
+        }
       }
     }
 

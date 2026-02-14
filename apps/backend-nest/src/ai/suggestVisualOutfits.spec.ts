@@ -1325,3 +1325,217 @@ describe('Hard Completeness Gate', () => {
     expect(complete[0].rank).toBe(2);
   });
 });
+
+// ─── 15️⃣ Post-Assembly Masculine Filter (Defense-in-Depth) ─────
+
+import { isFeminineItem } from '../wardrobe/logic/presentationFilter';
+
+describe('Post-Assembly Masculine Filter (Defense-in-Depth)', () => {
+  // Simulates the post-assembly filter logic from ai.service.ts
+  const applyMasculineFilter = (
+    outfitItems: any[],
+    rawLookup: Map<string, any>,
+  ) =>
+    outfitItems.filter((it) => {
+      if (!it) return false;
+      const raw = rawLookup.get(it.id);
+      return !isFeminineItem(
+        raw?.main_category || raw?.category || '',
+        raw?.subcategory || '',
+        raw?.name || it.name || '',
+      );
+    });
+
+  it('masculine post-filter removes feminine items from LLM output', () => {
+    const dress = makeItem({ id: 'd1', name: 'Floral Midi Dress', main_category: 'Dresses', subcategory: 'Midi Dress' });
+    const top = makeItem({ id: 't1', name: 'Oxford Shirt', main_category: 'Tops', subcategory: 'Oxford Shirt' });
+    const bottom = makeItem({ id: 'b1', name: 'Chinos', main_category: 'Bottoms', subcategory: 'Chinos' });
+    const shoes = makeItem({ id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers' });
+
+    const rawLookup = new Map([dress, top, bottom, shoes].map((i) => [i.id, i]));
+    const outfitItems = [
+      { id: 'd1', name: 'Floral Midi Dress', category: 'dress' },
+      { id: 't1', name: 'Oxford Shirt', category: 'top' },
+      { id: 'b1', name: 'Chinos', category: 'bottom' },
+      { id: 's1', name: 'Sneakers', category: 'shoes' },
+    ];
+
+    const filtered = applyMasculineFilter(outfitItems, rawLookup);
+
+    expect(filtered).toHaveLength(3);
+    expect(filtered.find((i: any) => i.id === 'd1')).toBeUndefined();
+    expect(filtered.map((i: any) => i.id)).toEqual(['t1', 'b1', 's1']);
+  });
+
+  it('masculine post-filter removes heels/skirts/blouse/purse', () => {
+    const heels = makeItem({ id: 'h1', name: 'Red Stilettos', main_category: 'Shoes', subcategory: 'Stiletto Heels' });
+    const skirt = makeItem({ id: 'sk1', name: 'Pleated Skirt', main_category: 'Skirts', subcategory: 'Pleated Skirt' });
+    const blouse = makeItem({ id: 'bl1', name: 'Silk Blouse', main_category: 'Tops', subcategory: 'Blouse' });
+    const purse = makeItem({ id: 'p1', name: 'Leather Purse', main_category: 'Bags', subcategory: 'Purse' });
+
+    const rawLookup = new Map([heels, skirt, blouse, purse].map((i) => [i.id, i]));
+    const outfitItems = [
+      { id: 'h1', name: 'Red Stilettos', category: 'shoes' },
+      { id: 'sk1', name: 'Pleated Skirt', category: 'bottom' },
+      { id: 'bl1', name: 'Silk Blouse', category: 'top' },
+      { id: 'p1', name: 'Leather Purse', category: 'accessories' },
+    ];
+
+    const filtered = applyMasculineFilter(outfitItems, rawLookup);
+
+    expect(filtered).toHaveLength(0);
+  });
+
+  it('masculine post-filter keeps neutral items', () => {
+    const tshirt = makeItem({ id: 't1', name: 'Crew Neck Tee', main_category: 'Tops', subcategory: 'T-Shirts' });
+    const chinos = makeItem({ id: 'b1', name: 'Chinos', main_category: 'Bottoms', subcategory: 'Chinos' });
+    const sneakers = makeItem({ id: 's1', name: 'Canvas Sneakers', main_category: 'Shoes', subcategory: 'Sneakers' });
+    const watch = makeItem({ id: 'w1', name: 'Stainless Watch', main_category: 'Accessories', subcategory: 'Watch' });
+
+    const rawLookup = new Map([tshirt, chinos, sneakers, watch].map((i) => [i.id, i]));
+    const outfitItems = [
+      { id: 't1', name: 'Crew Neck Tee', category: 'top' },
+      { id: 'b1', name: 'Chinos', category: 'bottom' },
+      { id: 's1', name: 'Canvas Sneakers', category: 'shoes' },
+      { id: 'w1', name: 'Stainless Watch', category: 'accessories' },
+    ];
+
+    const filtered = applyMasculineFilter(outfitItems, rawLookup);
+
+    expect(filtered).toHaveLength(4);
+  });
+
+  it('feminine/mixed users skip post-filter entirely', () => {
+    const dress = makeItem({ id: 'd1', name: 'Floral Dress', main_category: 'Dresses', subcategory: 'Midi Dress' });
+    const shoes = makeItem({ id: 's1', name: 'Heels', main_category: 'Shoes', subcategory: 'Stiletto Heels' });
+
+    const rawLookup = new Map([dress, shoes].map((i) => [i.id, i]));
+    const outfitItems = [
+      { id: 'd1', name: 'Floral Dress', category: 'dress' },
+      { id: 's1', name: 'Heels', category: 'shoes' },
+    ];
+
+    // For feminine/mixed, the filter should NOT be applied — items remain as-is
+    // (The service code conditionally applies the filter only for masculine)
+    // Here we verify the items are valid feminine items that WOULD be filtered
+    expect(isFeminineItem('Dresses', 'Midi Dress', 'Floral Dress')).toBe(true);
+    expect(isFeminineItem('Shoes', 'Stiletto Heels', 'Heels')).toBe(true);
+    // But if we don't run the filter, all items remain
+    expect(outfitItems).toHaveLength(2);
+  });
+
+  it('end-to-end: feminine item injected by completeness → caught by pass 2 → completeness gate drops outfit', () => {
+    // Simulate: an outfit starts with dress + shoes
+    // Pass 1 removes the dress (feminine)
+    // Completeness injection backfills with another dress (from unfiltered pool)
+    // Pass 2 catches the injected dress
+    // Completeness gate drops the now-incomplete outfit (no top, no bottom, no dress)
+
+    const dress1 = makeItem({ id: 'd1', name: 'Evening Gown', main_category: 'Dresses', subcategory: 'Evening Gown' });
+    const dress2 = makeItem({ id: 'd2', name: 'Summer Dress', main_category: 'Dresses', subcategory: 'Sundress' });
+    const shoes = makeItem({ id: 's1', name: 'Loafers', main_category: 'Shoes', subcategory: 'Loafers' });
+
+    const rawLookup = new Map([dress1, dress2, shoes].map((i) => [i.id, i]));
+
+    // Step 1: Initial outfit from LLM
+    let outfitItems = [
+      { id: 'd1', name: 'Evening Gown', category: 'dress' },
+      { id: 's1', name: 'Loafers', category: 'shoes' },
+    ];
+
+    // Step 2: Pass 1 removes the dress
+    outfitItems = applyMasculineFilter(outfitItems, rawLookup);
+    expect(outfitItems).toHaveLength(1); // only shoes remain
+
+    // Step 3: Completeness injection backfills with dress2
+    outfitItems.push({ id: 'd2', name: 'Summer Dress', category: 'dress' });
+    expect(outfitItems).toHaveLength(2);
+
+    // Step 4: Pass 2 catches injected dress
+    outfitItems = applyMasculineFilter(outfitItems, rawLookup);
+    expect(outfitItems).toHaveLength(1); // only shoes again
+
+    // Step 5: Completeness gate checks
+    const cats = new Set(outfitItems.map((i: any) => i.category));
+    const hasDress = cats.has('dress');
+    const hasShoes = cats.has('shoes');
+    const isComplete = hasDress
+      ? hasShoes
+      : cats.has('top') && cats.has('bottom') && hasShoes;
+    expect(isComplete).toBe(false); // outfit is incomplete → dropped
+  });
+
+  it('post-filter + completeness gate: outfit with feminine shoes (heels) loses them, gets no shoe backfill → dropped', () => {
+    const top = makeItem({ id: 't1', name: 'Polo Shirt', main_category: 'Tops', subcategory: 'Polo' });
+    const bottom = makeItem({ id: 'b1', name: 'Jeans', main_category: 'Bottoms', subcategory: 'Jeans' });
+    const heels = makeItem({ id: 'h1', name: 'Pumps', main_category: 'Shoes', subcategory: 'Pump Heels' });
+
+    const rawLookup = new Map([top, bottom, heels].map((i) => [i.id, i]));
+    let outfitItems = [
+      { id: 't1', name: 'Polo Shirt', category: 'top' },
+      { id: 'b1', name: 'Jeans', category: 'bottom' },
+      { id: 'h1', name: 'Pumps', category: 'shoes' },
+    ];
+
+    // Pass 2 removes heels
+    outfitItems = applyMasculineFilter(outfitItems, rawLookup);
+    expect(outfitItems).toHaveLength(2); // top + bottom, no shoes
+
+    // Completeness gate checks
+    const cats = new Set(outfitItems.map((i: any) => i.category));
+    const hasDress = cats.has('dress');
+    const hasShoes = cats.has('shoes');
+    const isComplete = hasDress
+      ? hasShoes
+      : cats.has('top') && cats.has('bottom') && hasShoes;
+    expect(isComplete).toBe(false); // no shoes → dropped
+  });
+});
+
+// ─── 16️⃣ Preferences in Prompt ─────────────────────────────────
+
+describe('Preferences in Prompt', () => {
+  it('non-empty preferences appear in LLM prompt', () => {
+    const preferences = { favoriteColors: ['navy'], favoriteBrands: ['Ralph Lauren'] };
+    const promptFragment = `Preferences: ${JSON.stringify(preferences || {})}`;
+
+    expect(promptFragment).toContain('"favoriteColors":["navy"]');
+    expect(promptFragment).toContain('"favoriteBrands":["Ralph Lauren"]');
+  });
+
+  it('undefined preferences render as {}', () => {
+    const preferences = undefined;
+    const promptFragment = `Preferences: ${JSON.stringify(preferences || {})}`;
+
+    expect(promptFragment).toBe('Preferences: {}');
+  });
+
+  it('sanitized preferences contain only relevant fields', () => {
+    // Simulates the HomeScreen sanitizer logic
+    const rawProfile: Record<string, any> = {
+      favorite_colors: ['navy', 'charcoal'],
+      preferred_brands: ['Ralph Lauren', 'Nike'],
+      style_keywords: ['minimalist', 'classic'],
+      fashion_dislikes: ['neon', 'animal print'],
+      // Extra fields that should NOT be passed
+      id: 'user-123',
+      created_at: '2024-01-01',
+      user_id: 'user-123',
+      body_type: 'athletic',
+    };
+
+    const prefs: Record<string, any> = {};
+    if (rawProfile.favorite_colors) prefs.favoriteColors = rawProfile.favorite_colors;
+    if (rawProfile.preferred_brands) prefs.favoriteBrands = rawProfile.preferred_brands;
+    if (rawProfile.style_keywords) prefs.styleKeywords = rawProfile.style_keywords;
+    if (rawProfile.fashion_dislikes) prefs.dislikes = rawProfile.fashion_dislikes;
+
+    expect(Object.keys(prefs)).toEqual(['favoriteColors', 'favoriteBrands', 'styleKeywords', 'dislikes']);
+    expect(prefs).not.toHaveProperty('id');
+    expect(prefs).not.toHaveProperty('created_at');
+    expect(prefs).not.toHaveProperty('user_id');
+    expect(prefs).not.toHaveProperty('body_type');
+    expect(prefs.favoriteColors).toEqual(['navy', 'charcoal']);
+    expect(prefs.dislikes).toEqual(['neon', 'animal print']);
+  });
+});

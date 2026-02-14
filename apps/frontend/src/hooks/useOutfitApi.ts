@@ -3,6 +3,15 @@ import {API_BASE_URL} from '../config/api';
 import {getAccessToken} from '../utils/auth';
 import {findBySlot, type Slot} from '../lib/categoryMapping';
 
+/**
+ * Investor / AAA quality gate.
+ * When true, ALL outfit requests force the standard (Gemini Pro) pipeline
+ * with temperature 0.4 — regardless of useFastMode from the caller.
+ * Flip to `true` for investor demos; `false` for normal production.
+ */
+export const AAAA_MODE_ENABLED = true;
+// export const AAAA_MODE_ENABLED = false;
+
 export type OutfitApiItem = {
   index: number;
   id: string;
@@ -69,6 +78,7 @@ export type GenerateOptions = {
   refinementPrompt?: string;
   lockedItemIds?: string[];
   useFastMode?: boolean; // 🚀 Use fast architecture (Flash + backend retrieval)
+  aaaaMode?: boolean; // 🎯 Force standard mode + max quality settings
 };
 
 function resolveUri(u?: string) {
@@ -160,13 +170,15 @@ export function useOutfitApi(userId?: string) {
           ? mapStyleProfileToUserStyle(opts?.styleProfile)
           : undefined;
 
+        const isAaaa = AAAA_MODE_ENABLED || opts?.aaaaMode;
         const body: any = {
           user_id: userId,
           query,
           topK: opts?.topK ?? 20,
           useWeather: opts?.useWeather ?? true,
           weather: opts?.weather,
-          useFastMode: opts?.useFastMode ?? true, // 🚀 Use fast mode by default
+          useFastMode: isAaaa ? false : (opts?.useFastMode ?? true), // 🎯 aaaaMode forces standard
+          ...(isAaaa ? { aaaaMode: true } : {}),
         };
 
         if (opts?.styleAgent) {
