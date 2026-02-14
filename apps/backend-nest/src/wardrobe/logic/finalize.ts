@@ -484,3 +484,102 @@ export function validateOutfitCore<
     return false;
   });
 }
+
+/**
+ * Pad outfits array to 3 by building deterministic backfill outfits from
+ * available items. Avoids repeating exact item combinations already present.
+ *
+ * @param outfits  Current outfits (0-2 after validation/fallback)
+ * @param pool     Available items (already filtered for masculine safety if needed)
+ * @param target   Desired outfit count (default 3)
+ */
+export function padToThreeOutfits<
+  T extends {
+    outfit_id?: string;
+    title?: string;
+    items: Array<{ id?: string; main_category?: string | null }>;
+    why?: string;
+  },
+>(
+  outfits: T[],
+  pool: Array<{
+    id: string;
+    name?: string;
+    main_category?: string;
+    subcategory?: string;
+    color?: string;
+    image_url?: string;
+  }>,
+  makeOutfit: (items: typeof pool) => T,
+  target = 3,
+): T[] {
+  if (outfits.length >= target) return outfits;
+
+  // Collect item IDs already used per-outfit so we don't duplicate exact combos
+  const usedCombos = new Set(
+    outfits.map((o) =>
+      (o.items || [])
+        .map((it) => it.id)
+        .filter(Boolean)
+        .sort()
+        .join(','),
+    ),
+  );
+
+  // Group pool by slot
+  const tops = pool.filter((r) => mapMainCategoryToSlot(r.main_category ?? '') === 'tops');
+  const bottoms = pool.filter((r) => mapMainCategoryToSlot(r.main_category ?? '') === 'bottoms');
+  const shoes = pool.filter((r) => mapMainCategoryToSlot(r.main_category ?? '') === 'shoes');
+  const dresses = pool.filter((r) => mapMainCategoryToSlot(r.main_category ?? '') === 'dresses');
+
+  // Track which items have been used in backfill to prefer variety
+  const usedIds = new Set<string>();
+  for (const o of outfits) {
+    for (const it of o.items || []) {
+      if (it.id) usedIds.add(it.id);
+    }
+  }
+
+  const pickUnused = (arr: typeof pool) =>
+    arr.find((r) => !usedIds.has(r.id)) ?? arr[0];
+
+  const result = [...outfits];
+
+  while (result.length < target) {
+    // Path A: separates
+    const top = pickUnused(tops);
+    const bottom = pickUnused(bottoms);
+    const shoe = pickUnused(shoes);
+
+    if (top && bottom && shoe) {
+      const combo = [top.id, bottom.id, shoe.id].sort().join(',');
+      if (!usedCombos.has(combo)) {
+        result.push(makeOutfit([top, bottom, shoe]));
+        usedCombos.add(combo);
+        usedIds.add(top.id);
+        usedIds.add(bottom.id);
+        usedIds.add(shoe.id);
+        continue;
+      }
+    }
+
+    // Path B: dress + shoes
+    const dress = pickUnused(dresses);
+    const shoe2 = pickUnused(shoes);
+    if (dress && shoe2) {
+      const combo = [dress.id, shoe2.id].sort().join(',');
+      if (!usedCombos.has(combo)) {
+        result.push(makeOutfit([dress, shoe2]));
+        usedCombos.add(combo);
+        usedIds.add(dress.id);
+        usedIds.add(shoe2.id);
+        continue;
+      }
+    }
+
+    // Wardrobe exhausted — can't build more unique outfits
+    break;
+  }
+
+  return result;
+}

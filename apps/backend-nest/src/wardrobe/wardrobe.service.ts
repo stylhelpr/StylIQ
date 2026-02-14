@@ -25,6 +25,7 @@ import {
   finalizeOutfitSlots,
   validateOutfits,
   validateOutfitCore,
+  padToThreeOutfits,
 } from './logic/finalize';
 import { enforceConstraintsOnOutfits } from './logic/enforce';
 import { buildOutfitPrompt } from './prompts/outfitPrompt';
@@ -1592,6 +1593,28 @@ ${lockedLines}
         outfits = validateOutfits(effectiveQuery, reranked, []);
       }
 
+      // Pad to 3 outfits from catalog if wardrobe has enough items
+      if (outfits.length < 3) {
+        const stdPool = reranked.map((c) => ({
+          id: c.id,
+          name: c.label,
+          main_category: c.main_category,
+          subcategory: c.subcategory,
+          color: c.color,
+          image_url: c.image_url,
+        }));
+        outfits = padToThreeOutfits(
+          outfits,
+          stdPool,
+          (items) => ({
+            title: 'More from your wardrobe',
+            items: items.map((r) => reranked.find((c) => c.id === r.id)!).filter(Boolean),
+            why: 'Additional outfit built from your best-ranked items.',
+            missing: undefined,
+          }),
+        );
+      }
+
       outfits = outfits.map((o) => {
         const { title, why } = this.retitleOutfit(o);
         return { ...o, title, why };
@@ -2574,6 +2597,49 @@ ${lockedLines}
             );
           }
         }
+      }
+
+      // ── Pad to 3 outfits if wardrobe has enough items ──
+      if (outfits.length < 3 && !isStartWithItem) {
+        const { rows: padRows } = await pool.query(
+          `SELECT id, name, main_category, subcategory, image_url, color
+           FROM wardrobe_items
+           WHERE user_id = $1 AND main_category IS NOT NULL
+           ORDER BY favorite DESC, updated_at DESC, id ASC`,
+          [userId],
+        );
+        const padPool =
+          userPresentation === 'masculine'
+            ? (padRows as any[]).filter(
+                (r) =>
+                  !isFeminineItem(
+                    r.main_category || '',
+                    r.subcategory || '',
+                    r.name || '',
+                  ),
+              )
+            : (padRows as any[]);
+
+        const toItemPad = (r: any): CatalogItem => ({
+          index: 0,
+          id: r.id,
+          label: r.name || `${r.main_category}`,
+          main_category: r.main_category,
+          subcategory: r.subcategory,
+          color: r.color,
+          image_url: r.image_url,
+        });
+
+        outfits = padToThreeOutfits(
+          outfits,
+          padPool,
+          (items) => ({
+            outfit_id: randomUUID(),
+            title: 'More from your wardrobe',
+            items: items.map(toItemPad),
+            why: 'Additional outfit built from your wardrobe favorites.',
+          }),
+        );
       }
 
       // ── 5) PATH #2 POST-PARSE VALIDATION ──

@@ -1,4 +1,4 @@
-import { validateOutfitCore } from './finalize';
+import { validateOutfitCore, padToThreeOutfits } from './finalize';
 
 /** Helper: build a minimal item with just main_category */
 const item = (main_category: string) => ({ main_category });
@@ -181,5 +181,148 @@ describe('validateOutfitCore', () => {
       const result = validateOutfitCore([]);
       expect(result).toHaveLength(0);
     });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// padToThreeOutfits
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('padToThreeOutfits', () => {
+  const poolItem = (id: string, cat: string) => ({
+    id,
+    name: `${cat}-${id}`,
+    main_category: cat,
+  });
+
+  const makeOutfit = (items: any[]) => ({
+    outfit_id: 'test',
+    title: 'Backfill',
+    items: items.map((r) => ({ id: r.id, main_category: r.main_category })),
+    why: 'backfill',
+  });
+
+  const pool = [
+    poolItem('t1', 'Tops'),
+    poolItem('t2', 'Tops'),
+    poolItem('t3', 'Tops'),
+    poolItem('b1', 'Bottoms'),
+    poolItem('b2', 'Bottoms'),
+    poolItem('b3', 'Bottoms'),
+    poolItem('s1', 'Shoes'),
+    poolItem('s2', 'Shoes'),
+    poolItem('s3', 'Shoes'),
+  ];
+
+  it('already 3 outfits → returns unchanged', () => {
+    const existing = [
+      makeOutfit([poolItem('t1', 'Tops'), poolItem('b1', 'Bottoms'), poolItem('s1', 'Shoes')]),
+      makeOutfit([poolItem('t2', 'Tops'), poolItem('b2', 'Bottoms'), poolItem('s2', 'Shoes')]),
+      makeOutfit([poolItem('t3', 'Tops'), poolItem('b3', 'Bottoms'), poolItem('s3', 'Shoes')]),
+    ];
+    const result = padToThreeOutfits(existing, pool, makeOutfit);
+    expect(result).toHaveLength(3);
+  });
+
+  it('0 outfits → pads to 3 from pool', () => {
+    const result = padToThreeOutfits([], pool, makeOutfit);
+    expect(result).toHaveLength(3);
+    // Each outfit should be structurally valid (top + bottom + shoes)
+    for (const o of result) {
+      const cats = o.items.map((it: any) => it.main_category);
+      expect(cats).toContain('Tops');
+      expect(cats).toContain('Bottoms');
+      expect(cats).toContain('Shoes');
+    }
+  });
+
+  it('1 outfit → pads to 3', () => {
+    const existing = [
+      makeOutfit([poolItem('t1', 'Tops'), poolItem('b1', 'Bottoms'), poolItem('s1', 'Shoes')]),
+    ];
+    const result = padToThreeOutfits(existing, pool, makeOutfit);
+    expect(result).toHaveLength(3);
+  });
+
+  it('2 outfits → pads to 3', () => {
+    const existing = [
+      makeOutfit([poolItem('t1', 'Tops'), poolItem('b1', 'Bottoms'), poolItem('s1', 'Shoes')]),
+      makeOutfit([poolItem('t2', 'Tops'), poolItem('b2', 'Bottoms'), poolItem('s2', 'Shoes')]),
+    ];
+    const result = padToThreeOutfits(existing, pool, makeOutfit);
+    expect(result).toHaveLength(3);
+  });
+
+  it('prefers unused items for variety', () => {
+    const existing = [
+      makeOutfit([poolItem('t1', 'Tops'), poolItem('b1', 'Bottoms'), poolItem('s1', 'Shoes')]),
+    ];
+    const result = padToThreeOutfits(existing, pool, makeOutfit);
+    // Second outfit should NOT reuse t1/b1/s1
+    const secondIds = result[1].items.map((it: any) => it.id);
+    expect(secondIds).not.toContain('t1');
+    expect(secondIds).not.toContain('b1');
+    expect(secondIds).not.toContain('s1');
+  });
+
+  it('stops when pool exhausted (only 1 of each slot)', () => {
+    const smallPool = [
+      poolItem('t1', 'Tops'),
+      poolItem('b1', 'Bottoms'),
+      poolItem('s1', 'Shoes'),
+    ];
+    // Only one unique combo possible: t1+b1+s1
+    const result = padToThreeOutfits([], smallPool, makeOutfit);
+    expect(result).toHaveLength(1);
+  });
+
+  it('falls back to dress+shoes path', () => {
+    const dressPool = [
+      poolItem('d1', 'Dresses'),
+      poolItem('d2', 'Dresses'),
+      poolItem('d3', 'Dresses'),
+      poolItem('s1', 'Shoes'),
+      poolItem('s2', 'Shoes'),
+      poolItem('s3', 'Shoes'),
+    ];
+    const result = padToThreeOutfits([], dressPool, makeOutfit);
+    expect(result).toHaveLength(3);
+    for (const o of result) {
+      const cats = o.items.map((it: any) => it.main_category);
+      expect(cats).toContain('Dresses');
+      expect(cats).toContain('Shoes');
+    }
+  });
+
+  it('mixes separates and dress+shoes paths', () => {
+    const mixedPool = [
+      poolItem('t1', 'Tops'),
+      poolItem('b1', 'Bottoms'),
+      poolItem('s1', 'Shoes'),
+      poolItem('s2', 'Shoes'),
+      poolItem('d1', 'Dresses'),
+    ];
+    const result = padToThreeOutfits([], mixedPool, makeOutfit);
+    // Should get 1 separates + 1 dress outfit (then stop — only 1 top, 1 dress)
+    expect(result.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('empty pool → returns original outfits unchanged', () => {
+    const existing = [
+      makeOutfit([poolItem('t1', 'Tops'), poolItem('b1', 'Bottoms'), poolItem('s1', 'Shoes')]),
+    ];
+    const result = padToThreeOutfits(existing, [], makeOutfit);
+    expect(result).toHaveLength(1);
+  });
+
+  it('does not duplicate exact item combo', () => {
+    // Only one combo possible: t1+b1+s1 — should not produce 3 of the same
+    const tinyPool = [
+      poolItem('t1', 'Tops'),
+      poolItem('b1', 'Bottoms'),
+      poolItem('s1', 'Shoes'),
+    ];
+    const result = padToThreeOutfits([], tinyPool, makeOutfit);
+    expect(result).toHaveLength(1);
   });
 });
