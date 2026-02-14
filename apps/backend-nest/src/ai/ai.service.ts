@@ -3259,13 +3259,18 @@ Preferences: ${JSON.stringify(preferences || {})}
         })
       : wardrobe; // feminine / mixed → no filtering
 
+    // Exclude items at the cleaner — cannot be worn
+    const availableWardrobe = filteredWardrobe.filter(
+      (item) => ((item as any).careStatus ?? (item as any).care_status ?? 'available') !== 'at_cleaner',
+    );
+
     // 🔄 VARIETY: Hard exclusion of previously suggested items from LLM input.
-    // categoryPools (completeness injection) still use filteredWardrobe — only LLM sees the reduced set.
+    // categoryPools (completeness injection) still use availableWardrobe — only LLM sees the reduced set.
     const prevIds = userId ? this.visualExclusionCache.get(userId) : undefined;
     const prevIdSet = prevIds?.length ? new Set(prevIds) : null;
-    let llmWardrobe = filteredWardrobe;
-    if (prevIdSet && filteredWardrobe.length >= 8) {
-      const candidate = filteredWardrobe.filter((item) => !prevIdSet.has(item.id));
+    let llmWardrobe = availableWardrobe;
+    if (prevIdSet && availableWardrobe.length >= 8) {
+      const candidate = availableWardrobe.filter((item) => !prevIdSet.has(item.id));
       const poolCount = (arr: any[], cat: string) =>
         arr.filter((i) => this.mapToCategory(i.main_category || i.category) === cat).length;
       const ok =
@@ -3276,7 +3281,7 @@ Preferences: ${JSON.stringify(preferences || {})}
 
     // 🔄 DEBUG: variety tracking (toggle via DEBUG_VARIETY env var)
     if (process.env.DEBUG_VARIETY === 'true' && userId) {
-      console.log(`🔄 [Variety] req=${Date.now()} uid=${userId.slice(0, 8)} prevIds=${prevIdSet ? prevIds!.slice(0, 10).join(',') : 'none'} filtered=${filteredWardrobe.length} llm=${llmWardrobe.length}`);
+      console.log(`🔄 [Variety] req=${Date.now()} uid=${userId.slice(0, 8)} prevIds=${prevIdSet ? prevIds!.slice(0, 10).join(',') : 'none'} filtered=${availableWardrobe.length} llm=${llmWardrobe.length}`);
     }
 
     // 🌡️ HARD WEATHER PRE-FILTER: Score items against structured weather context
@@ -3287,7 +3292,7 @@ Preferences: ${JSON.stringify(preferences || {})}
       windMph: weather?.fahrenheit?.wind?.speed,
     } : undefined;
 
-    for (const item of filteredWardrobe) {
+    for (const item of availableWardrobe) {
       (item as any).__weatherScore = scoreItemForWeather(item, wxContext);
     }
 
@@ -3684,7 +3689,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     // Every outfit MUST have: 1 top, 1 bottom, 1 shoes (outerwear optional)
     // Build category pools — weather-aware with tiered fallback
     const buildPoolAtThreshold = (cat: string, minScore: number) =>
-      filteredWardrobe
+      availableWardrobe
         .filter((item) => this.mapToCategory(item.main_category || item.category) === cat)
         .filter((item) => (item as any).__weatherScore >= minScore)
         .map((item) => ({
@@ -3873,7 +3878,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     ];
 
     // Lookup full item metadata by ID for subcategory access
-    const fullItemMap = new Map(filteredWardrobe.map((i) => [i.id, i]));
+    const fullItemMap = new Map(availableWardrobe.map((i) => [i.id, i]));
 
     const getFormalityScore = (outfitItem: any): number => {
       const cat = outfitItem?.category || '';
@@ -3935,6 +3940,78 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     const todayKey = new Date().toISOString().slice(0, 10);
     const seedString = `${userId}-${todayKey}`;
 
+    // ── Aesthetic tie-breaker helpers (pure, deterministic) ──────
+    const aestheticExtractColorWords = (colorStr: string): string[] =>
+      (colorStr || '').toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+
+    const AESTHETIC_WARM = ['red', 'orange', 'yellow', 'coral', 'peach', 'gold', 'amber', 'rust'];
+    const AESTHETIC_COOL = ['blue', 'teal', 'cyan', 'mint', 'lavender', 'periwinkle', 'ice', 'cobalt', 'navy', 'slate'];
+    const AESTHETIC_NEUTRAL = ['black', 'white', 'gray', 'grey', 'beige', 'cream', 'tan', 'khaki', 'ivory', 'charcoal', 'taupe', 'brown', 'nude'];
+    const AESTHETIC_BOLD = ['red', 'orange', 'yellow', 'purple'];
+
+    const computeColorHarmony = (outfit: any, itemMap: Map<string, any>): number => {
+      const items = (outfit.items || []).filter(Boolean);
+      const allColors: string[] = items.flatMap((i: any) => {
+        const full = itemMap.get(i.id);
+        return aestheticExtractColorWords(full?.color || '');
+      });
+      if (allColors.length === 0) return 0;
+
+      const warmCount = allColors.filter(w => AESTHETIC_WARM.includes(w)).length;
+      const coolCount = allColors.filter(w => AESTHETIC_COOL.includes(w)).length;
+      const neutralCount = allColors.filter(w => AESTHETIC_NEUTRAL.includes(w)).length;
+      const boldFamilies = new Set(allColors.filter(w => AESTHETIC_BOLD.includes(w)));
+
+      // -1.0: >1 bold color family without neutral base
+      if (boldFamilies.size > 1 && neutralCount === 0) return -1.0;
+
+      // +0.5: neutrals dominate (>50% of color words)
+      if (neutralCount > allColors.length / 2) return 0.5;
+
+      // +1.0: all non-neutral colors from same temperature family
+      const hasWarm = warmCount > 0;
+      const hasCool = coolCount > 0;
+      if (hasWarm && !hasCool) return 1.0;
+      if (hasCool && !hasWarm) return 1.0;
+
+      return 0;
+    };
+
+    const computeSilhouetteBalance = (outfit: any): number => {
+      const items = (outfit.items || []).filter(Boolean);
+      if (items.some((i: any) => i.category === 'dress')) return 1.0;
+
+      const TAILORED_RE = /blazer|sport coat|suit|dress shirt|button.?down|oxford|tailored/;
+      let allTailored = true;
+      let allRelaxed = true;
+      for (const i of items) {
+        if (i.category !== 'top' && i.category !== 'outerwear') continue;
+        const full = fullItemMap.get(i.id);
+        const sub = (full?.subcategory || '').toLowerCase();
+        const name = (full?.name || '').toLowerCase();
+        const isTailored = TAILORED_RE.test(sub) || TAILORED_RE.test(name);
+        if (isTailored) allRelaxed = false;
+        else allTailored = false;
+      }
+      if (allTailored || allRelaxed) return 1.0;
+      return 0.5;
+    };
+
+    const computeRedundancyPenalty = (outfit: any): number => {
+      const items = (outfit.items || []).filter(Boolean);
+      const coreItems = items.filter((i: any) => i.category !== 'accessory');
+      if (coreItems.length === 0) return 0;
+      const catCounts = new Map<string, number>();
+      for (const i of coreItems) {
+        catCounts.set(i.category, (catCounts.get(i.category) || 0) + 1);
+      }
+      let duplicates = 0;
+      for (const count of catCounts.values()) {
+        if (count > 1) duplicates += count - 1;
+      }
+      return Math.min(1, duplicates / coreItems.length);
+    };
+
     // Score an outfit — reusable for initial scoring and retry pipeline
     const scoreOutfit = (outfit: any): any => {
       const itemDetails = outfit.items.filter(Boolean).map((i: any) => {
@@ -3954,11 +4031,23 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         : 0;
       const diversityBonus = (outfit as any).__uniqueAnchor ? 1 : 0;
 
-      const finalScore =
+      let finalScore =
         0.4 * avgWeather +
         0.3 * avgFeedback -
         0.2 * formalitySpread +
         0.1 * diversityBonus;
+
+      // Aesthetic tie-breaker — max ±0.15 impact, never overrides core signals
+      const colorHarmony = computeColorHarmony(outfit, fullItemMap);
+      const silhouetteBalance = computeSilhouetteBalance(outfit);
+      const redundancyPenalty = computeRedundancyPenalty(outfit);
+
+      const aestheticAdjustment =
+        0.05 * colorHarmony +
+        0.03 * silhouetteBalance -
+        0.03 * redundancyPenalty;
+
+      finalScore += aestheticAdjustment;
 
       const anchor = (outfit as any).__anchor || getAnchor(outfit);
       const tieBreaker = hashString(seedString + anchor) % 1000;
@@ -3967,6 +4056,72 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     };
 
     let scoredOutfits = candidateOutfits.map(scoreOutfit);
+
+    // ── Deterministic repair: fix top outfit if severe color clash ──
+    const topByScore = [...scoredOutfits].sort(
+      (a, b) => b.__finalScore - a.__finalScore || a.__tieBreaker - b.__tieBreaker,
+    );
+    if (topByScore.length > 0) {
+      const top = topByScore[0];
+      const topHarmony = computeColorHarmony(top, fullItemMap);
+      if (topHarmony < -0.7) {
+        const items = top.items.filter(Boolean);
+        const itemColors = items.map((i: any) => {
+          const full = fullItemMap.get(i.id);
+          const colors = aestheticExtractColorWords(full?.color || '');
+          const isWarm = colors.some((w) => AESTHETIC_WARM.includes(w));
+          const isCool = colors.some((w) => AESTHETIC_COOL.includes(w));
+          return { item: i, full, colors, isWarm, isCool, category: i.category };
+        });
+        const warmCount = itemColors.filter((ic) => ic.isWarm).length;
+        const coolCount = itemColors.filter((ic) => ic.isCool).length;
+        const minorityTemp = warmCount <= coolCount ? 'warm' : 'cool';
+        const clashingEntry = itemColors.find((ic) =>
+          minorityTemp === 'warm' ? ic.isWarm : ic.isCool,
+        );
+
+        if (clashingEntry) {
+          const replacements = [...availableWardrobe]
+            .filter((w) => {
+              if (w.id === clashingEntry.item.id) return false;
+              if (this.mapToCategory(w.main_category || w.category) !== clashingEntry.category) return false;
+              if (((w as any).__weatherScore ?? -Infinity) < -5) return false;
+              const cWords = aestheticExtractColorWords(w.color || '');
+              return cWords.some((c) => AESTHETIC_NEUTRAL.includes(c));
+            })
+            .sort((a, b) => {
+              const weatherA = (a as any).__weatherScore ?? -Infinity;
+              const weatherB = (b as any).__weatherScore ?? -Infinity;
+              if (weatherB !== weatherA) return weatherB - weatherA;
+              const feedbackA = feedbackContext.itemScores.get(a.id) ?? 0;
+              const feedbackB = feedbackContext.itemScores.get(b.id) ?? 0;
+              if (feedbackB !== feedbackA) return feedbackB - feedbackA;
+              return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+            });
+
+          if (replacements.length > 0) {
+            const replacement = replacements[0];
+            const newItem = {
+              id: replacement.id,
+              name: replacement.name || replacement.ai_title || 'Item',
+              imageUrl:
+                replacement.touched_up_image_url ||
+                replacement.processed_image_url ||
+                replacement.image_url ||
+                replacement.image,
+              category: this.mapToCategory(replacement.main_category || replacement.category),
+            };
+            const idx = top.items.findIndex((i: any) => i?.id === clashingEntry.item.id);
+            if (idx !== -1) {
+              top.items[idx] = newItem;
+              const rescored = scoreOutfit(top);
+              const topIdx = scoredOutfits.findIndex((o) => o === top);
+              if (topIdx !== -1) scoredOutfits[topIdx] = rescored;
+            }
+          }
+        }
+      }
+    }
 
     // ─── Post-Processing Pipeline ──────────────────────────────
     // Pipeline: QUALITY GATE → SILHOUETTE DIVERSITY → SORT →

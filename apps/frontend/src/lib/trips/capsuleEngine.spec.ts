@@ -12,6 +12,7 @@ import {
   gateBackupPool,
   gateBackupPoolFallback,
   getNormalizedFormality,
+  aestheticBonus,
 } from './capsuleEngine';
 import {TripPackingItem, TripCapsule, TripWardrobeItem, DayWeather, TripActivity} from '../../types/trips';
 
@@ -531,8 +532,8 @@ describe('Global Climate Gating', () => {
   });
 
   // Additional: CAPSULE_VERSION bumped for final validation gate
-  it('CAPSULE_VERSION is 11 (final validation gate)', () => {
-    expect(CAPSULE_VERSION).toBe(11);
+  it('CAPSULE_VERSION is 12 (final validation gate)', () => {
+    expect(CAPSULE_VERSION).toBe(12);
   });
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -2956,5 +2957,78 @@ describe('INVARIANT: never emits incomplete masculine outfits', () => {
     ];
     const capsule = buildCapsule(beachMinimal, hotWeather, ['Beach'], 'Home', 'masculine');
     assertMasculineComplete(capsule);
+  });
+});
+
+// ─── Aesthetic Bonus ──────────────────────────────────────────────
+
+describe('aestheticBonus', () => {
+  const makeLookup = (items: TripWardrobeItem[]): Map<string, TripWardrobeItem> =>
+    new Map(items.map(i => [i.id, i]));
+
+  it('returns within ±0.5 for all scenarios', () => {
+    const candidate = makeWardrobeItem({id: 'c1', name: 'Red Top', color: 'red', main_category: 'Tops', subcategory: 'T-Shirt'});
+    const existing: TripPackingItem[] = [
+      makeItem({wardrobeItemId: 'e1', mainCategory: 'Bottoms', name: 'Purple Pants'}),
+    ];
+    const pool = [
+      candidate,
+      makeWardrobeItem({id: 'e1', name: 'Purple Pants', color: 'purple', main_category: 'Bottoms'}),
+    ];
+    const lookup = makeLookup(pool);
+
+    const result = aestheticBonus(candidate, existing, lookup);
+    expect(result).toBeGreaterThanOrEqual(-0.5);
+    expect(result).toBeLessThanOrEqual(0.5);
+  });
+
+  it('+0.3 bonus for neutral candidate color', () => {
+    const candidate = makeWardrobeItem({id: 'c1', name: 'Black Tee', color: 'black', main_category: 'Tops'});
+    const lookup = makeLookup([candidate]);
+    const result = aestheticBonus(candidate, [], lookup);
+    expect(result).toBe(0.3);
+  });
+
+  it('-0.5 for bold-on-bold clash (red + purple)', () => {
+    const candidate = makeWardrobeItem({id: 'c1', name: 'Red Top', color: 'red', main_category: 'Tops'});
+    const existingItem = makeWardrobeItem({id: 'e1', name: 'Purple Pants', color: 'purple', main_category: 'Bottoms'});
+    const existing: TripPackingItem[] = [
+      makeItem({wardrobeItemId: 'e1', mainCategory: 'Bottoms', name: 'Purple Pants'}),
+    ];
+    const lookup = makeLookup([candidate, existingItem]);
+
+    const result = aestheticBonus(candidate, existing, lookup);
+    // red (bold) + purple (bold) = -0.5 for bold clash
+    // red (warm) + purple (neither warm nor cool) = no warm/cool clash
+    // no neutral = no +0.3
+    expect(result).toBe(-0.5);
+  });
+
+  it('-0.2 for same subcategory already in outfit', () => {
+    const candidate = makeWardrobeItem({id: 'c1', name: 'Navy Polo', color: 'navy', main_category: 'Tops', subcategory: 'Polo'});
+    const existingItem = makeWardrobeItem({id: 'e1', name: 'White Polo', color: 'white', main_category: 'Tops', subcategory: 'Polo'});
+    const existing: TripPackingItem[] = [
+      makeItem({wardrobeItemId: 'e1', mainCategory: 'Tops', name: 'White Polo', subCategory: 'Polo'}),
+    ];
+    const lookup = makeLookup([candidate, existingItem]);
+
+    const result = aestheticBonus(candidate, existing, lookup);
+    // navy = neutral (+0.3) + same subcategory (-0.2) = 0.1
+    expect(result).toBeCloseTo(0.1);
+  });
+
+  it('deterministic: same inputs produce identical results across runs', () => {
+    const candidate = makeWardrobeItem({id: 'c1', name: 'Olive Tee', color: 'olive', main_category: 'Tops', subcategory: 'T-Shirt'});
+    const existingItem = makeWardrobeItem({id: 'e1', name: 'Blue Jeans', color: 'blue', main_category: 'Bottoms', subcategory: 'Jeans'});
+    const existing: TripPackingItem[] = [
+      makeItem({wardrobeItemId: 'e1', mainCategory: 'Bottoms', name: 'Blue Jeans'}),
+    ];
+    const lookup = makeLookup([candidate, existingItem]);
+
+    const r1 = aestheticBonus(candidate, existing, lookup);
+    const r2 = aestheticBonus(candidate, existing, lookup);
+    const r3 = aestheticBonus(candidate, existing, lookup);
+    expect(r1).toBe(r2);
+    expect(r2).toBe(r3);
   });
 });

@@ -826,6 +826,61 @@ function weightedPick(
   return { picked: scored[0].item, runners: scored };
 }
 
+// ── Aesthetic tie-breaker for outfit building ──
+
+const AESTHETIC_NEUTRALS = ['black','white','gray','grey','beige','cream','tan','khaki',
+  'ivory','charcoal','taupe','brown','nude','navy'];
+const AESTHETIC_BOLDS = ['red','orange','yellow','purple'];
+const AESTHETIC_WARM = ['red','orange','yellow','coral','peach','gold','amber','rust'];
+const AESTHETIC_COOL = ['blue','teal','cyan','mint','lavender','periwinkle','ice','cobalt','slate'];
+
+export function aestheticBonus(
+  candidate: TripWardrobeItem,
+  existingItems: TripPackingItem[],
+  itemLookup: Map<string, TripWardrobeItem>,
+): number {
+  let bonus = 0;
+  const words = (candidate.color || '').toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+
+  const outfitColors: string[] = existingItems.flatMap(pi => {
+    const full = itemLookup.get(pi.wardrobeItemId);
+    return (full?.color || '').toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+  });
+
+  // +0.3: neutral color grounds outfit
+  if (words.some(w => AESTHETIC_NEUTRALS.includes(w))) bonus += 0.3;
+
+  // -0.5: bold-on-bold clash (>1 bold family across outfit + candidate)
+  if (outfitColors.length > 0) {
+    const existingBolds = new Set(outfitColors.filter(w => AESTHETIC_BOLDS.includes(w)));
+    const candidateBolds = words.filter(w => AESTHETIC_BOLDS.includes(w));
+    if (existingBolds.size >= 1 && candidateBolds.length > 0) {
+      const combined = new Set([...existingBolds, ...candidateBolds]);
+      if (combined.size > 1) bonus -= 0.5;
+    }
+  }
+
+  // -0.3: warm+cool without neutral
+  const allWords = [...outfitColors, ...words];
+  const hasWarm = allWords.some(w => AESTHETIC_WARM.includes(w));
+  const hasCool = allWords.some(w => AESTHETIC_COOL.includes(w));
+  const hasNeutral = allWords.some(w => AESTHETIC_NEUTRALS.includes(w));
+  if (hasWarm && hasCool && !hasNeutral) bonus -= 0.3;
+
+  // -0.2: same subcategory already in outfit
+  const sub = (candidate.subcategory || '').toLowerCase();
+  if (sub && existingItems.length > 0) {
+    const subs = existingItems.map(pi => {
+      const full = itemLookup.get(pi.wardrobeItemId);
+      return (full?.subcategory || '').toLowerCase();
+    });
+    if (subs.includes(sub)) bonus -= 0.2;
+  }
+
+  // Clamp to ±0.5
+  return Math.max(-0.5, Math.min(0.5, bonus));
+}
+
 // ── Wardrobe presentation detection ──
 
 type Presentation = 'masculine' | 'feminine' | 'mixed';
@@ -1061,8 +1116,17 @@ function buildOutfitForActivity(
   const maxUsesForBucket = (len: number) =>
     len > 0 ? Math.ceil(numDays / len) + 1 : Infinity;
 
-  // Quality function: activity-specific scoring
-  const qualityFn = (item: TripWardrobeItem) => activityScore(item, [activity]);
+  // Build once — O(n), replaces repeated .find() lookups in aestheticBonus
+  const allPoolItems = [
+    ...Object.values(gatedBuckets).flat(),
+    ...finalShoes,
+    ...selectedOuterwear,
+  ];
+  const poolLookup = new Map(allPoolItems.map(i => [i.id, i]));
+
+  // Quality function: activity-specific scoring + aesthetic tie-breaker
+  const qualityFn = (item: TripWardrobeItem) =>
+    activityScore(item, [activity]) + aestheticBonus(item, items, poolLookup);
 
   const pickW = (bucket: TripWardrobeItem[], label?: string): WeightedPickResult | null => {
     return weightedPick(
