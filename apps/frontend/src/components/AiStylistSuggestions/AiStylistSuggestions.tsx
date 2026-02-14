@@ -134,6 +134,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
   const lastSuggestionRef = useRef<string | null>(null);
   const lastNotifyTimeRef = useRef<number>(0);
   const lastFetchTimeRef = useRef<number>(0);
+  const inFlightRef = useRef(false);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasRefetchedForRealWardrobe = useRef(false);
   const fetchSuggestionRef = useRef<((trigger: string) => void) | null>(null);
@@ -805,6 +806,10 @@ const AiStylistSuggestions: React.FC<Props> = ({
       return;
     }
 
+    // Prevent concurrent requests
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
     // Reset outfit index on new fetch
     setActiveOutfitIndex(0);
 
@@ -857,6 +862,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               ...data,
               __cacheDate: new Date().toDateString(),
               __weatherTemp: weather?.fahrenheit?.main?.temp,
+              __weatherCondition: (weather?.fahrenheit?.weather?.[0]?.main ?? '').toLowerCase(),
             }),
           );
         } catch (err) {
@@ -919,6 +925,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
     } catch (err) {
       setError('Unable to load AI suggestions right now.');
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   };
@@ -932,6 +939,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
       setSwappingCategory(null);
       return;
     }
+
+    // Prevent concurrent requests (shared guard with fetchSuggestion)
+    if (inFlightRef.current) {
+      setSwappingCategory(null);
+      return;
+    }
+    inFlightRef.current = true;
 
     try {
       // Don't set loading - keep current UI visible
@@ -980,6 +994,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
     } catch (err) {
       console.error('Swap failed:', err);
     } finally {
+      inFlightRef.current = false;
       setSwappingCategory(null); // Clear spinner
     }
   };
@@ -1165,8 +1180,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
         const cachedTemp = parsed?.__weatherTemp;
         const isStaleWeather = currentTemp != null && cachedTemp != null && Math.abs(currentTemp - cachedTemp) > 15;
 
+        // 🌧️ Weather condition change invalidation (e.g. sunny → rain at same temp)
+        const currentCondition = (weather?.fahrenheit?.weather?.[0]?.main ?? '').toLowerCase();
+        const cachedCondition = (parsed?.__weatherCondition ?? '').toLowerCase();
+        const isStaleCondition = currentCondition && cachedCondition && currentCondition !== cachedCondition;
+
         // ✅  Only fetch if nothing saved OR cooldown expired OR date/weather stale
-        if (!hasValidCache || cooldownPassed || isStaleDate || isStaleWeather) {
+        if (!hasValidCache || cooldownPassed || isStaleDate || isStaleWeather || isStaleCondition) {
           fetchSuggestion('initial');
           lastFetchTimeRef.current = now;
         } else {

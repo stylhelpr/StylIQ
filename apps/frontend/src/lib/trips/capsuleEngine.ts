@@ -350,7 +350,7 @@ export function shouldRebuildCapsule(
   }
 
   if (!capsule) {
-    return { rebuild: false, reason: 'NO_CAPSULE', mode: 'AUTO' };
+    return { rebuild: true, reason: 'NO_CAPSULE', mode: 'AUTO' };
   }
 
   const version = capsule.version ?? 0;

@@ -11,6 +11,7 @@ import { VertexService } from '../vertex/vertex.service';
 import { randomUUID } from 'crypto'; // ← NEW
 import { pool } from '../db/pool';
 import { getSecret, secretExists } from '../config/secrets';
+import { getRedisClient } from '../utils/redisClient';
 
 // NEW imports for extracted logic (prompts + scoring only)
 import { parseConstraints } from './logic/constraints';
@@ -240,12 +241,30 @@ function buildUserPrefsFromRules(
 export class WardrobeService {
   constructor(private readonly vertex: VertexService) {}
 
-  // 👇 track base query + refinements per session
-  // at the top of WardrobeService class
-  private sessions = new Map<
-    string,
-    { baseQuery: string; refinements: string[] }
-  >();
+  // 👇 track base query + refinements per session (Redis-backed, 30-min TTL)
+  private static readonly SESSION_TTL = 1800; // 30 minutes
+
+  private sessionKey(id: string) {
+    return `outfit_session:${id}`;
+  }
+
+  private async getSession(id: string): Promise<{ baseQuery: string; refinements: string[] } | null> {
+    try {
+      const raw = await getRedisClient().get(this.sessionKey(id));
+      if (!raw) return null;
+      return typeof raw === 'string' ? JSON.parse(raw) : raw as any;
+    } catch {
+      return null;
+    }
+  }
+
+  private async setSession(id: string, data: { baseQuery: string; refinements: string[] }): Promise<void> {
+    try {
+      await getRedisClient().set(this.sessionKey(id), JSON.stringify(data), { ex: WardrobeService.SESSION_TTL });
+    } catch {
+      // Redis unavailable — refinement degrades gracefully
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────
   // Enum whitelists
@@ -745,12 +764,15 @@ export class WardrobeService {
 
       let baseQuery = query;
       if (sessionId) {
-        const sess = this.sessions.get(sessionId);
+        const sess = await this.getSession(sessionId);
         if (!sess) {
-          this.sessions.set(sessionId, { baseQuery: query, refinements: [] });
+          await this.setSession(sessionId, { baseQuery: query, refinements: [] });
         } else {
           baseQuery = sess.baseQuery || query;
-          if (refinement) sess.refinements.push(refinement);
+          if (refinement) {
+            sess.refinements.push(refinement);
+            await this.setSession(sessionId, sess);
+          }
         }
       }
 
@@ -759,7 +781,7 @@ export class WardrobeService {
       if (refinement) {
         effectiveQuery = `${baseQuery}. User refinement: ${refinement}`;
       } else if (sessionId) {
-        const sess = this.sessions.get(sessionId);
+        const sess = await this.getSession(sessionId);
         if (sess && sess.refinements.length) {
           effectiveQuery = `${baseQuery}. User refinements: ${sess.refinements.join('; ')}`;
         }

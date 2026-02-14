@@ -9,8 +9,7 @@ import {findBySlot, type Slot} from '../lib/categoryMapping';
  * with temperature 0.4 — regardless of useFastMode from the caller.
  * Flip to `true` for investor demos; `false` for normal production.
  */
-export const AAAA_MODE_ENABLED = true;
-// export const AAAA_MODE_ENABLED = false;
+export const AAAA_MODE_ENABLED = false;
 
 export type OutfitApiItem = {
   index: number;

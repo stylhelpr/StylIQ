@@ -266,8 +266,15 @@ describe('shouldRebuildCapsule', () => {
     };
   }
 
-  it('returns {rebuild: false} when capsule is undefined', () => {
-    expect(shouldRebuildCapsule(undefined, 2, 'mixed')).toEqual({rebuild: false, reason: 'NO_CAPSULE', mode: 'AUTO'});
+  it('NO_CAPSULE: triggers rebuild when capsule is undefined', () => {
+    expect(shouldRebuildCapsule(undefined, 2, 'mixed')).toEqual({rebuild: true, reason: 'NO_CAPSULE', mode: 'AUTO'});
+  });
+
+  it('NO_CAPSULE: triggers rebuild for all presentation values', () => {
+    for (const p of ['masculine', 'feminine', 'mixed'] as const) {
+      const result = shouldRebuildCapsule(undefined, CAPSULE_VERSION, p);
+      expect(result).toEqual({rebuild: true, reason: 'NO_CAPSULE', mode: 'AUTO'});
+    }
   });
 
   it('VERSION_MISMATCH: undefined version vs 2', () => {
