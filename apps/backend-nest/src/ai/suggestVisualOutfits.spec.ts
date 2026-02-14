@@ -1044,3 +1044,284 @@ describe('Care Status Filter', () => {
     expect(filtered.map(i => i.id)).toEqual(['camel-1']);
   });
 });
+
+// ─── 13️⃣ Presentation Normalization (S1 fix) ──────────────────────
+
+describe('Presentation Normalization', () => {
+  /**
+   * Mirrors the normalization logic from suggestVisualOutfits() ai.service.ts:3223-3225.
+   * Extracted here to test the exact same algorithm used in production.
+   */
+  function normalizePresentation(raw: string | null | undefined): 'masculine' | 'feminine' | 'mixed' {
+    const gp = (raw || '').toLowerCase().replace(/[\s_-]+/g, '');
+    // Check female/feminine FIRST — 'female'.includes('male') is true in JS!
+    if (gp.includes('female') || gp.includes('feminin') || gp === 'woman') return 'feminine';
+    if (gp.includes('male') || gp.includes('masculin') || gp === 'man') return 'masculine';
+    return 'mixed';
+  }
+
+  // ── Masculine mappings ──
+
+  it('resolves "male" to masculine', () => {
+    expect(normalizePresentation('male')).toBe('masculine');
+  });
+
+  it('resolves "Male" (capitalized) to masculine', () => {
+    expect(normalizePresentation('Male')).toBe('masculine');
+  });
+
+  it('resolves "masculine" to masculine', () => {
+    expect(normalizePresentation('masculine')).toBe('masculine');
+  });
+
+  it('resolves "Masculine" to masculine', () => {
+    expect(normalizePresentation('Masculine')).toBe('masculine');
+  });
+
+  it('resolves "man" to masculine', () => {
+    expect(normalizePresentation('man')).toBe('masculine');
+  });
+
+  // ── Feminine mappings ──
+
+  it('resolves "female" to feminine', () => {
+    expect(normalizePresentation('female')).toBe('feminine');
+  });
+
+  it('resolves "Female" (capitalized) to feminine', () => {
+    expect(normalizePresentation('Female')).toBe('feminine');
+  });
+
+  it('resolves "feminine" to feminine', () => {
+    expect(normalizePresentation('feminine')).toBe('feminine');
+  });
+
+  it('resolves "Feminine" to feminine', () => {
+    expect(normalizePresentation('Feminine')).toBe('feminine');
+  });
+
+  it('resolves "woman" to feminine', () => {
+    expect(normalizePresentation('woman')).toBe('feminine');
+  });
+
+  // ── Mixed / fallthrough ──
+
+  it('resolves "nonbinary" to mixed', () => {
+    expect(normalizePresentation('nonbinary')).toBe('mixed');
+  });
+
+  it('resolves "non_binary" to mixed', () => {
+    expect(normalizePresentation('non_binary')).toBe('mixed');
+  });
+
+  it('resolves "non-binary" to mixed', () => {
+    expect(normalizePresentation('non-binary')).toBe('mixed');
+  });
+
+  it('resolves "other" to mixed', () => {
+    expect(normalizePresentation('other')).toBe('mixed');
+  });
+
+  it('resolves "rather_not_say" to mixed', () => {
+    expect(normalizePresentation('rather_not_say')).toBe('mixed');
+  });
+
+  it('resolves empty string to mixed', () => {
+    expect(normalizePresentation('')).toBe('mixed');
+  });
+
+  it('resolves null to mixed', () => {
+    expect(normalizePresentation(null)).toBe('mixed');
+  });
+
+  it('resolves undefined to mixed', () => {
+    expect(normalizePresentation(undefined)).toBe('mixed');
+  });
+
+  // ── Edge: "male" must NOT match "female" ──
+
+  it('"female" does NOT resolve to masculine (substring guard)', () => {
+    // 'female'.includes('male') === true in JS — female must be checked FIRST
+    expect(normalizePresentation('female')).toBe('feminine');
+  });
+});
+
+// ─── 14️⃣ Hard Completeness Gate (S2 fix) ────────────────────────
+
+describe('Hard Completeness Gate', () => {
+  /**
+   * Mirrors isVisualOutfitComplete() from suggestVisualOutfits() ai.service.ts.
+   * Extracted to test the exact same logic.
+   */
+  function isVisualOutfitComplete(outfit: { items: Array<{ category: string } | null> }): boolean {
+    const items = (outfit.items || []).filter(Boolean);
+    const cats = new Set(items.map((i) => i!.category));
+    const hasDress = cats.has('dress');
+    const hasShoes = cats.has('shoes');
+    if (hasDress) return hasShoes; // dress + shoes
+    return cats.has('top') && cats.has('bottom') && hasShoes; // separates
+  }
+
+  // ── Complete outfits pass ──
+
+  it('accepts separates: top + bottom + shoes', () => {
+    const outfit = {
+      items: [
+        { category: 'top' },
+        { category: 'bottom' },
+        { category: 'shoes' },
+      ],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(true);
+  });
+
+  it('accepts separates with outerwear: top + bottom + shoes + outerwear', () => {
+    const outfit = {
+      items: [
+        { category: 'top' },
+        { category: 'bottom' },
+        { category: 'shoes' },
+        { category: 'outerwear' },
+      ],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(true);
+  });
+
+  it('accepts dress-based: dress + shoes', () => {
+    const outfit = {
+      items: [
+        { category: 'dress' },
+        { category: 'shoes' },
+      ],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(true);
+  });
+
+  it('accepts dress + shoes + outerwear', () => {
+    const outfit = {
+      items: [
+        { category: 'dress' },
+        { category: 'shoes' },
+        { category: 'outerwear' },
+      ],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(true);
+  });
+
+  // ── Incomplete outfits rejected ──
+
+  it('rejects separates missing shoes', () => {
+    const outfit = {
+      items: [
+        { category: 'top' },
+        { category: 'bottom' },
+      ],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(false);
+  });
+
+  it('rejects separates missing bottom', () => {
+    const outfit = {
+      items: [
+        { category: 'top' },
+        { category: 'shoes' },
+      ],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(false);
+  });
+
+  it('rejects separates missing top', () => {
+    const outfit = {
+      items: [
+        { category: 'bottom' },
+        { category: 'shoes' },
+      ],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(false);
+  });
+
+  it('rejects dress missing shoes', () => {
+    const outfit = {
+      items: [
+        { category: 'dress' },
+      ],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(false);
+  });
+
+  it('rejects empty outfit', () => {
+    const outfit = { items: [] };
+    expect(isVisualOutfitComplete(outfit)).toBe(false);
+  });
+
+  it('rejects outfit with only accessories', () => {
+    const outfit = {
+      items: [
+        { category: 'accessory' },
+        { category: 'accessory' },
+      ],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(false);
+  });
+
+  it('rejects outfit with only shoes', () => {
+    const outfit = {
+      items: [
+        { category: 'shoes' },
+      ],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(false);
+  });
+
+  it('handles null items in array (filters them out)', () => {
+    const outfit = {
+      items: [
+        { category: 'top' },
+        null,
+        { category: 'bottom' },
+        null,
+        { category: 'shoes' },
+      ] as any[],
+    };
+    expect(isVisualOutfitComplete(outfit)).toBe(true);
+  });
+
+  // ── Integration: filter simulates the production scoredOutfits.filter() ──
+
+  it('filtering array: keeps only complete outfits', () => {
+    const outfits = [
+      { rank: 1, items: [{ category: 'top' }, { category: 'bottom' }, { category: 'shoes' }] },
+      { rank: 2, items: [{ category: 'top' }, { category: 'shoes' }] }, // missing bottom
+      { rank: 3, items: [{ category: 'dress' }, { category: 'shoes' }] },
+    ];
+
+    const complete = outfits.filter(isVisualOutfitComplete);
+
+    expect(complete).toHaveLength(2);
+    expect(complete.map(o => o.rank)).toEqual([1, 3]);
+  });
+
+  it('filtering array: no-shoes wardrobe produces 0 complete outfits', () => {
+    const outfits = [
+      { rank: 1, items: [{ category: 'top' }, { category: 'bottom' }] },
+      { rank: 2, items: [{ category: 'dress' }] },
+      { rank: 3, items: [{ category: 'top' }, { category: 'bottom' }, { category: 'outerwear' }] },
+    ];
+
+    const complete = outfits.filter(isVisualOutfitComplete);
+
+    expect(complete).toHaveLength(0);
+  });
+
+  it('filtering array: no-bottoms wardrobe keeps only dress outfits', () => {
+    const outfits = [
+      { rank: 1, items: [{ category: 'top' }, { category: 'shoes' }] }, // missing bottom
+      { rank: 2, items: [{ category: 'dress' }, { category: 'shoes' }] }, // dress-based: complete
+    ];
+
+    const complete = outfits.filter(isVisualOutfitComplete);
+
+    expect(complete).toHaveLength(1);
+    expect(complete[0].rank).toBe(2);
+  });
+});

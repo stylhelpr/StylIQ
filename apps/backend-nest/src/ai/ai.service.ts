@@ -3221,8 +3221,9 @@ Preferences: ${JSON.stringify(preferences || {})}
           [userId],
         );
         const gp = (rows[0]?.gender_presentation || '').toLowerCase().replace(/[\s_-]+/g, '');
-        if (gp === 'male') userPresentation = 'masculine';
-        else if (gp === 'female') userPresentation = 'feminine';
+        // Check female/feminine FIRST — 'female'.includes('male') is true in JS!
+        if (gp.includes('female') || gp.includes('feminin') || gp === 'woman') userPresentation = 'feminine';
+        else if (gp.includes('male') || gp.includes('masculin') || gp === 'man') userPresentation = 'masculine';
         // "other", "nonbinary", "rathernotsay", empty → 'mixed' (allow all)
       } catch {
         // Fail open — default to 'mixed' (no filtering)
@@ -4356,6 +4357,25 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         console.warn('⚠️ [AI Stylist] Retry failed, keeping original results:', retryErr);
       }
     }
+
+    // 🛡️ HARD COMPLETENESS GATE — fail closed, no partial outfits escape
+    // Runs AFTER all injection, canonicalization, quality gates, and retries.
+    const isVisualOutfitComplete = (outfit: any): boolean => {
+      const items = (outfit.items || []).filter(Boolean);
+      const cats = new Set(items.map((i: any) => i.category));
+      const hasDress = cats.has('dress');
+      const hasShoes = cats.has('shoes');
+      if (hasDress) return hasShoes; // dress + shoes
+      return cats.has('top') && cats.has('bottom') && hasShoes; // separates
+    };
+    scoredOutfits = scoredOutfits.filter((outfit) => {
+      if (isVisualOutfitComplete(outfit)) return true;
+      console.warn('🛡️ [AI Stylist][COMPLETENESS_REJECT]', {
+        rank: outfit.rank,
+        cats: outfit.items?.filter(Boolean).map((i: any) => i.category),
+      });
+      return false;
+    });
 
     // 📋 RESPONSE ENRICHMENT — add fashionContext to each outfit
     const getWeatherFit = (outfit: any): 'optimal' | 'good' | 'marginal' => {
