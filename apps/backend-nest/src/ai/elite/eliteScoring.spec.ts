@@ -13,6 +13,10 @@ import {
   denormalizeStylistOutfit,
   normalizeStudioOutfit,
   denormalizeStudioOutfit,
+  colorMatches,
+  deterministicHash,
+  scoreOutfit,
+  stableSortOutfits,
 } from './eliteScoring';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -295,5 +299,289 @@ describe('Expanded StyleContext acceptance', () => {
     );
 
     expect(result.outfits).toEqual([stylistOutfit]);
+  });
+});
+
+// ── Phase 2 Tests ───────────────────────────────────────────────────────────
+
+describe('colorMatches', () => {
+  it('matches exact (case-insensitive)', () => {
+    expect(colorMatches('Navy Blue', 'navy blue')).toBe(true);
+  });
+
+  it('matches substring (item includes pref)', () => {
+    expect(colorMatches('Navy Blue', 'navy')).toBe(true);
+  });
+
+  it('matches substring (pref includes item)', () => {
+    expect(colorMatches('blue', 'Navy Blue')).toBe(true);
+  });
+
+  it('rejects non-match', () => {
+    expect(colorMatches('red', 'blue')).toBe(false);
+  });
+});
+
+describe('deterministicHash', () => {
+  it('returns same value for same input', () => {
+    expect(deterministicHash('abc')).toBe(deterministicHash('abc'));
+  });
+
+  it('returns different values for different inputs', () => {
+    expect(deterministicHash('abc')).not.toBe(deterministicHash('xyz'));
+  });
+});
+
+describe('scoreOutfit (Phase 2)', () => {
+  const makeOutfit = (id: string, items: Array<{id: string; slot: any; brand?: string; color?: string}>): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('scores brand affinity in studio mode', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', brand: 'Nike', color: 'white' },
+      { id: 'i2', slot: 'bottoms', brand: 'Zara', color: 'blue' },
+      { id: 'i3', slot: 'shoes', brand: 'Gucci', color: 'black' },
+    ]);
+    const ctx: any = {
+      fashionState: {
+        topBrands: ['Nike'],
+        avoidBrands: ['Gucci'],
+        topColors: [],
+        avoidColors: [],
+        topCategories: [],
+        priceBracket: null,
+        isColdStart: false,
+      },
+      preferredBrands: [],
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    // Nike: +10, Gucci: -15, slot complete: +5 = 0
+    expect(result.score).toBe(0);
+    expect(result.flags).toContain('brand');
+    expect(result.flags).toContain('slot_complete');
+  });
+
+  it('scores color affinity in studio mode', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', color: 'Navy Blue' },
+      { id: 'i2', slot: 'bottoms', color: 'Black' },
+      { id: 'i3', slot: 'shoes', color: 'Brown' },
+    ]);
+    const ctx: any = {
+      fashionState: {
+        topBrands: [],
+        avoidBrands: [],
+        topColors: ['navy', 'black'],
+        avoidColors: ['brown'],
+        topCategories: [],
+        priceBracket: null,
+        isColdStart: false,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    // navy blue matches navy: +5, black matches black: +5, brown matches brown: -8, slot: +5 = 7
+    expect(result.score).toBe(7);
+    expect(result.flags).toContain('color');
+  });
+
+  it('returns zero score with empty StyleContext (fail-open)', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops' },
+    ]);
+    const result = scoreOutfit(outfit, {}, { mode: 'studio', rerank: true });
+    expect(result.score).toBe(0);
+    expect(result.confidence).toBe(0);
+  });
+
+  it('only uses wardrobeStats for trips mode color', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', color: 'blue' },
+      { id: 'i2', slot: 'bottoms', color: 'red' },
+      { id: 'i3', slot: 'shoes', color: 'black' },
+    ]);
+    const ctx: any = {
+      wardrobeStats: {
+        dominantColors: ['blue', 'black'],
+        topCategories: ['tops'],
+        topBrands: [],
+        totalItems: 10,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'trips', rerank: true });
+    // blue: +5, black: +5, category tops: +3, slot: +5 = 18
+    expect(result.score).toBe(18);
+    expect(result.flags).toContain('color');
+    expect(result.flags).toContain('category');
+    expect(result.flags).toContain('slot_complete');
+  });
+});
+
+describe('elitePostProcessOutfits (Phase 2 rerank)', () => {
+  const makeOutfit = (id: string, items: Array<{id: string; slot: any; brand?: string; color?: string}>): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('identity: rerank=false → output order unchanged (same reference)', () => {
+    const input = [
+      makeOutfit('o1', [{ id: 'i1', slot: 'tops' }]),
+      makeOutfit('o2', [{ id: 'i2', slot: 'bottoms' }]),
+    ];
+    const result = elitePostProcessOutfits(input, {}, { mode: 'studio' });
+    expect(result.outfits).toBe(input);
+    expect(result.debug).toEqual({});
+  });
+
+  it('no mutation: items are byte-identical before/after rerank', () => {
+    const o1 = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', brand: 'Nike', color: 'white' },
+      { id: 'i2', slot: 'bottoms', color: 'blue' },
+      { id: 'i3', slot: 'shoes', color: 'black' },
+    ]);
+    const o2 = makeOutfit('o2', [
+      { id: 'i4', slot: 'tops', brand: 'Gucci', color: 'red' },
+      { id: 'i5', slot: 'bottoms', color: 'green' },
+    ]);
+    const inputCopy = JSON.parse(JSON.stringify([o1, o2]));
+    const result = elitePostProcessOutfits(
+      [o1, o2],
+      {
+        fashionState: {
+          topBrands: ['Nike'], avoidBrands: [], topColors: [],
+          avoidColors: [], topCategories: [], priceBracket: null, isColdStart: false,
+        },
+      },
+      { mode: 'studio', rerank: true },
+    );
+    for (const outfit of result.outfits) {
+      const original = inputCopy.find((o: any) => o.id === (outfit as any).id);
+      expect((outfit as any).items).toEqual(original.items);
+    }
+    expect(result.outfits.length).toBe(2);
+  });
+
+  it('deterministic: same inputs → same order across multiple runs', () => {
+    const outfits = [
+      makeOutfit('o1', [{ id: 'i1', slot: 'tops', brand: 'Nike' }, { id: 'i2', slot: 'bottoms' }, { id: 'i3', slot: 'shoes' }]),
+      makeOutfit('o2', [{ id: 'i4', slot: 'tops', brand: 'Zara' }, { id: 'i5', slot: 'bottoms' }, { id: 'i6', slot: 'shoes' }]),
+    ];
+    const ctx: any = {
+      fashionState: {
+        topBrands: ['Nike'], avoidBrands: [], topColors: [],
+        avoidColors: [], topCategories: [], priceBracket: null, isColdStart: false,
+      },
+    };
+    const env: any = { mode: 'studio', rerank: true };
+
+    const r1 = elitePostProcessOutfits(outfits, ctx, env);
+    const r2 = elitePostProcessOutfits(outfits, ctx, env);
+    const r3 = elitePostProcessOutfits(outfits, ctx, env);
+
+    const ids1 = r1.outfits.map((o: any) => o.id);
+    const ids2 = r2.outfits.map((o: any) => o.id);
+    const ids3 = r3.outfits.map((o: any) => o.id);
+
+    expect(ids1).toEqual(ids2);
+    expect(ids2).toEqual(ids3);
+  });
+
+  it('tie-breaker: equal scores → deterministic order by hash', () => {
+    const outfits = [
+      makeOutfit('o-zzz', [{ id: 'i1', slot: 'tops' }]),
+      makeOutfit('o-aaa', [{ id: 'i2', slot: 'tops' }]),
+    ];
+    const env: any = { mode: 'studio', rerank: true };
+
+    const r1 = elitePostProcessOutfits(outfits, {}, env);
+    const r2 = elitePostProcessOutfits(outfits, {}, env);
+
+    expect(r1.outfits.map((o: any) => o.id)).toEqual(r2.outfits.map((o: any) => o.id));
+  });
+
+  it('rerank: outfit with brand/color hits sorted before outfit without', () => {
+    const loser = makeOutfit('loser', [
+      { id: 'i1', slot: 'tops', brand: 'Unknown' },
+      { id: 'i2', slot: 'bottoms' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const winner = makeOutfit('winner', [
+      { id: 'i4', slot: 'tops', brand: 'Nike', color: 'black' },
+      { id: 'i5', slot: 'bottoms', color: 'blue' },
+      { id: 'i6', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      fashionState: {
+        topBrands: ['Nike'], avoidBrands: [], topColors: ['black'],
+        avoidColors: [], topCategories: [], priceBracket: null, isColdStart: false,
+      },
+    };
+
+    const result = elitePostProcessOutfits(
+      [loser, winner], ctx, { mode: 'studio', rerank: true },
+    );
+    expect((result.outfits[0] as any).id).toBe('winner');
+  });
+
+  it('fail-open: empty StyleContext → original order preserved', () => {
+    const outfits = [
+      makeOutfit('first', [{ id: 'i1', slot: 'tops' }]),
+      makeOutfit('second', [{ id: 'i2', slot: 'bottoms' }]),
+    ];
+    const result = elitePostProcessOutfits(outfits, {}, { mode: 'studio', rerank: true });
+    expect(result.outfits.length).toBe(2);
+    const ids = new Set(result.outfits.map((o: any) => o.id));
+    expect(ids).toEqual(new Set(['first', 'second']));
+  });
+
+  it('debug output: debug=true → scores/flags/originalOrder in debug map', () => {
+    const outfits = [
+      makeOutfit('o1', [{ id: 'i1', slot: 'tops', brand: 'Nike' }, { id: 'i2', slot: 'bottoms' }, { id: 'i3', slot: 'shoes' }]),
+      makeOutfit('o2', [{ id: 'i4', slot: 'tops' }]),
+    ];
+    const ctx: any = {
+      fashionState: {
+        topBrands: ['Nike'], avoidBrands: [], topColors: [],
+        avoidColors: [], topCategories: [], priceBracket: null, isColdStart: false,
+      },
+    };
+    const result = elitePostProcessOutfits(
+      outfits, ctx, { mode: 'studio', rerank: true, debug: true },
+    );
+
+    expect(result.debug.scores).toBeDefined();
+    expect(result.debug.originalOrder).toEqual(['o1', 'o2']);
+    expect(result.debug.rerankedOrder).toBeDefined();
+    expect(Array.isArray(result.debug.scores)).toBe(true);
+    expect((result.debug.scores as any[]).length).toBe(2);
+    expect((result.debug.scores as any[])[0].outfitId).toBeDefined();
+    expect((result.debug.scores as any[])[0].flags).toBeDefined();
+  });
+
+  it('confidence: single incomplete outfit in stylist mode → confidence=0', () => {
+    const outfit = makeOutfit('o1', [{ id: 'i1', slot: 'tops' }]);
+    const result = scoreOutfit(outfit, {}, { mode: 'stylist', rerank: true });
+    expect(result.confidence).toBe(0);
+    expect(result.score).toBe(0);
+  });
+});
+
+describe('stableSortOutfits', () => {
+  it('preserves item identity (no swaps/drops)', () => {
+    const o1: any = { id: 'o1', items: [{ id: 'i1', slot: 'tops' }] };
+    const o2: any = { id: 'o2', items: [{ id: 'i2', slot: 'bottoms' }] };
+
+    const scores = new Map<string, any>();
+    scores.set('o1', { score: 10, confidence: 1, flags: ['brand'] });
+    scores.set('o2', { score: 20, confidence: 1, flags: ['color'] });
+
+    const sorted = stableSortOutfits([o1, o2], scores);
+
+    expect(sorted.length).toBe(2);
+    expect(sorted[0].id).toBe('o2');
+    expect(sorted[1].id).toBe('o1');
+    expect(sorted[0].items).toEqual(o2.items);
+    expect(sorted[1].items).toEqual(o1.items);
   });
 });
