@@ -1539,3 +1539,126 @@ describe('Preferences in Prompt', () => {
     expect(prefs.dislikes).toEqual(['neon', 'animal print']);
   });
 });
+
+// ─── isEliteDemoUser gate ─────────────────────────────────────
+describe('isEliteDemoUser', () => {
+  const { isEliteDemoUser } = require('../config/feature-flags');
+
+  it('returns false for empty allowlist', () => {
+    expect(isEliteDemoUser('user-abc')).toBe(false);
+  });
+
+  it('returns false for non-matching userId', () => {
+    expect(isEliteDemoUser('not-on-list')).toBe(false);
+  });
+});
+
+// ─── Stylist Item Enrichment ──────────────────────────────────
+describe('enrichStylistOutfits', () => {
+  const { enrichStylistOutfits } = require('./ai.service');
+
+  it('enriches stylist items with wardrobe metadata (non-breaking)', () => {
+    // Thin items as LLM returns them
+    const outfits = [
+      {
+        id: 'outfit-1',
+        rank: 1,
+        items: [
+          { id: 'item-a', name: 'Linen Shirt', imageUrl: 'https://img/a.jpg', category: 'top' },
+          { id: 'item-b', name: 'Chinos', imageUrl: 'https://img/b.jpg', category: 'bottom' },
+          { id: 'item-c', name: 'Sneakers', imageUrl: 'https://img/c.jpg', category: 'shoes' },
+        ],
+      },
+    ];
+
+    // Full wardrobe metadata (what DB returns)
+    const fullItemMap = new Map<string, any>([
+      ['item-a', {
+        id: 'item-a', brand: 'Uniqlo', color: 'navy', subcategory: 'Button-Down Shirts',
+        style_descriptors: ['minimalist', 'smart-casual'], style_archetypes: ['modern'],
+        formality_score: 2, material: 'linen',
+      }],
+      ['item-b', {
+        id: 'item-b', brand: 'J.Crew', color: 'khaki', subcategory: 'Chinos',
+        style_descriptors: ['classic'], style_archetypes: [],
+        formality_score: 2, material: 'cotton',
+      }],
+      ['item-c', {
+        id: 'item-c', brand: 'Nike', color: 'white', subcategory: 'Sneakers',
+        style_descriptors: [], style_archetypes: [],
+        formality_score: 1, material: 'leather',
+      }],
+    ]);
+
+    enrichStylistOutfits(outfits, fullItemMap);
+
+    const items = outfits[0].items as any[];
+
+    // Original required fields preserved
+    expect(items[0]).toMatchObject({ id: 'item-a', name: 'Linen Shirt', imageUrl: 'https://img/a.jpg', category: 'top' });
+    expect(items[1]).toMatchObject({ id: 'item-b', name: 'Chinos', imageUrl: 'https://img/b.jpg', category: 'bottom' });
+    expect(items[2]).toMatchObject({ id: 'item-c', name: 'Sneakers', imageUrl: 'https://img/c.jpg', category: 'shoes' });
+
+    // Enriched fields present
+    expect(items[0].brand).toBe('Uniqlo');
+    expect(items[0].color).toBe('navy');
+    expect(items[0].subcategory).toBe('Button-Down Shirts');
+    expect(items[0].style_descriptors).toEqual(['minimalist', 'smart-casual']);
+    expect(items[0].style_archetypes).toEqual(['modern']);
+    expect(items[0].formality_score).toBe(2);
+    expect(items[0].material).toBe('linen');
+
+    expect(items[1].brand).toBe('J.Crew');
+    expect(items[2].brand).toBe('Nike');
+
+    // Outfit membership unchanged (same IDs, same order)
+    expect(items.map((i: any) => i.id)).toEqual(['item-a', 'item-b', 'item-c']);
+  });
+
+  it('skips items not in fullItemMap (no crash)', () => {
+    const outfits = [
+      {
+        id: 'outfit-2',
+        items: [
+          { id: 'item-x', name: 'Unknown', imageUrl: 'https://img/x.jpg', category: 'top' },
+        ],
+      },
+    ];
+    const fullItemMap = new Map<string, any>();
+
+    enrichStylistOutfits(outfits, fullItemMap);
+
+    // Unchanged — no enrichment, no crash
+    expect(outfits[0].items[0]).toEqual({ id: 'item-x', name: 'Unknown', imageUrl: 'https://img/x.jpg', category: 'top' });
+  });
+
+  it('skips empty optional fields (no undefined pollution)', () => {
+    const outfits = [
+      {
+        id: 'outfit-3',
+        items: [
+          { id: 'item-d', name: 'Plain Tee', imageUrl: 'https://img/d.jpg', category: 'top' },
+        ],
+      },
+    ];
+    const fullItemMap = new Map<string, any>([
+      ['item-d', {
+        id: 'item-d', brand: '', color: '', subcategory: '',
+        style_descriptors: [], style_archetypes: [],
+        formality_score: null, material: '',
+      }],
+    ]);
+
+    enrichStylistOutfits(outfits, fullItemMap);
+
+    const item = outfits[0].items[0] as any;
+    // Empty strings / null / empty arrays should NOT be spread
+    expect(item).not.toHaveProperty('brand');
+    expect(item).not.toHaveProperty('color');
+    expect(item).not.toHaveProperty('subcategory');
+    expect(item).not.toHaveProperty('style_descriptors');
+    expect(item).not.toHaveProperty('style_archetypes');
+    expect(item).not.toHaveProperty('formality_score');
+    expect(item).not.toHaveProperty('material');
+  });
+});

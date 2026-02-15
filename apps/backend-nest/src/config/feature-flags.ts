@@ -47,6 +47,14 @@ export const ELITE_FLAGS = {
   DEBUG: getFlag('ELITE_SCORING_DEBUG', false),
 };
 
+const ELITE_DEMO_ALLOWLIST: Set<string> = new Set(
+  (process.env.ELITE_DEMO_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean),
+);
+
+export function isEliteDemoUser(userId: string): boolean {
+  return ELITE_DEMO_ALLOWLIST.has(userId);
+}
+
 /**
  * Aggregation configuration constants.
  * These control how events are processed into derived state.

@@ -10,7 +10,7 @@ import { pool } from '../db/pool';
 import { scoreItemForWeather, type WeatherContext } from '../wardrobe/logic/weather';
 import { isFeminineItem } from '../wardrobe/logic/presentationFilter';
 import { getSecret, secretExists } from '../config/secrets';
-import { ELITE_FLAGS } from '../config/feature-flags';
+import { ELITE_FLAGS, isEliteDemoUser } from '../config/feature-flags';
 import {
   elitePostProcessOutfits,
   normalizeStylistOutfit,
@@ -146,6 +146,30 @@ async function fetchWeatherForAI(
     };
   } catch (err: any) {
     return null;
+  }
+}
+
+/** Enrich thin Stylist outfit items with wardrobe metadata for elite scoring. */
+export function enrichStylistOutfits(
+  outfits: any[],
+  fullItemMap: Map<string, any>,
+): void {
+  for (const outfit of outfits) {
+    outfit.items = outfit.items.map((item: any) => {
+      if (!item?.id) return item;
+      const full = fullItemMap.get(item.id);
+      if (!full) return item;
+      return {
+        ...item,
+        ...(full.brand && { brand: full.brand }),
+        ...(full.color && { color: full.color }),
+        ...(full.subcategory && { subcategory: full.subcategory }),
+        ...(Array.isArray(full.style_descriptors) && full.style_descriptors.length > 0 && { style_descriptors: full.style_descriptors }),
+        ...(Array.isArray(full.style_archetypes) && full.style_archetypes.length > 0 && { style_archetypes: full.style_archetypes }),
+        ...(full.formality_score != null && { formality_score: full.formality_score }),
+        ...(full.material && { material: full.material }),
+      };
+    });
   }
 }
 
@@ -4539,13 +4563,19 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       preferredBrands: elitePreferredBrands,
     };
 
+    // Elite Scoring: enrich thin Stylist items with wardrobe metadata for scoring
+    const demoElite = userId ? isEliteDemoUser(userId) : false;
+    if (ELITE_FLAGS.STYLIST || ELITE_FLAGS.STYLIST_V2 || demoElite) {
+      enrichStylistOutfits(finalOutfits, fullItemMap);
+    }
+
     // Elite Scoring hook — Phase 2: rerank when V2 flag on
     let eliteOutfits = finalOutfits.slice(0, 3);
-    if (ELITE_FLAGS.STYLIST || ELITE_FLAGS.STYLIST_V2) {
+    if (ELITE_FLAGS.STYLIST || ELITE_FLAGS.STYLIST_V2 || demoElite) {
       const canonical = eliteOutfits.map(normalizeStylistOutfit);
       const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
         mode: 'stylist',
-        rerank: ELITE_FLAGS.STYLIST_V2, debug: ELITE_FLAGS.DEBUG,
+        rerank: ELITE_FLAGS.STYLIST_V2 || demoElite, debug: ELITE_FLAGS.DEBUG || demoElite,
       });
       eliteOutfits = result.outfits.map(denormalizeStylistOutfit);
     }

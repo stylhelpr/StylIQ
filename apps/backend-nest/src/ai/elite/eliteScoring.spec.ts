@@ -923,4 +923,103 @@ describe('Style Profile scoring layer', () => {
     expect(s.flags).toContain('brand');
     expect(s.score).toBe(10);
   });
+
+  it('reranks enriched Stylist items by color preference', () => {
+    // Simulates the enrichment pass: thin Stylist items now carry color from fullItemMap
+    const preferred = makeOutfit('color-pref', [
+      { id: 'c1', slot: 'tops', color: 'navy' },
+      { id: 'c2', slot: 'bottoms' },
+      { id: 'c3', slot: 'shoes' },
+    ]);
+    const neutral = makeOutfit('color-neutral', [
+      { id: 'c4', slot: 'tops' },
+      { id: 'c5', slot: 'bottoms' },
+      { id: 'c6', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      fashionState: {
+        topBrands: [], avoidBrands: [], topColors: ['navy'], avoidColors: [],
+        topCategories: [], priceBracket: null, isColdStart: false,
+      },
+    };
+    const result = elitePostProcessOutfits(
+      [neutral, preferred],
+      ctx,
+      { mode: 'stylist', rerank: true },
+    );
+    expect(result.outfits.map((o: any) => o.id)).toEqual(['color-pref', 'color-neutral']);
+  });
+
+  it('reranks enriched Stylist items by style_descriptors preference', () => {
+    const stylish = makeOutfit('style-match', [
+      { id: 's1', slot: 'tops', style_descriptors: ['minimalist', 'modern'] },
+      { id: 's2', slot: 'bottoms' },
+      { id: 's3', slot: 'shoes' },
+    ]);
+    const plain = makeOutfit('style-plain', [
+      { id: 's4', slot: 'tops' },
+      { id: 's5', slot: 'bottoms' },
+      { id: 's6', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      fashionState: {
+        topBrands: [], avoidBrands: [], topColors: [], avoidColors: [],
+        topStyles: ['minimalist'], avoidStyles: [],
+        topCategories: [], priceBracket: null, isColdStart: false,
+      },
+    };
+    const result = elitePostProcessOutfits(
+      [plain, stylish],
+      ctx,
+      { mode: 'stylist', rerank: true },
+    );
+    expect(result.outfits.map((o: any) => o.id)).toEqual(['style-match', 'style-plain']);
+  });
+
+  it('fail-open: enriched stylist items + empty StyleContext preserves exact order', () => {
+    // Items carry full wardrobe metadata (post-enrichment), but user has no style profile
+    const outfitA = makeOutfit('enriched-a', [
+      { id: 'e1', slot: 'tops', brand: 'Uniqlo', color: 'navy', style_descriptors: ['minimalist'] },
+      { id: 'e2', slot: 'bottoms', brand: 'J.Crew', color: 'khaki' },
+      { id: 'e3', slot: 'shoes', brand: 'Nike', color: 'white' },
+    ]);
+    const outfitB = makeOutfit('enriched-b', [
+      { id: 'e4', slot: 'tops', brand: 'Zara', color: 'black', style_descriptors: ['edgy'] },
+      { id: 'e5', slot: 'bottoms', brand: 'Levi', color: 'indigo' },
+      { id: 'e6', slot: 'shoes', brand: 'Adidas', color: 'gray' },
+    ]);
+    const outfitC = makeOutfit('enriched-c', [
+      { id: 'e7', slot: 'dresses', brand: 'H&M', color: 'red', style_archetypes: ['bohemian'] },
+      { id: 'e8', slot: 'shoes', brand: 'Steve Madden', color: 'tan' },
+    ]);
+
+    // Empty StyleContext: no fashionState, no wardrobeStats
+    const emptyCtx: any = {
+      fashionState: null,
+      wardrobeStats: undefined,
+      preferredBrands: [],
+    };
+
+    const inputOrder = [outfitA, outfitB, outfitC];
+    const result = elitePostProcessOutfits(
+      inputOrder,
+      emptyCtx,
+      { mode: 'stylist', rerank: true, debug: true },
+    );
+
+    // Exact input order preserved (fail-open)
+    expect(result.outfits.map((o: any) => o.id)).toEqual(['enriched-a', 'enriched-b', 'enriched-c']);
+
+    // No style signals fired — only slot_complete (structural) may fire
+    const STYLE_FLAGS = ['brand', 'color', 'category', 'style', 'formality', 'presentation'];
+    const scores = (result.debug as any).scores ?? [];
+    for (const s of scores) {
+      for (const flag of s.flags ?? []) {
+        expect(STYLE_FLAGS).not.toContain(flag);
+      }
+    }
+
+    // Debug confirms skip reason
+    expect(result.debug).toHaveProperty('skipped', 'no_style_signals');
+  });
 });

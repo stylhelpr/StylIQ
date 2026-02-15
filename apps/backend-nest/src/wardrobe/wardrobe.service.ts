@@ -71,7 +71,7 @@ import {
   OutfitFeedbackRow, // ✅ correct type
 } from './logic/feedbackFilters';
 
-import { ELITE_FLAGS } from '../config/feature-flags';
+import { ELITE_FLAGS, isEliteDemoUser } from '../config/feature-flags';
 import {
   elitePostProcessOutfits,
   normalizeStudioOutfit,
@@ -1832,12 +1832,13 @@ ${lockedLines}
       const eliteStyleContext = await this.loadEliteStyleContext(userId);
 
       // Elite Scoring hook — Phase 2: rerank when V2 flag on
+      const demoElite = isEliteDemoUser(userId);
       let eliteOutfits = withIds;
-      if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2) {
+      if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2 || demoElite) {
         const canonical = withIds.map(normalizeStudioOutfit);
         const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
           mode: 'studio', requestId: request_id,
-          rerank: ELITE_FLAGS.STUDIO_V2, debug: ELITE_FLAGS.DEBUG,
+          rerank: ELITE_FLAGS.STUDIO_V2 || demoElite, debug: ELITE_FLAGS.DEBUG || demoElite,
         });
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
       }
@@ -2864,12 +2865,13 @@ ${lockedLines}
       const eliteStyleContext = await this.loadEliteStyleContext(userId);
 
       // Elite Scoring hook — Phase 2: rerank when V2 flag on
+      const demoEliteFast = isEliteDemoUser(userId);
       let eliteOutfits = outfits;
-      if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2) {
+      if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2 || demoEliteFast) {
         const canonical = outfits.map(normalizeStudioOutfit);
         const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
           mode: 'studio', requestId: reqId,
-          rerank: ELITE_FLAGS.STUDIO_V2, debug: ELITE_FLAGS.DEBUG,
+          rerank: ELITE_FLAGS.STUDIO_V2 || demoEliteFast, debug: ELITE_FLAGS.DEBUG || demoEliteFast,
         });
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
       }
