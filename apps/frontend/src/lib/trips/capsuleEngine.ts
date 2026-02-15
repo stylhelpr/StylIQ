@@ -26,7 +26,7 @@ import {
   logOverride,
   logOutput,
 } from './logging/tripAI.logger';
-import {ELITE_SCORING_TRIPS} from '../elite/eliteFlags';
+import {ELITE_SCORING_TRIPS, ELITE_SCORING_TRIPS_V2, ELITE_SCORING_DEBUG} from '../elite/eliteFlags';
 import {
   elitePostProcessOutfits,
   normalizeTripsOutfit,
@@ -2030,14 +2030,15 @@ export function buildCapsule(
   // ── Elite Scoring: derive wardrobe stats ──
   const wardrobeStats = deriveWardrobeStats(wardrobeItems);
 
-  // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
+  // Elite Scoring hook — Phase 2: rerank when V2 flag on
   let eliteOutfits = outfits;
-  if (ELITE_SCORING_TRIPS) {
+  if (ELITE_SCORING_TRIPS || ELITE_SCORING_TRIPS_V2) {
     const canonical = outfits.map(normalizeTripsOutfit);
     const result = elitePostProcessOutfits(
       canonical,
       {presentation, wardrobeStats},
-      {mode: 'trips', requestId},
+      {mode: 'trips', requestId,
+       rerank: ELITE_SCORING_TRIPS_V2, debug: ELITE_SCORING_DEBUG},
     );
     eliteOutfits = result.outfits.map(denormalizeTripsOutfit);
   }
