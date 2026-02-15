@@ -26,6 +26,12 @@ import {
   logOverride,
   logOutput,
 } from './logging/tripAI.logger';
+import {ELITE_SCORING_TRIPS} from '../elite/eliteFlags';
+import {
+  elitePostProcessOutfits,
+  normalizeTripsOutfit,
+  denormalizeTripsOutfit,
+} from '../elite/eliteScoring';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
 export const CAPSULE_VERSION = 12;
@@ -2020,9 +2026,17 @@ export function buildCapsule(
     buildId,
   });
 
+  // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
+  let eliteOutfits = outfits;
+  if (ELITE_SCORING_TRIPS) {
+    const canonical = outfits.map(normalizeTripsOutfit);
+    const result = elitePostProcessOutfits(canonical, {presentation}, {mode: 'trips', requestId});
+    eliteOutfits = result.outfits.map(denormalizeTripsOutfit);
+  }
+
   return {
     build_id: buildId,
-    outfits,
+    outfits: eliteOutfits,
     packingList,
     version: CAPSULE_VERSION,
     fingerprint,
