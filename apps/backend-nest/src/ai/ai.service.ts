@@ -3325,6 +3325,15 @@ Preferences: ${JSON.stringify(preferences || {})}
               : undefined,
       }));
 
+    // Guard: empty wardrobe → clean early return (no LLM call)
+    if (wardrobeSummary.length === 0) {
+      return {
+        weatherSummary: weatherSummary || 'No weather data available.',
+        outfits: [],
+        message: 'Add items to your wardrobe to get AI outfit suggestions.',
+      };
+    }
+
     // Detect if this is a single-piece swap request
     const isSwapRequest = constraint?.toLowerCase().startsWith('swap ');
     const swapMatch = constraint?.match(

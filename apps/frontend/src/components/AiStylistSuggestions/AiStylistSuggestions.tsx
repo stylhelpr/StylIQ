@@ -985,10 +985,18 @@ const AiStylistSuggestions: React.FC<Props> = ({
       setAiData(data);
       setActiveOutfitIndex(0);
 
-      // Persist
+      // Persist with cache metadata (must match fetchSuggestion format for restore validity)
       requestAnimationFrame(async () => {
         try {
-          await AsyncStorage.setItem(AI_SUGGESTION_STORAGE_KEY, JSON.stringify(data));
+          await AsyncStorage.setItem(
+            AI_SUGGESTION_STORAGE_KEY,
+            JSON.stringify({
+              ...data,
+              __cacheDate: new Date().toDateString(),
+              __weatherTemp: weather?.fahrenheit?.main?.temp,
+              __weatherCondition: (weather?.fahrenheit?.weather?.[0]?.main ?? '').toLowerCase(),
+            }),
+          );
         } catch {}
       });
     } catch (err) {

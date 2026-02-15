@@ -579,8 +579,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       });
     }
 
-    // Clear any existing outfit first to allow fresh generation
-    clear();
+    // Don't clear() here — regenerate() replaces outfits on success.
+    // Clearing before an async call blanks the screen if the request fails.
     // Reset refinement state for new outfit generation
     setHasRefined(false);
     setSelectedAdjustmentLabel(null);

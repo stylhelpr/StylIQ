@@ -176,7 +176,19 @@ function buildTripWeather(
   const avgRain = Math.round(
     forecast.reduce((s, f) => s + f.rainChance, 0) / forecast.length,
   );
-  const commonCondition = forecast[0]?.condition || 'partly-cloudy';
+  // Use mode (most frequent condition) across all forecast days, not just day 0
+  const condCounts = new Map<string, number>();
+  for (const f of forecast) {
+    condCounts.set(f.condition, (condCounts.get(f.condition) || 0) + 1);
+  }
+  let commonCondition = 'partly-cloudy';
+  let maxCount = 0;
+  for (const [cond, count] of condCounts) {
+    if (count > maxCount) {
+      maxCount = count;
+      commonCondition = cond;
+    }
+  }
 
   const current = new Date(start);
   while (current <= end) {
