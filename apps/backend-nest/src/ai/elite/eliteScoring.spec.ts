@@ -8,6 +8,7 @@
  */
 import {
   elitePostProcessOutfits,
+  buildEliteExposureEvent,
   normalizeStylistOutfit,
   denormalizeStylistOutfit,
   normalizeStudioOutfit,
@@ -176,5 +177,123 @@ describe('Full pipeline: normalize → elitePostProcess → denormalize', () => 
     const restored = denormalizeStudioOutfit(result.outfits[0]);
     expect(restored.items[0].main_category).toBe('Tops');
     expect(restored.outfit_id).toBe('studio-1');
+  });
+});
+
+// ── Phase 1 Tests ───────────────────────────────────────────────────────────
+
+describe('buildEliteExposureEvent', () => {
+  it('produces correct shape with neutral signal', () => {
+    const outfits = [
+      {
+        id: 'o-1',
+        items: [
+          { id: 'item-1', slot: 'tops' as const },
+          { id: 'item-2', slot: 'bottoms' as const },
+          { id: 'item-3', slot: 'shoes' as const },
+        ],
+      },
+    ];
+    const event = buildEliteExposureEvent('user-123', outfits, {
+      mode: 'stylist',
+      requestId: 'req-abc',
+    });
+
+    expect(event.eventType).toBe('ELITE_SUGGESTION_SERVED');
+    expect(event.entityType).toBe('outfit');
+    expect(event.entityId).toBe('req-abc');
+    expect(event.signalPolarity).toBe(0);
+    expect(event.signalWeight).toBe(0);
+    expect(event.sourceFeature).toBe('elite_scoring');
+    expect(event.userId).toBe('user-123');
+    expect(event.extractedFeatures.item_ids).toEqual([
+      'item-1',
+      'item-2',
+      'item-3',
+    ]);
+    expect(event.extractedFeatures.categories).toEqual([
+      'tops',
+      'bottoms',
+      'shoes',
+    ]);
+    expect(event.context?.occasion).toBe('stylist');
+    expect(event.context?.schema_version).toBe(1);
+    expect(event.context?.pipeline_version).toBe(1);
+  });
+
+  it('generates entityId when requestId is missing', () => {
+    const event = buildEliteExposureEvent(
+      'user-123',
+      [{ id: 'o-1', items: [] }],
+      { mode: 'studio' },
+    );
+
+    expect(event.entityId).toBeDefined();
+    expect(event.entityId!.length).toBeGreaterThan(0);
+    expect(event.context?.occasion).toBe('studio');
+  });
+
+  it('includes temp_f from weather when provided', () => {
+    const event = buildEliteExposureEvent(
+      'user-123',
+      [{ id: 'o-1', items: [] }],
+      { mode: 'stylist', weather: { temp: 72 } },
+    );
+
+    expect(event.context?.temp_f).toBe(72);
+  });
+
+  it('omits temp_f when weather is null', () => {
+    const event = buildEliteExposureEvent(
+      'user-123',
+      [{ id: 'o-1', items: [] }],
+      { mode: 'stylist', weather: null },
+    );
+
+    expect(event.context?.temp_f).toBeUndefined();
+  });
+});
+
+describe('Expanded StyleContext acceptance', () => {
+  it('elitePostProcessOutfits accepts full StyleContext without error', () => {
+    const fullContext = {
+      presentation: 'feminine' as const,
+      fashionState: {
+        topBrands: ['Nike', 'Zara'],
+        avoidBrands: ['Gucci'],
+        topColors: ['black', 'white'],
+        avoidColors: ['neon green'],
+        topCategories: ['Tops', 'Dresses'],
+        priceBracket: 'mid',
+        isColdStart: false,
+      },
+      wardrobeStats: {
+        dominantColors: ['blue', 'black'],
+        topCategories: ['Tops', 'Bottoms'],
+        topBrands: [] as string[],
+        totalItems: 42,
+      },
+      preferredBrands: ['Nike', 'Adidas'],
+    };
+
+    const result = elitePostProcessOutfits(
+      [stylistOutfit],
+      fullContext,
+      { mode: 'stylist' },
+    );
+
+    // Phase 1: still returns unchanged
+    expect(result.outfits).toEqual([stylistOutfit]);
+    expect(result.debug).toEqual({});
+  });
+
+  it('accepts null fashionState (cold start / timeout)', () => {
+    const result = elitePostProcessOutfits(
+      [stylistOutfit],
+      { presentation: 'mixed', fashionState: null },
+      { mode: 'stylist' },
+    );
+
+    expect(result.outfits).toEqual([stylistOutfit]);
   });
 });
