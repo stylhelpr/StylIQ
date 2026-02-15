@@ -4520,6 +4520,8 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
             avoidBrands: summary.avoidBrands,
             topColors: summary.topColors,
             avoidColors: summary.avoidColors,
+            topStyles: summary.topStyles,
+            avoidStyles: summary.avoidStyles,
             topCategories: summary.topCategories,
             priceBracket: summary.priceBracket,
             isColdStart: summary.isColdStart,

@@ -303,6 +303,8 @@ export class WardrobeService {
           avoidBrands: summary.avoidBrands,
           topColors: summary.topColors,
           avoidColors: summary.avoidColors,
+          topStyles: summary.topStyles,
+          avoidStyles: summary.avoidStyles,
           topCategories: summary.topCategories,
           priceBracket: summary.priceBracket,
           isColdStart: summary.isColdStart,

@@ -40,6 +40,8 @@ export type StyleContext = {
     avoidBrands: string[];
     topColors: string[];
     avoidColors: string[];
+    topStyles?: string[];
+    avoidStyles?: string[];
     topCategories: string[];
     priceBracket: string | null;
     isColdStart: boolean;
@@ -102,8 +104,8 @@ export function scoreOutfit(
   const fs = ctx.fashionState;
   const ws = ctx.wardrobeStats;
 
-  // ── Brand affinity (Studio only: items have brand field) ──
-  if (env.mode === 'studio' && fs) {
+  // ── Brand affinity (skip gracefully when items lack brand) ──
+  if (fs) {
     const topBrands = [...(fs.topBrands ?? []), ...(ctx.preferredBrands ?? [])];
     const avoidBrands = fs.avoidBrands ?? [];
     if (topBrands.length > 0 || avoidBrands.length > 0) {
@@ -129,14 +131,13 @@ export function scoreOutfit(
     }
   }
 
-  // ── Color affinity ──
+  // ── Color affinity (merge fashionState + wardrobeStats sources) ──
   {
-    const topColors = env.mode === 'studio'
-      ? (fs?.topColors ?? [])
-      : env.mode === 'trips'
-        ? (ws?.dominantColors ?? [])
-        : [];
-    const avoidColors = env.mode === 'studio' ? (fs?.avoidColors ?? []) : [];
+    const topColors = [
+      ...(fs?.topColors ?? []),
+      ...(ws?.dominantColors ?? []),
+    ];
+    const avoidColors = fs?.avoidColors ?? [];
 
     if (topColors.length > 0 || avoidColors.length > 0) {
       signalsAvailable++;
@@ -180,6 +181,85 @@ export function scoreOutfit(
     }
   }
 
+  // ── Style affinity (items may have style_descriptors[] and/or style_archetypes[]) ──
+  {
+    const topStyles = fs?.topStyles ?? [];
+    const avoidStyles = fs?.avoidStyles ?? [];
+    if (topStyles.length > 0 || avoidStyles.length > 0) {
+      signalsAvailable++;
+      let styleFired = false;
+      const topLower = topStyles.map(s => s.toLowerCase());
+      const avoidLower = avoidStyles.map(s => s.toLowerCase());
+      for (const item of outfit.items) {
+        const descriptors = (item as any).style_descriptors as string[] | undefined;
+        const archetypes = (item as any).style_archetypes as string[] | undefined;
+        const tokens: string[] = [
+          ...(Array.isArray(descriptors) ? descriptors : []),
+          ...(Array.isArray(archetypes) ? archetypes : []),
+        ];
+        if (tokens.length === 0) continue;
+        for (const token of tokens) {
+          const tLower = token.toLowerCase();
+          if (topLower.includes(tLower)) {
+            score += 5;
+            styleFired = true;
+          }
+          if (avoidLower.includes(tLower)) {
+            score -= 8;
+            styleFired = true;
+          }
+        }
+      }
+      if (styleFired) {
+        signalsUsed++;
+        flags.push('style');
+      }
+    }
+  }
+
+  // ── Presentation safety (penalize cross-presentation items) ──
+  if (ctx.presentation === 'masculine' || ctx.presentation === 'feminine') {
+    let presentationFired = false;
+    for (const item of outfit.items) {
+      const itemPres = (item as any).presentation_code as string | undefined;
+      if (!itemPres) continue;
+      if (
+        (ctx.presentation === 'masculine' && itemPres === 'feminine') ||
+        (ctx.presentation === 'feminine' && itemPres === 'masculine')
+      ) {
+        score -= 15;
+        presentationFired = true;
+      }
+    }
+    if (presentationFired) {
+      signalsAvailable++;
+      signalsUsed++;
+      flags.push('presentation');
+    }
+  }
+
+  // ── Formality coherence (Studio only: items have formality_score) ──
+  if (env.mode === 'studio') {
+    const fScores: number[] = [];
+    for (const item of outfit.items) {
+      const f = (item as any).formality_score;
+      if (typeof f === 'number' && isFinite(f)) fScores.push(f);
+    }
+    if (fScores.length >= 2) {
+      signalsAvailable++;
+      const range = Math.max(...fScores) - Math.min(...fScores);
+      if (range <= 1) {
+        score += 4;
+        signalsUsed++;
+        flags.push('formality');
+      } else if (range <= 2) {
+        score += 2;
+        signalsUsed++;
+        flags.push('formality');
+      }
+    }
+  }
+
   // ── Slot completeness (all modes) ──
   {
     signalsAvailable++;
@@ -203,13 +283,14 @@ export function stableSortOutfits<T extends CanonicalOutfit>(
   outfits: T[],
   scores: Map<string, OutfitScore>,
 ): T[] {
-  return [...outfits].sort((a, b) => {
-    const sa = scores.get(a.id)?.score ?? 0;
-    const sb = scores.get(b.id)?.score ?? 0;
+  const indexed = outfits.map((o, i) => ({o, i}));
+  indexed.sort((a, b) => {
+    const sa = scores.get(a.o.id)?.score ?? 0;
+    const sb = scores.get(b.o.id)?.score ?? 0;
     if (sa !== sb) return sb - sa;
-    return deterministicHash(a.id + ':' + a.items.map(i => i.id).sort().join(','))
-         - deterministicHash(b.id + ':' + b.items.map(i => i.id).sort().join(','));
+    return a.i - b.i; // preserve original order for ties
   });
+  return indexed.map(({o}) => o);
 }
 
 // ── Post-Processor (Phase 2: Rerank) ────────────────────────────────────────
@@ -232,7 +313,34 @@ export function elitePostProcessOutfits<T>(
     scores.set(outfit.id, scoreOutfit(outfit, ctx, env));
   }
 
-  // Stable sort by score descending
+  // Fail-open: if no style-profile signal fired, preserve original order.
+  // slot_complete is structural (not profile-dependent) and must NOT cause reorder alone.
+  const STYLE_FLAGS = ['brand', 'color', 'category', 'style', 'formality', 'presentation'];
+  const hasStyleSignal = [...scores.values()].some(
+    s => s.flags.some(f => STYLE_FLAGS.includes(f)),
+  );
+  if (!hasStyleSignal) {
+    const debug: Record<string, unknown> = {};
+    if (env.debug) {
+      debug.scores = canonical.map(o => ({outfitId: o.id, ...scores.get(o.id)}));
+      debug.skipped = 'no_style_signals';
+    }
+    return {outfits, debug};
+  }
+
+  // Optimization: if all scores equal after style signals fired, preserve original order
+  const scoreVals = [...scores.values()];
+  const baseScore = scoreVals[0]?.score ?? 0;
+  if (scoreVals.every(s => s.score === baseScore)) {
+    const debug: Record<string, unknown> = {};
+    if (env.debug) {
+      debug.scores = canonical.map(o => ({outfitId: o.id, ...scores.get(o.id)}));
+      debug.skipped = 'all_scores_equal';
+    }
+    return {outfits, debug};
+  }
+
+  // Stable sort by score descending (originalIndex tie-break)
   const reranked = stableSortOutfits(canonical, scores) as unknown as T[];
 
   // Debug output (only when debug flag enabled)
