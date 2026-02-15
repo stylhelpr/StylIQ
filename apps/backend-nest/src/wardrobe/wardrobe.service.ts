@@ -1831,6 +1831,9 @@ ${lockedLines}
         );
       }
 
+      // ── Elite Scoring: load context (non-blocking, used by taste validator + rerank) ──
+      const eliteStyleContext = await this.loadEliteStyleContext(userId);
+
       // ── Taste Validation + Deterministic Repair (slow path) ──
       {
         const _isOpenFoot = (it: any): boolean => {
@@ -1861,7 +1864,7 @@ ${lockedLines}
           userPresentation: (userPresentation === 'masculine' || userPresentation === 'feminine')
             ? userPresentation : undefined,
           climateZone: _tempToZone(opts?.weather?.tempF),
-          styleProfile: null,
+          styleProfile: eliteStyleContext?.styleProfile ?? null,
         };
 
         // Build slot pools from reranked catalog
@@ -1955,22 +1958,27 @@ ${lockedLines}
           repaired.push(recheck.valid ? { ...outfit, items: fixedItems } : outfit);
         }
         // Sort: valid first, take 3
-        const scored = repaired.map(o => {
+        const scored = repaired.map((o: any, idx: number) => {
           const r = tasteValidateOutfit((o.items ?? []).map(_toVI), vCtx);
-          return { o, valid: r.valid, cs: r.coherenceScore };
+          const wasRepaired = !tasteValidateOutfit((withIds[idx]?.items ?? []).map(_toVI), vCtx).valid && r.valid;
+          return { o, valid: r.valid, cs: r.coherenceScore, wasRepaired };
         });
-        scored.sort((a, b) => (a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1));
-        const tasteFiltered = scored.slice(0, 3).map(s => s.o);
-        // Reassign withIds for downstream (immutable semantics preserved)
+        scored.sort((a: any, b: any) => (a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1));
+        const tasteFiltered = scored.slice(0, 3).map((s: any) => s.o);
         withIds.length = 0;
         withIds.push(...tasteFiltered);
         if (ELITE_FLAGS.DEBUG) {
-          console.log(`🧪 [STD] tasteValidator: ${scored.filter(s => s.valid).length}/${scored.length} valid, returning ${withIds.length}`);
+          console.log(JSON.stringify({
+            _tag: 'STUDIO_TASTE_PROOF',
+            mode: 'SLOW',
+            candidatePoolSize: repaired.length,
+            numHardFailed: scored.filter((s: any) => !s.valid).length,
+            numRepairedViaSwap: scored.filter((s: any) => s.wasRepaired).length,
+            finalReturnedCount: withIds.length,
+            ...(withIds.length < 3 ? { reason: 'WARDROBE_INSUFFICIENT' } : {}),
+          }));
         }
       }
-
-      // ── Elite Scoring: load context (non-blocking) ──
-      const eliteStyleContext = await this.loadEliteStyleContext(userId);
 
       // Elite Scoring hook — Phase 2: rerank when V2 flag on
       const demoElite = isEliteDemoUser(userId);
@@ -3002,6 +3010,9 @@ ${lockedLines}
         itemCounts: outfits.map((o: any) => o.items?.length ?? 0),
       });
 
+      // ── Elite Scoring: load context (non-blocking, used by taste validator + rerank) ──
+      const eliteStyleContext = await this.loadEliteStyleContext(userId);
+
       // ── Taste Validation + Deterministic Repair (fast path) ──
       {
         const _isOpenFoot = (it: any): boolean => {
@@ -3032,7 +3043,7 @@ ${lockedLines}
           userPresentation: (userPresentation === 'masculine' || userPresentation === 'feminine')
             ? userPresentation : undefined,
           climateZone: _tempToZone(opts?.weather?.tempF),
-          styleProfile: null,
+          styleProfile: eliteStyleContext?.styleProfile ?? null,
         };
 
         // Build slot pools from all fetched items
@@ -3125,19 +3136,25 @@ ${lockedLines}
           const recheck = tasteValidateOutfit(fixedItems.map(_toVI), vCtx);
           repaired.push(recheck.valid ? { ...outfit, items: fixedItems } : outfit);
         }
-        const scored = repaired.map((o: any) => {
+        const scored = repaired.map((o: any, idx: number) => {
           const r = tasteValidateOutfit((o.items ?? []).map(_toVI), vCtx);
-          return { o, valid: r.valid, cs: r.coherenceScore };
+          const wasRepaired = !tasteValidateOutfit((outfits[idx]?.items ?? []).map(_toVI), vCtx).valid && r.valid;
+          return { o, valid: r.valid, cs: r.coherenceScore, wasRepaired };
         });
-        scored.sort((a, b) => (a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1));
-        outfits = scored.slice(0, 3).map(s => s.o);
+        scored.sort((a: any, b: any) => (a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1));
+        outfits = scored.slice(0, 3).map((s: any) => s.o);
         if (ELITE_FLAGS.DEBUG) {
-          console.log(`🧪 [FAST] tasteValidator: ${scored.filter(s => s.valid).length}/${scored.length} valid, returning ${outfits.length}`);
+          console.log(JSON.stringify({
+            _tag: 'STUDIO_TASTE_PROOF',
+            mode: 'FAST',
+            candidatePoolSize: repaired.length,
+            numHardFailed: scored.filter((s: any) => !s.valid).length,
+            numRepairedViaSwap: scored.filter((s: any) => s.wasRepaired).length,
+            finalReturnedCount: outfits.length,
+            ...(outfits.length < 3 ? { reason: 'WARDROBE_INSUFFICIENT' } : {}),
+          }));
         }
       }
-
-      // ── Elite Scoring: load context (non-blocking) ──
-      const eliteStyleContext = await this.loadEliteStyleContext(userId);
 
       // Elite Scoring hook — Phase 2: rerank when V2 flag on
       const demoEliteFast = isEliteDemoUser(userId);

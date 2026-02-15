@@ -3128,4 +3128,69 @@ describe('Trips sandals-in-freezing regression', () => {
     // Just verify capsule builds successfully — sandals are permitted in warm weather
     expect(capsule.outfits.length).toBeGreaterThan(0);
   });
+
+  // ── Fail-open: only sandals in freezing ──
+  it('freezing + only sandals: capsule still builds (fail-open)', () => {
+    const onlySandals: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'T-Shirt', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Jeans', main_category: 'Bottoms'}),
+      makeWardrobeItem({id: 's1', name: 'Leather Sandals', main_category: 'Shoes', subcategory: 'Sandals'}),
+      makeWardrobeItem({id: 'ow1', name: 'Puffer Jacket', main_category: 'Outerwear'}),
+    ];
+    const capsule = buildCapsule(onlySandals, freezingWeather, ['Casual'], 'Home');
+    expect(capsule.outfits.length).toBeGreaterThan(0);
+    // fail-open: sandals allowed when no closed-toe alternative exists
+    const allShoeNames = capsule.outfits.flatMap(o =>
+      o.items.filter(i => i.mainCategory === 'Shoes').map(i => i.name),
+    );
+    expect(allShoeNames).toContain('Leather Sandals');
+  });
+
+  // ── Multi-day mixed climate: trip-wide gate removes sandals for entire trip ──
+  it('mixed trip (freezing+warm): sandals excluded trip-wide when boots exist', () => {
+    const mixedWeather: DayWeather[] = [
+      {date: '2025-01-15', dayLabel: 'Wed', highF: 28, lowF: 15, condition: 'snowy', rainChance: 20},
+      {date: '2025-01-16', dayLabel: 'Thu', highF: 75, lowF: 60, condition: 'sunny', rainChance: 5},
+    ];
+    const capsule = buildCapsule(wardrobeWithSandals, mixedWeather, ['Casual', 'Casual'], 'Home', 'masculine');
+    const allShoeNames = capsule.outfits.flatMap(o =>
+      o.items.filter(i => i.mainCategory === 'Shoes').map(i => i.name),
+    );
+    // Trip-wide gate: lowF < 45 on day 1 => sandals removed from pool for ALL days
+    expect(allShoeNames).not.toContain('Leather Sandals');
+  });
+
+  // ── Fallback path coverage: buildOutfitForActivity defense-in-depth ──
+  it('fallback path in freezing: sandals filtered when boots exist', () => {
+    // feminine presentation with no formal activity => hits else branch (unfiltered fallback)
+    const femWardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Blouse', main_category: 'Tops', formalityScore: 60}),
+      makeWardrobeItem({id: 'b1', name: 'Skirt', main_category: 'Skirts', formalityScore: 55}),
+      makeWardrobeItem({id: 's1', name: 'Ankle Boots', main_category: 'Shoes', subcategory: 'Boots', formalityScore: 70}),
+      makeWardrobeItem({id: 's2', name: 'Strappy Sandals', main_category: 'Shoes', subcategory: 'Sandals', formalityScore: 30}),
+      makeWardrobeItem({id: 'ow1', name: 'Wool Coat', main_category: 'Outerwear'}),
+    ];
+    const capsule = buildCapsule(femWardrobe, freezingWeather, ['Casual'], 'Home', 'feminine');
+    const allShoeNames = capsule.outfits.flatMap(o =>
+      o.items.filter(i => i.mainCategory === 'Shoes').map(i => i.name),
+    );
+    expect(allShoeNames).not.toContain('Strappy Sandals');
+    expect(allShoeNames.length).toBeGreaterThan(0);
+  });
+
+  it('fallback path in freezing: only sandals => fail-open allows them', () => {
+    const femOnlySandals: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Blouse', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Skirt', main_category: 'Skirts'}),
+      makeWardrobeItem({id: 's1', name: 'Strappy Sandals', main_category: 'Shoes', subcategory: 'Sandals'}),
+      makeWardrobeItem({id: 'ow1', name: 'Wool Coat', main_category: 'Outerwear'}),
+    ];
+    const capsule = buildCapsule(femOnlySandals, freezingWeather, ['Casual'], 'Home', 'feminine');
+    expect(capsule.outfits.length).toBeGreaterThan(0);
+    const allShoeNames = capsule.outfits.flatMap(o =>
+      o.items.filter(i => i.mainCategory === 'Shoes').map(i => i.name),
+    );
+    // fail-open: no closed-toe alternative => sandals allowed
+    expect(allShoeNames).toContain('Strappy Sandals');
+  });
 });

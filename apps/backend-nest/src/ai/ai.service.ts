@@ -4663,14 +4663,24 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
     // Build result: prefer valid outfits, take top 3
     let selectedOutfits: any[];
+    let _backfillUsed = 'NONE';
     if (validOutfits.length >= 3) {
       selectedOutfits = validOutfits.slice(0, 3);
     } else {
       // Backfill: start with valid, then fill from invalid (fail-open — bad outfit > no outfit)
       selectedOutfits = [...validOutfits, ...invalidOutfits].slice(0, 3);
-      if (ELITE_FLAGS.DEBUG || demoElite) {
-        console.log(`[Stylist][tasteValidator] Only ${validOutfits.length} valid outfits, backfilled to ${selectedOutfits.length}`);
-      }
+      _backfillUsed = 'EXTRA_CANDIDATE';
+    }
+    if (ELITE_FLAGS.DEBUG || demoElite) {
+      console.log(JSON.stringify({
+        _tag: 'STYLIST_TASTE_PROOF',
+        candidatePoolSize: candidatePool.length,
+        numHardFailed: invalidOutfits.length,
+        numValidAfterValidation: validOutfits.length,
+        backfillUsed: _backfillUsed,
+        finalReturnedCount: selectedOutfits.length,
+        ...(selectedOutfits.length < 3 ? { reason: 'WARDROBE_INSUFFICIENT' } : {}),
+      }));
     }
 
     // Elite Scoring hook — Phase 2: rerank when V2 flag on

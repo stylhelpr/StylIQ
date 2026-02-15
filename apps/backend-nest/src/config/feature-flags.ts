@@ -47,6 +47,8 @@ export const ELITE_FLAGS = {
   DEBUG: getFlag('ELITE_SCORING_DEBUG', false),
 };
 
+// Demo: set ELITE_DEMO_USER_IDS=<comma-separated Auth0 user IDs> to force-enable
+// elite scoring + rerank for Stylist + Studio surfaces in production demos.
 const ELITE_DEMO_ALLOWLIST: Set<string> = new Set(
   (process.env.ELITE_DEMO_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean),
 );

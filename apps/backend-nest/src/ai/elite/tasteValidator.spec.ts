@@ -143,6 +143,24 @@ describe('EXTREME_WEATHER_CONTRADICTION', () => {
     expect(r.valid).toBe(false);
   });
 
+  it('rejects thong footwear in cold', () => {
+    const r = validateOutfit(
+      [top('t1'), bottom('b1'), shoes('s1', { name: 'Beach Thong', subcategory: 'Thong' })],
+      { climateZone: 'cold' },
+    );
+    expect(r.valid).toBe(false);
+    expect(r.hardFails[0]).toContain('EXTREME_WEATHER_CONTRADICTION');
+  });
+
+  it('rejects thong footwear in freezing', () => {
+    const r = validateOutfit(
+      [top('t1'), bottom('b1'), shoes('s1', { name: 'Beach Thong', subcategory: 'Thong' })],
+      { climateZone: 'freezing' },
+    );
+    expect(r.valid).toBe(false);
+    expect(r.hardFails[0]).toContain('EXTREME_WEATHER_CONTRADICTION');
+  });
+
   it('passes sandals in mild', () => {
     const r = validateOutfit(
       [top('t1'), bottom('b1'), shoes('s1', { name: 'Sandals', subcategory: 'Sandals' })],
