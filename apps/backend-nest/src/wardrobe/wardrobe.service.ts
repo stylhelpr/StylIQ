@@ -71,6 +71,13 @@ import {
   OutfitFeedbackRow, // ✅ correct type
 } from './logic/feedbackFilters';
 
+import { ELITE_FLAGS } from '../config/feature-flags';
+import {
+  elitePostProcessOutfits,
+  normalizeStudioOutfit,
+  denormalizeStudioOutfit,
+} from '../ai/elite/eliteScoring';
+
 // Structured audit logging (gated behind OUTFIT_AI_DEBUG env var)
 import {
   logInput,
@@ -1778,13 +1785,21 @@ ${lockedLines}
         );
       }
 
+      // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
+      let eliteOutfits = withIds;
+      if (ELITE_FLAGS.STUDIO) {
+        const canonical = withIds.map(normalizeStudioOutfit);
+        const result = elitePostProcessOutfits(canonical, {}, { mode: 'studio', requestId: request_id });
+        eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
+      }
+
       return {
         request_id,
         outfit_id: best.outfit_id,
         items: best.items,
         why: best.why,
         missing: best.missing,
-        outfits: withIds,
+        outfits: eliteOutfits,
       };
     } catch (err: any) {
       console.error('❌ Error in generateOutfits:', err.message, err.stack);
