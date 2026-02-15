@@ -7,6 +7,9 @@
  * // SYNC: keep types in sync with apps/frontend/src/lib/elite/eliteScoring.ts
  */
 
+import { randomUUID } from 'crypto';
+import type { CreateLearningEventInput } from '../../learning/dto/learning-event.dto';
+
 // ── Canonical Slot Taxonomy ──────────────────────────────────────────────────
 
 export type CanonicalSlot =
@@ -33,6 +36,22 @@ export type CanonicalOutfit = {
 
 export type StyleContext = {
   presentation?: 'masculine' | 'feminine' | 'mixed';
+  fashionState?: {
+    topBrands: string[];
+    avoidBrands: string[];
+    topColors: string[];
+    avoidColors: string[];
+    topCategories: string[];
+    priceBracket: string | null;
+    isColdStart: boolean;
+  } | null;
+  wardrobeStats?: {
+    dominantColors: string[];
+    topCategories: string[];
+    topBrands: string[];
+    totalItems: number;
+  };
+  preferredBrands?: string[];
 };
 
 export type EliteEnv = {
@@ -56,6 +75,39 @@ export function elitePostProcessOutfits<T>(
 ): EliteResult<T> {
   // Phase 0: pass-through, no scoring
   return { outfits, debug: {} };
+}
+
+// ── Exposure Event Builder ──────────────────────────────────────────────────
+
+export function buildEliteExposureEvent(
+  userId: string,
+  outfits: CanonicalOutfit[],
+  env: EliteEnv,
+): CreateLearningEventInput {
+  const allItemIds = outfits.flatMap(o => o.items.map(i => i.id));
+  const canonicalSlots = outfits.flatMap(o => o.items.map(i => i.slot));
+
+  return {
+    userId,
+    eventType: 'ELITE_SUGGESTION_SERVED',
+    entityType: 'outfit',
+    entityId: env.requestId ?? randomUUID(),
+    signalPolarity: 0,
+    signalWeight: 0,
+    sourceFeature: 'elite_scoring',
+    extractedFeatures: {
+      categories: canonicalSlots,
+      item_ids: allItemIds,
+    },
+    context: {
+      occasion: env.mode,
+      temp_f: typeof env.weather === 'object' && env.weather !== null
+        ? (env.weather as { temp?: number }).temp
+        : undefined,
+      schema_version: 1,
+      pipeline_version: 1,
+    },
+  };
 }
 
 // ── Stylist Adapters ─────────────────────────────────────────────────────────
