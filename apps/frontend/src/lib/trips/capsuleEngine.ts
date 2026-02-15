@@ -31,6 +31,7 @@ import {
   elitePostProcessOutfits,
   normalizeTripsOutfit,
   denormalizeTripsOutfit,
+  deriveWardrobeStats,
 } from '../elite/eliteScoring';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
@@ -2026,13 +2027,22 @@ export function buildCapsule(
     buildId,
   });
 
+  // ── Elite Scoring: derive wardrobe stats ──
+  const wardrobeStats = deriveWardrobeStats(wardrobeItems);
+
   // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
   let eliteOutfits = outfits;
   if (ELITE_SCORING_TRIPS) {
     const canonical = outfits.map(normalizeTripsOutfit);
-    const result = elitePostProcessOutfits(canonical, {presentation}, {mode: 'trips', requestId});
+    const result = elitePostProcessOutfits(
+      canonical,
+      {presentation, wardrobeStats},
+      {mode: 'trips', requestId},
+    );
     eliteOutfits = result.outfits.map(denormalizeTripsOutfit);
   }
+  // NOTE: No exposure event for Trips — no backend call exists.
+  // Trips is 100% client-side (AsyncStorage). Revisit in Phase 2.
 
   return {
     build_id: buildId,
