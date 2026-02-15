@@ -9,7 +9,10 @@ import {
   TripPackingItem,
   PackingGroup,
   CapsuleWarning,
+  TripStyleHints,
 } from '../../types/trips';
+import {useAuth0} from 'react-native-auth0';
+import {useStyleProfile} from '../../hooks/useStyleProfile';
 import {updateTrip} from '../../lib/trips/tripsStorage';
 import {adaptWardrobeItem, buildCapsule, validateCapsule, CAPSULE_VERSION, shouldRebuildCapsule, detectPresentation, buildCapsuleFingerprint, RebuildMode, inferGarmentFlags, getActivityProfile} from '../../lib/trips/capsuleEngine';
 import {normalizeGenderToPresentation} from '../../lib/trips/styleEligibility';
@@ -58,6 +61,24 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
     [wardrobe, trip.startingLocationId],
   );
 
+  // Fetch style profile for capsule hints (fail-open — undefined if unavailable)
+  const {user} = useAuth0();
+  const userId = user?.sub || '';
+  const {styleProfile} = useStyleProfile(userId);
+  const styleHints: TripStyleHints | undefined = useMemo(() => {
+    if (!styleProfile) return undefined;
+    const hints: TripStyleHints = {};
+    if (Array.isArray(styleProfile.fit_preferences) && styleProfile.fit_preferences.length > 0)
+      hints.fit_preferences = styleProfile.fit_preferences;
+    if (Array.isArray(styleProfile.fabric_preferences) && styleProfile.fabric_preferences.length > 0)
+      hints.fabric_preferences = styleProfile.fabric_preferences;
+    if (Array.isArray(styleProfile.favorite_colors) && styleProfile.favorite_colors.length > 0)
+      hints.favorite_colors = styleProfile.favorite_colors;
+    if (Array.isArray(styleProfile.preferred_brands) && styleProfile.preferred_brands.length > 0)
+      hints.preferred_brands = styleProfile.preferred_brands;
+    return Object.keys(hints).length > 0 ? hints : undefined;
+  }, [styleProfile]);
+
   // Auto-rebuild stale capsules (created before current engine version)
   const didRebuildRef = useRef(false);
 
@@ -71,6 +92,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       trip.activities,
       trip.startingLocationLabel,
       presentation,
+      styleHints,
     );
     const {rebuild: needsRebuild, reason, mode} = shouldRebuildCapsule(
       capsule ?? undefined,
@@ -130,6 +152,7 @@ didRebuildRef.current = true;
           trip.activities,
           trip.startingLocationLabel,
           presentation,
+          styleHints,
         );
         if (__DEV__) {
           console.log('[TripCapsule] Rebuilding fresh capsule', newCapsule.build_id, 'presentation:', presentation);
@@ -228,6 +251,7 @@ didRebuildRef.current = true;
                 trip.activities,
                 trip.startingLocationLabel,
                 forcePresentation,
+                styleHints,
               );
               if (__DEV__) {
                 console.log(`[TripCapsule] FORCE REBUILD trip=${trip.id} build=${newCapsule.build_id} presentation=${forcePresentation}`);

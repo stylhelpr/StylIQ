@@ -18,6 +18,9 @@ import {
   buildEliteExposureEvent,
 } from './elite/eliteScoring';
 import type { StyleContext } from './elite/eliteScoring';
+import { loadStylistBrainContext } from './elite/stylistBrain';
+import { validateOutfits as tasteValidateOutfits, tempToClimateZone, type ValidatorItem, type ValidatorContext } from './elite/tasteValidator';
+import type { StylistBrainContext } from './elite/stylistBrain';
 import { FashionStateService } from '../learning/fashion-state.service';
 import { LearningEventsService } from '../learning/learning-events.service';
 
@@ -3253,25 +3256,13 @@ Preferences: ${JSON.stringify(preferences || {})}
     // 🎯 LEARNING INTEGRATION: Fetch user feedback context
     const feedbackContext = await this.getUserFeedbackContext(userId, wardrobe);
 
-    // 🧑 GENDER/PRESENTATION-AWARE FILTERING
-    // Fetch user's gender_presentation to exclude inappropriate items for masculine profiles.
-    // Mirrors logic from frontend trips/styleEligibility.ts + capsuleEngine.inferGarmentFlags().
-    let userPresentation: 'masculine' | 'feminine' | 'mixed' = 'mixed';
-    if (userId) {
-      try {
-        const { rows } = await pool.query(
-          'SELECT gender_presentation FROM users WHERE id = $1 LIMIT 1',
-          [userId],
-        );
-        const gp = (rows[0]?.gender_presentation || '').toLowerCase().replace(/[\s_-]+/g, '');
-        // Check female/feminine FIRST — 'female'.includes('male') is true in JS!
-        if (gp.includes('female') || gp.includes('feminin') || gp === 'woman') userPresentation = 'feminine';
-        else if (gp.includes('male') || gp.includes('masculin') || gp === 'man') userPresentation = 'masculine';
-        // "other", "nonbinary", "rathernotsay", empty → 'mixed' (allow all)
-      } catch {
-        // Fail open — default to 'mixed' (no filtering)
-      }
+    // 🧠 STYLIST BRAIN: Load full style context (presentation + style profile + fashion state)
+    // Replaces standalone gender_presentation query with unified loader.
+    let brainCtx: StylistBrainContext = { presentation: 'mixed', styleProfile: null, fashionState: null };
+    if (userId && this.fashionStateService) {
+      brainCtx = await loadStylistBrainContext(userId, this.fashionStateService);
     }
+    const userPresentation = brainCtx.presentation;
 
     // Build filtered wardrobe: exclude feminine-only items for masculine users.
     // Does NOT mutate the original wardrobe array.
@@ -3636,10 +3627,64 @@ Examples of invalid mixes:
 All items in a single outfit must feel coherent in social context.
 `;
 
+    // 🧠 STYLE PROFILE CONTEXT — inject DB-backed preferences into system prompt
+    if (brainCtx.styleProfile) {
+      const sp = brainCtx.styleProfile;
+      const fs = brainCtx.fashionState;
+      const lines: string[] = [];
+
+      if (sp.favorite_colors.length > 0)
+        lines.push(`• Preferred colors: ${sp.favorite_colors.join(', ')}`);
+      if (sp.fit_preferences.length > 0)
+        lines.push(`• Fit preferences: ${sp.fit_preferences.join(', ')}`);
+      if (sp.fabric_preferences.length > 0)
+        lines.push(`• Fabric preferences: ${sp.fabric_preferences.join(', ')}`);
+
+      // Merge preferred brands from style_profiles + fashionState
+      const allBrands = [...new Set([
+        ...sp.preferred_brands,
+        ...(fs?.topBrands ?? []),
+      ])];
+      if (allBrands.length > 0)
+        lines.push(`• Preferred brands: ${allBrands.join(', ')}`);
+
+      // Avoid lists from fashionState + disliked_styles
+      const avoidStyles = [...new Set([
+        ...sp.disliked_styles,
+        ...(fs?.avoidStyles ?? []),
+      ])];
+      if (avoidStyles.length > 0)
+        lines.push(`• Avoided styles: ${avoidStyles.join(', ')}`);
+      if (fs?.avoidBrands?.length)
+        lines.push(`• Avoided brands: ${fs.avoidBrands.join(', ')}`);
+      if (fs?.avoidColors?.length)
+        lines.push(`• Avoided colors: ${fs.avoidColors.join(', ')}`);
+
+      // Budget
+      if (sp.budget_min != null || sp.budget_max != null) {
+        const budgetParts: string[] = [];
+        if (sp.budget_min != null) budgetParts.push(`min $${sp.budget_min}`);
+        if (sp.budget_max != null) budgetParts.push(`max $${sp.budget_max}`);
+        lines.push(`• Budget range: ${budgetParts.join(', ')}`);
+      }
+
+      if (lines.length > 0) {
+        systemPrompt += `
+════════════════════════
+STYLE PROFILE (from user's saved preferences — treat as strong signals)
+════════════════════════
+
+${lines.join('\n')}
+
+Use these preferences to guide outfit selection. Prioritize items matching these preferences.
+`;
+      }
+    }
+
     const userPrompt = `
 Client: ${user || 'The user'}
 Weather: ${tempDesc}
-Preferences: ${JSON.stringify(preferences || {})}
+${preferences && Object.keys(preferences).length > 0 ? `Client-provided preferences (treat as session overrides): ${JSON.stringify(preferences)}` : ''}
 ${feedbackContext.recentFeedbackSummary}
 
 Available wardrobe items:
@@ -4561,6 +4606,14 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       presentation: userPresentation,
       fashionState: eliteFashionState,
       preferredBrands: elitePreferredBrands,
+      styleProfile: brainCtx.styleProfile ? {
+        fit_preferences: brainCtx.styleProfile.fit_preferences,
+        fabric_preferences: brainCtx.styleProfile.fabric_preferences,
+        budget_min: brainCtx.styleProfile.budget_min,
+        budget_max: brainCtx.styleProfile.budget_max,
+        style_preferences: brainCtx.styleProfile.style_preferences,
+        disliked_styles: brainCtx.styleProfile.disliked_styles,
+      } : null,
     };
 
     // Elite Scoring: enrich thin Stylist items with wardrobe metadata for scoring
@@ -4569,8 +4622,59 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       enrichStylistOutfits(finalOutfits, fullItemMap);
     }
 
+    // ── Taste Validator: validate + backfill to guarantee 3 outfits ──
+    const stylistCatToSlot: Record<string, ValidatorItem['slot']> = {
+      top: 'tops', bottom: 'bottoms', shoes: 'shoes', outerwear: 'outerwear',
+      dress: 'dresses', accessory: 'accessories', activewear: 'activewear', swimwear: 'swimwear',
+    };
+    const toValidatorItems = (outfit: any): ValidatorItem[] =>
+      (outfit.items ?? []).map((it: any) => ({
+        id: it.id ?? '',
+        slot: stylistCatToSlot[it.category] ?? 'accessories',
+        name: it.name, subcategory: it.subcategory, color: it.color,
+        material: it.material, fit: it.fit, formality_score: it.formality_score,
+        dress_code: it.dress_code, style_descriptors: it.style_descriptors,
+        style_archetypes: it.style_archetypes, price: it.price,
+        presentation_code: it.presentation_code,
+      } as ValidatorItem));
+
+    const validatorCtx: ValidatorContext = {
+      userPresentation: userPresentation as any,
+      climateZone: tempToClimateZone(temp),
+      styleProfile: brainCtx.styleProfile ? {
+        fit_preferences: brainCtx.styleProfile.fit_preferences,
+        fabric_preferences: brainCtx.styleProfile.fabric_preferences,
+        style_preferences: brainCtx.styleProfile.style_preferences,
+        disliked_styles: brainCtx.styleProfile.disliked_styles,
+        budget_min: brainCtx.styleProfile.budget_min,
+        budget_max: brainCtx.styleProfile.budget_max,
+      } : null,
+    };
+
+    // Validate ALL candidates (keep pool >3 for backfill)
+    const candidatePool = finalOutfits.slice();
+    const validation = tasteValidateOutfits(
+      candidatePool.map((o, i) => ({ outfitId: o.id ?? `outfit-${i}`, items: toValidatorItems(o) })),
+      validatorCtx,
+    );
+    const validIds = new Set(validation.results.filter(r => r.validation.valid).map(r => r.outfitId));
+    const validOutfits = candidatePool.filter((o, i) => validIds.has(o.id ?? `outfit-${i}`));
+    const invalidOutfits = candidatePool.filter((o, i) => !validIds.has(o.id ?? `outfit-${i}`));
+
+    // Build result: prefer valid outfits, take top 3
+    let selectedOutfits: any[];
+    if (validOutfits.length >= 3) {
+      selectedOutfits = validOutfits.slice(0, 3);
+    } else {
+      // Backfill: start with valid, then fill from invalid (fail-open — bad outfit > no outfit)
+      selectedOutfits = [...validOutfits, ...invalidOutfits].slice(0, 3);
+      if (ELITE_FLAGS.DEBUG || demoElite) {
+        console.log(`[Stylist][tasteValidator] Only ${validOutfits.length} valid outfits, backfilled to ${selectedOutfits.length}`);
+      }
+    }
+
     // Elite Scoring hook — Phase 2: rerank when V2 flag on
-    let eliteOutfits = finalOutfits.slice(0, 3);
+    let eliteOutfits = selectedOutfits;
     if (ELITE_FLAGS.STYLIST || ELITE_FLAGS.STYLIST_V2 || demoElite) {
       const canonical = eliteOutfits.map(normalizeStylistOutfit);
       const result = elitePostProcessOutfits(canonical, eliteStyleContext, {

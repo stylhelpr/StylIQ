@@ -1023,3 +1023,329 @@ describe('Style Profile scoring layer', () => {
     expect(result.debug).toHaveProperty('skipped', 'no_style_signals');
   });
 });
+
+// ── Stylist Brain Scoring Signals (Phase 2 — fit/fabric/dress_code/budget) ──
+
+describe('Fit preference signal', () => {
+  const makeOutfit = (id: string, items: any[]): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('fit match gives +4 per item', () => {
+    const outfit = makeOutfit('fit-match', [
+      { id: 'i1', slot: 'tops', fit: 'slim' },
+      { id: 'i2', slot: 'bottoms', fit: 'relaxed' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: ['slim'],
+        fabric_preferences: [],
+        budget_min: null,
+        budget_max: null,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    // slim matches: +4, slot_complete: +5 = 9
+    expect(result.flags).toContain('fit');
+    expect(result.flags).toContain('slot_complete');
+    expect(result.score).toBe(9);
+  });
+
+  it('no fit field on items → fail-open (signal skipped)', () => {
+    const outfit = makeOutfit('no-fit', [
+      { id: 'i1', slot: 'tops' },
+      { id: 'i2', slot: 'bottoms' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: ['slim'],
+        fabric_preferences: [],
+        budget_min: null,
+        budget_max: null,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).not.toContain('fit');
+    // Only slot_complete: +5
+    expect(result.score).toBe(5);
+  });
+
+  it('empty fit_preferences → signal skipped', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', fit: 'slim' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        budget_min: null,
+        budget_max: null,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).not.toContain('fit');
+  });
+
+  it('fit_type field also matches', () => {
+    const outfit = makeOutfit('fit-type', [
+      { id: 'i1', slot: 'tops', fit_type: 'Regular' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: ['regular'],
+        fabric_preferences: [],
+        budget_min: null,
+        budget_max: null,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).toContain('fit');
+  });
+});
+
+describe('Fabric/material preference signal', () => {
+  const makeOutfit = (id: string, items: any[]): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('fabric match gives +3 per item', () => {
+    const outfit = makeOutfit('fabric-match', [
+      { id: 'i1', slot: 'tops', material: 'cotton blend' },
+      { id: 'i2', slot: 'bottoms', material: 'denim' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: ['cotton'],
+        budget_min: null,
+        budget_max: null,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    // cotton matches cotton blend: +3, slot_complete: +5 = 8
+    expect(result.flags).toContain('fabric');
+    expect(result.score).toBe(8);
+  });
+
+  it('no material field → fail-open', () => {
+    const outfit = makeOutfit('no-mat', [
+      { id: 'i1', slot: 'tops' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: ['silk'],
+        budget_min: null,
+        budget_max: null,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).not.toContain('fabric');
+  });
+
+  it('fabric_blend field also matches', () => {
+    const outfit = makeOutfit('blend', [
+      { id: 'i1', slot: 'tops', fabric_blend: 'Merino Wool' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: ['wool'],
+        budget_min: null,
+        budget_max: null,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).toContain('fabric');
+  });
+});
+
+describe('Dress-code coherence signal', () => {
+  const makeOutfit = (id: string, items: any[]): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('all items same dress_code gives +3 in studio', () => {
+    const outfit = makeOutfit('coherent', [
+      { id: 'i1', slot: 'tops', dress_code: 'business' },
+      { id: 'i2', slot: 'bottoms', dress_code: 'business' },
+      { id: 'i3', slot: 'shoes', dress_code: 'business' },
+    ]);
+    const result = scoreOutfit(outfit, {}, { mode: 'studio', rerank: true });
+    // dress_code: +3, slot_complete: +5 = 8
+    expect(result.flags).toContain('dress_code');
+    expect(result.score).toBe(8);
+  });
+
+  it('conflicting dress_codes penalized -5 in studio', () => {
+    const outfit = makeOutfit('conflict', [
+      { id: 'i1', slot: 'tops', dress_code: 'athletic' },
+      { id: 'i2', slot: 'bottoms', dress_code: 'business' },
+      { id: 'i3', slot: 'shoes', dress_code: 'business' },
+    ]);
+    const result = scoreOutfit(outfit, {}, { mode: 'studio', rerank: true });
+    // dress_code conflict: -5, slot_complete: +5 = 0
+    expect(result.flags).toContain('dress_code');
+    expect(result.score).toBe(0);
+  });
+
+  it('dress_code skipped in non-studio modes', () => {
+    const outfit = makeOutfit('trips-dc', [
+      { id: 'i1', slot: 'tops', dress_code: 'athletic' },
+      { id: 'i2', slot: 'bottoms', dress_code: 'business' },
+      { id: 'i3', slot: 'shoes', dress_code: 'business' },
+    ]);
+    const result = scoreOutfit(outfit, {}, { mode: 'trips', rerank: true });
+    expect(result.flags).not.toContain('dress_code');
+  });
+
+  it('dress_code skipped when <2 items have it', () => {
+    const outfit = makeOutfit('single-dc', [
+      { id: 'i1', slot: 'tops', dress_code: 'business' },
+      { id: 'i2', slot: 'bottoms' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const result = scoreOutfit(outfit, {}, { mode: 'studio', rerank: true });
+    expect(result.flags).not.toContain('dress_code');
+  });
+});
+
+describe('Budget range signal', () => {
+  const makeOutfit = (id: string, items: any[]): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('item within budget gives +2', () => {
+    const outfit = makeOutfit('in-budget', [
+      { id: 'i1', slot: 'tops', price: 50 },
+      { id: 'i2', slot: 'bottoms', price: 80 },
+      { id: 'i3', slot: 'shoes', price: 100 },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        budget_min: 20,
+        budget_max: 150,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    // 3 items in budget: +6, slot_complete: +5 = 11
+    expect(result.flags).toContain('budget');
+    expect(result.score).toBe(11);
+  });
+
+  it('item way over budget (>1.5x max) gives -4', () => {
+    const outfit = makeOutfit('over-budget', [
+      { id: 'i1', slot: 'tops', price: 500 },
+      { id: 'i2', slot: 'bottoms' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        budget_min: null,
+        budget_max: 100,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    // price 500 > 100 * 1.5 (150): -4, slot_complete: +5 = 1
+    expect(result.flags).toContain('budget');
+    expect(result.score).toBe(1);
+  });
+
+  it('no price field → fail-open', () => {
+    const outfit = makeOutfit('no-price', [
+      { id: 'i1', slot: 'tops' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        budget_min: 20,
+        budget_max: 100,
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).not.toContain('budget');
+  });
+
+  it('null styleProfile → all new signals skipped', () => {
+    const outfit = makeOutfit('no-profile', [
+      { id: 'i1', slot: 'tops', fit: 'slim', material: 'cotton', price: 50 },
+      { id: 'i2', slot: 'bottoms' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const result = scoreOutfit(outfit, {}, { mode: 'studio', rerank: true });
+    expect(result.flags).not.toContain('fit');
+    expect(result.flags).not.toContain('fabric');
+    expect(result.flags).not.toContain('budget');
+  });
+});
+
+describe('New signals in reranking pipeline', () => {
+  const makeOutfit = (id: string, items: any[]): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('fit preference changes ranking when data present', () => {
+    const fitMatch = makeOutfit('fit-winner', [
+      { id: 'i1', slot: 'tops', fit: 'slim' },
+      { id: 'i2', slot: 'bottoms' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const noFit = makeOutfit('no-fit', [
+      { id: 'i4', slot: 'tops' },
+      { id: 'i5', slot: 'bottoms' },
+      { id: 'i6', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: ['slim'],
+        fabric_preferences: [],
+        budget_min: null,
+        budget_max: null,
+      },
+    };
+    const result = elitePostProcessOutfits(
+      [noFit, fitMatch], ctx, { mode: 'studio', rerank: true },
+    );
+    expect((result.outfits[0] as any).id).toBe('fit-winner');
+  });
+
+  it('deterministic across multiple runs', () => {
+    const o1 = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', fit: 'slim', material: 'cotton', price: 50 },
+      { id: 'i2', slot: 'bottoms' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const o2 = makeOutfit('o2', [
+      { id: 'i4', slot: 'tops' },
+      { id: 'i5', slot: 'bottoms' },
+      { id: 'i6', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: ['slim'],
+        fabric_preferences: ['cotton'],
+        budget_min: 20,
+        budget_max: 100,
+      },
+    };
+    const env: any = { mode: 'studio', rerank: true };
+    const r1 = elitePostProcessOutfits([o1, o2], ctx, env);
+    const r2 = elitePostProcessOutfits([o1, o2], ctx, env);
+    const r3 = elitePostProcessOutfits([o1, o2], ctx, env);
+    expect(r1.outfits.map((o: any) => o.id)).toEqual(r2.outfits.map((o: any) => o.id));
+    expect(r2.outfits.map((o: any) => o.id)).toEqual(r3.outfits.map((o: any) => o.id));
+  });
+});

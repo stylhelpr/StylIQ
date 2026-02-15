@@ -8,6 +8,7 @@ import {
   deriveClimateZone,
   getActivityProfile,
   inferGarmentFlags,
+  isOpenFootwear,
   gatePool,
   gateBackupPool,
   gateBackupPoolFallback,
@@ -3037,5 +3038,94 @@ describe('aestheticBonus', () => {
     const r3 = aestheticBonus(candidate, existing, lookup);
     expect(r1).toBe(r2);
     expect(r2).toBe(r3);
+  });
+});
+
+// ─── Open Footwear Detection ──────────────────────────────────────
+
+describe('isOpenFootwear', () => {
+  it('detects sandals', () => {
+    expect(isOpenFootwear({name: 'Leather Sandals', subcategory: 'Sandals'})).toBe(true);
+    expect(isOpenFootwear({name: 'Sandal', subcategory: ''})).toBe(true);
+  });
+  it('detects flip-flops', () => {
+    expect(isOpenFootwear({name: 'Flip-Flops', subcategory: ''})).toBe(true);
+    expect(isOpenFootwear({name: 'Flip Flops', subcategory: ''})).toBe(true);
+  });
+  it('detects slides', () => {
+    expect(isOpenFootwear({name: 'Pool Slides', subcategory: 'Slides'})).toBe(true);
+  });
+  it('detects thongs', () => {
+    expect(isOpenFootwear({name: 'Beach Thongs', subcategory: ''})).toBe(true);
+  });
+  it('rejects closed-toe shoes', () => {
+    expect(isOpenFootwear({name: 'Oxford Shoes', subcategory: 'Oxfords'})).toBe(false);
+    expect(isOpenFootwear({name: 'Sneakers', subcategory: 'Sneakers'})).toBe(false);
+    expect(isOpenFootwear({name: 'Chelsea Boots', subcategory: 'Boots'})).toBe(false);
+  });
+});
+
+// ─── Freezing/Cold + Sandals Regression ──────────────────────────
+
+describe('Trips sandals-in-freezing regression', () => {
+  const freezingWeather: DayWeather[] = [
+    {date: '2025-01-15', dayLabel: 'Wed', highF: 28, lowF: 15, condition: 'snowy', rainChance: 20},
+  ];
+  const coldWeather: DayWeather[] = [
+    {date: '2025-03-10', dayLabel: 'Mon', highF: 42, lowF: 30, condition: 'cloudy', rainChance: 30},
+  ];
+
+  const wardrobeWithSandals: TripWardrobeItem[] = [
+    makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', formalityScore: 80}),
+    makeWardrobeItem({id: 't2', name: 'Polo', main_category: 'Tops', formalityScore: 60}),
+    makeWardrobeItem({id: 'b1', name: 'Wool Trousers', main_category: 'Bottoms', formalityScore: 85}),
+    makeWardrobeItem({id: 'b2', name: 'Chinos', main_category: 'Bottoms', formalityScore: 60}),
+    makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxfords', formalityScore: 90}),
+    makeWardrobeItem({id: 's2', name: 'Leather Sandals', main_category: 'Shoes', subcategory: 'Sandals', formalityScore: 20}),
+    makeWardrobeItem({id: 's3', name: 'Chelsea Boots', main_category: 'Shoes', subcategory: 'Chelsea Boots', formalityScore: 75}),
+    makeWardrobeItem({id: 'ow1', name: 'Wool Overcoat', main_category: 'Outerwear'}),
+  ];
+
+  it('freezing + Business: sandals NEVER selected when boots/oxfords exist', () => {
+    const capsule = buildCapsule(wardrobeWithSandals, freezingWeather, ['Business'], 'Home', 'masculine');
+    const allShoeNames = capsule.outfits.flatMap(o =>
+      o.items.filter(i => i.mainCategory === 'Shoes').map(i => i.name),
+    );
+    expect(allShoeNames).not.toContain('Leather Sandals');
+    expect(allShoeNames.length).toBeGreaterThan(0);
+  });
+
+  it('cold + Business: sandals NEVER selected when boots/oxfords exist', () => {
+    const capsule = buildCapsule(wardrobeWithSandals, coldWeather, ['Business'], 'Home', 'masculine');
+    const allShoeNames = capsule.outfits.flatMap(o =>
+      o.items.filter(i => i.mainCategory === 'Shoes').map(i => i.name),
+    );
+    expect(allShoeNames).not.toContain('Leather Sandals');
+    expect(allShoeNames.length).toBeGreaterThan(0);
+  });
+
+  it('freezing + Casual: sandals NEVER selected when sneakers exist', () => {
+    const casualWardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'T-Shirt', main_category: 'Tops'}),
+      makeWardrobeItem({id: 't2', name: 'Hoodie', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Jeans', main_category: 'Bottoms'}),
+      makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers'}),
+      makeWardrobeItem({id: 's2', name: 'Flip-Flops', main_category: 'Shoes', subcategory: 'Sandals'}),
+      makeWardrobeItem({id: 'ow1', name: 'Puffer Jacket', main_category: 'Outerwear'}),
+    ];
+    const capsule = buildCapsule(casualWardrobe, freezingWeather, ['Casual'], 'Home');
+    const allShoeNames = capsule.outfits.flatMap(o =>
+      o.items.filter(i => i.mainCategory === 'Shoes').map(i => i.name),
+    );
+    expect(allShoeNames).not.toContain('Flip-Flops');
+  });
+
+  it('warm weather: sandals ARE allowed', () => {
+    const warmWeather: DayWeather[] = [
+      {date: '2025-07-15', dayLabel: 'Tue', highF: 88, lowF: 72, condition: 'sunny', rainChance: 5},
+    ];
+    const capsule = buildCapsule(wardrobeWithSandals, warmWeather, ['Casual'], 'Home');
+    // Just verify capsule builds successfully — sandals are permitted in warm weather
+    expect(capsule.outfits.length).toBeGreaterThan(0);
   });
 });

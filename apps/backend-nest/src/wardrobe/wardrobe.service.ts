@@ -80,7 +80,10 @@ import {
 } from '../ai/elite/eliteScoring';
 import type { StyleContext } from '../ai/elite/eliteScoring';
 import { FashionStateService } from '../learning/fashion-state.service';
+import { loadStylistBrainContext } from '../ai/elite/stylistBrain';
 import { LearningEventsService } from '../learning/learning-events.service';
+import { validateOutfit as tasteValidateOutfit } from '../ai/elite/tasteValidator';
+import type { ValidatorItem, ValidatorContext, ValidatorSlot } from '../ai/elite/tasteValidator';
 
 // Structured audit logging (gated behind OUTFIT_AI_DEBUG env var)
 import {
@@ -286,30 +289,30 @@ export class WardrobeService {
    */
   private async loadEliteStyleContext(userId: string): Promise<StyleContext> {
     try {
-      const [summary, brandsRes] = await Promise.all([
-        this.fashionStateService.getStateSummary(userId).catch(() => null),
-        pool.query(
-          'SELECT preferred_brands FROM style_profiles WHERE user_id = $1',
-          [userId],
-        ).then(r => {
-          const raw = r.rows[0]?.preferred_brands;
-          return Array.isArray(raw) ? raw : [];
-        }).catch(() => [] as string[]),
-      ]);
+      const brainCtx = await loadStylistBrainContext(userId, this.fashionStateService);
 
       return {
-        fashionState: summary ? {
-          topBrands: summary.topBrands,
-          avoidBrands: summary.avoidBrands,
-          topColors: summary.topColors,
-          avoidColors: summary.avoidColors,
-          topStyles: summary.topStyles,
-          avoidStyles: summary.avoidStyles,
-          topCategories: summary.topCategories,
-          priceBracket: summary.priceBracket,
-          isColdStart: summary.isColdStart,
+        presentation: brainCtx.presentation,
+        fashionState: brainCtx.fashionState ? {
+          topBrands: brainCtx.fashionState.topBrands,
+          avoidBrands: brainCtx.fashionState.avoidBrands,
+          topColors: brainCtx.fashionState.topColors,
+          avoidColors: brainCtx.fashionState.avoidColors,
+          topStyles: brainCtx.fashionState.topStyles,
+          avoidStyles: brainCtx.fashionState.avoidStyles,
+          topCategories: brainCtx.fashionState.topCategories,
+          priceBracket: brainCtx.fashionState.priceBracket,
+          isColdStart: brainCtx.fashionState.isColdStart,
         } : null,
-        preferredBrands: brandsRes,
+        preferredBrands: brainCtx.styleProfile?.preferred_brands ?? [],
+        styleProfile: brainCtx.styleProfile ? {
+          fit_preferences: brainCtx.styleProfile.fit_preferences,
+          fabric_preferences: brainCtx.styleProfile.fabric_preferences,
+          budget_min: brainCtx.styleProfile.budget_min,
+          budget_max: brainCtx.styleProfile.budget_max,
+          style_preferences: brainCtx.styleProfile.style_preferences,
+          disliked_styles: brainCtx.styleProfile.disliked_styles,
+        } : null,
       };
     } catch {
       return {};
@@ -1828,6 +1831,144 @@ ${lockedLines}
         );
       }
 
+      // ── Taste Validation + Deterministic Repair (slow path) ──
+      {
+        const _isOpenFoot = (it: any): boolean => {
+          const text = `${it?.subcategory ?? ''} ${it?.name ?? it?.label ?? ''}`.toLowerCase();
+          return /\b(sandals?|flip[- ]?flops?|slides?|thongs?)\b/.test(text);
+        };
+        const _toVI = (it: any): ValidatorItem => ({
+          id: it?.id ?? '',
+          slot: (mapMainCategoryToSlot(it?.main_category) as ValidatorSlot) || 'accessories' as ValidatorSlot,
+          name: it?.name ?? it?.label,
+          subcategory: it?.subcategory,
+          color: it?.color,
+          material: it?.material,
+          dress_code: it?.dress_code,
+          formality_score: it?.formality_score,
+          presentation_code: it?.presentation_code,
+        });
+        const _tempToZone = (tempF?: number | null) => {
+          if (tempF == null) return undefined;
+          if (tempF < 32) return 'freezing' as const;
+          if (tempF < 45) return 'cold' as const;
+          if (tempF < 55) return 'cool' as const;
+          if (tempF < 65) return 'mild' as const;
+          if (tempF < 85) return 'warm' as const;
+          return 'hot' as const;
+        };
+        const vCtx: ValidatorContext = {
+          userPresentation: (userPresentation === 'masculine' || userPresentation === 'feminine')
+            ? userPresentation : undefined,
+          climateZone: _tempToZone(opts?.weather?.tempF),
+          styleProfile: null,
+        };
+
+        // Build slot pools from reranked catalog
+        const slotPools = new Map<string, any[]>();
+        for (const item of reranked) {
+          const slot = mapMainCategoryToSlot(item?.main_category);
+          if (!slotPools.has(slot)) slotPools.set(slot, []);
+          slotPools.get(slot)!.push(item);
+        }
+
+        const repaired: typeof withIds = [];
+        for (const outfit of withIds) {
+          const items = outfit.items ?? [];
+          const vItems = items.map(_toVI);
+          const result = tasteValidateOutfit(vItems, vCtx);
+          if (result.valid) {
+            repaired.push(outfit);
+            continue;
+          }
+          // Attempt deterministic repair
+          let fixedItems = [...items];
+          const usedIds = new Set(fixedItems.map((it: any) => it?.id));
+          for (const fail of result.hardFails) {
+            if (fail.startsWith('EXTREME_WEATHER_CONTRADICTION') && fail.includes('footwear')) {
+              const shoePool = (slotPools.get('shoes') ?? []).filter(
+                (s: any) => !_isOpenFoot(s) && !usedIds.has(s?.id),
+              );
+              if (shoePool.length > 0) {
+                fixedItems = fixedItems.filter((it: any) => mapMainCategoryToSlot(it?.main_category) !== 'shoes');
+                fixedItems.push(shoePool[0]);
+                usedIds.add(shoePool[0].id);
+              }
+            } else if (fail.startsWith('CROSS_PRESENTATION')) {
+              const idMatch = fail.match(/item (\S+)/);
+              if (idMatch) {
+                const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+                if (badItem) {
+                  const slot = mapMainCategoryToSlot(badItem?.main_category);
+                  const pool = (slotPools.get(slot) ?? []).filter((c: any) => {
+                    if (usedIds.has(c?.id)) return false;
+                    const pc = c?.presentation_code;
+                    if (!pc) return true;
+                    if (vCtx.userPresentation === 'masculine') return pc !== 'feminine';
+                    if (vCtx.userPresentation === 'feminine') return pc !== 'masculine';
+                    return true;
+                  });
+                  if (pool.length > 0) {
+                    fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                    fixedItems.push(pool[0]);
+                    usedIds.add(pool[0].id);
+                  }
+                }
+              }
+            } else if (fail.startsWith('DRESS_CODE_MISMATCH')) {
+              const idMatch = fail.match(/item (\S+)/);
+              if (idMatch) {
+                const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+                if (badItem) {
+                  const slot = mapMainCategoryToSlot(badItem?.main_category);
+                  const casualCodes = ['ultracasual', 'ultra casual', 'athletic'];
+                  const pool = (slotPools.get(slot) ?? []).filter((c: any) => {
+                    if (usedIds.has(c?.id)) return false;
+                    const dc = (c?.dress_code ?? '').toLowerCase();
+                    if (!dc) return true;
+                    return !casualCodes.some(cc => dc.includes(cc));
+                  });
+                  if (pool.length > 0) {
+                    fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                    fixedItems.push(pool[0]);
+                    usedIds.add(pool[0].id);
+                  }
+                }
+              }
+            } else if (fail.startsWith('MISSING_REQUIRED_SLOTS')) {
+              const slots = new Set(fixedItems.map((it: any) => mapMainCategoryToSlot(it?.main_category)));
+              const hasDressLike = slots.has('dresses') || slots.has('activewear') || slots.has('swimwear');
+              if (!hasDressLike) {
+                for (const ms of ['tops', 'bottoms', 'shoes'] as const) {
+                  if (!slots.has(ms)) {
+                    const pool = (slotPools.get(ms) ?? []).filter((c: any) => !usedIds.has(c?.id));
+                    if (pool.length > 0) { fixedItems.push(pool[0]); usedIds.add(pool[0].id); }
+                  }
+                }
+              } else if (!slots.has('shoes') && !slots.has('swimwear')) {
+                const pool = (slotPools.get('shoes') ?? []).filter((c: any) => !usedIds.has(c?.id));
+                if (pool.length > 0) { fixedItems.push(pool[0]); usedIds.add(pool[0].id); }
+              }
+            }
+          }
+          const recheck = tasteValidateOutfit(fixedItems.map(_toVI), vCtx);
+          repaired.push(recheck.valid ? { ...outfit, items: fixedItems } : outfit);
+        }
+        // Sort: valid first, take 3
+        const scored = repaired.map(o => {
+          const r = tasteValidateOutfit((o.items ?? []).map(_toVI), vCtx);
+          return { o, valid: r.valid, cs: r.coherenceScore };
+        });
+        scored.sort((a, b) => (a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1));
+        const tasteFiltered = scored.slice(0, 3).map(s => s.o);
+        // Reassign withIds for downstream (immutable semantics preserved)
+        withIds.length = 0;
+        withIds.push(...tasteFiltered);
+        if (ELITE_FLAGS.DEBUG) {
+          console.log(`🧪 [STD] tasteValidator: ${scored.filter(s => s.valid).length}/${scored.length} valid, returning ${withIds.length}`);
+        }
+      }
+
       // ── Elite Scoring: load context (non-blocking) ──
       const eliteStyleContext = await this.loadEliteStyleContext(userId);
 
@@ -2860,6 +3001,140 @@ ${lockedLines}
         totalLatencyMs: totalTime,
         itemCounts: outfits.map((o: any) => o.items?.length ?? 0),
       });
+
+      // ── Taste Validation + Deterministic Repair (fast path) ──
+      {
+        const _isOpenFoot = (it: any): boolean => {
+          const text = `${it?.subcategory ?? ''} ${it?.name ?? it?.label ?? ''}`.toLowerCase();
+          return /\b(sandals?|flip[- ]?flops?|slides?|thongs?)\b/.test(text);
+        };
+        const _toVI = (it: any): ValidatorItem => ({
+          id: it?.id ?? '',
+          slot: (mapMainCategoryToSlot(it?.main_category) as ValidatorSlot) || 'accessories' as ValidatorSlot,
+          name: it?.name ?? it?.label,
+          subcategory: it?.subcategory,
+          color: it?.color,
+          material: it?.material,
+          dress_code: it?.dress_code,
+          formality_score: it?.formality_score,
+          presentation_code: it?.presentation_code,
+        });
+        const _tempToZone = (tempF?: number | null) => {
+          if (tempF == null) return undefined;
+          if (tempF < 32) return 'freezing' as const;
+          if (tempF < 45) return 'cold' as const;
+          if (tempF < 55) return 'cool' as const;
+          if (tempF < 65) return 'mild' as const;
+          if (tempF < 85) return 'warm' as const;
+          return 'hot' as const;
+        };
+        const vCtx: ValidatorContext = {
+          userPresentation: (userPresentation === 'masculine' || userPresentation === 'feminine')
+            ? userPresentation : undefined,
+          climateZone: _tempToZone(opts?.weather?.tempF),
+          styleProfile: null,
+        };
+
+        // Build slot pools from all fetched items
+        const fastPool = Array.from(itemsMap.values());
+        const slotPools = new Map<string, any[]>();
+        for (const item of fastPool) {
+          const slot = mapMainCategoryToSlot(item?.main_category);
+          if (!slotPools.has(slot)) slotPools.set(slot, []);
+          slotPools.get(slot)!.push(item);
+        }
+
+        const repaired: typeof outfits = [];
+        for (const outfit of outfits) {
+          const items = outfit.items ?? [];
+          const vItems = items.map(_toVI);
+          const result = tasteValidateOutfit(vItems, vCtx);
+          if (result.valid) {
+            repaired.push(outfit);
+            continue;
+          }
+          let fixedItems = [...items];
+          const usedIds = new Set(fixedItems.map((it: any) => it?.id));
+          for (const fail of result.hardFails) {
+            if (fail.startsWith('EXTREME_WEATHER_CONTRADICTION') && fail.includes('footwear')) {
+              const shoePool = (slotPools.get('shoes') ?? []).filter(
+                (s: any) => !_isOpenFoot(s) && !usedIds.has(s?.id),
+              );
+              if (shoePool.length > 0) {
+                fixedItems = fixedItems.filter((it: any) => mapMainCategoryToSlot(it?.main_category) !== 'shoes');
+                fixedItems.push(shoePool[0]);
+                usedIds.add(shoePool[0].id);
+              }
+            } else if (fail.startsWith('CROSS_PRESENTATION')) {
+              const idMatch = fail.match(/item (\S+)/);
+              if (idMatch) {
+                const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+                if (badItem) {
+                  const slot = mapMainCategoryToSlot(badItem?.main_category);
+                  const pool = (slotPools.get(slot) ?? []).filter((c: any) => {
+                    if (usedIds.has(c?.id)) return false;
+                    const pc = c?.presentation_code;
+                    if (!pc) return true;
+                    if (vCtx.userPresentation === 'masculine') return pc !== 'feminine';
+                    if (vCtx.userPresentation === 'feminine') return pc !== 'masculine';
+                    return true;
+                  });
+                  if (pool.length > 0) {
+                    fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                    fixedItems.push(pool[0]);
+                    usedIds.add(pool[0].id);
+                  }
+                }
+              }
+            } else if (fail.startsWith('DRESS_CODE_MISMATCH')) {
+              const idMatch = fail.match(/item (\S+)/);
+              if (idMatch) {
+                const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+                if (badItem) {
+                  const slot = mapMainCategoryToSlot(badItem?.main_category);
+                  const casualCodes = ['ultracasual', 'ultra casual', 'athletic'];
+                  const pool = (slotPools.get(slot) ?? []).filter((c: any) => {
+                    if (usedIds.has(c?.id)) return false;
+                    const dc = (c?.dress_code ?? '').toLowerCase();
+                    if (!dc) return true;
+                    return !casualCodes.some(cc => dc.includes(cc));
+                  });
+                  if (pool.length > 0) {
+                    fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                    fixedItems.push(pool[0]);
+                    usedIds.add(pool[0].id);
+                  }
+                }
+              }
+            } else if (fail.startsWith('MISSING_REQUIRED_SLOTS')) {
+              const slots = new Set(fixedItems.map((it: any) => mapMainCategoryToSlot(it?.main_category)));
+              const hasDressLike = slots.has('dresses') || slots.has('activewear') || slots.has('swimwear');
+              if (!hasDressLike) {
+                for (const ms of ['tops', 'bottoms', 'shoes'] as const) {
+                  if (!slots.has(ms)) {
+                    const pool = (slotPools.get(ms) ?? []).filter((c: any) => !usedIds.has(c?.id));
+                    if (pool.length > 0) { fixedItems.push(pool[0]); usedIds.add(pool[0].id); }
+                  }
+                }
+              } else if (!slots.has('shoes') && !slots.has('swimwear')) {
+                const pool = (slotPools.get('shoes') ?? []).filter((c: any) => !usedIds.has(c?.id));
+                if (pool.length > 0) { fixedItems.push(pool[0]); usedIds.add(pool[0].id); }
+              }
+            }
+          }
+          const recheck = tasteValidateOutfit(fixedItems.map(_toVI), vCtx);
+          repaired.push(recheck.valid ? { ...outfit, items: fixedItems } : outfit);
+        }
+        const scored = repaired.map((o: any) => {
+          const r = tasteValidateOutfit((o.items ?? []).map(_toVI), vCtx);
+          return { o, valid: r.valid, cs: r.coherenceScore };
+        });
+        scored.sort((a, b) => (a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1));
+        outfits = scored.slice(0, 3).map(s => s.o);
+        if (ELITE_FLAGS.DEBUG) {
+          console.log(`🧪 [FAST] tasteValidator: ${scored.filter(s => s.valid).length}/${scored.length} valid, returning ${outfits.length}`);
+        }
+      }
 
       // ── Elite Scoring: load context (non-blocking) ──
       const eliteStyleContext = await this.loadEliteStyleContext(userId);

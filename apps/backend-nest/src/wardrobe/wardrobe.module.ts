@@ -9,5 +9,6 @@ import { LearningModule } from '../learning/learning.module';
   imports: [VertexModule, LearningModule],
   controllers: [WardrobePublicController, WardrobeController],
   providers: [WardrobeService],
+  exports: [WardrobeService],
 })
 export class WardrobeModule {}

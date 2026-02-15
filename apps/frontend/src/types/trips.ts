@@ -130,3 +130,12 @@ export type Trip = {
 };
 
 export type TripsScreen = 'home' | 'create' | 'capsule';
+
+/** Style hints for capsule building — deterministic quality bonuses */
+export type TripStyleHints = {
+  fit_preferences?: string[];
+  fabric_preferences?: string[];
+  favorite_colors?: string[];
+  disliked_colors?: string[];
+  preferred_brands?: string[];
+};

@@ -8,6 +8,7 @@ import {
   TripWardrobeItem,
   CapsuleWarning,
   BackupSuggestion,
+  TripStyleHints,
 } from '../../types/trips';
 import {PACKING_CATEGORY_ORDER} from './constants';
 import {
@@ -32,6 +33,7 @@ import {
   normalizeTripsOutfit,
   denormalizeTripsOutfit,
   deriveWardrobeStats,
+  colorMatches,
 } from '../elite/eliteScoring';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
@@ -137,6 +139,12 @@ export function inferGarmentFlags(item: TripWardrobeItem): GarmentFlags {
   const isFeminineOnly = isDress || isSkirt || isBlouse || isGown || isHeels || isBalletFlat || isEarring || isBracelet || isAnklet || isPurse;
 
   return {isMinimalCoverage, isBeachContext, isCasualOnly, isFeminineOnly};
+}
+
+/** Token-based open-footwear detection (sandals, flip-flops, slides, thongs). */
+export function isOpenFootwear(item: {name?: string; subcategory?: string}): boolean {
+  const text = `${item.subcategory ?? ''} ${item.name ?? ''}`.toLowerCase();
+  return /\b(sandals?|flip[- ]?flops?|slides?|thongs?)\b/.test(text);
 }
 
 export function gatePool(
@@ -394,6 +402,7 @@ export function buildCapsuleFingerprint(
   activities: TripActivity[],
   location: string,
   presentation?: Presentation,
+  styleHints?: TripStyleHints,
 ): string {
   return JSON.stringify({
     wardrobe: wardrobe.map(w => w.id).sort(),
@@ -401,6 +410,7 @@ export function buildCapsuleFingerprint(
     activities: [...activities].sort(),
     location,
     presentation: presentation || 'mixed',
+    ...(styleHints ? {styleHints} : {}),
   });
 }
 
@@ -1075,6 +1085,7 @@ function buildOutfitForActivity(
   locationLabel: string,
   mode: 'anchor' | 'support',
   presentation: Presentation,
+  styleHints?: TripStyleHints,
 ): TripPackingItem[] {
   const items: TripPackingItem[] = [];
 
@@ -1118,6 +1129,13 @@ function buildOutfitForActivity(
   } else {
     finalShoes = selectedShoes;
   }
+  // Cold/freezing safety net: filter open footwear from ANY fallback path (fail-open)
+  if (climateZone === 'freezing' || climateZone === 'cold') {
+    const closedToe = finalShoes.filter(s => !isOpenFootwear(s));
+    if (closedToe.length > 0) {
+      finalShoes = closedToe;
+    }
+  }
 
   // ── Weighted pick helpers (replaces modulo rotation) ──
   const maxUsesForBucket = (len: number) =>
@@ -1131,9 +1149,28 @@ function buildOutfitForActivity(
   ];
   const poolLookup = new Map(allPoolItems.map(i => [i.id, i]));
 
-  // Quality function: activity-specific scoring + aesthetic tie-breaker
+  // Style hints bonus: deterministic scoring from user's style profile
+  const styleBonus = (item: TripWardrobeItem): number => {
+    if (!styleHints) return 0;
+    let bonus = 0;
+    // Color preference
+    if (item.color && styleHints.favorite_colors?.length) {
+      if (styleHints.favorite_colors.some(c => colorMatches(item.color!, c))) bonus += 0.2;
+    }
+    if (item.color && styleHints.disliked_colors?.length) {
+      if (styleHints.disliked_colors.some(c => colorMatches(item.color!, c))) bonus -= 0.3;
+    }
+    // Fabric preference
+    if (item.material && styleHints.fabric_preferences?.length) {
+      const matLower = item.material.toLowerCase();
+      if (styleHints.fabric_preferences.some(f => matLower.includes(f.toLowerCase()) || f.toLowerCase().includes(matLower))) bonus += 0.15;
+    }
+    return bonus;
+  };
+
+  // Quality function: activity-specific scoring + aesthetic tie-breaker + style hints
   const qualityFn = (item: TripWardrobeItem) =>
-    activityScore(item, [activity]) + aestheticBonus(item, items, poolLookup);
+    activityScore(item, [activity]) + aestheticBonus(item, items, poolLookup) + styleBonus(item);
 
   const pickW = (bucket: TripWardrobeItem[], label?: string): WeightedPickResult | null => {
     return weightedPick(
@@ -1449,6 +1486,7 @@ export function buildCapsule(
   activities: TripActivity[],
   startingLocationLabel: string,
   explicitPresentation?: Presentation,
+  styleHints?: TripStyleHints,
 ): TripCapsule {
   const requestId = `trip_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const numDays = Math.max(weather.length, 1);
@@ -1672,6 +1710,15 @@ export function buildCapsule(
   }
 
   // Step 4: Select shoes
+  // Trip-wide climate gate: filter out open footwear in freezing/cold
+  const _anyDayColdOrFreezing = weather.some(d => d.lowF < 45);
+  if (_anyDayColdOrFreezing) {
+    const closedToe = buckets.shoes.filter(s => !isOpenFootwear(s));
+    if (closedToe.length > 0) {
+      buckets.shoes = closedToe;
+    }
+    // else fail-open: keep original pool
+  }
   const maxShoes = numDays <= 5 ? 2 : 3;
   const selectedShoes = buckets.shoes.slice(0, maxShoes);
 
@@ -1722,6 +1769,7 @@ export function buildCapsule(
       startingLocationLabel,
       'anchor',
       presentation,
+      styleHints,
     );
     if (anchorItems.length > 0) {
       outfits.push({
@@ -1750,6 +1798,7 @@ export function buildCapsule(
         startingLocationLabel,
         'support',
         presentation,
+        styleHints,
       );
       if (supportItems.length >= 2) {
         outfits.push({

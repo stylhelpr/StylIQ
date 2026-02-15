@@ -53,6 +53,13 @@ export type StyleContext = {
     totalItems: number;
   };
   preferredBrands?: string[];
+  /** Style profile fields for fit/fabric/budget scoring signals */
+  styleProfile?: {
+    fit_preferences: string[];
+    fabric_preferences: string[];
+    budget_min: number | null;
+    budget_max: number | null;
+  } | null;
 };
 
 export type EliteEnv = {
@@ -260,6 +267,126 @@ export function scoreOutfit(
     }
   }
 
+  // ── Fit preference (profile-driven) ──
+  {
+    const fitPrefs = ctx.styleProfile?.fit_preferences ?? [];
+    if (fitPrefs.length > 0) {
+      signalsAvailable++;
+      let fitFired = false;
+      const fitPrefsLower = fitPrefs.map(f => f.toLowerCase());
+      for (const item of outfit.items) {
+        const itemFit = ((item as any).fit ?? (item as any).fit_type) as
+          | string
+          | undefined;
+        if (!itemFit) continue;
+        const itemFitLower = itemFit.toLowerCase();
+        if (
+          fitPrefsLower.some(
+            f => itemFitLower.includes(f) || f.includes(itemFitLower),
+          )
+        ) {
+          score += 4;
+          fitFired = true;
+        }
+      }
+      if (fitFired) {
+        signalsUsed++;
+        flags.push('fit');
+      }
+    }
+  }
+
+  // ── Fabric/material preference (profile-driven) ──
+  {
+    const fabricPrefs = ctx.styleProfile?.fabric_preferences ?? [];
+    if (fabricPrefs.length > 0) {
+      signalsAvailable++;
+      let fabricFired = false;
+      const fabricPrefsLower = fabricPrefs.map(f => f.toLowerCase());
+      for (const item of outfit.items) {
+        const itemMaterial = (
+          (item as any).material ?? (item as any).fabric_blend
+        ) as string | undefined;
+        if (!itemMaterial) continue;
+        const itemMatLower = itemMaterial.toLowerCase();
+        if (
+          fabricPrefsLower.some(
+            f => itemMatLower.includes(f) || f.includes(itemMatLower),
+          )
+        ) {
+          score += 3;
+          fabricFired = true;
+        }
+      }
+      if (fabricFired) {
+        signalsUsed++;
+        flags.push('fabric');
+      }
+    }
+  }
+
+  // ── Dress-code coherence (extends formality — Studio only) ──
+  if (env.mode === 'studio') {
+    const dressCodes: string[] = [];
+    for (const item of outfit.items) {
+      const dc = (item as any).dress_code as string | undefined;
+      if (dc) dressCodes.push(dc.toLowerCase());
+    }
+    if (dressCodes.length >= 2) {
+      signalsAvailable++;
+      const unique = new Set(dressCodes);
+      if (unique.size === 1) {
+        score += 3;
+        signalsUsed++;
+        flags.push('dress_code');
+      } else if (unique.size >= 2) {
+        const CONFLICTING_PAIRS = [
+          ['athletic', 'business'],
+          ['athletic', 'formal'],
+          ['casual', 'formal'],
+          ['beach', 'business'],
+        ];
+        const codes = [...unique];
+        const hasConflict = CONFLICTING_PAIRS.some(
+          ([a, b]) => codes.includes(a) && codes.includes(b),
+        );
+        if (hasConflict) {
+          score -= 5;
+          signalsUsed++;
+          flags.push('dress_code');
+        }
+      }
+    }
+  }
+
+  // ── Budget range (profile-driven) ──
+  {
+    const budgetMin = ctx.styleProfile?.budget_min;
+    const budgetMax = ctx.styleProfile?.budget_max;
+    if (budgetMin != null || budgetMax != null) {
+      signalsAvailable++;
+      let budgetFired = false;
+      for (const item of outfit.items) {
+        const price = (item as any).price as number | undefined;
+        if (typeof price !== 'number' || !isFinite(price)) continue;
+        if (budgetMax != null && price > budgetMax * 1.5) {
+          score -= 4;
+          budgetFired = true;
+        } else if (
+          (budgetMin == null || price >= budgetMin) &&
+          (budgetMax == null || price <= budgetMax)
+        ) {
+          score += 2;
+          budgetFired = true;
+        }
+      }
+      if (budgetFired) {
+        signalsUsed++;
+        flags.push('budget');
+      }
+    }
+  }
+
   // ── Slot completeness (all modes) ──
   {
     signalsAvailable++;
@@ -315,7 +442,7 @@ export function elitePostProcessOutfits<T>(
 
   // Fail-open: if no style-profile signal fired, preserve original order.
   // slot_complete is structural (not profile-dependent) and must NOT cause reorder alone.
-  const STYLE_FLAGS = ['brand', 'color', 'category', 'style', 'formality', 'presentation'];
+  const STYLE_FLAGS = ['brand', 'color', 'category', 'style', 'formality', 'presentation', 'fit', 'fabric', 'dress_code', 'budget'];
   const hasStyleSignal = [...scores.values()].some(
     s => s.flags.some(f => STYLE_FLAGS.includes(f)),
   );
