@@ -1829,11 +1829,14 @@ ${lockedLines}
       // ── Elite Scoring: load context (non-blocking) ──
       const eliteStyleContext = await this.loadEliteStyleContext(userId);
 
-      // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
+      // Elite Scoring hook — Phase 2: rerank when V2 flag on
       let eliteOutfits = withIds;
-      if (ELITE_FLAGS.STUDIO) {
+      if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2) {
         const canonical = withIds.map(normalizeStudioOutfit);
-        const result = elitePostProcessOutfits(canonical, eliteStyleContext, { mode: 'studio', requestId: request_id });
+        const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
+          mode: 'studio', requestId: request_id,
+          rerank: ELITE_FLAGS.STUDIO_V2, debug: ELITE_FLAGS.DEBUG,
+        });
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
       }
 
@@ -2858,11 +2861,14 @@ ${lockedLines}
       // ── Elite Scoring: load context (non-blocking) ──
       const eliteStyleContext = await this.loadEliteStyleContext(userId);
 
-      // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
+      // Elite Scoring hook — Phase 2: rerank when V2 flag on
       let eliteOutfits = outfits;
-      if (ELITE_FLAGS.STUDIO) {
+      if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2) {
         const canonical = outfits.map(normalizeStudioOutfit);
-        const result = elitePostProcessOutfits(canonical, eliteStyleContext, { mode: 'studio', requestId: reqId });
+        const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
+          mode: 'studio', requestId: reqId,
+          rerank: ELITE_FLAGS.STUDIO_V2, debug: ELITE_FLAGS.DEBUG,
+        });
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
       }
 
