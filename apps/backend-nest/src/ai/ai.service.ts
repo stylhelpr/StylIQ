@@ -4537,14 +4537,16 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       preferredBrands: elitePreferredBrands,
     };
 
-    // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
+    // Elite Scoring hook — Phase 2: rerank when V2 flag on
     let eliteOutfits = finalOutfits.slice(0, 3);
-    if (ELITE_FLAGS.STYLIST) {
+    if (ELITE_FLAGS.STYLIST || ELITE_FLAGS.STYLIST_V2) {
       const canonical = eliteOutfits.map(normalizeStylistOutfit);
-      const result = elitePostProcessOutfits(canonical, eliteStyleContext, { mode: 'stylist' });
+      const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
+        mode: 'stylist',
+        rerank: ELITE_FLAGS.STYLIST_V2, debug: ELITE_FLAGS.DEBUG,
+      });
       eliteOutfits = result.outfits.map(denormalizeStylistOutfit);
     }
-
     // ── Elite Scoring: log exposure event (fire-and-forget) ──
     // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker
     if (this.learningEventsService && userId) {
