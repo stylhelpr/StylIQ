@@ -20,7 +20,8 @@ export type LearningEventType =
   | 'POST_LIKED'
   | 'POST_SAVED'
   | 'POST_DISMISSED'
-  | 'ITEM_EXPLICITLY_DISMISSED';
+  | 'ITEM_EXPLICITLY_DISMISSED'
+  | 'ELITE_SUGGESTION_SERVED';
 
 /**
  * Entity types that can be the subject of learning events.
@@ -64,6 +65,8 @@ export interface EventContext {
   season?: string;
   occasion?: string;
   location_type?: string;
+  schema_version?: number;
+  pipeline_version?: number;
 }
 
 /**
@@ -127,4 +130,5 @@ export const EVENT_SIGNAL_DEFAULTS: Record<
   POST_SAVED: { polarity: 1, weight: 0.5 },
   POST_DISMISSED: { polarity: -1, weight: 0.2 },
   ITEM_EXPLICITLY_DISMISSED: { polarity: -1, weight: 0.4 },
+  ELITE_SUGGESTION_SERVED: { polarity: 0, weight: 0 },
 };
