@@ -10,6 +10,12 @@ import { pool } from '../db/pool';
 import { scoreItemForWeather, type WeatherContext } from '../wardrobe/logic/weather';
 import { isFeminineItem } from '../wardrobe/logic/presentationFilter';
 import { getSecret, secretExists } from '../config/secrets';
+import { ELITE_FLAGS } from '../config/feature-flags';
+import {
+  elitePostProcessOutfits,
+  normalizeStylistOutfit,
+  denormalizeStylistOutfit,
+} from './elite/eliteScoring';
 
 // 🧥 Basic capsule wardrobe templates
 const CAPSULES = {
@@ -4481,7 +4487,15 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       }
     }
 
-    return { weatherSummary, outfits: finalOutfits.slice(0, 3) };
+    // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
+    let eliteOutfits = finalOutfits.slice(0, 3);
+    if (ELITE_FLAGS.STYLIST) {
+      const canonical = eliteOutfits.map(normalizeStylistOutfit);
+      const result = elitePostProcessOutfits(canonical, { presentation: userPresentation }, { mode: 'stylist' });
+      eliteOutfits = result.outfits.map(denormalizeStylistOutfit);
+    }
+
+    return { weatherSummary, outfits: eliteOutfits };
   }
 
   /** Generate concise weather summary for UI (one line max) */
