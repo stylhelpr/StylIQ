@@ -2799,12 +2799,20 @@ ${lockedLines}
         itemCounts: outfits.map((o: any) => o.items?.length ?? 0),
       });
 
+      // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
+      let eliteOutfits = outfits;
+      if (ELITE_FLAGS.STUDIO) {
+        const canonical = outfits.map(normalizeStudioOutfit);
+        const result = elitePostProcessOutfits(canonical, {}, { mode: 'studio', requestId: reqId });
+        eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
+      }
+
       return {
         request_id: reqId,
         outfit_id: best.outfit_id,
         items: best.items,
         why: best.why,
-        outfits,
+        outfits: eliteOutfits,
       };
     } catch (err: any) {
       console.error(
