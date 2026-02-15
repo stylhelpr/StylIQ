@@ -1536,24 +1536,6 @@ export function buildCapsule(
     }
   }
 
-  if (presentation === 'feminine') {
-    const prevActivewear = buckets.activewear.length;
-    buckets.activewear = buckets.activewear.filter(
-      i =>
-        !['Basketball Shorts', 'Gym Shorts', 'Board Shorts'].includes(
-          i.subcategory || '',
-        ),
-    );
-    if (prevActivewear !== buckets.activewear.length) {
-      logOverride(requestId, {
-        rule: 'feminine_hard_lock',
-        before: prevActivewear,
-        after: buckets.activewear.length,
-        detail: 'removed masculine activewear (basketball/gym/board shorts)',
-      });
-    }
-  }
-
   // Step 3: Plan day schedules
   const daySchedules = planDaySchedules(activities, weather, numDays);
 
