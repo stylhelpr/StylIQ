@@ -76,7 +76,11 @@ import {
   elitePostProcessOutfits,
   normalizeStudioOutfit,
   denormalizeStudioOutfit,
+  buildEliteExposureEvent,
 } from '../ai/elite/eliteScoring';
+import type { StyleContext } from '../ai/elite/eliteScoring';
+import { FashionStateService } from '../learning/fashion-state.service';
+import { LearningEventsService } from '../learning/learning-events.service';
 
 // Structured audit logging (gated behind OUTFIT_AI_DEBUG env var)
 import {
@@ -246,7 +250,11 @@ function buildUserPrefsFromRules(
 
 @Injectable()
 export class WardrobeService {
-  constructor(private readonly vertex: VertexService) {}
+  constructor(
+    private readonly vertex: VertexService,
+    private readonly fashionStateService: FashionStateService,
+    private readonly learningEventsService: LearningEventsService,
+  ) {}
 
   // 👇 track base query + refinements per session (Redis-backed, 30-min TTL)
   private static readonly SESSION_TTL = 1800; // 30 minutes
@@ -270,6 +278,39 @@ export class WardrobeService {
       await getRedisClient().set(this.sessionKey(id), JSON.stringify(data), { ex: WardrobeService.SESSION_TTL });
     } catch {
       // Redis unavailable — refinement degrades gracefully
+    }
+  }
+
+  /**
+   * Load StyleContext for elite scoring (non-blocking).
+   */
+  private async loadEliteStyleContext(userId: string): Promise<StyleContext> {
+    try {
+      const [summary, brandsRes] = await Promise.all([
+        this.fashionStateService.getStateSummary(userId).catch(() => null),
+        pool.query(
+          'SELECT preferred_brands FROM style_profiles WHERE user_id = $1',
+          [userId],
+        ).then(r => {
+          const raw = r.rows[0]?.preferred_brands;
+          return Array.isArray(raw) ? raw : [];
+        }).catch(() => [] as string[]),
+      ]);
+
+      return {
+        fashionState: summary ? {
+          topBrands: summary.topBrands,
+          avoidBrands: summary.avoidBrands,
+          topColors: summary.topColors,
+          avoidColors: summary.avoidColors,
+          topCategories: summary.topCategories,
+          priceBracket: summary.priceBracket,
+          isColdStart: summary.isColdStart,
+        } : null,
+        preferredBrands: brandsRes,
+      };
+    } catch {
+      return {};
     }
   }
 
@@ -1785,12 +1826,27 @@ ${lockedLines}
         );
       }
 
+      // ── Elite Scoring: load context (non-blocking) ──
+      const eliteStyleContext = await this.loadEliteStyleContext(userId);
+
       // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
       let eliteOutfits = withIds;
       if (ELITE_FLAGS.STUDIO) {
         const canonical = withIds.map(normalizeStudioOutfit);
-        const result = elitePostProcessOutfits(canonical, {}, { mode: 'studio', requestId: request_id });
+        const result = elitePostProcessOutfits(canonical, eliteStyleContext, { mode: 'studio', requestId: request_id });
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
+      }
+
+      // ── Elite Scoring: log exposure event (fire-and-forget) ──
+      // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker
+      {
+        const canonicalForEvent = eliteOutfits.map(normalizeStudioOutfit);
+        const exposureEvent = buildEliteExposureEvent(userId, canonicalForEvent, {
+          mode: 'studio',
+          requestId: request_id,
+          weather: opts?.weather ? { temp: opts.weather.tempF } : undefined,
+        });
+        this.learningEventsService.logEvent(exposureEvent).catch(() => {});
       }
 
       return {
@@ -2799,12 +2855,27 @@ ${lockedLines}
         itemCounts: outfits.map((o: any) => o.items?.length ?? 0),
       });
 
+      // ── Elite Scoring: load context (non-blocking) ──
+      const eliteStyleContext = await this.loadEliteStyleContext(userId);
+
       // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
       let eliteOutfits = outfits;
       if (ELITE_FLAGS.STUDIO) {
         const canonical = outfits.map(normalizeStudioOutfit);
-        const result = elitePostProcessOutfits(canonical, {}, { mode: 'studio', requestId: reqId });
+        const result = elitePostProcessOutfits(canonical, eliteStyleContext, { mode: 'studio', requestId: reqId });
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
+      }
+
+      // ── Elite Scoring: log exposure event (fire-and-forget) ──
+      // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker
+      {
+        const canonicalForEvent = eliteOutfits.map(normalizeStudioOutfit);
+        const exposureEvent = buildEliteExposureEvent(userId, canonicalForEvent, {
+          mode: 'studio',
+          requestId: reqId,
+          weather: opts?.weather ? { temp: opts.weather.tempF } : undefined,
+        });
+        this.learningEventsService.logEvent(exposureEvent).catch(() => {});
       }
 
       return {
