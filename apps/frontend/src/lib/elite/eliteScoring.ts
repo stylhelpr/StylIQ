@@ -7,7 +7,7 @@
  * // SYNC: keep types in sync with apps/backend-nest/src/ai/elite/eliteScoring.ts
  */
 
-import type {CapsuleOutfit, TripPackingItem} from '../../types/trips';
+import type {CapsuleOutfit, TripPackingItem, TripWardrobeItem} from '../../types/trips';
 
 // ── Canonical Slot Taxonomy ──────────────────────────────────────────────────
 
@@ -35,6 +35,22 @@ export type CanonicalOutfit = {
 
 export type StyleContext = {
   presentation?: 'masculine' | 'feminine' | 'mixed';
+  fashionState?: {
+    topBrands: string[];
+    avoidBrands: string[];
+    topColors: string[];
+    avoidColors: string[];
+    topCategories: string[];
+    priceBracket: string | null;
+    isColdStart: boolean;
+  } | null;
+  wardrobeStats?: {
+    dominantColors: string[];
+    topCategories: string[];
+    topBrands: string[];
+    totalItems: number;
+  };
+  preferredBrands?: string[];
 };
 
 export type EliteEnv = {
@@ -58,6 +74,44 @@ export function elitePostProcessOutfits<T>(
 ): EliteResult<T> {
   // Phase 0: pass-through, no scoring
   return {outfits, debug: {}};
+}
+
+// ── Wardrobe Stats Derivation (Trips) ───────────────────────────────────────
+
+export function deriveWardrobeStats(
+  items: TripWardrobeItem[],
+): NonNullable<StyleContext['wardrobeStats']> {
+  if (items.length === 0) {
+    return {dominantColors: [], topCategories: [], topBrands: [], totalItems: 0};
+  }
+
+  const colorCounts = new Map<string, number>();
+  const categoryCounts = new Map<string, number>();
+
+  for (const item of items) {
+    if (item.color) {
+      colorCounts.set(item.color, (colorCounts.get(item.color) || 0) + 1);
+    }
+    if (item.main_category) {
+      categoryCounts.set(
+        item.main_category,
+        (categoryCounts.get(item.main_category) || 0) + 1,
+      );
+    }
+  }
+
+  const topN = (map: Map<string, number>, n: number): string[] =>
+    [...map.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+      .map(([k]) => k);
+
+  return {
+    dominantColors: topN(colorCounts, 5),
+    topCategories: topN(categoryCounts, 5),
+    topBrands: [], // TripWardrobeItem has no brand field
+    totalItems: items.length,
+  };
 }
 
 // ── Trips Adapters ───────────────────────────────────────────────────────────
