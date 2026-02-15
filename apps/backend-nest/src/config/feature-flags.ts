@@ -36,12 +36,14 @@ export const LEARNING_FLAGS = {
 };
 
 /**
- * Elite Scoring flags — Phase 0 (all OFF).
+ * Elite Scoring flags — Phase 2 V2 flags default OFF.
  * Controls whether elitePostProcessOutfits() is called per surface.
  */
 export const ELITE_FLAGS = {
   STYLIST: getFlag('ELITE_SCORING_STYLIST', false),
   STUDIO: getFlag('ELITE_SCORING_STUDIO', false),
+  STUDIO_V2: getFlag('ELITE_SCORING_STUDIO_V2', false),
+  STYLIST_V2: getFlag('ELITE_SCORING_STYLIST_V2', false),
   DEBUG: getFlag('ELITE_SCORING_DEBUG', false),
 };
 
