@@ -36,6 +36,16 @@ export const LEARNING_FLAGS = {
 };
 
 /**
+ * Elite Scoring flags — Phase 0 (all OFF).
+ * Controls whether elitePostProcessOutfits() is called per surface.
+ */
+export const ELITE_FLAGS = {
+  STYLIST: getFlag('ELITE_SCORING_STYLIST', false),
+  STUDIO: getFlag('ELITE_SCORING_STUDIO', false),
+  DEBUG: getFlag('ELITE_SCORING_DEBUG', false),
+};
+
+/**
  * Aggregation configuration constants.
  * These control how events are processed into derived state.
  */
