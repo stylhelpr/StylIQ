@@ -15,7 +15,11 @@ import {
   elitePostProcessOutfits,
   normalizeStylistOutfit,
   denormalizeStylistOutfit,
+  buildEliteExposureEvent,
 } from './elite/eliteScoring';
+import type { StyleContext } from './elite/eliteScoring';
+import { FashionStateService } from '../learning/fashion-state.service';
+import { LearningEventsService } from '../learning/learning-events.service';
 
 // 🧥 Basic capsule wardrobe templates
 const CAPSULES = {
@@ -155,8 +159,14 @@ export class AiService {
   private ttsCache = new Map<string, Buffer>();
   // 🔄 Short-term exclusion cache for visual outfit variety (per user)
   private visualExclusionCache = new Map<string, string[]>();
+  private fashionStateService?: FashionStateService;
+  private learningEventsService?: LearningEventsService;
 
-  constructor(vertexService?: VertexService) {
+  constructor(
+    vertexService?: VertexService,
+    fashionStateService?: FashionStateService,
+    learningEventsService?: LearningEventsService,
+  ) {
     const apiKey = getSecret('OPENAI_API_KEY');
     const project = secretExists('OPENAI_PROJECT_ID')
       ? getSecret('OPENAI_PROJECT_ID')
@@ -181,6 +191,8 @@ export class AiService {
     }
 
     this.productSearch = new ProductSearchService();
+    this.fashionStateService = fashionStateService;
+    this.learningEventsService = learningEventsService;
   }
 
   // async generateSpeechBuffer(text: string): Promise<Buffer> {
@@ -4487,12 +4499,61 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       }
     }
 
+    // ── Elite Scoring: load context (non-blocking) ──
+    let eliteFashionState: StyleContext['fashionState'] = null;
+    let elitePreferredBrands: string[] = [];
+    if (userId && this.fashionStateService) {
+      try {
+        const [summary, brandsRes] = await Promise.all([
+          this.fashionStateService.getStateSummary(userId).catch(() => null),
+          pool.query(
+            'SELECT preferred_brands FROM style_profiles WHERE user_id = $1',
+            [userId],
+          ).then(r => {
+            const raw = r.rows[0]?.preferred_brands;
+            return Array.isArray(raw) ? raw : [];
+          }).catch(() => [] as string[]),
+        ]);
+        if (summary) {
+          eliteFashionState = {
+            topBrands: summary.topBrands,
+            avoidBrands: summary.avoidBrands,
+            topColors: summary.topColors,
+            avoidColors: summary.avoidColors,
+            topCategories: summary.topCategories,
+            priceBracket: summary.priceBracket,
+            isColdStart: summary.isColdStart,
+          };
+        }
+        elitePreferredBrands = brandsRes;
+      } catch {
+        // Non-blocking: fallback to empty context
+      }
+    }
+
+    const eliteStyleContext: StyleContext = {
+      presentation: userPresentation,
+      fashionState: eliteFashionState,
+      preferredBrands: elitePreferredBrands,
+    };
+
     // Elite Scoring hook — Phase 0 NO-OP (flag OFF by default)
     let eliteOutfits = finalOutfits.slice(0, 3);
     if (ELITE_FLAGS.STYLIST) {
       const canonical = eliteOutfits.map(normalizeStylistOutfit);
-      const result = elitePostProcessOutfits(canonical, { presentation: userPresentation }, { mode: 'stylist' });
+      const result = elitePostProcessOutfits(canonical, eliteStyleContext, { mode: 'stylist' });
       eliteOutfits = result.outfits.map(denormalizeStylistOutfit);
+    }
+
+    // ── Elite Scoring: log exposure event (fire-and-forget) ──
+    // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker
+    if (this.learningEventsService && userId) {
+      const canonicalForEvent = eliteOutfits.map(normalizeStylistOutfit);
+      const exposureEvent = buildEliteExposureEvent(userId, canonicalForEvent, {
+        mode: 'stylist',
+        weather: temp != null ? { temp } : undefined,
+      });
+      this.learningEventsService.logEvent(exposureEvent).catch(() => {});
     }
 
     return { weatherSummary, outfits: eliteOutfits };
