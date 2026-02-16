@@ -105,11 +105,14 @@ describe('categoryMapping', () => {
       expect(SLOT_COUNT).toBe(10);
     });
 
-    it.each(expectedSlots)('should have Pinecone filter for %s', (slot: Slot) => {
-      const filter = SLOT_TO_PINECONE_FILTER[slot];
-      expect(filter).toBeDefined();
-      expect(filter.main_category).toBeDefined();
-    });
+    it.each(expectedSlots)(
+      'should have Pinecone filter for %s',
+      (slot: Slot) => {
+        const filter = SLOT_TO_PINECONE_FILTER[slot];
+        expect(filter).toBeDefined();
+        expect(filter.main_category).toBeDefined();
+      },
+    );
 
     it('should have valid filter structure for each slot', () => {
       for (const [slot, filter] of Object.entries(SLOT_TO_PINECONE_FILTER)) {
@@ -441,7 +444,7 @@ describe('categoryMapping', () => {
   describe('bidirectional mapping consistency', () => {
     it('SLOT_TO_PLAN_CATEGORY should be inverse of PLAN_CATEGORY_TO_SLOT', () => {
       for (const [planCat, slot] of Object.entries(PLAN_CATEGORY_TO_SLOT)) {
-        expect(SLOT_TO_PLAN_CATEGORY[slot as Slot]).toBe(planCat);
+        expect(SLOT_TO_PLAN_CATEGORY[slot]).toBe(planCat);
       }
     });
   });

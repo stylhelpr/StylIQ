@@ -9,7 +9,12 @@ import {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function item(overrides: Partial<ValidatorItem> & { id: string; slot: ValidatorItem['slot'] }): ValidatorItem {
+function item(
+  overrides: Partial<ValidatorItem> & {
+    id: string;
+    slot: ValidatorItem['slot'];
+  },
+): ValidatorItem {
   return overrides;
 }
 
@@ -50,13 +55,19 @@ describe('isOpenFootwear', () => {
     expect(isOpenFootwear({ subcategory: 'Thong' })).toBe(true);
   });
   it('rejects sneakers', () => {
-    expect(isOpenFootwear({ subcategory: 'Sneakers', name: 'White Sneakers' })).toBe(false);
+    expect(
+      isOpenFootwear({ subcategory: 'Sneakers', name: 'White Sneakers' }),
+    ).toBe(false);
   });
   it('rejects boots', () => {
-    expect(isOpenFootwear({ subcategory: 'Boots', name: 'Chelsea Boots' })).toBe(false);
+    expect(
+      isOpenFootwear({ subcategory: 'Boots', name: 'Chelsea Boots' }),
+    ).toBe(false);
   });
   it('rejects dress shoes', () => {
-    expect(isOpenFootwear({ subcategory: 'Dress Shoes', name: 'Black Oxfords' })).toBe(false);
+    expect(
+      isOpenFootwear({ subcategory: 'Dress Shoes', name: 'Black Oxfords' }),
+    ).toBe(false);
   });
   it('rejects empty', () => {
     expect(isOpenFootwear({})).toBe(false);
@@ -90,7 +101,11 @@ describe('CROSS_PRESENTATION', () => {
 
   it('rejects masculine item for feminine user', () => {
     const r = validateOutfit(
-      [top('t1', { presentation_code: 'masculine' }), bottom('b1'), shoes('s1')],
+      [
+        top('t1', { presentation_code: 'masculine' }),
+        bottom('b1'),
+        shoes('s1'),
+      ],
       { userPresentation: 'feminine' },
     );
     expect(r.valid).toBe(false);
@@ -106,10 +121,9 @@ describe('CROSS_PRESENTATION', () => {
   });
 
   it('passes when item has no presentation_code (fail-open)', () => {
-    const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1')],
-      { userPresentation: 'masculine' },
-    );
+    const r = validateOutfit([top('t1'), bottom('b1'), shoes('s1')], {
+      userPresentation: 'masculine',
+    });
     expect(r.valid).toBe(true);
   });
 });
@@ -119,7 +133,11 @@ describe('CROSS_PRESENTATION', () => {
 describe('EXTREME_WEATHER_CONTRADICTION', () => {
   it('rejects sandals in freezing', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'Brown Sandals', subcategory: 'Sandals' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'Brown Sandals', subcategory: 'Sandals' }),
+      ],
       { climateZone: 'freezing' },
     );
     expect(r.valid).toBe(false);
@@ -128,7 +146,11 @@ describe('EXTREME_WEATHER_CONTRADICTION', () => {
 
   it('rejects flip-flops in cold', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'Flip Flops', subcategory: 'Flip-Flops' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'Flip Flops', subcategory: 'Flip-Flops' }),
+      ],
       { climateZone: 'cold' },
     );
     expect(r.valid).toBe(false);
@@ -137,7 +159,11 @@ describe('EXTREME_WEATHER_CONTRADICTION', () => {
 
   it('rejects slides in freezing', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'Nike Slides', subcategory: 'Slides' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'Nike Slides', subcategory: 'Slides' }),
+      ],
       { climateZone: 'freezing' },
     );
     expect(r.valid).toBe(false);
@@ -145,7 +171,11 @@ describe('EXTREME_WEATHER_CONTRADICTION', () => {
 
   it('rejects thong footwear in cold', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'Beach Thong', subcategory: 'Thong' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'Beach Thong', subcategory: 'Thong' }),
+      ],
       { climateZone: 'cold' },
     );
     expect(r.valid).toBe(false);
@@ -154,7 +184,11 @@ describe('EXTREME_WEATHER_CONTRADICTION', () => {
 
   it('rejects thong footwear in freezing', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'Beach Thong', subcategory: 'Thong' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'Beach Thong', subcategory: 'Thong' }),
+      ],
       { climateZone: 'freezing' },
     );
     expect(r.valid).toBe(false);
@@ -163,7 +197,11 @@ describe('EXTREME_WEATHER_CONTRADICTION', () => {
 
   it('passes sandals in mild', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'Sandals', subcategory: 'Sandals' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'Sandals', subcategory: 'Sandals' }),
+      ],
       { climateZone: 'mild' },
     );
     expect(r.valid).toBe(true);
@@ -171,7 +209,11 @@ describe('EXTREME_WEATHER_CONTRADICTION', () => {
 
   it('passes closed shoes in freezing', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'Boots', subcategory: 'Boots' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'Boots', subcategory: 'Boots' }),
+      ],
       { climateZone: 'freezing' },
     );
     expect(r.valid).toBe(true);
@@ -179,7 +221,11 @@ describe('EXTREME_WEATHER_CONTRADICTION', () => {
 
   it('passes with no climate zone (fail-open)', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'Sandals', subcategory: 'Sandals' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'Sandals', subcategory: 'Sandals' }),
+      ],
       {},
     );
     expect(r.valid).toBe(true);
@@ -187,7 +233,12 @@ describe('EXTREME_WEATHER_CONTRADICTION', () => {
 
   it('rejects heavy outerwear in hot', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1'), item({ id: 'ow1', slot: 'outerwear', material: 'Down Parka' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1'),
+        item({ id: 'ow1', slot: 'outerwear', material: 'Down Parka' }),
+      ],
       { climateZone: 'hot' },
     );
     expect(r.valid).toBe(false);
@@ -274,7 +325,10 @@ describe('MISSING_REQUIRED_SLOTS', () => {
   });
 
   it('passes activewear with shoes', () => {
-    const r = validateOutfit([item({ id: 'a1', slot: 'activewear' }), shoes('s1')], {});
+    const r = validateOutfit(
+      [item({ id: 'a1', slot: 'activewear' }), shoes('s1')],
+      {},
+    );
     expect(r.valid).toBe(true);
   });
 
@@ -290,7 +344,11 @@ describe('MISSING_REQUIRED_SLOTS', () => {
 describe('Soft penalties', () => {
   it('fires FORMALITY_INCOHERENCE when range > 4', () => {
     const r = validateOutfit(
-      [top('t1', { formality_score: 2 }), bottom('b1', { formality_score: 8 }), shoes('s1')],
+      [
+        top('t1', { formality_score: 2 }),
+        bottom('b1', { formality_score: 8 }),
+        shoes('s1'),
+      ],
       {},
     );
     expect(r.valid).toBe(true);
@@ -299,7 +357,11 @@ describe('Soft penalties', () => {
 
   it('no formality penalty when range <= 4', () => {
     const r = validateOutfit(
-      [top('t1', { formality_score: 4 }), bottom('b1', { formality_score: 6 }), shoes('s1')],
+      [
+        top('t1', { formality_score: 4 }),
+        bottom('b1', { formality_score: 6 }),
+        shoes('s1'),
+      ],
       {},
     );
     expect(r.softPenalties).not.toContain('FORMALITY_INCOHERENCE');
@@ -347,7 +409,11 @@ describe('Soft penalties', () => {
 
   it('fires DISLIKED_STYLE_MATCH when descriptors intersect disliked_styles', () => {
     const r = validateOutfit(
-      [top('t1', { style_descriptors: ['Bohemian'] }), bottom('b1'), shoes('s1')],
+      [
+        top('t1', { style_descriptors: ['Bohemian'] }),
+        bottom('b1'),
+        shoes('s1'),
+      ],
       { styleProfile: { disliked_styles: ['bohemian'] } },
     );
     expect(r.softPenalties).toContain('DISLIKED_STYLE_MATCH');
@@ -355,7 +421,11 @@ describe('Soft penalties', () => {
 
   it('no disliked penalty when disliked_styles empty', () => {
     const r = validateOutfit(
-      [top('t1', { style_descriptors: ['Bohemian'] }), bottom('b1'), shoes('s1')],
+      [
+        top('t1', { style_descriptors: ['Bohemian'] }),
+        bottom('b1'),
+        shoes('s1'),
+      ],
       {},
     );
     expect(r.softPenalties).not.toContain('DISLIKED_STYLE_MATCH');
@@ -367,7 +437,11 @@ describe('Soft penalties', () => {
 describe('COVERAGE_NO_GO', () => {
   it('hard fail: crop top + "No midriff exposure"', () => {
     const r = validateOutfit(
-      [top('t1', { name: 'Cute Crop Top', subcategory: 'Crop Top' }), bottom('b1'), shoes('s1')],
+      [
+        top('t1', { name: 'Cute Crop Top', subcategory: 'Crop Top' }),
+        bottom('b1'),
+        shoes('s1'),
+      ],
       { styleProfile: { coverage_no_go: ['No midriff exposure'] } },
     );
     expect(r.valid).toBe(false);
@@ -376,7 +450,11 @@ describe('COVERAGE_NO_GO', () => {
 
   it('pass: regular t-shirt + "No midriff exposure"', () => {
     const r = validateOutfit(
-      [top('t1', { name: 'Classic T-Shirt', subcategory: 'T-Shirt' }), bottom('b1'), shoes('s1')],
+      [
+        top('t1', { name: 'Classic T-Shirt', subcategory: 'T-Shirt' }),
+        bottom('b1'),
+        shoes('s1'),
+      ],
       { styleProfile: { coverage_no_go: ['No midriff exposure'] } },
     );
     expect(r.valid).toBe(true);
@@ -467,7 +545,11 @@ describe('FORMALITY_FLOOR', () => {
 describe('WALKABILITY', () => {
   it('hard fail: stiletto + walkability="High"', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'Black Stiletto Heels', subcategory: 'Stiletto' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'Black Stiletto Heels', subcategory: 'Stiletto' }),
+      ],
       { styleProfile: { walkability_requirement: 'High' } },
     );
     expect(r.valid).toBe(false);
@@ -476,7 +558,11 @@ describe('WALKABILITY', () => {
 
   it('pass: sneaker + walkability="High"', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'White Sneakers', subcategory: 'Sneakers' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'White Sneakers', subcategory: 'Sneakers' }),
+      ],
       { styleProfile: { walkability_requirement: 'High' } },
     );
     expect(r.valid).toBe(true);
@@ -488,7 +574,11 @@ describe('WALKABILITY', () => {
 describe('AVOID_PATTERN_MATCH', () => {
   it('soft penalty: floral item + avoid_patterns=["Floral"]', () => {
     const r = validateOutfit(
-      [top('t1', { style_descriptors: ['Floral', 'Bohemian'] }), bottom('b1'), shoes('s1')],
+      [
+        top('t1', { style_descriptors: ['Floral', 'Bohemian'] }),
+        bottom('b1'),
+        shoes('s1'),
+      ],
       { styleProfile: { avoid_patterns: ['Floral'] } },
     );
     expect(r.valid).toBe(true);
@@ -521,10 +611,7 @@ describe('SILHOUETTE_MISMATCH', () => {
 
 describe('Fail-open / integration', () => {
   it('all metadata missing => valid, coherenceScore 100', () => {
-    const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1')],
-      {},
-    );
+    const r = validateOutfit([top('t1'), bottom('b1'), shoes('s1')], {});
     expect(r.valid).toBe(true);
     expect(r.hardFails).toHaveLength(0);
     expect(r.softPenalties).toHaveLength(0);
@@ -533,7 +620,11 @@ describe('Fail-open / integration', () => {
 
   it('hard fail sets coherenceScore to 0', () => {
     const r = validateOutfit(
-      [top('t1'), bottom('b1'), shoes('s1', { name: 'Sandals', subcategory: 'Sandals' })],
+      [
+        top('t1'),
+        bottom('b1'),
+        shoes('s1', { name: 'Sandals', subcategory: 'Sandals' }),
+      ],
       { climateZone: 'freezing' },
     );
     expect(r.coherenceScore).toBe(0);
@@ -544,20 +635,33 @@ describe('Fail-open / integration', () => {
       [
         top('t1', { dress_code: 'Business' }),
         bottom('b1', { dress_code: 'Business' }),
-        shoes('s1', { name: 'Brown Sandals', subcategory: 'Sandals', dress_code: 'Casual' }),
+        shoes('s1', {
+          name: 'Brown Sandals',
+          subcategory: 'Sandals',
+          dress_code: 'Casual',
+        }),
       ],
       { climateZone: 'freezing', requestedDressCode: 'Business' },
     );
     expect(r.valid).toBe(false);
     // Should fail on weather contradiction
-    expect(r.hardFails.some(f => f.includes('EXTREME_WEATHER_CONTRADICTION'))).toBe(true);
+    expect(
+      r.hardFails.some((f) => f.includes('EXTREME_WEATHER_CONTRADICTION')),
+    ).toBe(true);
   });
 
   it('validateOutfits batch works correctly', () => {
     const batch = validateOutfits(
       [
         { outfitId: 'o1', items: [top('t1'), bottom('b1'), shoes('s1')] },
-        { outfitId: 'o2', items: [top('t2'), bottom('b2'), shoes('s2', { name: 'Sandals', subcategory: 'Sandals' })] },
+        {
+          outfitId: 'o2',
+          items: [
+            top('t2'),
+            bottom('b2'),
+            shoes('s2', { name: 'Sandals', subcategory: 'Sandals' }),
+          ],
+        },
       ],
       { climateZone: 'freezing' },
     );

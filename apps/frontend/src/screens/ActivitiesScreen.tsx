@@ -46,7 +46,7 @@ export default function ActivitiesScreen({navigate}: Props) {
       : [...selected, activity];
     setSelected(updated);
     await AsyncStorage.setItem('activities', JSON.stringify(updated));
-    updateProfile('weekly_activities', updated); // sync to DB
+    updateProfile('daily_activities', updated); // sync to DB
   };
 
   return (

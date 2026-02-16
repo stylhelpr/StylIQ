@@ -25,9 +25,7 @@ export function enforceConstraintsOnOutfits(
   const isLoaferItem = (x: CatalogItemLite) =>
     x.subcategory === 'Loafers' || x.shoe_style === 'Loafer';
 
-  const bestLoafer = catalog.find(
-    (x) => isSlot(x, 'shoes') && isLoaferItem(x),
-  );
+  const bestLoafer = catalog.find((x) => isSlot(x, 'shoes') && isLoaferItem(x));
 
   return outfits.map((o) => {
     const hasLoafer = (o.items || []).some(

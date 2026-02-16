@@ -55,7 +55,10 @@ export function logPrompt(
   if (!isEnabled()) return;
   emit('PROMPT', requestId, {
     ...data,
-    prompt: data.prompt.length > 3000 ? data.prompt.slice(0, 3000) + '…[truncated]' : data.prompt,
+    prompt:
+      data.prompt.length > 3000
+        ? data.prompt.slice(0, 3000) + '…[truncated]'
+        : data.prompt,
     promptLength: data.promptLength ?? data.prompt.length,
   });
 }

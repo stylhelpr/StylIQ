@@ -114,7 +114,10 @@ export class WeatherService {
     }
 
     // Normalize: "Calabasas, CA" → "Calabasas,CA,US" (OpenWeather format)
-    const parts = city.split(',').map(p => p.trim()).filter(Boolean);
+    const parts = city
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
     let normalized = parts.join(',');
     // If 2-part like "City,CA", append US country code
     if (parts.length === 2 && /^[A-Z]{2}$/i.test(parts[1])) {
@@ -135,7 +138,9 @@ export class WeatherService {
 
     const data = await res.json();
     if (!Array.isArray(data) || !data.length) {
-      throw new Error(`Geocoding returned no results for "${city}" (query="${normalized}")`);
+      throw new Error(
+        `Geocoding returned no results for "${city}" (query="${normalized}")`,
+      );
     }
 
     const result = data[0];
@@ -158,7 +163,10 @@ export class WeatherService {
     const apiKey = this.configService.get<string>('OPENWEATHER_API_KEY');
     if (!apiKey) return [];
 
-    const parts = query.split(',').map(p => p.trim()).filter(Boolean);
+    const parts = query
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
     let normalized = parts.join(',');
     if (parts.length === 2 && /^[A-Z]{2}$/i.test(parts[1])) {
       normalized += ',US';
@@ -174,7 +182,7 @@ export class WeatherService {
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
-    return data.map(r => ({
+    return data.map((r) => ({
       displayName: [r.name, r.state, r.country].filter(Boolean).join(', '),
       lat: r.lat,
       lng: r.lon,
@@ -410,8 +418,7 @@ export class WeatherService {
     const entry =
       list.find(
         (x: any) =>
-          x.dt_txt?.startsWith(tomorrowStr) &&
-          x.dt_txt?.includes('12:00:00'),
+          x.dt_txt?.startsWith(tomorrowStr) && x.dt_txt?.includes('12:00:00'),
       ) ||
       list.find((x: any) => x.dt_txt?.startsWith(tomorrowStr)) ||
       list[0];
@@ -465,11 +472,7 @@ export class WeatherService {
     };
   }
 
-  private mapCondition(
-    main: string,
-    id: number,
-    windSpeed: number,
-  ): string {
+  private mapCondition(main: string, id: number, windSpeed: number): string {
     // High wind overrides other conditions
     if (windSpeed > 25) return 'windy';
 

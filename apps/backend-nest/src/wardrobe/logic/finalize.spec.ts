@@ -167,10 +167,7 @@ describe('validateOutfitCore', () => {
 
     it('All valid → returns all', () => {
       const result = validateOutfitCore([
-        outfit(
-          [item('Tops'), item('Bottoms'), item('Shoes')],
-          'Separates',
-        ),
+        outfit([item('Tops'), item('Bottoms'), item('Shoes')], 'Separates'),
         outfit([item('Dresses'), item('Shoes')], 'Dress'),
         outfit([item('Swimwear')], 'Swim'),
       ]);
@@ -216,9 +213,21 @@ describe('padToThreeOutfits', () => {
 
   it('already 3 outfits → returns unchanged', () => {
     const existing = [
-      makeOutfit([poolItem('t1', 'Tops'), poolItem('b1', 'Bottoms'), poolItem('s1', 'Shoes')]),
-      makeOutfit([poolItem('t2', 'Tops'), poolItem('b2', 'Bottoms'), poolItem('s2', 'Shoes')]),
-      makeOutfit([poolItem('t3', 'Tops'), poolItem('b3', 'Bottoms'), poolItem('s3', 'Shoes')]),
+      makeOutfit([
+        poolItem('t1', 'Tops'),
+        poolItem('b1', 'Bottoms'),
+        poolItem('s1', 'Shoes'),
+      ]),
+      makeOutfit([
+        poolItem('t2', 'Tops'),
+        poolItem('b2', 'Bottoms'),
+        poolItem('s2', 'Shoes'),
+      ]),
+      makeOutfit([
+        poolItem('t3', 'Tops'),
+        poolItem('b3', 'Bottoms'),
+        poolItem('s3', 'Shoes'),
+      ]),
     ];
     const result = padToThreeOutfits(existing, pool, makeOutfit);
     expect(result).toHaveLength(3);
@@ -238,7 +247,11 @@ describe('padToThreeOutfits', () => {
 
   it('1 outfit → pads to 3', () => {
     const existing = [
-      makeOutfit([poolItem('t1', 'Tops'), poolItem('b1', 'Bottoms'), poolItem('s1', 'Shoes')]),
+      makeOutfit([
+        poolItem('t1', 'Tops'),
+        poolItem('b1', 'Bottoms'),
+        poolItem('s1', 'Shoes'),
+      ]),
     ];
     const result = padToThreeOutfits(existing, pool, makeOutfit);
     expect(result).toHaveLength(3);
@@ -246,8 +259,16 @@ describe('padToThreeOutfits', () => {
 
   it('2 outfits → pads to 3', () => {
     const existing = [
-      makeOutfit([poolItem('t1', 'Tops'), poolItem('b1', 'Bottoms'), poolItem('s1', 'Shoes')]),
-      makeOutfit([poolItem('t2', 'Tops'), poolItem('b2', 'Bottoms'), poolItem('s2', 'Shoes')]),
+      makeOutfit([
+        poolItem('t1', 'Tops'),
+        poolItem('b1', 'Bottoms'),
+        poolItem('s1', 'Shoes'),
+      ]),
+      makeOutfit([
+        poolItem('t2', 'Tops'),
+        poolItem('b2', 'Bottoms'),
+        poolItem('s2', 'Shoes'),
+      ]),
     ];
     const result = padToThreeOutfits(existing, pool, makeOutfit);
     expect(result).toHaveLength(3);
@@ -255,7 +276,11 @@ describe('padToThreeOutfits', () => {
 
   it('prefers unused items for variety', () => {
     const existing = [
-      makeOutfit([poolItem('t1', 'Tops'), poolItem('b1', 'Bottoms'), poolItem('s1', 'Shoes')]),
+      makeOutfit([
+        poolItem('t1', 'Tops'),
+        poolItem('b1', 'Bottoms'),
+        poolItem('s1', 'Shoes'),
+      ]),
     ];
     const result = padToThreeOutfits(existing, pool, makeOutfit);
     // Second outfit should NOT reuse t1/b1/s1
@@ -309,7 +334,11 @@ describe('padToThreeOutfits', () => {
 
   it('empty pool → returns original outfits unchanged', () => {
     const existing = [
-      makeOutfit([poolItem('t1', 'Tops'), poolItem('b1', 'Bottoms'), poolItem('s1', 'Shoes')]),
+      makeOutfit([
+        poolItem('t1', 'Tops'),
+        poolItem('b1', 'Bottoms'),
+        poolItem('s1', 'Shoes'),
+      ]),
     ];
     const result = padToThreeOutfits(existing, [], makeOutfit);
     expect(result).toHaveLength(1);
@@ -366,7 +395,9 @@ describe('padToThreeOutfits — PATH #2 centerpiece preservation', () => {
     const result = padToThreeOutfits(existing, padPool, makeOutfit);
     expect(result).toHaveLength(3);
     // outfit[0] still has the centerpiece
-    expect(result[0].items.some((it: any) => it.id === centerpieceId)).toBe(true);
+    expect(result[0].items.some((it: any) => it.id === centerpieceId)).toBe(
+      true,
+    );
   });
 
   it('sparse wardrobe returns <3 without crash', () => {

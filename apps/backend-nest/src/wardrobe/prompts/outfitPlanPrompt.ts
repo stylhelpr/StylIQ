@@ -161,20 +161,66 @@ REFINEMENT MODE:
   }
 
   // Build style profile soft guidance (all approved signals)
-  const sp = options?.userStyleProfile as Record<string, any> | null | undefined;
+  const sp = options?.userStyleProfile as
+    | Record<string, any>
+    | null
+    | undefined;
   let styleProfileBlock = '';
   if (sp) {
     const lines: string[] = [];
-    if (sp.preferredColors?.length) lines.push(`- Preferred colors: ${sp.preferredColors.join(', ')}`);
-    if (sp.favoriteBrands?.length) lines.push(`- Preferred brands: ${sp.favoriteBrands.join(', ')}`);
-    if (sp.occasions?.length) lines.push(`- Typical occasions: ${sp.occasions.join(', ')}`);
-    if (sp.avoidSubcategories?.length) lines.push(`- Disliked styles (avoid): ${sp.avoidSubcategories.join(', ')}`);
-    if (sp.stylePreferences?.length) lines.push(`- Style preferences: ${sp.stylePreferences.join(', ')}`);
-    if (sp.styleKeywords?.length) lines.push(`- Style keywords: ${sp.styleKeywords.join(', ')}`);
-    if (sp.fitPreferences?.length) lines.push(`- Fit preferences: ${sp.fitPreferences.join(', ')}`);
-    if (sp.fabricPreferences?.length) lines.push(`- Fabric preferences: ${sp.fabricPreferences.join(', ')}`);
+    if (sp.preferredColors?.length)
+      lines.push(`- Preferred colors: ${sp.preferredColors.join(', ')}`);
+    if (sp.favoriteBrands?.length)
+      lines.push(`- Preferred brands: ${sp.favoriteBrands.join(', ')}`);
+    if (sp.occasions?.length)
+      lines.push(`- Typical occasions: ${sp.occasions.join(', ')}`);
+    if (sp.avoidSubcategories?.length)
+      lines.push(
+        `- Disliked styles (avoid): ${sp.avoidSubcategories.join(', ')}`,
+      );
+    if (sp.stylePreferences?.length)
+      lines.push(`- Style preferences: ${sp.stylePreferences.join(', ')}`);
+    if (sp.styleKeywords?.length)
+      lines.push(`- Style keywords: ${sp.styleKeywords.join(', ')}`);
+    if (sp.fitPreferences?.length)
+      lines.push(`- Fit preferences: ${sp.fitPreferences.join(', ')}`);
+    if (sp.fabricPreferences?.length)
+      lines.push(`- Fabric preferences: ${sp.fabricPreferences.join(', ')}`);
     if (sp.climate) lines.push(`- Climate: ${sp.climate}`);
     if (sp.dressBias) lines.push(`- Dress bias: ${sp.dressBias}`);
+
+    // P0 hard vetoes — LLM must respect
+    if (sp.coverageNoGo?.length)
+      lines.push(
+        `HARD RULE — Coverage restrictions (NEVER include items violating these): ${sp.coverageNoGo.join(', ')}`,
+      );
+    if (sp.avoidColors?.length)
+      lines.push(
+        `HARD RULE — NEVER use these colors: ${sp.avoidColors.join(', ')}`,
+      );
+    if (sp.avoidMaterials?.length)
+      lines.push(
+        `HARD RULE — NEVER use these materials: ${sp.avoidMaterials.join(', ')}`,
+      );
+    if (sp.formalityFloor)
+      lines.push(
+        `HARD RULE — Minimum formality: ${sp.formalityFloor} (never suggest items below this level)`,
+      );
+    if (sp.walkabilityRequirement && sp.walkabilityRequirement !== 'Low')
+      lines.push(
+        `HARD RULE — Walkability requirement: ${sp.walkabilityRequirement} (avoid impractical footwear)`,
+      );
+
+    // P1 soft preferences
+    if (sp.patternPreferences?.length)
+      lines.push(
+        `- Preferred patterns: ${sp.patternPreferences.join(', ')}`,
+      );
+    if (sp.avoidPatterns?.length)
+      lines.push(`- Avoided patterns: ${sp.avoidPatterns.join(', ')}`);
+    if (sp.silhouettePreference)
+      lines.push(`- Silhouette preference: ${sp.silhouettePreference}`);
+
     if (lines.length > 0) {
       styleProfileBlock = `
 STYLE PREFERENCES (soft guidance — prefer but do not override constraints):
@@ -1298,14 +1344,24 @@ export function buildStartWithItemPromptV4(
   let styleProfileBlock = '';
   if (sp) {
     const lines: string[] = [];
-    if (sp.preferredColors?.length) lines.push(`- Preferred colors: ${sp.preferredColors.join(', ')}`);
-    if (sp.favoriteBrands?.length) lines.push(`- Preferred brands: ${sp.favoriteBrands.join(', ')}`);
-    if (sp.occasions?.length) lines.push(`- Typical occasions: ${sp.occasions.join(', ')}`);
-    if (sp.avoidSubcategories?.length) lines.push(`- Disliked styles (avoid): ${sp.avoidSubcategories.join(', ')}`);
-    if (sp.stylePreferences?.length) lines.push(`- Style preferences: ${sp.stylePreferences.join(', ')}`);
-    if (sp.styleKeywords?.length) lines.push(`- Style keywords: ${sp.styleKeywords.join(', ')}`);
-    if (sp.fitPreferences?.length) lines.push(`- Fit preferences: ${sp.fitPreferences.join(', ')}`);
-    if (sp.fabricPreferences?.length) lines.push(`- Fabric preferences: ${sp.fabricPreferences.join(', ')}`);
+    if (sp.preferredColors?.length)
+      lines.push(`- Preferred colors: ${sp.preferredColors.join(', ')}`);
+    if (sp.favoriteBrands?.length)
+      lines.push(`- Preferred brands: ${sp.favoriteBrands.join(', ')}`);
+    if (sp.occasions?.length)
+      lines.push(`- Typical occasions: ${sp.occasions.join(', ')}`);
+    if (sp.avoidSubcategories?.length)
+      lines.push(
+        `- Disliked styles (avoid): ${sp.avoidSubcategories.join(', ')}`,
+      );
+    if (sp.stylePreferences?.length)
+      lines.push(`- Style preferences: ${sp.stylePreferences.join(', ')}`);
+    if (sp.styleKeywords?.length)
+      lines.push(`- Style keywords: ${sp.styleKeywords.join(', ')}`);
+    if (sp.fitPreferences?.length)
+      lines.push(`- Fit preferences: ${sp.fitPreferences.join(', ')}`);
+    if (sp.fabricPreferences?.length)
+      lines.push(`- Fabric preferences: ${sp.fabricPreferences.join(', ')}`);
     if (sp.climate) lines.push(`- Climate: ${sp.climate}`);
     if (sp.dressBias) lines.push(`- Dress bias: ${sp.dressBias}`);
     if (lines.length > 0) {

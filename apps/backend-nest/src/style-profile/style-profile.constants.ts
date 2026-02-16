@@ -48,11 +48,7 @@ export const WALKABILITY_REQUIREMENT_VALUES = [
   'High',
 ] as const;
 
-export const FOOT_WIDTH_VALUES = [
-  'Narrow',
-  'Standard',
-  'Wide',
-] as const;
+export const FOOT_WIDTH_VALUES = ['Narrow', 'Standard', 'Wide'] as const;
 
 export const TREND_APPETITE_VALUES = [
   'Classic / timeless',

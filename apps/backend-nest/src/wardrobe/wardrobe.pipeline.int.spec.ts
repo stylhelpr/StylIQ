@@ -23,26 +23,131 @@ import { mapMainCategoryToSlot } from './logic/categoryMapping';
 
 const WARDROBE = {
   // Masculine-safe items
-  whiteTee: { id: 't1', name: 'White Tee', main_category: 'Tops', subcategory: 't-shirt', color: 'white', image_url: '' },
-  navyPolo: { id: 't2', name: 'Navy Polo', main_category: 'Tops', subcategory: 'polo', color: 'navy', image_url: '' },
-  blackTee: { id: 't3', name: 'Black Tee', main_category: 'Tops', subcategory: 't-shirt', color: 'black', image_url: '' },
-  darkJeans: { id: 'b1', name: 'Dark Jeans', main_category: 'Bottoms', subcategory: 'jeans', color: 'indigo', image_url: '' },
-  khakiChinos: { id: 'b2', name: 'Khaki Chinos', main_category: 'Bottoms', subcategory: 'chinos', color: 'khaki', image_url: '' },
-  greyTrousers: { id: 'b3', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'trousers', color: 'grey', image_url: '' },
-  whiteSneakers: { id: 's1', name: 'White Sneakers', main_category: 'Shoes', subcategory: 'sneakers', color: 'white', image_url: '' },
-  brownLoafers: { id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'loafers', color: 'brown', image_url: '' },
-  blackOxfords: { id: 's3', name: 'Black Oxfords', main_category: 'Shoes', subcategory: 'oxford', color: 'black', image_url: '' },
-  greenBomber: { id: 'o1', name: 'Green Bomber', main_category: 'Outerwear', subcategory: 'bomber jacket', color: 'olive', image_url: '' },
+  whiteTee: {
+    id: 't1',
+    name: 'White Tee',
+    main_category: 'Tops',
+    subcategory: 't-shirt',
+    color: 'white',
+    image_url: '',
+  },
+  navyPolo: {
+    id: 't2',
+    name: 'Navy Polo',
+    main_category: 'Tops',
+    subcategory: 'polo',
+    color: 'navy',
+    image_url: '',
+  },
+  blackTee: {
+    id: 't3',
+    name: 'Black Tee',
+    main_category: 'Tops',
+    subcategory: 't-shirt',
+    color: 'black',
+    image_url: '',
+  },
+  darkJeans: {
+    id: 'b1',
+    name: 'Dark Jeans',
+    main_category: 'Bottoms',
+    subcategory: 'jeans',
+    color: 'indigo',
+    image_url: '',
+  },
+  khakiChinos: {
+    id: 'b2',
+    name: 'Khaki Chinos',
+    main_category: 'Bottoms',
+    subcategory: 'chinos',
+    color: 'khaki',
+    image_url: '',
+  },
+  greyTrousers: {
+    id: 'b3',
+    name: 'Grey Trousers',
+    main_category: 'Bottoms',
+    subcategory: 'trousers',
+    color: 'grey',
+    image_url: '',
+  },
+  whiteSneakers: {
+    id: 's1',
+    name: 'White Sneakers',
+    main_category: 'Shoes',
+    subcategory: 'sneakers',
+    color: 'white',
+    image_url: '',
+  },
+  brownLoafers: {
+    id: 's2',
+    name: 'Brown Loafers',
+    main_category: 'Shoes',
+    subcategory: 'loafers',
+    color: 'brown',
+    image_url: '',
+  },
+  blackOxfords: {
+    id: 's3',
+    name: 'Black Oxfords',
+    main_category: 'Shoes',
+    subcategory: 'oxford',
+    color: 'black',
+    image_url: '',
+  },
+  greenBomber: {
+    id: 'o1',
+    name: 'Green Bomber',
+    main_category: 'Outerwear',
+    subcategory: 'bomber jacket',
+    color: 'olive',
+    image_url: '',
+  },
 
   // Feminine items (should be filtered for masculine users)
-  floralDress: { id: 'f1', name: 'Floral Wrap Dress', main_category: 'Dresses', subcategory: 'wrap dress', color: 'pink', image_url: '' },
-  miniSkirt: { id: 'f2', name: 'Pleated Mini Skirt', main_category: 'Skirts', subcategory: 'mini skirt', color: 'black', image_url: '' },
-  blackStilettos: { id: 'f3', name: 'Black Stilettos', main_category: 'Shoes', subcategory: 'stiletto', color: 'black', image_url: '' },
-  silkBlouse: { id: 'f4', name: 'Silk Blouse', main_category: 'Tops', subcategory: 'blouse', color: 'ivory', image_url: '' },
-  redPurse: { id: 'f5', name: 'Red Clutch Purse', main_category: 'Accessories', subcategory: 'clutch', color: 'red', image_url: '' },
+  floralDress: {
+    id: 'f1',
+    name: 'Floral Wrap Dress',
+    main_category: 'Dresses',
+    subcategory: 'wrap dress',
+    color: 'pink',
+    image_url: '',
+  },
+  miniSkirt: {
+    id: 'f2',
+    name: 'Pleated Mini Skirt',
+    main_category: 'Skirts',
+    subcategory: 'mini skirt',
+    color: 'black',
+    image_url: '',
+  },
+  blackStilettos: {
+    id: 'f3',
+    name: 'Black Stilettos',
+    main_category: 'Shoes',
+    subcategory: 'stiletto',
+    color: 'black',
+    image_url: '',
+  },
+  silkBlouse: {
+    id: 'f4',
+    name: 'Silk Blouse',
+    main_category: 'Tops',
+    subcategory: 'blouse',
+    color: 'ivory',
+    image_url: '',
+  },
+  redPurse: {
+    id: 'f5',
+    name: 'Red Clutch Purse',
+    main_category: 'Accessories',
+    subcategory: 'clutch',
+    color: 'red',
+    image_url: '',
+  },
 };
 
-type WardrobeItem = typeof WARDROBE[keyof typeof WARDROBE];
+type WardrobeItem = (typeof WARDROBE)[keyof typeof WARDROBE];
 
 /** Convert a wardrobe item into the shape used by outfit items */
 const toOutfitItem = (w: WardrobeItem) => ({
@@ -63,7 +168,12 @@ function masculinePreFilter(items: WardrobeItem[]): WardrobeItem[] {
 
 /** Apply masculine post-assembly filter (mirrors wardrobe.service.ts:1586-1604) */
 function masculinePostFilter(
-  outfitItems: Array<{ main_category?: string; subcategory?: string; label?: string; name?: string }>,
+  outfitItems: Array<{
+    main_category?: string;
+    subcategory?: string;
+    label?: string;
+    name?: string;
+  }>,
 ) {
   return outfitItems.filter(
     (it) =>
@@ -107,7 +217,9 @@ describe('T1: Masculine safety — full pipeline', () => {
     // Should remove: floralDress, miniSkirt, blackStilettos, silkBlouse, redPurse
     expect(filtered.length).toBe(allItems.length - 5);
     for (const item of filtered) {
-      expect(isFeminineItem(item.main_category, item.subcategory, item.name)).toBe(false);
+      expect(
+        isFeminineItem(item.main_category, item.subcategory, item.name),
+      ).toBe(false);
     }
   });
 
@@ -121,7 +233,16 @@ describe('T1: Masculine safety — full pipeline', () => {
     ];
     const cleaned = masculinePostFilter(leakedOutfit);
     // No feminine items survive the filter
-    expect(cleaned.every((it) => !isFeminineItem(it.main_category || '', (it as any).subcategory || '', (it as any).label || ''))).toBe(true);
+    expect(
+      cleaned.every(
+        (it) =>
+          !isFeminineItem(
+            it.main_category || '',
+            (it as any).subcategory || '',
+            (it as any).label || '',
+          ),
+      ),
+    ).toBe(true);
     expect(cleaned).toHaveLength(3); // dress removed
   });
 
@@ -131,7 +252,11 @@ describe('T1: Masculine safety — full pipeline', () => {
 
     // Step 2: Simulate LLM returning 1 outfit from safe pool
     const llmOutfits = [
-      makeOutfit([WARDROBE.whiteTee, WARDROBE.darkJeans, WARDROBE.whiteSneakers]),
+      makeOutfit([
+        WARDROBE.whiteTee,
+        WARDROBE.darkJeans,
+        WARDROBE.whiteSneakers,
+      ]),
     ];
 
     // Step 3: Post-assembly filter (defense-in-depth)
@@ -152,20 +277,16 @@ describe('T1: Masculine safety — full pipeline', () => {
       color: r.color,
       image_url: r.image_url,
     }));
-    const padded = padToThreeOutfits(
-      validated,
-      padPool,
-      (items) => ({
-        outfit_id: `pad-${Math.random().toString(36).slice(2, 8)}`,
-        title: 'More from your wardrobe',
-        items: items.map((r) => ({
-          id: r.id,
-          main_category: r.main_category,
-          label: r.name,
-        })),
-        why: 'padded',
-      }),
-    );
+    const padded = padToThreeOutfits(validated, padPool, (items) => ({
+      outfit_id: `pad-${Math.random().toString(36).slice(2, 8)}`,
+      title: 'More from your wardrobe',
+      items: items.map((r) => ({
+        id: r.id,
+        main_category: r.main_category,
+        label: r.name,
+      })),
+      why: 'padded',
+    }));
 
     expect(padded).toHaveLength(3);
 
@@ -188,7 +309,9 @@ describe('T1: Masculine safety — full pipeline', () => {
 
   it('stilettos, purses, blouses all caught by isFeminineItem', () => {
     expect(isFeminineItem('Shoes', 'stiletto', 'Black Stilettos')).toBe(true);
-    expect(isFeminineItem('Accessories', 'clutch', 'Red Clutch Purse')).toBe(true);
+    expect(isFeminineItem('Accessories', 'clutch', 'Red Clutch Purse')).toBe(
+      true,
+    );
     expect(isFeminineItem('Tops', 'blouse', 'Silk Blouse')).toBe(true);
     expect(isFeminineItem('Dresses', 'wrap dress', 'Floral Wrap')).toBe(true);
     expect(isFeminineItem('Skirts', 'mini skirt', 'Pleated Skirt')).toBe(true);
@@ -199,7 +322,9 @@ describe('T1: Masculine safety — full pipeline', () => {
     expect(isFeminineItem('Bottoms', 'jeans', 'Dark Jeans')).toBe(false);
     expect(isFeminineItem('Shoes', 'sneakers', 'White Sneakers')).toBe(false);
     expect(isFeminineItem('Shoes', 'oxford', 'Black Oxfords')).toBe(false);
-    expect(isFeminineItem('Outerwear', 'bomber jacket', 'Green Bomber')).toBe(false);
+    expect(isFeminineItem('Outerwear', 'bomber jacket', 'Green Bomber')).toBe(
+      false,
+    );
   });
 });
 
@@ -210,16 +335,30 @@ describe('T1: Masculine safety — full pipeline', () => {
 describe('T2: 3 outfits guarantee — full pipeline', () => {
   it('LLM returns 3 valid outfits → all pass validation', () => {
     const outfits = [
-      makeOutfit([WARDROBE.whiteTee, WARDROBE.darkJeans, WARDROBE.whiteSneakers]),
-      makeOutfit([WARDROBE.navyPolo, WARDROBE.khakiChinos, WARDROBE.brownLoafers]),
-      makeOutfit([WARDROBE.blackTee, WARDROBE.greyTrousers, WARDROBE.blackOxfords]),
+      makeOutfit([
+        WARDROBE.whiteTee,
+        WARDROBE.darkJeans,
+        WARDROBE.whiteSneakers,
+      ]),
+      makeOutfit([
+        WARDROBE.navyPolo,
+        WARDROBE.khakiChinos,
+        WARDROBE.brownLoafers,
+      ]),
+      makeOutfit([
+        WARDROBE.blackTee,
+        WARDROBE.greyTrousers,
+        WARDROBE.blackOxfords,
+      ]),
     ];
     const validated = validateOutfitCore(outfits, 'casual');
     expect(validated).toHaveLength(3);
 
     // Each outfit has valid structure
     for (const o of validated) {
-      const cats = o.items.map((it: any) => mapMainCategoryToSlot(it.main_category));
+      const cats = o.items.map((it: any) =>
+        mapMainCategoryToSlot(it.main_category),
+      );
       expect(cats).toContain('tops');
       expect(cats).toContain('bottoms');
       expect(cats).toContain('shoes');
@@ -228,15 +367,22 @@ describe('T2: 3 outfits guarantee — full pipeline', () => {
 
   it('LLM returns 1 valid outfit → padToThreeOutfits fills to 3', () => {
     const llmOutfits = [
-      makeOutfit([WARDROBE.whiteTee, WARDROBE.darkJeans, WARDROBE.whiteSneakers]),
+      makeOutfit([
+        WARDROBE.whiteTee,
+        WARDROBE.darkJeans,
+        WARDROBE.whiteSneakers,
+      ]),
     ];
     const validated = validateOutfitCore(llmOutfits, 'casual');
     expect(validated).toHaveLength(1);
 
     const pool = [
-      WARDROBE.navyPolo, WARDROBE.blackTee,
-      WARDROBE.khakiChinos, WARDROBE.greyTrousers,
-      WARDROBE.brownLoafers, WARDROBE.blackOxfords,
+      WARDROBE.navyPolo,
+      WARDROBE.blackTee,
+      WARDROBE.khakiChinos,
+      WARDROBE.greyTrousers,
+      WARDROBE.brownLoafers,
+      WARDROBE.blackOxfords,
     ].map((r) => ({
       id: r.id,
       name: r.name,
@@ -246,19 +392,15 @@ describe('T2: 3 outfits guarantee — full pipeline', () => {
       image_url: r.image_url,
     }));
 
-    const padded = padToThreeOutfits(
-      validated,
-      pool,
-      (items) => ({
-        outfit_id: `pad-${Math.random().toString(36).slice(2, 8)}`,
-        title: 'More from your wardrobe',
-        items: items.map((r) => ({
-          id: r.id,
-          main_category: r.main_category,
-        })),
-        why: 'padded',
-      }),
-    );
+    const padded = padToThreeOutfits(validated, pool, (items) => ({
+      outfit_id: `pad-${Math.random().toString(36).slice(2, 8)}`,
+      title: 'More from your wardrobe',
+      items: items.map((r) => ({
+        id: r.id,
+        main_category: r.main_category,
+      })),
+      why: 'padded',
+    }));
 
     expect(padded).toHaveLength(3);
 
@@ -276,9 +418,15 @@ describe('T2: 3 outfits guarantee — full pipeline', () => {
     expect(validated).toHaveLength(0);
 
     const pool = [
-      WARDROBE.whiteTee, WARDROBE.navyPolo, WARDROBE.blackTee,
-      WARDROBE.darkJeans, WARDROBE.khakiChinos, WARDROBE.greyTrousers,
-      WARDROBE.whiteSneakers, WARDROBE.brownLoafers, WARDROBE.blackOxfords,
+      WARDROBE.whiteTee,
+      WARDROBE.navyPolo,
+      WARDROBE.blackTee,
+      WARDROBE.darkJeans,
+      WARDROBE.khakiChinos,
+      WARDROBE.greyTrousers,
+      WARDROBE.whiteSneakers,
+      WARDROBE.brownLoafers,
+      WARDROBE.blackOxfords,
     ].map((r) => ({
       id: r.id,
       name: r.name,
@@ -288,19 +436,15 @@ describe('T2: 3 outfits guarantee — full pipeline', () => {
       image_url: r.image_url,
     }));
 
-    const padded = padToThreeOutfits(
-      validated,
-      pool,
-      (items) => ({
-        outfit_id: `pad-${Math.random().toString(36).slice(2, 8)}`,
-        title: 'Fallback outfit',
-        items: items.map((r) => ({
-          id: r.id,
-          main_category: r.main_category,
-        })),
-        why: 'deterministic fallback',
-      }),
-    );
+    const padded = padToThreeOutfits(validated, pool, (items) => ({
+      outfit_id: `pad-${Math.random().toString(36).slice(2, 8)}`,
+      title: 'Fallback outfit',
+      items: items.map((r) => ({
+        id: r.id,
+        main_category: r.main_category,
+      })),
+      why: 'deterministic fallback',
+    }));
 
     expect(padded).toHaveLength(3);
     const revalidated = validateOutfitCore(padded, 'casual');
@@ -323,25 +467,27 @@ describe('T2: 3 outfits guarantee — full pipeline', () => {
 
   it('each outfit has unique item combinations (no exact duplicates)', () => {
     const pool = [
-      WARDROBE.whiteTee, WARDROBE.navyPolo, WARDROBE.blackTee,
-      WARDROBE.darkJeans, WARDROBE.khakiChinos, WARDROBE.greyTrousers,
-      WARDROBE.whiteSneakers, WARDROBE.brownLoafers, WARDROBE.blackOxfords,
+      WARDROBE.whiteTee,
+      WARDROBE.navyPolo,
+      WARDROBE.blackTee,
+      WARDROBE.darkJeans,
+      WARDROBE.khakiChinos,
+      WARDROBE.greyTrousers,
+      WARDROBE.whiteSneakers,
+      WARDROBE.brownLoafers,
+      WARDROBE.blackOxfords,
     ].map((r) => ({
       id: r.id,
       name: r.name,
       main_category: r.main_category,
     }));
 
-    const padded = padToThreeOutfits(
-      [],
-      pool,
-      (items) => ({
-        outfit_id: `test`,
-        title: 'Test',
-        items: items.map((r) => ({ id: r.id, main_category: r.main_category })),
-        why: '',
-      }),
-    );
+    const padded = padToThreeOutfits([], pool, (items) => ({
+      outfit_id: `test`,
+      title: 'Test',
+      items: items.map((r) => ({ id: r.id, main_category: r.main_category })),
+      why: '',
+    }));
 
     expect(padded).toHaveLength(3);
 
@@ -363,16 +509,23 @@ describe('T2: 3 outfits guarantee — full pipeline', () => {
 
 describe('T3: aaaaMode routing — controller logic', () => {
   // Mirrors wardrobe.controller.ts:161
-  function shouldUseFastMode(body: { useFastMode?: boolean; aaaaMode?: boolean }) {
+  function shouldUseFastMode(body: {
+    useFastMode?: boolean;
+    aaaaMode?: boolean;
+  }) {
     return body.useFastMode && !body.aaaaMode;
   }
 
   it('aaaaMode=true + useFastMode=true → standard (NOT fast)', () => {
-    expect(shouldUseFastMode({ useFastMode: true, aaaaMode: true })).toBe(false);
+    expect(shouldUseFastMode({ useFastMode: true, aaaaMode: true })).toBe(
+      false,
+    );
   });
 
   it('aaaaMode=true + useFastMode=false → standard', () => {
-    expect(shouldUseFastMode({ useFastMode: false, aaaaMode: true })).toBe(false);
+    expect(shouldUseFastMode({ useFastMode: false, aaaaMode: true })).toBe(
+      false,
+    );
   });
 
   it('aaaaMode=undefined + useFastMode=true → fast', () => {
@@ -380,7 +533,9 @@ describe('T3: aaaaMode routing — controller logic', () => {
   });
 
   it('aaaaMode=false + useFastMode=true → fast', () => {
-    expect(shouldUseFastMode({ useFastMode: true, aaaaMode: false })).toBe(true);
+    expect(shouldUseFastMode({ useFastMode: true, aaaaMode: false })).toBe(
+      true,
+    );
   });
 
   it('neither flag → standard', () => {

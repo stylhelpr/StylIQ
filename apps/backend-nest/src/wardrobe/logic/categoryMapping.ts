@@ -128,7 +128,14 @@ export const SLOT_TO_MAIN_CATEGORIES: Record<Slot, readonly MainCategory[]> = {
   activewear: ['Activewear'],
   swimwear: ['Swimwear'],
   undergarments: ['Undergarments'],
-  other: ['Loungewear', 'Sleepwear', 'Maternity', 'Unisex', 'Costumes', 'Other'],
+  other: [
+    'Loungewear',
+    'Sleepwear',
+    'Maternity',
+    'Unisex',
+    'Costumes',
+    'Other',
+  ],
 };
 
 /**
@@ -152,7 +159,14 @@ export const SLOT_TO_PINECONE_FILTER: Record<Slot, Record<string, any>> = {
   undergarments: { main_category: { $eq: 'Undergarments' } },
   other: {
     main_category: {
-      $in: ['Loungewear', 'Sleepwear', 'Maternity', 'Unisex', 'Costumes', 'Other'],
+      $in: [
+        'Loungewear',
+        'Sleepwear',
+        'Maternity',
+        'Unisex',
+        'Costumes',
+        'Other',
+      ],
     },
   },
 };
@@ -198,7 +212,9 @@ export const SLOT_TO_PLAN_CATEGORY: Record<Slot, PlanCategory> = {
  * NEVER returns undefined - all 21 categories are mapped.
  * Handles null/undefined/empty gracefully by returning 'other'.
  */
-export function mapMainCategoryToSlot(category: string | null | undefined): Slot {
+export function mapMainCategoryToSlot(
+  category: string | null | undefined,
+): Slot {
   // Handle null/undefined/empty
   if (!category || typeof category !== 'string') return 'other';
   const trimmed = category.trim();
@@ -276,7 +292,9 @@ export function getMainCategoriesForSlot(slot: Slot): readonly MainCategory[] {
 /**
  * Checks if a MainCategory string is valid.
  */
-export function isValidMainCategory(category: string): category is MainCategory {
+export function isValidMainCategory(
+  category: string,
+): category is MainCategory {
   return category in MAIN_CATEGORY_TO_SLOT;
 }
 
@@ -377,9 +395,7 @@ export function filterBySlot<T extends ItemLike>(items: T[], slot: Slot): T[] {
  * const grouped = groupBySlot(catalog);
  * // { tops: [...], bottoms: [...], shoes: [...], ... }
  */
-export function groupBySlot<T extends ItemLike>(
-  items: T[],
-): Record<Slot, T[]> {
+export function groupBySlot<T extends ItemLike>(items: T[]): Record<Slot, T[]> {
   const result: Record<Slot, T[]> = {
     tops: [],
     bottoms: [],

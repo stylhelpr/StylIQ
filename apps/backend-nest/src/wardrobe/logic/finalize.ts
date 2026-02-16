@@ -527,10 +527,18 @@ export function padToThreeOutfits<
   );
 
   // Group pool by slot
-  const tops = pool.filter((r) => mapMainCategoryToSlot(r.main_category ?? '') === 'tops');
-  const bottoms = pool.filter((r) => mapMainCategoryToSlot(r.main_category ?? '') === 'bottoms');
-  const shoes = pool.filter((r) => mapMainCategoryToSlot(r.main_category ?? '') === 'shoes');
-  const dresses = pool.filter((r) => mapMainCategoryToSlot(r.main_category ?? '') === 'dresses');
+  const tops = pool.filter(
+    (r) => mapMainCategoryToSlot(r.main_category ?? '') === 'tops',
+  );
+  const bottoms = pool.filter(
+    (r) => mapMainCategoryToSlot(r.main_category ?? '') === 'bottoms',
+  );
+  const shoes = pool.filter(
+    (r) => mapMainCategoryToSlot(r.main_category ?? '') === 'shoes',
+  );
+  const dresses = pool.filter(
+    (r) => mapMainCategoryToSlot(r.main_category ?? '') === 'dresses',
+  );
 
   // Track which items have been used in backfill to prefer variety
   const usedIds = new Set<string>();

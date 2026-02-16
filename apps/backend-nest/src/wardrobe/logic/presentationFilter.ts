@@ -10,9 +10,7 @@ export type UserPresentation = 'masculine' | 'feminine' | 'mixed';
 export function resolveUserPresentation(
   genderPresentation: string,
 ): UserPresentation {
-  const gp = (genderPresentation || '')
-    .toLowerCase()
-    .replace(/[\s_-]+/g, '');
+  const gp = (genderPresentation || '').toLowerCase().replace(/[\s_-]+/g, '');
   // Check female/feminine FIRST — 'female'.includes('male') is true in JS!
   if (gp.includes('female') || gp.includes('feminin') || gp === 'woman')
     return 'feminine';
@@ -77,9 +75,7 @@ export function isFeminineItem(
 }
 
 /** Build the gender directive string for LLM prompts. */
-export function buildGenderDirective(
-  presentation: UserPresentation,
-): string {
+export function buildGenderDirective(presentation: UserPresentation): string {
   if (presentation === 'masculine')
     return `\n════════════════════════\nGENDER CONTEXT\n════════════════════════\nThis user presents masculine. NEVER include dresses, skirts, gowns, blouses, heels, ballet flats, purses, or any feminine-coded garments. Only use items from the wardrobe list provided.\n`;
   if (presentation === 'feminine')

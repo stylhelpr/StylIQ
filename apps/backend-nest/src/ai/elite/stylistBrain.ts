@@ -44,6 +44,28 @@ export interface StyleProfileFields {
   footwear_comfort: string | null;
   foot_width: string | null;
 
+  // Coloring
+  skin_tone: string | null;
+  undertone: string | null;
+  hair_color: string | null;
+  eye_color: string | null;
+
+  // Body & proportions
+  proportions: string | null;
+  height: number | null;
+  weight: number | null;
+  chest: number | null;
+  waist: number | null;
+  hip: number | null;
+  shoulder_width: number | null;
+  inseam: number | null;
+  shoe_size: number | null;
+
+  // Extra preference fields
+  color_preferences: string[];
+  unit_preference: string | null;
+  prefs_jsonb: Record<string, unknown> | null;
+
   // LLM-only context
   fashion_boldness: string | null;
   trend_appetite: string | null;
@@ -69,17 +91,23 @@ export interface StylistBrainContext {
 
 // ── Presentation Resolver ───────────────────────────────────────────────────
 
-function resolvePresentation(raw: string | null | undefined): 'masculine' | 'feminine' | 'mixed' {
+function resolvePresentation(
+  raw: string | null | undefined,
+): 'masculine' | 'feminine' | 'mixed' {
   const gp = (raw || '').toLowerCase().replace(/[\s_-]+/g, '');
   // Check female/feminine FIRST — 'female'.includes('male') is true in JS!
-  if (gp.includes('female') || gp.includes('feminin') || gp === 'woman') return 'feminine';
-  if (gp.includes('male') || gp.includes('masculin') || gp === 'man') return 'masculine';
+  if (gp.includes('female') || gp.includes('feminin') || gp === 'woman')
+    return 'feminine';
+  if (gp.includes('male') || gp.includes('masculin') || gp === 'man')
+    return 'masculine';
   return 'mixed';
 }
 
 // ── Style Profile Row Parser ────────────────────────────────────────────────
 
-function parseStyleProfileRow(row: Record<string, unknown>): StyleProfileFields {
+function parseStyleProfileRow(
+  row: Record<string, unknown>,
+): StyleProfileFields {
   const toStringArray = (v: unknown): string[] =>
     Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 
@@ -116,6 +144,31 @@ function parseStyleProfileRow(row: Record<string, unknown>): StyleProfileFields 
     contrast_preference: toNullableString(row.contrast_preference),
     footwear_comfort: toNullableString(row.footwear_comfort),
     foot_width: toNullableString(row.foot_width),
+
+    // Coloring
+    skin_tone: toNullableString(row.skin_tone),
+    undertone: toNullableString(row.undertone),
+    hair_color: toNullableString(row.hair_color),
+    eye_color: toNullableString(row.eye_color),
+
+    // Body & proportions
+    proportions: toNullableString(row.proportions),
+    height: toNullableNumber(row.height),
+    weight: toNullableNumber(row.weight),
+    chest: toNullableNumber(row.chest),
+    waist: toNullableNumber(row.waist),
+    hip: toNullableNumber(row.hip),
+    shoulder_width: toNullableNumber(row.shoulder_width),
+    inseam: toNullableNumber(row.inseam),
+    shoe_size: toNullableNumber(row.shoe_size),
+
+    // Extra preference fields
+    color_preferences: toStringArray(row.color_preferences),
+    unit_preference: toNullableString(row.unit_preference),
+    prefs_jsonb:
+      row.prefs_jsonb && typeof row.prefs_jsonb === 'object'
+        ? (row.prefs_jsonb as Record<string, unknown>)
+        : null,
 
     // LLM-only context
     fashion_boldness: toNullableString(row.fashion_boldness),
@@ -154,15 +207,18 @@ export async function loadStylistBrainContext(
     const result = await Promise.race([
       Promise.all([
         // Leg 1: gender_presentation
-        pool.query(
-          'SELECT gender_presentation FROM users WHERE id = $1 LIMIT 1',
-          [userId],
-        ).then(r => r.rows[0]?.gender_presentation as string | undefined)
+        pool
+          .query(
+            'SELECT gender_presentation FROM users WHERE id = $1 LIMIT 1',
+            [userId],
+          )
+          .then((r) => r.rows[0]?.gender_presentation as string | undefined)
           .catch(() => undefined),
 
         // Leg 2: style profile
-        pool.query(
-          `SELECT fit_preferences, fabric_preferences, favorite_colors,
+        pool
+          .query(
+            `SELECT fit_preferences, fabric_preferences, favorite_colors,
                   disliked_styles, style_preferences, preferred_brands,
                   occasions, body_type, climate,
                   coverage_no_go, avoid_colors, avoid_materials,
@@ -170,19 +226,26 @@ export async function loadStylistBrainContext(
                   pattern_preferences, avoid_patterns, silhouette_preference,
                   care_tolerance, metal_preference, contrast_preference,
                   footwear_comfort, foot_width,
+                  skin_tone, undertone, hair_color, eye_color,
+                  proportions, height, weight, chest, waist, hip,
+                  shoulder_width, inseam, shoe_size,
+                  color_preferences, unit_preference, prefs_jsonb,
                   fashion_boldness, trend_appetite, fashion_confidence,
                   budget_min, budget_max, style_icons, daily_activities,
                   personality_traits, lifestyle_notes
            FROM style_profiles WHERE user_id = $1`,
-          [userId],
-        ).then(r => r.rows[0] ?? null)
+            [userId],
+          )
+          .then((r) => r.rows[0] ?? null)
           .catch(() => null),
 
         // Leg 3: fashion state summary (already has internal timeout)
         fashionStateService.getStateSummary(userId).catch(() => null),
       ]),
       // Overall timeout
-      new Promise<null>(resolve => setTimeout(() => resolve(null), BRAIN_TIMEOUT_MS)),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), BRAIN_TIMEOUT_MS),
+      ),
     ]);
 
     if (!result || !Array.isArray(result)) return defaults;

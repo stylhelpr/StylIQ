@@ -130,11 +130,11 @@ export function scoreOutfit(
         const brand = (item as any).brand as string | undefined;
         if (!brand) continue;
         const brandLower = brand.toLowerCase();
-        if (topBrands.some(b => b.toLowerCase() === brandLower)) {
+        if (topBrands.some((b) => b.toLowerCase() === brandLower)) {
           score += 10;
           brandFired = true;
         }
-        if (avoidBrands.some(b => b.toLowerCase() === brandLower)) {
+        if (avoidBrands.some((b) => b.toLowerCase() === brandLower)) {
           score -= 15;
           brandFired = true;
         }
@@ -148,10 +148,7 @@ export function scoreOutfit(
 
   // ── Color affinity (merge fashionState + wardrobeStats sources) ──
   {
-    const topColors = [
-      ...(fs?.topColors ?? []),
-      ...(ws?.dominantColors ?? []),
-    ];
+    const topColors = [...(fs?.topColors ?? []), ...(ws?.dominantColors ?? [])];
     const avoidColors = fs?.avoidColors ?? [];
 
     if (topColors.length > 0 || avoidColors.length > 0) {
@@ -160,11 +157,11 @@ export function scoreOutfit(
       for (const item of outfit.items) {
         const itemColor = (item as any).color as string | undefined;
         if (!itemColor) continue;
-        if (topColors.some(c => colorMatches(itemColor, c))) {
+        if (topColors.some((c) => colorMatches(itemColor, c))) {
           score += 5;
           colorFired = true;
         }
-        if (avoidColors.some(c => colorMatches(itemColor, c))) {
+        if (avoidColors.some((c) => colorMatches(itemColor, c))) {
           score -= 8;
           colorFired = true;
         }
@@ -182,7 +179,7 @@ export function scoreOutfit(
     if (topCategories.length > 0) {
       signalsAvailable++;
       let catFired = false;
-      const topCatLower = topCategories.map(c => c.toLowerCase());
+      const topCatLower = topCategories.map((c) => c.toLowerCase());
       for (const item of outfit.items) {
         if (topCatLower.includes(item.slot.toLowerCase())) {
           score += 3;
@@ -203,11 +200,15 @@ export function scoreOutfit(
     if (topStyles.length > 0 || avoidStyles.length > 0) {
       signalsAvailable++;
       let styleFired = false;
-      const topLower = topStyles.map(s => s.toLowerCase());
-      const avoidLower = avoidStyles.map(s => s.toLowerCase());
+      const topLower = topStyles.map((s) => s.toLowerCase());
+      const avoidLower = avoidStyles.map((s) => s.toLowerCase());
       for (const item of outfit.items) {
-        const descriptors = (item as any).style_descriptors as string[] | undefined;
-        const archetypes = (item as any).style_archetypes as string[] | undefined;
+        const descriptors = (item as any).style_descriptors as
+          | string[]
+          | undefined;
+        const archetypes = (item as any).style_archetypes as
+          | string[]
+          | undefined;
         const tokens: string[] = [
           ...(Array.isArray(descriptors) ? descriptors : []),
           ...(Array.isArray(archetypes) ? archetypes : []),
@@ -281,12 +282,18 @@ export function scoreOutfit(
     if (fitPrefs.length > 0) {
       signalsAvailable++;
       let fitFired = false;
-      const fitPrefsLower = fitPrefs.map(f => f.toLowerCase());
+      const fitPrefsLower = fitPrefs.map((f) => f.toLowerCase());
       for (const item of outfit.items) {
-        const itemFit = ((item as any).fit ?? (item as any).fit_type) as string | undefined;
+        const itemFit = ((item as any).fit ?? (item as any).fit_type) as
+          | string
+          | undefined;
         if (!itemFit) continue;
         const itemFitLower = itemFit.toLowerCase();
-        if (fitPrefsLower.some(f => itemFitLower.includes(f) || f.includes(itemFitLower))) {
+        if (
+          fitPrefsLower.some(
+            (f) => itemFitLower.includes(f) || f.includes(itemFitLower),
+          )
+        ) {
           score += 4;
           fitFired = true;
         }
@@ -304,12 +311,17 @@ export function scoreOutfit(
     if (fabricPrefs.length > 0) {
       signalsAvailable++;
       let fabricFired = false;
-      const fabricPrefsLower = fabricPrefs.map(f => f.toLowerCase());
+      const fabricPrefsLower = fabricPrefs.map((f) => f.toLowerCase());
       for (const item of outfit.items) {
-        const itemMaterial = ((item as any).material ?? (item as any).fabric_blend) as string | undefined;
+        const itemMaterial = ((item as any).material ??
+          (item as any).fabric_blend) as string | undefined;
         if (!itemMaterial) continue;
         const itemMatLower = itemMaterial.toLowerCase();
-        if (fabricPrefsLower.some(f => itemMatLower.includes(f) || f.includes(itemMatLower))) {
+        if (
+          fabricPrefsLower.some(
+            (f) => itemMatLower.includes(f) || f.includes(itemMatLower),
+          )
+        ) {
           score += 3;
           fabricFired = true;
         }
@@ -327,10 +339,14 @@ export function scoreOutfit(
     if (stylePrefs.length > 0) {
       signalsAvailable++;
       let prefFired = false;
-      const prefsLower = stylePrefs.map(s => s.toLowerCase());
+      const prefsLower = stylePrefs.map((s) => s.toLowerCase());
       for (const item of outfit.items) {
-        const descriptors = (item as any).style_descriptors as string[] | undefined;
-        const archetypes = (item as any).style_archetypes as string[] | undefined;
+        const descriptors = (item as any).style_descriptors as
+          | string[]
+          | undefined;
+        const archetypes = (item as any).style_archetypes as
+          | string[]
+          | undefined;
         const tokens: string[] = [
           ...(Array.isArray(descriptors) ? descriptors : []),
           ...(Array.isArray(archetypes) ? archetypes : []),
@@ -355,10 +371,14 @@ export function scoreOutfit(
     if (disliked.length > 0) {
       signalsAvailable++;
       let dislikedFired = false;
-      const dislikedLower = disliked.map(s => s.toLowerCase());
+      const dislikedLower = disliked.map((s) => s.toLowerCase());
       for (const item of outfit.items) {
-        const descriptors = (item as any).style_descriptors as string[] | undefined;
-        const archetypes = (item as any).style_archetypes as string[] | undefined;
+        const descriptors = (item as any).style_descriptors as
+          | string[]
+          | undefined;
+        const archetypes = (item as any).style_archetypes as
+          | string[]
+          | undefined;
         const tokens: string[] = [
           ...(Array.isArray(descriptors) ? descriptors : []),
           ...(Array.isArray(archetypes) ? archetypes : []),
@@ -386,7 +406,7 @@ export function scoreOutfit(
       for (const item of outfit.items) {
         const itemColor = (item as any).color as string | undefined;
         if (!itemColor) continue;
-        if (profAvoidColors.some(c => colorMatches(itemColor, c))) {
+        if (profAvoidColors.some((c) => colorMatches(itemColor, c))) {
           score -= 10;
           profColorFired = true;
         }
@@ -405,10 +425,11 @@ export function scoreOutfit(
       signalsAvailable++;
       let profMatFired = false;
       for (const item of outfit.items) {
-        const itemMat = ((item as any).material ?? (item as any).fabric_blend) as string | undefined;
+        const itemMat = ((item as any).material ??
+          (item as any).fabric_blend) as string | undefined;
         if (!itemMat) continue;
         const matLower = itemMat.toLowerCase();
-        if (profAvoidMats.some(m => matLower.includes(m.toLowerCase()))) {
+        if (profAvoidMats.some((m) => matLower.includes(m.toLowerCase()))) {
           score -= 10;
           profMatFired = true;
         }
@@ -427,15 +448,23 @@ export function scoreOutfit(
     if (patternPrefs.length > 0 || avoidPatterns.length > 0) {
       signalsAvailable++;
       let patternFired = false;
-      const prefsLower = patternPrefs.map(p => p.toLowerCase());
-      const avoidLower = avoidPatterns.map(p => p.toLowerCase());
+      const prefsLower = patternPrefs.map((p) => p.toLowerCase());
+      const avoidLower = avoidPatterns.map((p) => p.toLowerCase());
       for (const item of outfit.items) {
-        const descriptors = (item as any).style_descriptors as string[] | undefined;
+        const descriptors = (item as any).style_descriptors as
+          | string[]
+          | undefined;
         if (!Array.isArray(descriptors) || descriptors.length === 0) continue;
         for (const d of descriptors) {
           const dLower = d.toLowerCase();
-          if (prefsLower.includes(dLower)) { score += 2; patternFired = true; }
-          if (avoidLower.includes(dLower)) { score -= 5; patternFired = true; }
+          if (prefsLower.includes(dLower)) {
+            score += 2;
+            patternFired = true;
+          }
+          if (avoidLower.includes(dLower)) {
+            score -= 5;
+            patternFired = true;
+          }
         }
       }
       if (patternFired) {
@@ -454,15 +483,29 @@ export function scoreOutfit(
       const structuredTokens = ['tailored', 'slim', 'structured'];
       const relaxedTokens = ['relaxed', 'oversized', 'loose'];
       for (const item of outfit.items) {
-        const itemFit = ((item as any).fit ?? (item as any).fit_type) as string | undefined;
+        const itemFit = ((item as any).fit ?? (item as any).fit_type) as
+          | string
+          | undefined;
         if (!itemFit) continue;
         const fitLower = itemFit.toLowerCase();
         if (silPref === 'Structured') {
-          if (structuredTokens.some(t => fitLower.includes(t))) { score += 2; silFired = true; }
-          if (relaxedTokens.some(t => fitLower.includes(t))) { score -= 3; silFired = true; }
+          if (structuredTokens.some((t) => fitLower.includes(t))) {
+            score += 2;
+            silFired = true;
+          }
+          if (relaxedTokens.some((t) => fitLower.includes(t))) {
+            score -= 3;
+            silFired = true;
+          }
         } else if (silPref === 'Relaxed') {
-          if (relaxedTokens.some(t => fitLower.includes(t))) { score += 2; silFired = true; }
-          if (structuredTokens.some(t => fitLower.includes(t))) { score -= 3; silFired = true; }
+          if (relaxedTokens.some((t) => fitLower.includes(t))) {
+            score += 2;
+            silFired = true;
+          }
+          if (structuredTokens.some((t) => fitLower.includes(t))) {
+            score -= 3;
+            silFired = true;
+          }
         }
       }
       if (silFired) {
@@ -477,21 +520,29 @@ export function scoreOutfit(
     const contrastPref = ctx.styleProfile?.contrast_preference;
     if (contrastPref && contrastPref !== 'No preference') {
       signalsAvailable++;
-      const lightTokens = ['white', 'cream', 'beige', 'ivory', 'pastel', 'light'];
+      const lightTokens = [
+        'white',
+        'cream',
+        'beige',
+        'ivory',
+        'pastel',
+        'light',
+      ];
       const darkTokens = ['black', 'navy', 'charcoal', 'dark'];
       let hasLight = false;
       let hasDark = false;
       for (const item of outfit.items) {
         const c = ((item as any).color as string | undefined)?.toLowerCase();
         if (!c) continue;
-        if (lightTokens.some(t => c.includes(t))) hasLight = true;
-        if (darkTokens.some(t => c.includes(t))) hasDark = true;
+        if (lightTokens.some((t) => c.includes(t))) hasLight = true;
+        if (darkTokens.some((t) => c.includes(t))) hasDark = true;
       }
       const isHighContrast = hasLight && hasDark;
       const isLowContrast = !hasLight || !hasDark; // monochrome-ish
       let matched = false;
       if (contrastPref === 'High contrast' && isHighContrast) matched = true;
-      if (contrastPref === 'Low contrast' && isLowContrast && !isHighContrast) matched = true;
+      if (contrastPref === 'Low contrast' && isLowContrast && !isHighContrast)
+        matched = true;
       if (contrastPref === 'Medium contrast') matched = true; // medium always matches
       if (matched) {
         score += 3;
@@ -518,12 +569,14 @@ export function scoreOutfit(
       } else if (unique.size >= 2) {
         // Penalize conflicting dress codes (e.g., "athletic" + "business")
         const CONFLICTING_PAIRS = [
-          ['athletic', 'business'], ['athletic', 'formal'],
-          ['casual', 'formal'], ['beach', 'business'],
+          ['athletic', 'business'],
+          ['athletic', 'formal'],
+          ['casual', 'formal'],
+          ['beach', 'business'],
         ];
         const codes = [...unique];
-        const hasConflict = CONFLICTING_PAIRS.some(([a, b]) =>
-          codes.includes(a) && codes.includes(b),
+        const hasConflict = CONFLICTING_PAIRS.some(
+          ([a, b]) => codes.includes(a) && codes.includes(b),
         );
         if (hasConflict) {
           score -= 5;
@@ -537,7 +590,7 @@ export function scoreOutfit(
   // ── Slot completeness (all modes) ──
   {
     signalsAvailable++;
-    const slots = new Set(outfit.items.map(i => i.slot));
+    const slots = new Set(outfit.items.map((i) => i.slot));
     const hasComplete =
       (slots.has('tops') && slots.has('bottoms') && slots.has('shoes')) ||
       (slots.has('dresses') && slots.has('shoes'));
@@ -589,14 +642,34 @@ export function elitePostProcessOutfits<T>(
 
   // Fail-open: if no style-profile signal fired, preserve original order.
   // slot_complete is structural (not profile-dependent) and must NOT cause reorder alone.
-  const STYLE_FLAGS = ['brand', 'color', 'category', 'style', 'formality', 'presentation', 'fit', 'fabric', 'dress_code', 'style_preference', 'disliked_style', 'profile_avoid_colors', 'profile_avoid_materials', 'pattern', 'silhouette', 'contrast'];
-  const hasStyleSignal = [...scores.values()].some(
-    s => s.flags.some(f => STYLE_FLAGS.includes(f)),
+  const STYLE_FLAGS = [
+    'brand',
+    'color',
+    'category',
+    'style',
+    'formality',
+    'presentation',
+    'fit',
+    'fabric',
+    'dress_code',
+    'style_preference',
+    'disliked_style',
+    'profile_avoid_colors',
+    'profile_avoid_materials',
+    'pattern',
+    'silhouette',
+    'contrast',
+  ];
+  const hasStyleSignal = [...scores.values()].some((s) =>
+    s.flags.some((f) => STYLE_FLAGS.includes(f)),
   );
   if (!hasStyleSignal) {
     const debug: Record<string, unknown> = {};
     if (env.debug) {
-      debug.scores = canonical.map(o => ({ outfitId: o.id, ...scores.get(o.id) }));
+      debug.scores = canonical.map((o) => ({
+        outfitId: o.id,
+        ...scores.get(o.id),
+      }));
       debug.skipped = 'no_style_signals';
     }
     return { outfits, debug };
@@ -605,10 +678,13 @@ export function elitePostProcessOutfits<T>(
   // Optimization: if all scores equal after style signals fired, preserve original order
   const scoreVals = [...scores.values()];
   const baseScore = scoreVals[0]?.score ?? 0;
-  if (scoreVals.every(s => s.score === baseScore)) {
+  if (scoreVals.every((s) => s.score === baseScore)) {
     const debug: Record<string, unknown> = {};
     if (env.debug) {
-      debug.scores = canonical.map(o => ({ outfitId: o.id, ...scores.get(o.id) }));
+      debug.scores = canonical.map((o) => ({
+        outfitId: o.id,
+        ...scores.get(o.id),
+      }));
       debug.skipped = 'all_scores_equal';
     }
     return { outfits, debug };
@@ -620,12 +696,14 @@ export function elitePostProcessOutfits<T>(
   // Debug output (only when debug flag enabled)
   const debug: Record<string, unknown> = {};
   if (env.debug) {
-    debug.scores = canonical.map(o => ({
+    debug.scores = canonical.map((o) => ({
       outfitId: o.id,
       ...scores.get(o.id),
     }));
-    debug.originalOrder = canonical.map(o => o.id);
-    debug.rerankedOrder = (reranked as unknown as CanonicalOutfit[]).map(o => o.id);
+    debug.originalOrder = canonical.map((o) => o.id);
+    debug.rerankedOrder = (reranked as unknown as CanonicalOutfit[]).map(
+      (o) => o.id,
+    );
   }
 
   return { outfits: reranked, debug };
@@ -638,8 +716,8 @@ export function buildEliteExposureEvent(
   outfits: CanonicalOutfit[],
   env: EliteEnv,
 ): CreateLearningEventInput {
-  const allItemIds = outfits.flatMap(o => o.items.map(i => i.id));
-  const canonicalSlots = outfits.flatMap(o => o.items.map(i => i.slot));
+  const allItemIds = outfits.flatMap((o) => o.items.map((i) => i.id));
+  const canonicalSlots = outfits.flatMap((o) => o.items.map((i) => i.slot));
 
   return {
     userId,
@@ -655,9 +733,10 @@ export function buildEliteExposureEvent(
     },
     context: {
       occasion: env.mode,
-      temp_f: typeof env.weather === 'object' && env.weather !== null
-        ? (env.weather as { temp?: number }).temp
-        : undefined,
+      temp_f:
+        typeof env.weather === 'object' && env.weather !== null
+          ? (env.weather as { temp?: number }).temp
+          : undefined,
       schema_version: 1,
       pipeline_version: 1,
     },

@@ -27,17 +27,12 @@ describe('resolveUserPresentation', () => {
   });
 
   describe('masculine detection', () => {
-    it.each([
-      'male',
-      'Male',
-      'MALE',
-      'masculine',
-      'Masculine',
-      'man',
-      'Man',
-    ])('returns masculine for "%s"', (input) => {
-      expect(resolveUserPresentation(input)).toBe('masculine');
-    });
+    it.each(['male', 'Male', 'MALE', 'masculine', 'Masculine', 'man', 'Man'])(
+      'returns masculine for "%s"',
+      (input) => {
+        expect(resolveUserPresentation(input)).toBe('masculine');
+      },
+    );
   });
 
   describe('mixed (default) for everything else', () => {
@@ -148,9 +143,12 @@ describe('isFeminineItem', () => {
       ['Bottoms', 'midi skirt', 'Pleated midi skirt'],
       ['Tops', 'silk blouse', 'White silk blouse'],
       ['Shoes', 'stiletto heel', 'Black stiletto'],
-    ])('blocks [%s, "%s", "%s"] despite wrong main_category', (cat, sub, name) => {
-      expect(isFeminineItem(cat, sub, name)).toBe(true);
-    });
+    ])(
+      'blocks [%s, "%s", "%s"] despite wrong main_category',
+      (cat, sub, name) => {
+        expect(isFeminineItem(cat, sub, name)).toBe(true);
+      },
+    );
   });
 
   // Proves dress+shoes fallback path works for feminine/mixed users:

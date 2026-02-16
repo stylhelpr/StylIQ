@@ -56,7 +56,10 @@ export const ELITE_FLAGS = {
 
 // Per-user demo allowlist (only active when ELITE_ENABLED is false).
 const ELITE_DEMO_ALLOWLIST: Set<string> = new Set(
-  (process.env.ELITE_DEMO_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean),
+  (process.env.ELITE_DEMO_USER_IDS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
 );
 
 export function isEliteDemoUser(userId: string): boolean {

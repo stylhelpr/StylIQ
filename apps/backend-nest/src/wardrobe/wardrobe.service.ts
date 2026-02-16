@@ -80,10 +80,17 @@ import {
 } from '../ai/elite/eliteScoring';
 import type { StyleContext } from '../ai/elite/eliteScoring';
 import { FashionStateService } from '../learning/fashion-state.service';
-import { loadStylistBrainContext, type StyleProfileFields } from '../ai/elite/stylistBrain';
+import {
+  loadStylistBrainContext,
+  type StyleProfileFields,
+} from '../ai/elite/stylistBrain';
 import { LearningEventsService } from '../learning/learning-events.service';
 import { validateOutfit as tasteValidateOutfit } from '../ai/elite/tasteValidator';
-import type { ValidatorItem, ValidatorContext, ValidatorSlot } from '../ai/elite/tasteValidator';
+import type {
+  ValidatorItem,
+  ValidatorContext,
+  ValidatorSlot,
+} from '../ai/elite/tasteValidator';
 
 // Structured audit logging (gated behind OUTFIT_AI_DEBUG env var)
 import {
@@ -266,19 +273,26 @@ export class WardrobeService {
     return `outfit_session:${id}`;
   }
 
-  private async getSession(id: string): Promise<{ baseQuery: string; refinements: string[] } | null> {
+  private async getSession(
+    id: string,
+  ): Promise<{ baseQuery: string; refinements: string[] } | null> {
     try {
       const raw = await getRedisClient().get(this.sessionKey(id));
       if (!raw) return null;
-      return typeof raw === 'string' ? JSON.parse(raw) : raw as any;
+      return typeof raw === 'string' ? JSON.parse(raw) : (raw as any);
     } catch {
       return null;
     }
   }
 
-  private async setSession(id: string, data: { baseQuery: string; refinements: string[] }): Promise<void> {
+  private async setSession(
+    id: string,
+    data: { baseQuery: string; refinements: string[] },
+  ): Promise<void> {
     try {
-      await getRedisClient().set(this.sessionKey(id), JSON.stringify(data), { ex: WardrobeService.SESSION_TTL });
+      await getRedisClient().set(this.sessionKey(id), JSON.stringify(data), {
+        ex: WardrobeService.SESSION_TTL,
+      });
     } catch {
       // Redis unavailable — refinement degrades gracefully
     }
@@ -287,37 +301,49 @@ export class WardrobeService {
   /**
    * Load StyleContext for elite scoring (non-blocking).
    */
-  private async loadEliteStyleContext(userId: string): Promise<StyleContext & { _brainStyleProfile?: StyleProfileFields | null }> {
+  private async loadEliteStyleContext(
+    userId: string,
+  ): Promise<
+    StyleContext & { _brainStyleProfile?: StyleProfileFields | null }
+  > {
     try {
-      const brainCtx = await loadStylistBrainContext(userId, this.fashionStateService);
+      const brainCtx = await loadStylistBrainContext(
+        userId,
+        this.fashionStateService,
+      );
 
       return {
         presentation: brainCtx.presentation,
-        fashionState: brainCtx.fashionState ? {
-          topBrands: brainCtx.fashionState.topBrands,
-          avoidBrands: brainCtx.fashionState.avoidBrands,
-          topColors: brainCtx.fashionState.topColors,
-          avoidColors: brainCtx.fashionState.avoidColors,
-          topStyles: brainCtx.fashionState.topStyles,
-          avoidStyles: brainCtx.fashionState.avoidStyles,
-          topCategories: brainCtx.fashionState.topCategories,
-          priceBracket: brainCtx.fashionState.priceBracket,
-          isColdStart: brainCtx.fashionState.isColdStart,
-        } : null,
+        fashionState: brainCtx.fashionState
+          ? {
+              topBrands: brainCtx.fashionState.topBrands,
+              avoidBrands: brainCtx.fashionState.avoidBrands,
+              topColors: brainCtx.fashionState.topColors,
+              avoidColors: brainCtx.fashionState.avoidColors,
+              topStyles: brainCtx.fashionState.topStyles,
+              avoidStyles: brainCtx.fashionState.avoidStyles,
+              topCategories: brainCtx.fashionState.topCategories,
+              priceBracket: brainCtx.fashionState.priceBracket,
+              isColdStart: brainCtx.fashionState.isColdStart,
+            }
+          : null,
         preferredBrands: brainCtx.styleProfile?.preferred_brands ?? [],
-        styleProfile: brainCtx.styleProfile ? {
-          fit_preferences: brainCtx.styleProfile.fit_preferences,
-          fabric_preferences: brainCtx.styleProfile.fabric_preferences,
-          style_preferences: brainCtx.styleProfile.style_preferences,
-          disliked_styles: brainCtx.styleProfile.disliked_styles,
-          // P0/P1 profile-driven scoring
-          avoid_colors: brainCtx.styleProfile.avoid_colors,
-          avoid_materials: brainCtx.styleProfile.avoid_materials,
-          pattern_preferences: brainCtx.styleProfile.pattern_preferences,
-          avoid_patterns: brainCtx.styleProfile.avoid_patterns,
-          silhouette_preference: brainCtx.styleProfile.silhouette_preference,
-          contrast_preference: brainCtx.styleProfile.contrast_preference,
-        } : null,
+        styleProfile: brainCtx.styleProfile
+          ? {
+              fit_preferences: brainCtx.styleProfile.fit_preferences,
+              fabric_preferences: brainCtx.styleProfile.fabric_preferences,
+              style_preferences: brainCtx.styleProfile.style_preferences,
+              disliked_styles: brainCtx.styleProfile.disliked_styles,
+              // P0/P1 profile-driven scoring
+              avoid_colors: brainCtx.styleProfile.avoid_colors,
+              avoid_materials: brainCtx.styleProfile.avoid_materials,
+              pattern_preferences: brainCtx.styleProfile.pattern_preferences,
+              avoid_patterns: brainCtx.styleProfile.avoid_patterns,
+              silhouette_preference:
+                brainCtx.styleProfile.silhouette_preference,
+              contrast_preference: brainCtx.styleProfile.contrast_preference,
+            }
+          : null,
         // Full brain profile for validator P0 fields (coverage_no_go, formality_floor, walkability_requirement)
         _brainStyleProfile: brainCtx.styleProfile ?? null,
       };
@@ -826,7 +852,10 @@ export class WardrobeService {
       if (sessionId) {
         const sess = await this.getSession(sessionId);
         if (!sess) {
-          await this.setSession(sessionId, { baseQuery: query, refinements: [] });
+          await this.setSession(sessionId, {
+            baseQuery: query,
+            refinements: [],
+          });
         } else {
           baseQuery = sess.baseQuery || query;
           if (refinement) {
@@ -1499,10 +1528,18 @@ ${lockedLines}
         // Extract the style-profile section from the prompt (bounded to ~25 lines)
         const profileIdx = fullPrompt.indexOf('USER STYLE PROFILE');
         if (profileIdx >= 0) {
-          const excerpt = fullPrompt.substring(profileIdx, profileIdx + 800).split('\n').slice(0, 25).join('\n');
-          console.log('🎨 [Studio][SLOW] prompt style-profile excerpt:\n' + excerpt);
+          const excerpt = fullPrompt
+            .substring(profileIdx, profileIdx + 800)
+            .split('\n')
+            .slice(0, 25)
+            .join('\n');
+          console.log(
+            '🎨 [Studio][SLOW] prompt style-profile excerpt:\n' + excerpt,
+          );
         } else {
-          console.log('🎨 [Studio][SLOW] prompt: no USER STYLE PROFILE section found');
+          console.log(
+            '🎨 [Studio][SLOW] prompt: no USER STYLE PROFILE section found',
+          );
         }
       }
 
@@ -1737,16 +1774,14 @@ ${lockedLines}
           color: c.color,
           image_url: c.image_url,
         }));
-        outfits = padToThreeOutfits(
-          outfits,
-          stdPool,
-          (items) => ({
-            title: 'More from your wardrobe',
-            items: items.map((r) => reranked.find((c) => c.id === r.id)!).filter(Boolean),
-            why: 'Additional outfit built from your best-ranked items.',
-            missing: undefined,
-          }),
-        );
+        outfits = padToThreeOutfits(outfits, stdPool, (items) => ({
+          title: 'More from your wardrobe',
+          items: items
+            .map((r) => reranked.find((c) => c.id === r.id)!)
+            .filter(Boolean),
+          why: 'Additional outfit built from your best-ranked items.',
+          missing: undefined,
+        }));
       }
 
       outfits = outfits.map((o) => {
@@ -1873,12 +1908,15 @@ ${lockedLines}
       let _numRepairedViaSwapSlow = 0;
       {
         const _isOpenFoot = (it: any): boolean => {
-          const text = `${it?.subcategory ?? ''} ${it?.name ?? it?.label ?? ''}`.toLowerCase();
+          const text =
+            `${it?.subcategory ?? ''} ${it?.name ?? it?.label ?? ''}`.toLowerCase();
           return /\b(sandals?|flip[- ]?flops?|slides?|thongs?)\b/.test(text);
         };
         const _toVI = (it: any): ValidatorItem => ({
           id: it?.id ?? '',
-          slot: (mapMainCategoryToSlot(it?.main_category) as ValidatorSlot) || 'accessories' as ValidatorSlot,
+          slot:
+            (mapMainCategoryToSlot(it?.main_category) as ValidatorSlot) ||
+            ('accessories' as ValidatorSlot),
           name: it?.name ?? it?.label,
           subcategory: it?.subcategory,
           color: it?.color,
@@ -1900,8 +1938,10 @@ ${lockedLines}
         };
         const _bp = (eliteStyleContext as any)?._brainStyleProfile;
         const vCtx: ValidatorContext = {
-          userPresentation: (userPresentation === 'masculine' || userPresentation === 'feminine')
-            ? userPresentation : undefined,
+          userPresentation:
+            userPresentation === 'masculine' || userPresentation === 'feminine'
+              ? userPresentation
+              : undefined,
           climateZone: _tempToZone(opts?.weather?.tempF),
           styleProfile: {
             ...(eliteStyleContext?.styleProfile ?? {}),
@@ -1936,31 +1976,43 @@ ${lockedLines}
           let fixedItems = [...items];
           const usedIds = new Set(fixedItems.map((it: any) => it?.id));
           for (const fail of result.hardFails) {
-            if (fail.startsWith('EXTREME_WEATHER_CONTRADICTION') && fail.includes('footwear')) {
+            if (
+              fail.startsWith('EXTREME_WEATHER_CONTRADICTION') &&
+              fail.includes('footwear')
+            ) {
               const shoePool = (slotPools.get('shoes') ?? []).filter(
                 (s: any) => !_isOpenFoot(s) && !usedIds.has(s?.id),
               );
               if (shoePool.length > 0) {
-                fixedItems = fixedItems.filter((it: any) => mapMainCategoryToSlot(it?.main_category) !== 'shoes');
+                fixedItems = fixedItems.filter(
+                  (it: any) =>
+                    mapMainCategoryToSlot(it?.main_category) !== 'shoes',
+                );
                 fixedItems.push(shoePool[0]);
                 usedIds.add(shoePool[0].id);
               }
             } else if (fail.startsWith('CROSS_PRESENTATION')) {
               const idMatch = fail.match(/item (\S+)/);
               if (idMatch) {
-                const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+                const badItem = fixedItems.find(
+                  (it: any) => it?.id === idMatch[1],
+                );
                 if (badItem) {
                   const slot = mapMainCategoryToSlot(badItem?.main_category);
                   const pool = (slotPools.get(slot) ?? []).filter((c: any) => {
                     if (usedIds.has(c?.id)) return false;
                     const pc = c?.presentation_code;
                     if (!pc) return true;
-                    if (vCtx.userPresentation === 'masculine') return pc !== 'feminine';
-                    if (vCtx.userPresentation === 'feminine') return pc !== 'masculine';
+                    if (vCtx.userPresentation === 'masculine')
+                      return pc !== 'feminine';
+                    if (vCtx.userPresentation === 'feminine')
+                      return pc !== 'masculine';
                     return true;
                   });
                   if (pool.length > 0) {
-                    fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                    fixedItems = fixedItems.filter(
+                      (it: any) => it?.id !== idMatch[1],
+                    );
                     fixedItems.push(pool[0]);
                     usedIds.add(pool[0].id);
                   }
@@ -1969,65 +2021,102 @@ ${lockedLines}
             } else if (fail.startsWith('DRESS_CODE_MISMATCH')) {
               const idMatch = fail.match(/item (\S+)/);
               if (idMatch) {
-                const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+                const badItem = fixedItems.find(
+                  (it: any) => it?.id === idMatch[1],
+                );
                 if (badItem) {
                   const slot = mapMainCategoryToSlot(badItem?.main_category);
-                  const casualCodes = ['ultracasual', 'ultra casual', 'athletic'];
+                  const casualCodes = [
+                    'ultracasual',
+                    'ultra casual',
+                    'athletic',
+                  ];
                   const pool = (slotPools.get(slot) ?? []).filter((c: any) => {
                     if (usedIds.has(c?.id)) return false;
                     const dc = (c?.dress_code ?? '').toLowerCase();
                     if (!dc) return true;
-                    return !casualCodes.some(cc => dc.includes(cc));
+                    return !casualCodes.some((cc) => dc.includes(cc));
                   });
                   if (pool.length > 0) {
-                    fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                    fixedItems = fixedItems.filter(
+                      (it: any) => it?.id !== idMatch[1],
+                    );
                     fixedItems.push(pool[0]);
                     usedIds.add(pool[0].id);
                   }
                 }
               }
             } else if (fail.startsWith('MISSING_REQUIRED_SLOTS')) {
-              const slots = new Set(fixedItems.map((it: any) => mapMainCategoryToSlot(it?.main_category)));
-              const hasDressLike = slots.has('dresses') || slots.has('activewear') || slots.has('swimwear');
+              const slots = new Set(
+                fixedItems.map((it: any) =>
+                  mapMainCategoryToSlot(it?.main_category),
+                ),
+              );
+              const hasDressLike =
+                slots.has('dresses') ||
+                slots.has('activewear') ||
+                slots.has('swimwear');
               if (!hasDressLike) {
                 for (const ms of ['tops', 'bottoms', 'shoes'] as const) {
                   if (!slots.has(ms)) {
-                    const pool = (slotPools.get(ms) ?? []).filter((c: any) => !usedIds.has(c?.id));
-                    if (pool.length > 0) { fixedItems.push(pool[0]); usedIds.add(pool[0].id); }
+                    const pool = (slotPools.get(ms) ?? []).filter(
+                      (c: any) => !usedIds.has(c?.id),
+                    );
+                    if (pool.length > 0) {
+                      fixedItems.push(pool[0]);
+                      usedIds.add(pool[0].id);
+                    }
                   }
                 }
               } else if (!slots.has('shoes') && !slots.has('swimwear')) {
-                const pool = (slotPools.get('shoes') ?? []).filter((c: any) => !usedIds.has(c?.id));
-                if (pool.length > 0) { fixedItems.push(pool[0]); usedIds.add(pool[0].id); }
+                const pool = (slotPools.get('shoes') ?? []).filter(
+                  (c: any) => !usedIds.has(c?.id),
+                );
+                if (pool.length > 0) {
+                  fixedItems.push(pool[0]);
+                  usedIds.add(pool[0].id);
+                }
               }
             }
           }
           const recheck = tasteValidateOutfit(fixedItems.map(_toVI), vCtx);
-          repaired.push(recheck.valid ? { ...outfit, items: fixedItems } : outfit);
+          repaired.push(
+            recheck.valid ? { ...outfit, items: fixedItems } : outfit,
+          );
         }
         // Sort: valid first, take 3
         const scored = repaired.map((o: any, idx: number) => {
           const r = tasteValidateOutfit((o.items ?? []).map(_toVI), vCtx);
-          const wasRepaired = !tasteValidateOutfit((withIds[idx]?.items ?? []).map(_toVI), vCtx).valid && r.valid;
+          const wasRepaired =
+            !tasteValidateOutfit((withIds[idx]?.items ?? []).map(_toVI), vCtx)
+              .valid && r.valid;
           return { o, valid: r.valid, cs: r.coherenceScore, wasRepaired };
         });
-        scored.sort((a: any, b: any) => (a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1));
+        scored.sort((a: any, b: any) =>
+          a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1,
+        );
         const tasteFiltered = scored.slice(0, 3).map((s: any) => s.o);
         withIds.length = 0;
         withIds.push(...tasteFiltered);
         _validatorRanSlow = true;
         _numHardFailedSlow = scored.filter((s: any) => !s.valid).length;
-        _numRepairedViaSwapSlow = scored.filter((s: any) => s.wasRepaired).length;
+        _numRepairedViaSwapSlow = scored.filter(
+          (s: any) => s.wasRepaired,
+        ).length;
         if (ELITE_FLAGS.DEBUG) {
-          console.log(JSON.stringify({
-            _tag: 'STUDIO_TASTE_PROOF',
-            mode: 'SLOW',
-            candidatePoolSize: repaired.length,
-            numHardFailed: _numHardFailedSlow,
-            numRepairedViaSwap: _numRepairedViaSwapSlow,
-            finalReturnedCount: withIds.length,
-            ...(withIds.length < 3 ? { reason: 'WARDROBE_INSUFFICIENT' } : {}),
-          }));
+          console.log(
+            JSON.stringify({
+              _tag: 'STUDIO_TASTE_PROOF',
+              mode: 'SLOW',
+              candidatePoolSize: repaired.length,
+              numHardFailed: _numHardFailedSlow,
+              numRepairedViaSwap: _numRepairedViaSwapSlow,
+              finalReturnedCount: withIds.length,
+              ...(withIds.length < 3
+                ? { reason: 'WARDROBE_INSUFFICIENT' }
+                : {}),
+            }),
+          );
         }
       }
 
@@ -2040,34 +2129,42 @@ ${lockedLines}
       if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2 || demoElite) {
         const canonical = withIds.map(normalizeStudioOutfit);
         const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
-          mode: 'studio', requestId: request_id,
-          rerank: _usedV2Slow, debug: ELITE_FLAGS.DEBUG || demoElite,
+          mode: 'studio',
+          requestId: request_id,
+          rerank: _usedV2Slow,
+          debug: ELITE_FLAGS.DEBUG || demoElite,
         });
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
         _eliteRerankRanSlow = _usedV2Slow;
       }
       if (ELITE_FLAGS.DEBUG) {
-        console.log(JSON.stringify({
-          _tag: 'STUDIO_ELITE_PROOF',
-          mode: 'STANDARD',
-          eliteEnabled: ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2,
-          usedV2: _eliteRerankRanSlow,
-          returned: eliteOutfits.length,
-          validatorRan: _validatorRanSlow,
-          numHardFailed: _numHardFailedSlow,
-          numRepairedViaSwap: _numRepairedViaSwapSlow,
-        }));
+        console.log(
+          JSON.stringify({
+            _tag: 'STUDIO_ELITE_PROOF',
+            mode: 'STANDARD',
+            eliteEnabled: ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2,
+            usedV2: _eliteRerankRanSlow,
+            returned: eliteOutfits.length,
+            validatorRan: _validatorRanSlow,
+            numHardFailed: _numHardFailedSlow,
+            numRepairedViaSwap: _numRepairedViaSwapSlow,
+          }),
+        );
       }
 
       // ── Elite Scoring: log exposure event (fire-and-forget) ──
       // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker
       {
         const canonicalForEvent = eliteOutfits.map(normalizeStudioOutfit);
-        const exposureEvent = buildEliteExposureEvent(userId, canonicalForEvent, {
-          mode: 'studio',
-          requestId: request_id,
-          weather: opts?.weather ? { temp: opts.weather.tempF } : undefined,
-        });
+        const exposureEvent = buildEliteExposureEvent(
+          userId,
+          canonicalForEvent,
+          {
+            mode: 'studio',
+            requestId: request_id,
+            weather: opts?.weather ? { temp: opts.weather.tempF } : undefined,
+          },
+        );
         this.learningEventsService.logEvent(exposureEvent).catch(() => {});
       }
 
@@ -2126,7 +2223,9 @@ ${lockedLines}
         lockedItemIds,
         styleAgent: opts?.styleAgent,
         isRefinement: query.toLowerCase().includes('refinement'),
-        isStartWithItem: lockedItemIds.length > 0 && !query.toLowerCase().includes('refinement'),
+        isStartWithItem:
+          lockedItemIds.length > 0 &&
+          !query.toLowerCase().includes('refinement'),
       });
 
       // ── Gender/presentation query (mirrors ai.service.ts) ──────
@@ -2156,11 +2255,7 @@ ${lockedLines}
         userPresentation === 'masculine'
           ? (categoryRows as any[]).filter(
               (r: any) =>
-                !isFeminineItem(
-                  r.main_category || '',
-                  r.subcategory || '',
-                  '',
-                ),
+                !isFeminineItem(r.main_category || '', r.subcategory || '', ''),
             )
           : categoryRows;
 
@@ -2528,10 +2623,19 @@ ${lockedLines}
       if (process.env.DEBUG_STUDIO === 'true') {
         const profileIdx = planPrompt.indexOf('STYLE PREFERENCES');
         if (profileIdx >= 0) {
-          const excerpt = planPrompt.substring(profileIdx, profileIdx + 800).split('\n').slice(0, 25).join('\n');
-          console.log(`🎨 [Studio][FAST] path=${isStartWithItem ? 'PATH2_START_WITH_ITEM' : 'PATH1_STANDARD'} prompt style excerpt:\n` + excerpt);
+          const excerpt = planPrompt
+            .substring(profileIdx, profileIdx + 800)
+            .split('\n')
+            .slice(0, 25)
+            .join('\n');
+          console.log(
+            `🎨 [Studio][FAST] path=${isStartWithItem ? 'PATH2_START_WITH_ITEM' : 'PATH1_STANDARD'} prompt style excerpt:\n` +
+              excerpt,
+          );
         } else {
-          console.log(`🎨 [Studio][FAST] path=${isStartWithItem ? 'PATH2_START_WITH_ITEM' : 'PATH1_STANDARD'} prompt: no STYLE PREFERENCES section`);
+          console.log(
+            `🎨 [Studio][FAST] path=${isStartWithItem ? 'PATH2_START_WITH_ITEM' : 'PATH1_STANDARD'} prompt: no STYLE PREFERENCES section`,
+          );
         }
       }
 
@@ -2677,7 +2781,10 @@ ${lockedLines}
 
       logParsed(reqId, {
         outfitCount: outfitsArray.length,
-        slots: allSlots.map((s) => ({ category: s.slot.category, description: s.slot.description })),
+        slots: allSlots.map((s) => ({
+          category: s.slot.category,
+          description: s.slot.description,
+        })),
         reasoning: `embed+pinecone: ${embedPineconeMs}ms`,
       });
 
@@ -2792,9 +2899,7 @@ ${lockedLines}
           // Skip if we already have an item for this slot (from kept slots)
           // Use slot-based comparison to handle categories that map to the same slot
           // (e.g., Skirts maps to 'bottoms' slot same as Bottoms)
-          const targetSlot = mapPlanCategoryToSlot(
-            sr.slot.category as string,
-          );
+          const targetSlot = mapPlanCategoryToSlot(sr.slot.category);
           const alreadyHasCategory = items.some(
             (it) => mapMainCategoryToSlot(it.main_category) === targetSlot,
           );
@@ -2905,8 +3010,7 @@ ${lockedLines}
 
         const pickFirst = (slot: string) =>
           fallbackPool.find(
-            (r: any) =>
-              mapMainCategoryToSlot(r.main_category) === slot,
+            (r: any) => mapMainCategoryToSlot(r.main_category) === slot,
           );
 
         const toItem = (r: any): CatalogItem => ({
@@ -2987,16 +3091,12 @@ ${lockedLines}
           image_url: r.image_url,
         });
 
-        outfits = padToThreeOutfits(
-          outfits,
-          padPool,
-          (items) => ({
-            outfit_id: randomUUID(),
-            title: 'More from your wardrobe',
-            items: items.map(toItemPad),
-            why: 'Additional outfit built from your wardrobe favorites.',
-          }),
-        );
+        outfits = padToThreeOutfits(outfits, padPool, (items) => ({
+          outfit_id: randomUUID(),
+          title: 'More from your wardrobe',
+          items: items.map(toItemPad),
+          why: 'Additional outfit built from your wardrobe favorites.',
+        }));
       }
 
       // ── 5) PATH #2 POST-PARSE VALIDATION ──
@@ -3006,7 +3106,9 @@ ${lockedLines}
         const centerpieceCategory =
           centerpieceDbItem.main_category?.toLowerCase() || '';
 
-        console.log('⚡ [FAST] PATH #2: Running composition validation on outfit[0]...');
+        console.log(
+          '⚡ [FAST] PATH #2: Running composition validation on outfit[0]...',
+        );
 
         // Validate only the primary outfit (outfit[0]) for centerpiece constraints
         const validationResult = validateStartWithItemComposition(
@@ -3046,7 +3148,12 @@ ${lockedLines}
         best = outfits[0];
       } else {
         const allIds = Array.from(
-          new Set(outfits.flatMap((o: any) => o.items?.map((it: any) => it?.id).filter(Boolean) ?? [])),
+          new Set(
+            outfits.flatMap(
+              (o: any) =>
+                o.items?.map((it: any) => it?.id).filter(Boolean) ?? [],
+            ),
+          ),
         );
         const prefRows =
           allIds.length > 0
@@ -3064,7 +3171,10 @@ ${lockedLines}
             const boost =
               items.length === 0
                 ? 0
-                : items.reduce((a: number, it: any) => a + (pref.get(it?.id) ?? 0), 0) / items.length;
+                : items.reduce(
+                    (a: number, it: any) => a + (pref.get(it?.id) ?? 0),
+                    0,
+                  ) / items.length;
             return { o, boost };
           })
           .sort((a: any, b: any) => b.boost - a.boost);
@@ -3101,12 +3211,15 @@ ${lockedLines}
       let _numRepairedViaSwapFast = 0;
       {
         const _isOpenFoot = (it: any): boolean => {
-          const text = `${it?.subcategory ?? ''} ${it?.name ?? it?.label ?? ''}`.toLowerCase();
+          const text =
+            `${it?.subcategory ?? ''} ${it?.name ?? it?.label ?? ''}`.toLowerCase();
           return /\b(sandals?|flip[- ]?flops?|slides?|thongs?)\b/.test(text);
         };
         const _toVI = (it: any): ValidatorItem => ({
           id: it?.id ?? '',
-          slot: (mapMainCategoryToSlot(it?.main_category) as ValidatorSlot) || 'accessories' as ValidatorSlot,
+          slot:
+            (mapMainCategoryToSlot(it?.main_category) as ValidatorSlot) ||
+            ('accessories' as ValidatorSlot),
           name: it?.name ?? it?.label,
           subcategory: it?.subcategory,
           color: it?.color,
@@ -3128,8 +3241,10 @@ ${lockedLines}
         };
         const _bpFast = (eliteStyleContext as any)?._brainStyleProfile;
         const vCtx: ValidatorContext = {
-          userPresentation: (userPresentation === 'masculine' || userPresentation === 'feminine')
-            ? userPresentation : undefined,
+          userPresentation:
+            userPresentation === 'masculine' || userPresentation === 'feminine'
+              ? userPresentation
+              : undefined,
           climateZone: _tempToZone(opts?.weather?.tempF),
           styleProfile: {
             ...(eliteStyleContext?.styleProfile ?? {}),
@@ -3164,31 +3279,43 @@ ${lockedLines}
           let fixedItems = [...items];
           const usedIds = new Set(fixedItems.map((it: any) => it?.id));
           for (const fail of result.hardFails) {
-            if (fail.startsWith('EXTREME_WEATHER_CONTRADICTION') && fail.includes('footwear')) {
+            if (
+              fail.startsWith('EXTREME_WEATHER_CONTRADICTION') &&
+              fail.includes('footwear')
+            ) {
               const shoePool = (slotPools.get('shoes') ?? []).filter(
                 (s: any) => !_isOpenFoot(s) && !usedIds.has(s?.id),
               );
               if (shoePool.length > 0) {
-                fixedItems = fixedItems.filter((it: any) => mapMainCategoryToSlot(it?.main_category) !== 'shoes');
+                fixedItems = fixedItems.filter(
+                  (it: any) =>
+                    mapMainCategoryToSlot(it?.main_category) !== 'shoes',
+                );
                 fixedItems.push(shoePool[0]);
                 usedIds.add(shoePool[0].id);
               }
             } else if (fail.startsWith('CROSS_PRESENTATION')) {
               const idMatch = fail.match(/item (\S+)/);
               if (idMatch) {
-                const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+                const badItem = fixedItems.find(
+                  (it: any) => it?.id === idMatch[1],
+                );
                 if (badItem) {
                   const slot = mapMainCategoryToSlot(badItem?.main_category);
                   const pool = (slotPools.get(slot) ?? []).filter((c: any) => {
                     if (usedIds.has(c?.id)) return false;
                     const pc = c?.presentation_code;
                     if (!pc) return true;
-                    if (vCtx.userPresentation === 'masculine') return pc !== 'feminine';
-                    if (vCtx.userPresentation === 'feminine') return pc !== 'masculine';
+                    if (vCtx.userPresentation === 'masculine')
+                      return pc !== 'feminine';
+                    if (vCtx.userPresentation === 'feminine')
+                      return pc !== 'masculine';
                     return true;
                   });
                   if (pool.length > 0) {
-                    fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                    fixedItems = fixedItems.filter(
+                      (it: any) => it?.id !== idMatch[1],
+                    );
                     fixedItems.push(pool[0]);
                     usedIds.add(pool[0].id);
                   }
@@ -3197,62 +3324,99 @@ ${lockedLines}
             } else if (fail.startsWith('DRESS_CODE_MISMATCH')) {
               const idMatch = fail.match(/item (\S+)/);
               if (idMatch) {
-                const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+                const badItem = fixedItems.find(
+                  (it: any) => it?.id === idMatch[1],
+                );
                 if (badItem) {
                   const slot = mapMainCategoryToSlot(badItem?.main_category);
-                  const casualCodes = ['ultracasual', 'ultra casual', 'athletic'];
+                  const casualCodes = [
+                    'ultracasual',
+                    'ultra casual',
+                    'athletic',
+                  ];
                   const pool = (slotPools.get(slot) ?? []).filter((c: any) => {
                     if (usedIds.has(c?.id)) return false;
                     const dc = (c?.dress_code ?? '').toLowerCase();
                     if (!dc) return true;
-                    return !casualCodes.some(cc => dc.includes(cc));
+                    return !casualCodes.some((cc) => dc.includes(cc));
                   });
                   if (pool.length > 0) {
-                    fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                    fixedItems = fixedItems.filter(
+                      (it: any) => it?.id !== idMatch[1],
+                    );
                     fixedItems.push(pool[0]);
                     usedIds.add(pool[0].id);
                   }
                 }
               }
             } else if (fail.startsWith('MISSING_REQUIRED_SLOTS')) {
-              const slots = new Set(fixedItems.map((it: any) => mapMainCategoryToSlot(it?.main_category)));
-              const hasDressLike = slots.has('dresses') || slots.has('activewear') || slots.has('swimwear');
+              const slots = new Set(
+                fixedItems.map((it: any) =>
+                  mapMainCategoryToSlot(it?.main_category),
+                ),
+              );
+              const hasDressLike =
+                slots.has('dresses') ||
+                slots.has('activewear') ||
+                slots.has('swimwear');
               if (!hasDressLike) {
                 for (const ms of ['tops', 'bottoms', 'shoes'] as const) {
                   if (!slots.has(ms)) {
-                    const pool = (slotPools.get(ms) ?? []).filter((c: any) => !usedIds.has(c?.id));
-                    if (pool.length > 0) { fixedItems.push(pool[0]); usedIds.add(pool[0].id); }
+                    const pool = (slotPools.get(ms) ?? []).filter(
+                      (c: any) => !usedIds.has(c?.id),
+                    );
+                    if (pool.length > 0) {
+                      fixedItems.push(pool[0]);
+                      usedIds.add(pool[0].id);
+                    }
                   }
                 }
               } else if (!slots.has('shoes') && !slots.has('swimwear')) {
-                const pool = (slotPools.get('shoes') ?? []).filter((c: any) => !usedIds.has(c?.id));
-                if (pool.length > 0) { fixedItems.push(pool[0]); usedIds.add(pool[0].id); }
+                const pool = (slotPools.get('shoes') ?? []).filter(
+                  (c: any) => !usedIds.has(c?.id),
+                );
+                if (pool.length > 0) {
+                  fixedItems.push(pool[0]);
+                  usedIds.add(pool[0].id);
+                }
               }
             }
           }
           const recheck = tasteValidateOutfit(fixedItems.map(_toVI), vCtx);
-          repaired.push(recheck.valid ? { ...outfit, items: fixedItems } : outfit);
+          repaired.push(
+            recheck.valid ? { ...outfit, items: fixedItems } : outfit,
+          );
         }
         const scored = repaired.map((o: any, idx: number) => {
           const r = tasteValidateOutfit((o.items ?? []).map(_toVI), vCtx);
-          const wasRepaired = !tasteValidateOutfit((outfits[idx]?.items ?? []).map(_toVI), vCtx).valid && r.valid;
+          const wasRepaired =
+            !tasteValidateOutfit((outfits[idx]?.items ?? []).map(_toVI), vCtx)
+              .valid && r.valid;
           return { o, valid: r.valid, cs: r.coherenceScore, wasRepaired };
         });
-        scored.sort((a: any, b: any) => (a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1));
+        scored.sort((a: any, b: any) =>
+          a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1,
+        );
         outfits = scored.slice(0, 3).map((s: any) => s.o);
         _validatorRanFast = true;
         _numHardFailedFast = scored.filter((s: any) => !s.valid).length;
-        _numRepairedViaSwapFast = scored.filter((s: any) => s.wasRepaired).length;
+        _numRepairedViaSwapFast = scored.filter(
+          (s: any) => s.wasRepaired,
+        ).length;
         if (ELITE_FLAGS.DEBUG) {
-          console.log(JSON.stringify({
-            _tag: 'STUDIO_TASTE_PROOF',
-            mode: 'FAST',
-            candidatePoolSize: repaired.length,
-            numHardFailed: _numHardFailedFast,
-            numRepairedViaSwap: _numRepairedViaSwapFast,
-            finalReturnedCount: outfits.length,
-            ...(outfits.length < 3 ? { reason: 'WARDROBE_INSUFFICIENT' } : {}),
-          }));
+          console.log(
+            JSON.stringify({
+              _tag: 'STUDIO_TASTE_PROOF',
+              mode: 'FAST',
+              candidatePoolSize: repaired.length,
+              numHardFailed: _numHardFailedFast,
+              numRepairedViaSwap: _numRepairedViaSwapFast,
+              finalReturnedCount: outfits.length,
+              ...(outfits.length < 3
+                ? { reason: 'WARDROBE_INSUFFICIENT' }
+                : {}),
+            }),
+          );
         }
       }
 
@@ -3265,34 +3429,42 @@ ${lockedLines}
       if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2 || demoEliteFast) {
         const canonical = outfits.map(normalizeStudioOutfit);
         const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
-          mode: 'studio', requestId: reqId,
-          rerank: _usedV2Fast, debug: ELITE_FLAGS.DEBUG || demoEliteFast,
+          mode: 'studio',
+          requestId: reqId,
+          rerank: _usedV2Fast,
+          debug: ELITE_FLAGS.DEBUG || demoEliteFast,
         });
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
         _eliteRerankRanFast = _usedV2Fast;
       }
       if (ELITE_FLAGS.DEBUG) {
-        console.log(JSON.stringify({
-          _tag: 'STUDIO_ELITE_PROOF',
-          mode: 'FAST',
-          eliteEnabled: ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2,
-          usedV2: _eliteRerankRanFast,
-          returned: eliteOutfits.length,
-          validatorRan: _validatorRanFast,
-          numHardFailed: _numHardFailedFast,
-          numRepairedViaSwap: _numRepairedViaSwapFast,
-        }));
+        console.log(
+          JSON.stringify({
+            _tag: 'STUDIO_ELITE_PROOF',
+            mode: 'FAST',
+            eliteEnabled: ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2,
+            usedV2: _eliteRerankRanFast,
+            returned: eliteOutfits.length,
+            validatorRan: _validatorRanFast,
+            numHardFailed: _numHardFailedFast,
+            numRepairedViaSwap: _numRepairedViaSwapFast,
+          }),
+        );
       }
 
       // ── Elite Scoring: log exposure event (fire-and-forget) ──
       // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker
       {
         const canonicalForEvent = eliteOutfits.map(normalizeStudioOutfit);
-        const exposureEvent = buildEliteExposureEvent(userId, canonicalForEvent, {
-          mode: 'studio',
-          requestId: reqId,
-          weather: opts?.weather ? { temp: opts.weather.tempF } : undefined,
-        });
+        const exposureEvent = buildEliteExposureEvent(
+          userId,
+          canonicalForEvent,
+          {
+            mode: 'studio',
+            requestId: reqId,
+            weather: opts?.weather ? { temp: opts.weather.tempF } : undefined,
+          },
+        );
         this.learningEventsService.logEvent(exposureEvent).catch(() => {});
       }
 
@@ -3317,9 +3489,7 @@ ${lockedLines}
    * Maps slot category to Pinecone metadata filter.
    * Uses canonical categoryMapping - ALWAYS returns a filter, NEVER undefined.
    */
-  private mapSlotCategoryToFilter(
-    category: string,
-  ): Record<string, any> {
+  private mapSlotCategoryToFilter(category: string): Record<string, any> {
     const slot = mapPlanCategoryToSlot(category);
     return pineconeFilterForSlot(slot);
   }

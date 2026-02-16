@@ -1,7 +1,8 @@
 import { buildOutfitPrompt } from './outfitPrompt';
 
 describe('buildOutfitPrompt — FIX 4: Gender Directive', () => {
-  const catalogLines = '1. Blue polo (Tops)\n2. Dark jeans (Bottoms)\n3. White sneakers (Shoes)';
+  const catalogLines =
+    '1. Blue polo (Tops)\n2. Dark jeans (Bottoms)\n3. White sneakers (Shoes)';
 
   it('includes masculine directive when passed', () => {
     const directive =

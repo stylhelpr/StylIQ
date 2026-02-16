@@ -375,7 +375,11 @@ export function scoreItemForStyle(
   // Fit alignment (simple but effective)
   // Use canonical slot mapping for category detection
   if (W.fitMatch) {
-    if (style.topsFit && isSlot(item, 'tops') && t(item.fit) === style.topsFit) {
+    if (
+      style.topsFit &&
+      isSlot(item, 'tops') &&
+      t(item.fit) === style.topsFit
+    ) {
       maxPossible += W.fitMatch;
       rawScore += W.fitMatch;
       reasons.push(`+${W.fitMatch} fitMatch:tops=${t(item.fit)}`);

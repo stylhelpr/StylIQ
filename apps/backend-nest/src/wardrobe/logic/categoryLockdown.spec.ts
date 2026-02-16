@@ -126,7 +126,9 @@ describe('Category Lockdown - Canonical Source Completeness', () => {
 
   describe('MAIN_CATEGORY_TO_SLOT completeness', () => {
     it('should map exactly 21 MainCategories', () => {
-      expect(Object.keys(MAIN_CATEGORY_TO_SLOT)).toHaveLength(MAIN_CATEGORY_COUNT);
+      expect(Object.keys(MAIN_CATEGORY_TO_SLOT)).toHaveLength(
+        MAIN_CATEGORY_COUNT,
+      );
       expect(MAIN_CATEGORY_COUNT).toBe(21);
     });
 
@@ -151,7 +153,9 @@ describe('Category Lockdown - Canonical Source Completeness', () => {
         const filter = pineconeFilterForSlot(slot);
         expect(filter).toBeDefined();
         expect(filter.main_category).toBeDefined();
-        expect(filter.main_category.$eq || filter.main_category.$in).toBeDefined();
+        expect(
+          filter.main_category.$eq || filter.main_category.$in,
+        ).toBeDefined();
       }
     });
   });
@@ -159,14 +163,14 @@ describe('Category Lockdown - Canonical Source Completeness', () => {
   describe('Bidirectional mapping consistency', () => {
     it('SLOT_TO_MAIN_CATEGORIES should be consistent with MAIN_CATEGORY_TO_SLOT', () => {
       for (const [mainCat, slot] of Object.entries(MAIN_CATEGORY_TO_SLOT)) {
-        const categoriesForSlot = SLOT_TO_MAIN_CATEGORIES[slot as Slot];
+        const categoriesForSlot = SLOT_TO_MAIN_CATEGORIES[slot];
         expect(categoriesForSlot).toContain(mainCat as MainCategory);
       }
     });
 
     it('SLOT_TO_PLAN_CATEGORY should be inverse of PLAN_CATEGORY_TO_SLOT', () => {
       for (const [planCat, slot] of Object.entries(PLAN_CATEGORY_TO_SLOT)) {
-        expect(SLOT_TO_PLAN_CATEGORY[slot as Slot]).toBe(planCat);
+        expect(SLOT_TO_PLAN_CATEGORY[slot]).toBe(planCat);
       }
     });
   });
@@ -448,11 +452,14 @@ describe('Category Drift Lockdown - Filesystem Scan', () => {
   // EACH entry requires a 1-line justification
   const ALLOWLIST: Record<string, string> = {
     // Canonical source of truth
-    'categoryMapping.ts': 'Canonical category mapping source - defines the mappings',
+    'categoryMapping.ts':
+      'Canonical category mapping source - defines the mappings',
     'categoryMapping.spec.ts': 'Tests for canonical mapping module',
-    'categoryLockdown.spec.ts': 'This lockdown test - contains regex patterns to detect violations',
+    'categoryLockdown.spec.ts':
+      'This lockdown test - contains regex patterns to detect violations',
     // Subcategory validation (not main_category bypass)
-    'categoryValidator.ts': 'Validates subcategory→main_category pairs, uses MainCategory type',
+    'categoryValidator.ts':
+      'Validates subcategory→main_category pairs, uses MainCategory type',
   };
 
   // Patterns that indicate hardcoded category comparisons

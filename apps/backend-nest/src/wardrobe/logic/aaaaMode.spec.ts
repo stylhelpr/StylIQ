@@ -80,7 +80,11 @@ describe('AAAA — T1: Style profile wired into standard prompt', () => {
 describe('AAAA — T2: Masculine post-assembly filter', () => {
   // Simulate the filter logic used in standard mode (mirrors wardrobe.service.ts)
   function applyMasculineFilter(
-    outfitItems: Array<{ main_category: string; subcategory: string; name: string }>,
+    outfitItems: Array<{
+      main_category: string;
+      subcategory: string;
+      name: string;
+    }>,
   ) {
     return outfitItems.filter(
       (it) =>
@@ -95,8 +99,16 @@ describe('AAAA — T2: Masculine post-assembly filter', () => {
   it('removes dresses from masculine outfit', () => {
     const items = [
       { main_category: 'Tops', subcategory: 't-shirt', name: 'White tee' },
-      { main_category: 'Dresses', subcategory: 'midi dress', name: 'Floral dress' },
-      { main_category: 'Shoes', subcategory: 'sneakers', name: 'White sneakers' },
+      {
+        main_category: 'Dresses',
+        subcategory: 'midi dress',
+        name: 'Floral dress',
+      },
+      {
+        main_category: 'Shoes',
+        subcategory: 'sneakers',
+        name: 'White sneakers',
+      },
     ];
     const filtered = applyMasculineFilter(items);
     expect(filtered).toHaveLength(2);
@@ -106,7 +118,11 @@ describe('AAAA — T2: Masculine post-assembly filter', () => {
   it('removes skirts from masculine outfit', () => {
     const items = [
       { main_category: 'Tops', subcategory: 'polo', name: 'Navy polo' },
-      { main_category: 'Skirts', subcategory: 'mini skirt', name: 'Pleated skirt' },
+      {
+        main_category: 'Skirts',
+        subcategory: 'mini skirt',
+        name: 'Pleated skirt',
+      },
       { main_category: 'Shoes', subcategory: 'loafers', name: 'Brown loafers' },
     ];
     const filtered = applyMasculineFilter(items);
@@ -118,7 +134,11 @@ describe('AAAA — T2: Masculine post-assembly filter', () => {
     const items = [
       { main_category: 'Tops', subcategory: 't-shirt', name: 'Blue tee' },
       { main_category: 'Bottoms', subcategory: 'jeans', name: 'Dark jeans' },
-      { main_category: 'Shoes', subcategory: 'stiletto', name: 'Black stilettos' },
+      {
+        main_category: 'Shoes',
+        subcategory: 'stiletto',
+        name: 'Black stilettos',
+      },
     ];
     const filtered = applyMasculineFilter(items);
     expect(filtered).toHaveLength(2);
@@ -130,7 +150,11 @@ describe('AAAA — T2: Masculine post-assembly filter', () => {
       { main_category: 'Tops', subcategory: 't-shirt', name: 'White tee' },
       { main_category: 'Bottoms', subcategory: 'chinos', name: 'Navy chinos' },
       { main_category: 'Shoes', subcategory: 'sneakers', name: 'Stan Smith' },
-      { main_category: 'Outerwear', subcategory: 'bomber jacket', name: 'Green bomber' },
+      {
+        main_category: 'Outerwear',
+        subcategory: 'bomber jacket',
+        name: 'Green bomber',
+      },
     ];
     const filtered = applyMasculineFilter(items);
     expect(filtered).toHaveLength(4); // all kept
@@ -180,10 +204,7 @@ describe('AAAA — T3: Fast mode pref-based ranking', () => {
   });
 
   it('falls back to first outfit when no prefs exist', () => {
-    const outfits = [
-      { items: [{ id: 'x1' }] },
-      { items: [{ id: 'x2' }] },
-    ];
+    const outfits = [{ items: [{ id: 'x1' }] }, { items: [{ id: 'x2' }] }];
     const prefs = new Map<string, number>();
     const ranked = rankOutfitsByPref(outfits, prefs);
     // All have boost=0, sort is stable → first stays first
@@ -205,12 +226,17 @@ describe('AAAA — T3: Fast mode pref-based ranking', () => {
 
 describe('AAAA — T4: aaaaMode flag routing', () => {
   // Simulate the controller routing logic
-  function shouldUseFastMode(body: { useFastMode?: boolean; aaaaMode?: boolean }) {
+  function shouldUseFastMode(body: {
+    useFastMode?: boolean;
+    aaaaMode?: boolean;
+  }) {
     return body.useFastMode && !body.aaaaMode;
   }
 
   it('aaaaMode=true forces standard mode even when useFastMode=true', () => {
-    expect(shouldUseFastMode({ useFastMode: true, aaaaMode: true })).toBe(false);
+    expect(shouldUseFastMode({ useFastMode: true, aaaaMode: true })).toBe(
+      false,
+    );
   });
 
   it('useFastMode=true without aaaaMode → fast mode', () => {
@@ -218,7 +244,9 @@ describe('AAAA — T4: aaaaMode flag routing', () => {
   });
 
   it('useFastMode=false → standard mode regardless of aaaaMode', () => {
-    expect(shouldUseFastMode({ useFastMode: false, aaaaMode: true })).toBe(false);
+    expect(shouldUseFastMode({ useFastMode: false, aaaaMode: true })).toBe(
+      false,
+    );
     expect(shouldUseFastMode({ useFastMode: false })).toBe(false);
   });
 
@@ -274,7 +302,11 @@ describe('AAAA — T6: Defense-in-depth integration', () => {
     // Layer C: post-assembly filter catches anything LLM missed
     const llmOutput = [
       { main_category: 'Tops', subcategory: 't-shirt', name: 'Blue tee' },
-      { main_category: 'Dresses', subcategory: 'wrap dress', name: 'Floral wrap' },
+      {
+        main_category: 'Dresses',
+        subcategory: 'wrap dress',
+        name: 'Floral wrap',
+      },
       { main_category: 'Shoes', subcategory: 'oxford', name: 'Brown oxford' },
     ];
     const filtered = llmOutput.filter(
@@ -293,7 +325,11 @@ describe('AAAA — T6: Defense-in-depth integration', () => {
 
     // No post-filter for feminine users
     const items = [
-      { main_category: 'Dresses', subcategory: 'midi dress', name: 'Navy midi' },
+      {
+        main_category: 'Dresses',
+        subcategory: 'midi dress',
+        name: 'Navy midi',
+      },
       { main_category: 'Shoes', subcategory: 'stiletto', name: 'Black heels' },
     ];
     // feminine → isFeminineItem check is NOT applied (only for masculine)

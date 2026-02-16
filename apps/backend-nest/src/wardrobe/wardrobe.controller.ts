@@ -75,8 +75,12 @@ function normalizeUserStyle(
   // Forward approved style-profile signals for Studio LLM prompt
   const styleKeywords = asArr(input.styleKeywords ?? input.style_keywords);
   const fitPreferences = asArr(input.fitPreferences ?? input.fit_preferences);
-  const fabricPreferences = asArr(input.fabricPreferences ?? input.fabric_preferences);
-  const stylePreferences = asArr(input.stylePreferences ?? input.style_preferences);
+  const fabricPreferences = asArr(
+    input.fabricPreferences ?? input.fabric_preferences,
+  );
+  const stylePreferences = asArr(
+    input.stylePreferences ?? input.style_preferences,
+  );
   const occasions = asArr(input.occasions);
   if (styleKeywords?.length) out.styleKeywords = styleKeywords;
   if (fitPreferences?.length) out.fitPreferences = fitPreferences;
@@ -155,10 +159,7 @@ export class WardrobeController {
   }
 
   @Post('outfits')
-  generateOutfits(
-    @Req() req,
-    @Body() body: GenerateOutfitsDto,
-  ) {
+  generateOutfits(@Req() req, @Body() body: GenerateOutfitsDto) {
     const userId = req.user.userId;
     const weatherArg = body.useWeather === false ? undefined : body.weather;
     const userStyle = normalizeUserStyle(body.style_profile);
@@ -170,8 +171,10 @@ export class WardrobeController {
     const requestId = randomUUID();
 
     if (process.env.DEBUG_STUDIO === 'true') {
-      const mode = (body.useFastMode && !body.aaaaMode) ? 'FAST' : 'SLOW';
-      console.log(`🎯 [Studio] mode=${mode} reqId=${requestId} handler=generateOutfits`);
+      const mode = body.useFastMode && !body.aaaaMode ? 'FAST' : 'SLOW';
+      console.log(
+        `🎯 [Studio] mode=${mode} reqId=${requestId} handler=generateOutfits`,
+      );
     }
 
     // aaaaMode forces standard mode (overrides useFastMode)
@@ -196,7 +199,9 @@ export class WardrobeController {
     return this.service.generateOutfits(userId, body.query, body.topK || 5, {
       userStyle,
       weather: weatherArg,
-      weights: body.weights as import('./logic/scoring').ContextWeights | undefined,
+      weights: body.weights as
+        | import('./logic/scoring').ContextWeights
+        | undefined,
       useWeather: body.useWeather ?? true,
       useFeedback: body.useFeedback,
       styleAgent: body.styleAgent,

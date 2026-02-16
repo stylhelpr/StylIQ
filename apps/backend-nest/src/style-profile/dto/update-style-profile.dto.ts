@@ -17,6 +17,7 @@ import {
   CONTRAST_PREFERENCE_VALUES,
   FOOTWEAR_COMFORT_VALUES,
   FOOT_WIDTH_VALUES,
+  TREND_APPETITE_VALUES,
 } from '../style-profile.constants';
 
 export class UpdateStyleProfileDto {
@@ -188,6 +189,7 @@ export class UpdateStyleProfileDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(TREND_APPETITE_VALUES)
   trend_appetite?: string;
 
   // Goals & Notes

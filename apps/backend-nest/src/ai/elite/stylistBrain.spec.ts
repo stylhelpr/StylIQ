@@ -34,17 +34,19 @@ describe('loadStylistBrainContext', () => {
       } as any)
       // Leg 2: style_profiles
       .mockResolvedValueOnce({
-        rows: [{
-          fit_preferences: ['slim', 'tailored'],
-          fabric_preferences: ['cotton', 'linen'],
-          favorite_colors: ['navy', 'grey'],
-          disliked_styles: ['bohemian'],
-          style_preferences: ['minimalist'],
-          preferred_brands: ['Uniqlo', 'J.Crew'],
-          occasions: ['Work', 'Casual'],
-          body_type: 'athletic',
-          climate: 'temperate',
-        }],
+        rows: [
+          {
+            fit_preferences: ['slim', 'tailored'],
+            fabric_preferences: ['cotton', 'linen'],
+            favorite_colors: ['navy', 'grey'],
+            disliked_styles: ['bohemian'],
+            style_preferences: ['minimalist'],
+            preferred_brands: ['Uniqlo', 'J.Crew'],
+            occasions: ['Work', 'Casual'],
+            body_type: 'athletic',
+            climate: 'temperate',
+          },
+        ],
       } as any);
 
     mockFashionStateService.getStateSummary.mockResolvedValue({
@@ -59,7 +61,10 @@ describe('loadStylistBrainContext', () => {
       isColdStart: false,
     });
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
 
     expect(result.presentation).toBe('masculine');
     expect(result.styleProfile).not.toBeNull();
@@ -72,21 +77,31 @@ describe('loadStylistBrainContext', () => {
 
   it('resolves feminine presentation correctly', async () => {
     mockPool.query
-      .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Female' }] } as any)
+      .mockResolvedValueOnce({
+        rows: [{ gender_presentation: 'Female' }],
+      } as any)
       .mockResolvedValueOnce({ rows: [] } as any);
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
     expect(result.presentation).toBe('feminine');
   });
 
   it('resolves mixed presentation for nonbinary/other', async () => {
     mockPool.query
-      .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Non-Binary' }] } as any)
+      .mockResolvedValueOnce({
+        rows: [{ gender_presentation: 'Non-Binary' }],
+      } as any)
       .mockResolvedValueOnce({ rows: [] } as any);
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
     expect(result.presentation).toBe('mixed');
   });
 
@@ -96,7 +111,10 @@ describe('loadStylistBrainContext', () => {
       .mockResolvedValueOnce({ rows: [] } as any);
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
     expect(result.presentation).toBe('mixed');
     expect(result.styleProfile).toBeNull();
   });
@@ -107,7 +125,10 @@ describe('loadStylistBrainContext', () => {
       .mockRejectedValueOnce(new Error('DB error'));
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
     expect(result.presentation).toBe('masculine');
     expect(result.styleProfile).toBeNull();
   });
@@ -116,32 +137,44 @@ describe('loadStylistBrainContext', () => {
     mockPool.query
       .mockResolvedValueOnce({ rows: [{ gender_presentation: 'male' }] } as any)
       .mockResolvedValueOnce({ rows: [] } as any);
-    mockFashionStateService.getStateSummary.mockRejectedValue(new Error('timeout'));
+    mockFashionStateService.getStateSummary.mockRejectedValue(
+      new Error('timeout'),
+    );
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
     expect(result.presentation).toBe('masculine');
     expect(result.fashionState).toBeNull();
   });
 
   it('handles null/missing array fields in style_profiles', async () => {
     mockPool.query
-      .mockResolvedValueOnce({ rows: [{ gender_presentation: 'female' }] } as any)
       .mockResolvedValueOnce({
-        rows: [{
-          fit_preferences: null,
-          fabric_preferences: undefined,
-          favorite_colors: 'not-an-array',
-          disliked_styles: [],
-          style_preferences: ['casual'],
-          preferred_brands: ['Nike'],
-          occasions: [],
-          body_type: null,
-          climate: null,
-        }],
+        rows: [{ gender_presentation: 'female' }],
+      } as any)
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            fit_preferences: null,
+            fabric_preferences: undefined,
+            favorite_colors: 'not-an-array',
+            disliked_styles: [],
+            style_preferences: ['casual'],
+            preferred_brands: ['Nike'],
+            occasions: [],
+            body_type: null,
+            climate: null,
+          },
+        ],
       } as any);
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
     expect(result.styleProfile!.fit_preferences).toEqual([]);
     expect(result.styleProfile!.fabric_preferences).toEqual([]);
     expect(result.styleProfile!.favorite_colors).toEqual([]);
@@ -155,30 +188,44 @@ describe('loadStylistBrainContext', () => {
       .mockResolvedValueOnce({ rows: [] } as any);
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
     expect(result.styleProfile).toBeNull();
   });
 
   it('occasions is included in loaded profile', async () => {
     mockPool.query
-      .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Female' }] } as any)
       .mockResolvedValueOnce({
-        rows: [{
-          fit_preferences: [],
-          fabric_preferences: [],
-          favorite_colors: [],
-          disliked_styles: [],
-          style_preferences: [],
-          preferred_brands: [],
-          occasions: ['Work', 'Gym', 'Date Night'],
-          body_type: null,
-          climate: null,
-        }],
+        rows: [{ gender_presentation: 'Female' }],
+      } as any)
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            fit_preferences: [],
+            fabric_preferences: [],
+            favorite_colors: [],
+            disliked_styles: [],
+            style_preferences: [],
+            preferred_brands: [],
+            occasions: ['Work', 'Gym', 'Date Night'],
+            body_type: null,
+            climate: null,
+          },
+        ],
       } as any);
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
-    expect(result.styleProfile!.occasions).toEqual(['Work', 'Gym', 'Date Night']);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
+    expect(result.styleProfile!.occasions).toEqual([
+      'Work',
+      'Gym',
+      'Date Night',
+    ]);
   });
 });
 
@@ -189,25 +236,30 @@ describe('Banned fields policy', () => {
     mockPool.query
       .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Male' }] } as any)
       .mockResolvedValueOnce({
-        rows: [{
-          fit_preferences: ['slim'],
-          fabric_preferences: ['cotton'],
-          favorite_colors: ['navy'],
-          disliked_styles: [],
-          style_preferences: ['minimalist'],
-          preferred_brands: ['Uniqlo'],
-          occasions: ['Work'],
-          body_type: 'athletic',
-          climate: 'temperate',
-          budget_min: 50,
-          budget_max: 200,
-          fashion_confidence: 'high',
-          shopping_habits: ['online'],
-        }],
+        rows: [
+          {
+            fit_preferences: ['slim'],
+            fabric_preferences: ['cotton'],
+            favorite_colors: ['navy'],
+            disliked_styles: [],
+            style_preferences: ['minimalist'],
+            preferred_brands: ['Uniqlo'],
+            occasions: ['Work'],
+            body_type: 'athletic',
+            climate: 'temperate',
+            budget_min: 50,
+            budget_max: 200,
+            fashion_confidence: 'high',
+            shopping_habits: ['online'],
+          },
+        ],
       } as any);
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
     const sp = result.styleProfile!;
 
     // shopping_habits remains banned (not AI-relevant)
@@ -229,48 +281,55 @@ describe('Banned fields policy', () => {
 describe('P0/P1/LLM field parsing', () => {
   it('parseStyleProfileRow returns P0 fields from DB row', async () => {
     mockPool.query
-      .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Female' }] } as any)
       .mockResolvedValueOnce({
-        rows: [{
-          fit_preferences: [],
-          fabric_preferences: [],
-          favorite_colors: [],
-          disliked_styles: [],
-          style_preferences: [],
-          preferred_brands: [],
-          occasions: [],
-          body_type: null,
-          climate: null,
-          // P0
-          coverage_no_go: ['No midriff exposure', 'No cleavage'],
-          avoid_colors: ['Neon', 'Hot Pink'],
-          avoid_materials: ['Leather', 'Fur'],
-          formality_floor: 'Business Casual',
-          walkability_requirement: 'High',
-          // P1
-          pattern_preferences: ['Solid', 'Stripe'],
-          avoid_patterns: ['Floral'],
-          silhouette_preference: 'Structured',
-          care_tolerance: 'Easy care only',
-          metal_preference: 'Gold',
-          contrast_preference: 'High contrast',
-          footwear_comfort: 'Comfort first',
-          foot_width: 'Wide',
-          // LLM
-          fashion_boldness: 'Bold standout pieces',
-          trend_appetite: 'Selectively trendy',
-          fashion_confidence: 'Very confident',
-          budget_min: 50,
-          budget_max: 300,
-          style_icons: ['Zendaya', 'Harry Styles'],
-          daily_activities: ['Office', 'Gym'],
-          personality_traits: ['Creative', 'Confident'],
-          lifestyle_notes: 'Walks to work daily',
-        }],
+        rows: [{ gender_presentation: 'Female' }],
+      } as any)
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            fit_preferences: [],
+            fabric_preferences: [],
+            favorite_colors: [],
+            disliked_styles: [],
+            style_preferences: [],
+            preferred_brands: [],
+            occasions: [],
+            body_type: null,
+            climate: null,
+            // P0
+            coverage_no_go: ['No midriff exposure', 'No cleavage'],
+            avoid_colors: ['Neon', 'Hot Pink'],
+            avoid_materials: ['Leather', 'Fur'],
+            formality_floor: 'Business Casual',
+            walkability_requirement: 'High',
+            // P1
+            pattern_preferences: ['Solid', 'Stripe'],
+            avoid_patterns: ['Floral'],
+            silhouette_preference: 'Structured',
+            care_tolerance: 'Easy care only',
+            metal_preference: 'Gold',
+            contrast_preference: 'High contrast',
+            footwear_comfort: 'Comfort first',
+            foot_width: 'Wide',
+            // LLM
+            fashion_boldness: 'Bold standout pieces',
+            trend_appetite: 'Selectively trendy',
+            fashion_confidence: 'Very confident',
+            budget_min: 50,
+            budget_max: 300,
+            style_icons: ['Zendaya', 'Harry Styles'],
+            daily_activities: ['Office', 'Gym'],
+            personality_traits: ['Creative', 'Confident'],
+            lifestyle_notes: 'Walks to work daily',
+          },
+        ],
       } as any);
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
     const sp = result.styleProfile!;
 
     // P0
@@ -305,27 +364,32 @@ describe('P0/P1/LLM field parsing', () => {
     mockPool.query
       .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Male' }] } as any)
       .mockResolvedValueOnce({
-        rows: [{
-          fit_preferences: [],
-          fabric_preferences: [],
-          favorite_colors: [],
-          disliked_styles: [],
-          style_preferences: [],
-          preferred_brands: [],
-          occasions: [],
-          body_type: null,
-          climate: null,
-          // P0 all missing/null
-          coverage_no_go: null,
-          avoid_colors: undefined,
-          avoid_materials: null,
-          formality_floor: null,
-          walkability_requirement: null,
-        }],
+        rows: [
+          {
+            fit_preferences: [],
+            fabric_preferences: [],
+            favorite_colors: [],
+            disliked_styles: [],
+            style_preferences: [],
+            preferred_brands: [],
+            occasions: [],
+            body_type: null,
+            climate: null,
+            // P0 all missing/null
+            coverage_no_go: null,
+            avoid_colors: undefined,
+            avoid_materials: null,
+            formality_floor: null,
+            walkability_requirement: null,
+          },
+        ],
       } as any);
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
 
-    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const result = await loadStylistBrainContext(
+      'user-123',
+      mockFashionStateService,
+    );
     const sp = result.styleProfile!;
 
     expect(sp.coverage_no_go).toEqual([]);

@@ -207,9 +207,16 @@ describe('Injection Fallback Tiering', () => {
   // Replicate the tiered buildPool logic
   const buildPoolAtThreshold = (items: any[], cat: string, minScore: number) =>
     items
-      .filter((item) => (item.main_category || '').toLowerCase() === cat.toLowerCase())
+      .filter(
+        (item) =>
+          (item.main_category || '').toLowerCase() === cat.toLowerCase(),
+      )
       .filter((item) => item.__weatherScore >= minScore)
-      .sort((a: any, b: any) => (b.__weatherScore - a.__weatherScore) || (b.feedbackScore - a.feedbackScore));
+      .sort(
+        (a: any, b: any) =>
+          b.__weatherScore - a.__weatherScore ||
+          b.feedbackScore - a.feedbackScore,
+      );
 
   const buildPool = (items: any[], cat: string) => {
     let pool = buildPoolAtThreshold(items, cat, 0);
@@ -298,10 +305,12 @@ describe('Deterministic Ranking Stability', () => {
     }));
 
     const sorted1 = [...outfits].sort(
-      (a, b) => b.__finalScore - a.__finalScore || b.__tieBreaker - a.__tieBreaker,
+      (a, b) =>
+        b.__finalScore - a.__finalScore || b.__tieBreaker - a.__tieBreaker,
     );
     const sorted2 = [...outfits].sort(
-      (a, b) => b.__finalScore - a.__finalScore || b.__tieBreaker - a.__tieBreaker,
+      (a, b) =>
+        b.__finalScore - a.__finalScore || b.__tieBreaker - a.__tieBreaker,
     );
 
     expect(sorted1.map((o) => o.__anchor)).toEqual(
@@ -322,7 +331,8 @@ describe('Deterministic Ranking Stability', () => {
     }));
 
     outfits.sort(
-      (a, b) => b.__finalScore - a.__finalScore || b.__tieBreaker - a.__tieBreaker,
+      (a, b) =>
+        b.__finalScore - a.__finalScore || b.__tieBreaker - a.__tieBreaker,
     );
 
     expect(outfits[0].__finalScore).toBe(7.0);
@@ -350,8 +360,18 @@ describe('No Internal Field Leakage', () => {
       summary: 'Test outfit',
       reasoning: 'Looks good',
       items: [
-        { id: 'item-1', name: 'Tee', imageUrl: 'https://img/tee.jpg', category: 'top' },
-        { id: 'item-2', name: 'Jeans', imageUrl: 'https://img/jeans.jpg', category: 'bottom' },
+        {
+          id: 'item-1',
+          name: 'Tee',
+          imageUrl: 'https://img/tee.jpg',
+          category: 'top',
+        },
+        {
+          id: 'item-2',
+          name: 'Jeans',
+          imageUrl: 'https://img/jeans.jpg',
+          category: 'bottom',
+        },
       ],
       __finalScore: 4.2,
       __tieBreaker: 573,
@@ -359,7 +379,8 @@ describe('No Internal Field Leakage', () => {
       __uniqueAnchor: true,
     };
 
-    const { __finalScore, __tieBreaker, __anchor, __uniqueAnchor, ...rest } = rawOutfit;
+    const { __finalScore, __tieBreaker, __anchor, __uniqueAnchor, ...rest } =
+      rawOutfit;
     const cleaned = rest;
 
     for (const field of INTERNAL_FIELDS) {
@@ -374,7 +395,12 @@ describe('No Internal Field Leakage', () => {
       summary: 'Test outfit',
       reasoning: 'Looks good',
       items: [
-        { id: 'item-1', name: 'Tee', imageUrl: 'https://img/tee.jpg', category: 'top' },
+        {
+          id: 'item-1',
+          name: 'Tee',
+          imageUrl: 'https://img/tee.jpg',
+          category: 'top',
+        },
       ],
       __finalScore: 4.2,
       __tieBreaker: 573,
@@ -382,7 +408,8 @@ describe('No Internal Field Leakage', () => {
       __uniqueAnchor: true,
     };
 
-    const { __finalScore, __tieBreaker, __anchor, __uniqueAnchor, ...rest } = rawOutfit;
+    const { __finalScore, __tieBreaker, __anchor, __uniqueAnchor, ...rest } =
+      rawOutfit;
 
     expect(rest).toHaveProperty('id', 'outfit-1');
     expect(rest).toHaveProperty('rank', 1);
@@ -430,7 +457,14 @@ describe('No Internal Field Leakage', () => {
       rank: 1,
       summary: 'Test outfit',
       reasoning: 'Looks good',
-      items: [{ id: 'item-1', name: 'Tee', imageUrl: 'https://img/tee.jpg', category: 'top' }],
+      items: [
+        {
+          id: 'item-1',
+          name: 'Tee',
+          imageUrl: 'https://img/tee.jpg',
+          category: 'top',
+        },
+      ],
       __finalScore: 4.2,
       __tieBreaker: 573,
       __anchor: 'item-1+none',
@@ -438,7 +472,14 @@ describe('No Internal Field Leakage', () => {
       __silhouette: 'relaxed',
     };
 
-    const { __finalScore, __tieBreaker, __anchor, __uniqueAnchor, __silhouette, ...rest } = rawOutfit;
+    const {
+      __finalScore,
+      __tieBreaker,
+      __anchor,
+      __uniqueAnchor,
+      __silhouette,
+      ...rest
+    } = rawOutfit;
 
     expect(rest).not.toHaveProperty('__silhouette');
     expect(rest).toHaveProperty('id', 'outfit-1');
@@ -450,16 +491,53 @@ describe('No Internal Field Leakage', () => {
 describe('Quality Gate', () => {
   // Replicate color analysis from production
   const BOLD_COLOR_FAMILIES = ['red', 'orange', 'yellow', 'purple'];
-  const WARM_COLORS = ['red', 'orange', 'yellow', 'coral', 'peach', 'gold', 'amber', 'rust'];
-  const COOL_COLORS = ['blue', 'teal', 'cyan', 'mint', 'lavender', 'periwinkle', 'ice', 'cobalt', 'navy', 'slate'];
-  const NEUTRAL_COLORS = ['black', 'white', 'gray', 'grey', 'beige', 'cream', 'tan', 'khaki', 'ivory', 'charcoal', 'taupe', 'brown', 'nude'];
+  const WARM_COLORS = [
+    'red',
+    'orange',
+    'yellow',
+    'coral',
+    'peach',
+    'gold',
+    'amber',
+    'rust',
+  ];
+  const COOL_COLORS = [
+    'blue',
+    'teal',
+    'cyan',
+    'mint',
+    'lavender',
+    'periwinkle',
+    'ice',
+    'cobalt',
+    'navy',
+    'slate',
+  ];
+  const NEUTRAL_COLORS = [
+    'black',
+    'white',
+    'gray',
+    'grey',
+    'beige',
+    'cream',
+    'tan',
+    'khaki',
+    'ivory',
+    'charcoal',
+    'taupe',
+    'brown',
+    'nude',
+  ];
   const extractColorWords = (colorStr: string): string[] =>
-    (colorStr || '').toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+    (colorStr || '')
+      .toLowerCase()
+      .split(/[\s,/&+\-]+/)
+      .filter(Boolean);
 
   it('"redwood" is NOT classified as Red (exact word match)', () => {
     const colors = extractColorWords('redwood');
-    const boldPresent = BOLD_COLOR_FAMILIES.filter(family =>
-      colors.some(word => word === family),
+    const boldPresent = BOLD_COLOR_FAMILIES.filter((family) =>
+      colors.some((word) => word === family),
     );
     expect(boldPresent).not.toContain('red');
     expect(boldPresent).toHaveLength(0);
@@ -467,8 +545,8 @@ describe('Quality Gate', () => {
 
   it('"red" IS classified as Red (exact word match)', () => {
     const colors = extractColorWords('red');
-    const boldPresent = BOLD_COLOR_FAMILIES.filter(family =>
-      colors.some(word => word === family),
+    const boldPresent = BOLD_COLOR_FAMILIES.filter((family) =>
+      colors.some((word) => word === family),
     );
     expect(boldPresent).toContain('red');
   });
@@ -476,17 +554,33 @@ describe('Quality Gate', () => {
   it('rejects athletic shoes + tailored top', () => {
     // Simulate the quality gate logic
     const details = [
-      { category: 'shoes', formality: 0, sub: 'running sneaker', name: 'nike runner', color: 'black' },
-      { category: 'top', formality: 3, sub: 'blazer', name: 'wool blazer', color: 'navy' },
+      {
+        category: 'shoes',
+        formality: 0,
+        sub: 'running sneaker',
+        name: 'nike runner',
+        color: 'black',
+      },
+      {
+        category: 'top',
+        formality: 3,
+        sub: 'blazer',
+        name: 'wool blazer',
+        color: 'navy',
+      },
     ];
 
-    const hasAthleticShoes = details.some(d =>
-      d.category === 'shoes' && (d.formality === 0 || /running|slide|sneaker/.test(d.sub)),
+    const hasAthleticShoes = details.some(
+      (d) =>
+        d.category === 'shoes' &&
+        (d.formality === 0 || /running|slide|sneaker/.test(d.sub)),
     );
-    const TAILORED_RE = /blazer|sport coat|suit|dress shirt|button.?down|oxford|tailored/;
-    const hasTailoredTop = details.some(d =>
-      (d.category === 'top' || d.category === 'outerwear') &&
-      (TAILORED_RE.test(d.sub) || TAILORED_RE.test(d.name)),
+    const TAILORED_RE =
+      /blazer|sport coat|suit|dress shirt|button.?down|oxford|tailored/;
+    const hasTailoredTop = details.some(
+      (d) =>
+        (d.category === 'top' || d.category === 'outerwear') &&
+        (TAILORED_RE.test(d.sub) || TAILORED_RE.test(d.name)),
     );
 
     expect(hasAthleticShoes).toBe(true);
@@ -501,11 +595,11 @@ describe('Quality Gate', () => {
       { category: 'bottom', sub: 'shorts', name: 'chino shorts' },
     ];
 
-    const hasHeavyOuterwear = details.some(d =>
-      d.category === 'outerwear' && /coat|parka|puffer|down/.test(d.sub),
+    const hasHeavyOuterwear = details.some(
+      (d) => d.category === 'outerwear' && /coat|parka|puffer|down/.test(d.sub),
     );
-    const hasShorts = details.some(d =>
-      d.category === 'bottom' && /short/.test(d.sub),
+    const hasShorts = details.some(
+      (d) => d.category === 'bottom' && /short/.test(d.sub),
     );
 
     expect(hasHeavyOuterwear).toBe(true);
@@ -519,11 +613,11 @@ describe('Quality Gate', () => {
       { category: 'bottom', sub: 'trousers', name: 'wool trousers' },
     ];
 
-    const hasHeavyOuterwear = details.some(d =>
-      d.category === 'outerwear' && /coat|parka|puffer|down/.test(d.sub),
+    const hasHeavyOuterwear = details.some(
+      (d) => d.category === 'outerwear' && /coat|parka|puffer|down/.test(d.sub),
     );
-    const hasShorts = details.some(d =>
-      d.category === 'bottom' && /short/.test(d.sub),
+    const hasShorts = details.some(
+      (d) => d.category === 'bottom' && /short/.test(d.sub),
     );
 
     expect(hasHeavyOuterwear).toBe(true);
@@ -534,9 +628,9 @@ describe('Quality Gate', () => {
 
   it('rejects warm + cool clash without neutral base', () => {
     const allColors = extractColorWords('coral blue');
-    const hasWarm = allColors.some(w => WARM_COLORS.includes(w));
-    const hasCool = allColors.some(w => COOL_COLORS.includes(w));
-    const hasNeutralBase = allColors.some(w => NEUTRAL_COLORS.includes(w));
+    const hasWarm = allColors.some((w) => WARM_COLORS.includes(w));
+    const hasCool = allColors.some((w) => COOL_COLORS.includes(w));
+    const hasNeutralBase = allColors.some((w) => NEUTRAL_COLORS.includes(w));
 
     expect(hasWarm).toBe(true);
     expect(hasCool).toBe(true);
@@ -547,9 +641,9 @@ describe('Quality Gate', () => {
 
   it('allows warm + cool with neutral base', () => {
     const allColors = extractColorWords('coral blue black');
-    const hasWarm = allColors.some(w => WARM_COLORS.includes(w));
-    const hasCool = allColors.some(w => COOL_COLORS.includes(w));
-    const hasNeutralBase = allColors.some(w => NEUTRAL_COLORS.includes(w));
+    const hasWarm = allColors.some((w) => WARM_COLORS.includes(w));
+    const hasCool = allColors.some((w) => COOL_COLORS.includes(w));
+    const hasNeutralBase = allColors.some((w) => NEUTRAL_COLORS.includes(w));
 
     expect(hasWarm).toBe(true);
     expect(hasCool).toBe(true);
@@ -562,7 +656,8 @@ describe('Quality Gate', () => {
 // ─── 7️⃣ Silhouette Diversity ───────────────────────────────────
 
 describe('Silhouette Diversity', () => {
-  const TAILORED_RE = /blazer|sport coat|suit|dress shirt|button.?down|oxford|tailored/;
+  const TAILORED_RE =
+    /blazer|sport coat|suit|dress shirt|button.?down|oxford|tailored/;
 
   const getSilhouetteType = (outfit: any): 'dress' | 'tailored' | 'relaxed' => {
     const items = outfit.items.filter(Boolean);
@@ -577,7 +672,12 @@ describe('Silhouette Diversity', () => {
   };
 
   it('classifies dress outfit as "dress"', () => {
-    const outfit = { items: [{ category: 'dress', name: 'Maxi Dress' }, { category: 'shoes', name: 'Heels' }] };
+    const outfit = {
+      items: [
+        { category: 'dress', name: 'Maxi Dress' },
+        { category: 'shoes', name: 'Heels' },
+      ],
+    };
     expect(getSilhouetteType(outfit)).toBe('dress');
   });
 
@@ -595,7 +695,11 @@ describe('Silhouette Diversity', () => {
   it('classifies dress shirt by name as "tailored"', () => {
     const outfit = {
       items: [
-        { category: 'top', name: 'Blue Oxford Dress Shirt', subcategory: 'shirt' },
+        {
+          category: 'top',
+          name: 'Blue Oxford Dress Shirt',
+          subcategory: 'shirt',
+        },
         { category: 'bottom', name: 'Slacks' },
       ],
     };
@@ -615,8 +719,20 @@ describe('Silhouette Diversity', () => {
 
   it('penalizes duplicate silhouette types', () => {
     const outfits = [
-      { __finalScore: 5.0, items: [{ category: 'top', name: 'Tee', subcategory: 't-shirt' }, { category: 'bottom' }] },
-      { __finalScore: 5.0, items: [{ category: 'top', name: 'Polo', subcategory: 'polo' }, { category: 'bottom' }] },
+      {
+        __finalScore: 5.0,
+        items: [
+          { category: 'top', name: 'Tee', subcategory: 't-shirt' },
+          { category: 'bottom' },
+        ],
+      },
+      {
+        __finalScore: 5.0,
+        items: [
+          { category: 'top', name: 'Polo', subcategory: 'polo' },
+          { category: 'bottom' },
+        ],
+      },
       { __finalScore: 5.0, items: [{ category: 'dress', name: 'Maxi Dress' }] },
     ];
 
@@ -654,11 +770,11 @@ describe('Canonicalize + Rescore', () => {
     };
 
     if (temp >= 75) {
-      outfit.items = outfit.items.filter(i => i.category !== 'outerwear');
+      outfit.items = outfit.items.filter((i) => i.category !== 'outerwear');
     }
 
     expect(outfit.items).toHaveLength(3);
-    expect(outfit.items.some(i => i.category === 'outerwear')).toBe(false);
+    expect(outfit.items.some((i) => i.category === 'outerwear')).toBe(false);
   });
 
   it('keeps outerwear in cold weather (temp <= 60)', () => {
@@ -670,18 +786,19 @@ describe('Canonicalize + Rescore', () => {
       { id: 'jacket-1', category: 'outerwear' },
     ];
 
-    const hasDress = items.some(i => i.category === 'dress');
+    const hasDress = items.some((i) => i.category === 'dress');
     expect(hasDress).toBe(false);
 
     // Separates: top + bottom + shoes + outerwear if temp <= 60
-    const top = items.find(i => i.category === 'top');
-    const bottom = items.find(i => i.category === 'bottom');
-    const shoes = items.find(i => i.category === 'shoes');
-    const outerwear = (temp <= 60) ? items.find(i => i.category === 'outerwear') : null;
+    const top = items.find((i) => i.category === 'top');
+    const bottom = items.find((i) => i.category === 'bottom');
+    const shoes = items.find((i) => i.category === 'shoes');
+    const outerwear =
+      temp <= 60 ? items.find((i) => i.category === 'outerwear') : null;
     const newItems = [top, bottom, shoes, outerwear].filter(Boolean);
 
     expect(newItems).toHaveLength(4);
-    expect(newItems.some(i => i!.category === 'outerwear')).toBe(true);
+    expect(newItems.some((i) => i!.category === 'outerwear')).toBe(true);
   });
 
   it('rescore changes finalScore when items change', () => {
@@ -704,14 +821,16 @@ describe('Canonicalize + Rescore', () => {
       { id: 'jacket-1', category: 'outerwear' },
     ];
 
-    const dress = items.find(i => i.category === 'dress');
-    const shoes = items.find(i => i.category === 'shoes');
-    const outerwear = (temp <= 60) ? items.find(i => i.category === 'outerwear') : null;
+    const dress = items.find((i) => i.category === 'dress');
+    const shoes = items.find((i) => i.category === 'shoes');
+    const outerwear =
+      temp <= 60 ? items.find((i) => i.category === 'outerwear') : null;
     let newItems = [dress, shoes, outerwear].filter(Boolean);
-    if (temp >= 75) newItems = newItems.filter(i => i!.category !== 'outerwear');
+    if (temp >= 75)
+      newItems = newItems.filter((i) => i!.category !== 'outerwear');
 
     expect(newItems).toHaveLength(2);
-    expect(newItems.map(i => i!.category)).toEqual(['dress', 'shoes']);
+    expect(newItems.map((i) => i!.category)).toEqual(['dress', 'shoes']);
   });
 });
 
@@ -771,16 +890,35 @@ describe('Confidence Check', () => {
 
 describe('Response Enrichment', () => {
   const BOLD_COLOR_FAMILIES = ['red', 'orange', 'yellow', 'purple'];
-  const NEUTRAL_COLORS = ['black', 'white', 'gray', 'grey', 'beige', 'cream', 'tan', 'khaki', 'ivory', 'charcoal', 'taupe', 'brown', 'nude'];
+  const NEUTRAL_COLORS = [
+    'black',
+    'white',
+    'gray',
+    'grey',
+    'beige',
+    'cream',
+    'tan',
+    'khaki',
+    'ivory',
+    'charcoal',
+    'taupe',
+    'brown',
+    'nude',
+  ];
   const extractColorWords = (colorStr: string): string[] =>
-    (colorStr || '').toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+    (colorStr || '')
+      .toLowerCase()
+      .split(/[\s,/&+\-]+/)
+      .filter(Boolean);
 
   it('classifies all-neutral palette correctly', () => {
     const colors = ['black', 'white', 'gray'];
-    const boldPresent = BOLD_COLOR_FAMILIES.filter(f =>
-      colors.some(w => w === f),
+    const boldPresent = BOLD_COLOR_FAMILIES.filter((f) =>
+      colors.some((w) => w === f),
     );
-    const neutralCount = colors.filter(w => NEUTRAL_COLORS.includes(w)).length;
+    const neutralCount = colors.filter((w) =>
+      NEUTRAL_COLORS.includes(w),
+    ).length;
 
     expect(boldPresent).toHaveLength(0);
     expect(neutralCount).toBe(3);
@@ -789,8 +927,8 @@ describe('Response Enrichment', () => {
 
   it('classifies single bold + neutrals as "single accent"', () => {
     const colors = ['black', 'white', 'red'];
-    const boldPresent = BOLD_COLOR_FAMILIES.filter(f =>
-      colors.some(w => w === f),
+    const boldPresent = BOLD_COLOR_FAMILIES.filter((f) =>
+      colors.some((w) => w === f),
     );
 
     expect(boldPresent).toHaveLength(1);
@@ -800,8 +938,8 @@ describe('Response Enrichment', () => {
 
   it('classifies 2+ bold colors as "bold mix"', () => {
     const colors = ['red', 'purple', 'black'];
-    const boldPresent = BOLD_COLOR_FAMILIES.filter(f =>
-      colors.some(w => w === f),
+    const boldPresent = BOLD_COLOR_FAMILIES.filter((f) =>
+      colors.some((w) => w === f),
     );
 
     expect(boldPresent).toHaveLength(2);
@@ -820,8 +958,12 @@ describe('Response Enrichment', () => {
     expect(fashionContext).toHaveProperty('silhouette');
     expect(fashionContext).toHaveProperty('colorStrategy');
     expect(fashionContext).toHaveProperty('confidenceLevel');
-    expect(['optimal', 'good', 'marginal']).toContain(fashionContext.weatherFit);
-    expect(['dress', 'tailored', 'relaxed']).toContain(fashionContext.silhouette);
+    expect(['optimal', 'good', 'marginal']).toContain(
+      fashionContext.weatherFit,
+    );
+    expect(['dress', 'tailored', 'relaxed']).toContain(
+      fashionContext.silhouette,
+    );
     expect(typeof fashionContext.confidenceLevel).toBe('number');
   });
 });
@@ -830,25 +972,73 @@ describe('Response Enrichment', () => {
 
 describe('Aesthetic Tie-Breaker', () => {
   // Replicate helpers from production
-  const AESTHETIC_WARM = ['red', 'orange', 'yellow', 'coral', 'peach', 'gold', 'amber', 'rust'];
-  const AESTHETIC_COOL = ['blue', 'teal', 'cyan', 'mint', 'lavender', 'periwinkle', 'ice', 'cobalt', 'navy', 'slate'];
-  const AESTHETIC_NEUTRAL = ['black', 'white', 'gray', 'grey', 'beige', 'cream', 'tan', 'khaki', 'ivory', 'charcoal', 'taupe', 'brown', 'nude'];
+  const AESTHETIC_WARM = [
+    'red',
+    'orange',
+    'yellow',
+    'coral',
+    'peach',
+    'gold',
+    'amber',
+    'rust',
+  ];
+  const AESTHETIC_COOL = [
+    'blue',
+    'teal',
+    'cyan',
+    'mint',
+    'lavender',
+    'periwinkle',
+    'ice',
+    'cobalt',
+    'navy',
+    'slate',
+  ];
+  const AESTHETIC_NEUTRAL = [
+    'black',
+    'white',
+    'gray',
+    'grey',
+    'beige',
+    'cream',
+    'tan',
+    'khaki',
+    'ivory',
+    'charcoal',
+    'taupe',
+    'brown',
+    'nude',
+  ];
   const AESTHETIC_BOLD = ['red', 'orange', 'yellow', 'purple'];
 
   const aestheticExtractColorWords = (colorStr: string): string[] =>
-    (colorStr || '').toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+    (colorStr || '')
+      .toLowerCase()
+      .split(/[\s,/&+\-]+/)
+      .filter(Boolean);
 
-  const computeColorHarmony = (outfit: any, itemMap: Map<string, any>): number => {
+  const computeColorHarmony = (
+    outfit: any,
+    itemMap: Map<string, any>,
+  ): number => {
     const items = (outfit.items || []).filter(Boolean);
     const allColors: string[] = items.flatMap((i: any) => {
       const full = itemMap.get(i.id);
       return aestheticExtractColorWords(full?.color || '');
     });
     if (allColors.length === 0) return 0;
-    const warmCount = allColors.filter(w => AESTHETIC_WARM.includes(w)).length;
-    const coolCount = allColors.filter(w => AESTHETIC_COOL.includes(w)).length;
-    const neutralCount = allColors.filter(w => AESTHETIC_NEUTRAL.includes(w)).length;
-    const boldFamilies = new Set(allColors.filter(w => AESTHETIC_BOLD.includes(w)));
+    const warmCount = allColors.filter((w) =>
+      AESTHETIC_WARM.includes(w),
+    ).length;
+    const coolCount = allColors.filter((w) =>
+      AESTHETIC_COOL.includes(w),
+    ).length;
+    const neutralCount = allColors.filter((w) =>
+      AESTHETIC_NEUTRAL.includes(w),
+    ).length;
+    const boldFamilies = new Set(
+      allColors.filter((w) => AESTHETIC_BOLD.includes(w)),
+    );
     if (boldFamilies.size > 1 && neutralCount === 0) return -1.0;
     if (neutralCount > allColors.length / 2) return 0.5;
     const hasWarm = warmCount > 0;
@@ -900,7 +1090,7 @@ describe('Aesthetic Tie-Breaker', () => {
       // Max: 0.05*1 + 0.03*1 - 0.03*0 = 0.08
       // Min: 0.05*(-1) + 0.03*0 - 0.03*1 = -0.08
       const maxAdj = 0.05 * 1.0 + 0.03 * 1.0 - 0.03 * 0;
-      const minAdj = 0.05 * (-1.0) + 0.03 * 0 - 0.03 * 1.0;
+      const minAdj = 0.05 * -1.0 + 0.03 * 0 - 0.03 * 1.0;
       expect(maxAdj).toBeLessThanOrEqual(0.15);
       expect(minAdj).toBeGreaterThanOrEqual(-0.15);
     }
@@ -1006,42 +1196,45 @@ describe('Care Status Filter', () => {
     const wardrobe = [
       makeItem({ id: 'clean-1', care_status: 'available' }),
       makeItem({ id: 'dirty-1', care_status: 'at_cleaner' }),
-      makeItem({ id: 'no-status', }),
+      makeItem({ id: 'no-status' }),
     ];
 
     const filtered = wardrobe.filter(
-      (item) => ((item as any).careStatus ?? (item as any).care_status ?? 'available') !== 'at_cleaner',
+      (item) =>
+        ((item as any).careStatus ??
+          (item as any).care_status ??
+          'available') !== 'at_cleaner',
     );
 
-    expect(filtered.map(i => i.id)).toEqual(['clean-1', 'no-status']);
-    expect(filtered.find(i => i.id === 'dirty-1')).toBeUndefined();
+    expect(filtered.map((i) => i.id)).toEqual(['clean-1', 'no-status']);
+    expect(filtered.find((i) => i.id === 'dirty-1')).toBeUndefined();
   });
 
   it('includes items without care_status (defaults to available)', () => {
-    const wardrobe = [
-      makeItem({ id: 'item-1' }),
-      makeItem({ id: 'item-2' }),
-    ];
+    const wardrobe = [makeItem({ id: 'item-1' }), makeItem({ id: 'item-2' })];
 
     const filtered = wardrobe.filter(
-      (item) => ((item as any).careStatus ?? (item as any).care_status ?? 'available') !== 'at_cleaner',
+      (item) =>
+        ((item as any).careStatus ??
+          (item as any).care_status ??
+          'available') !== 'at_cleaner',
     );
 
     expect(filtered).toHaveLength(2);
   });
 
   it('handles careStatus (camelCase) variant', () => {
-    const wardrobe = [
-      makeItem({ id: 'camel-1' }),
-      makeItem({ id: 'camel-2' }),
-    ];
+    const wardrobe = [makeItem({ id: 'camel-1' }), makeItem({ id: 'camel-2' })];
     (wardrobe[1] as any).careStatus = 'at_cleaner';
 
     const filtered = wardrobe.filter(
-      (item) => ((item as any).careStatus ?? (item as any).care_status ?? 'available') !== 'at_cleaner',
+      (item) =>
+        ((item as any).careStatus ??
+          (item as any).care_status ??
+          'available') !== 'at_cleaner',
     );
 
-    expect(filtered.map(i => i.id)).toEqual(['camel-1']);
+    expect(filtered.map((i) => i.id)).toEqual(['camel-1']);
   });
 });
 
@@ -1052,11 +1245,15 @@ describe('Presentation Normalization', () => {
    * Mirrors the normalization logic from suggestVisualOutfits() ai.service.ts:3223-3225.
    * Extracted here to test the exact same algorithm used in production.
    */
-  function normalizePresentation(raw: string | null | undefined): 'masculine' | 'feminine' | 'mixed' {
+  function normalizePresentation(
+    raw: string | null | undefined,
+  ): 'masculine' | 'feminine' | 'mixed' {
     const gp = (raw || '').toLowerCase().replace(/[\s_-]+/g, '');
     // Check female/feminine FIRST — 'female'.includes('male') is true in JS!
-    if (gp.includes('female') || gp.includes('feminin') || gp === 'woman') return 'feminine';
-    if (gp.includes('male') || gp.includes('masculin') || gp === 'man') return 'masculine';
+    if (gp.includes('female') || gp.includes('feminin') || gp === 'woman')
+      return 'feminine';
+    if (gp.includes('male') || gp.includes('masculin') || gp === 'man')
+      return 'masculine';
     return 'mixed';
   }
 
@@ -1153,7 +1350,9 @@ describe('Hard Completeness Gate', () => {
    * Mirrors isVisualOutfitComplete() from suggestVisualOutfits() ai.service.ts.
    * Extracted to test the exact same logic.
    */
-  function isVisualOutfitComplete(outfit: { items: Array<{ category: string } | null> }): boolean {
+  function isVisualOutfitComplete(outfit: {
+    items: Array<{ category: string } | null>;
+  }): boolean {
     const items = (outfit.items || []).filter(Boolean);
     const cats = new Set(items.map((i) => i!.category));
     const hasDress = cats.has('dress');
@@ -1189,10 +1388,7 @@ describe('Hard Completeness Gate', () => {
 
   it('accepts dress-based: dress + shoes', () => {
     const outfit = {
-      items: [
-        { category: 'dress' },
-        { category: 'shoes' },
-      ],
+      items: [{ category: 'dress' }, { category: 'shoes' }],
     };
     expect(isVisualOutfitComplete(outfit)).toBe(true);
   });
@@ -1212,39 +1408,28 @@ describe('Hard Completeness Gate', () => {
 
   it('rejects separates missing shoes', () => {
     const outfit = {
-      items: [
-        { category: 'top' },
-        { category: 'bottom' },
-      ],
+      items: [{ category: 'top' }, { category: 'bottom' }],
     };
     expect(isVisualOutfitComplete(outfit)).toBe(false);
   });
 
   it('rejects separates missing bottom', () => {
     const outfit = {
-      items: [
-        { category: 'top' },
-        { category: 'shoes' },
-      ],
+      items: [{ category: 'top' }, { category: 'shoes' }],
     };
     expect(isVisualOutfitComplete(outfit)).toBe(false);
   });
 
   it('rejects separates missing top', () => {
     const outfit = {
-      items: [
-        { category: 'bottom' },
-        { category: 'shoes' },
-      ],
+      items: [{ category: 'bottom' }, { category: 'shoes' }],
     };
     expect(isVisualOutfitComplete(outfit)).toBe(false);
   });
 
   it('rejects dress missing shoes', () => {
     const outfit = {
-      items: [
-        { category: 'dress' },
-      ],
+      items: [{ category: 'dress' }],
     };
     expect(isVisualOutfitComplete(outfit)).toBe(false);
   });
@@ -1256,19 +1441,14 @@ describe('Hard Completeness Gate', () => {
 
   it('rejects outfit with only accessories', () => {
     const outfit = {
-      items: [
-        { category: 'accessory' },
-        { category: 'accessory' },
-      ],
+      items: [{ category: 'accessory' }, { category: 'accessory' }],
     };
     expect(isVisualOutfitComplete(outfit)).toBe(false);
   });
 
   it('rejects outfit with only shoes', () => {
     const outfit = {
-      items: [
-        { category: 'shoes' },
-      ],
+      items: [{ category: 'shoes' }],
     };
     expect(isVisualOutfitComplete(outfit)).toBe(false);
   });
@@ -1290,7 +1470,14 @@ describe('Hard Completeness Gate', () => {
 
   it('filtering array: keeps only complete outfits', () => {
     const outfits = [
-      { rank: 1, items: [{ category: 'top' }, { category: 'bottom' }, { category: 'shoes' }] },
+      {
+        rank: 1,
+        items: [
+          { category: 'top' },
+          { category: 'bottom' },
+          { category: 'shoes' },
+        ],
+      },
       { rank: 2, items: [{ category: 'top' }, { category: 'shoes' }] }, // missing bottom
       { rank: 3, items: [{ category: 'dress' }, { category: 'shoes' }] },
     ];
@@ -1298,14 +1485,21 @@ describe('Hard Completeness Gate', () => {
     const complete = outfits.filter(isVisualOutfitComplete);
 
     expect(complete).toHaveLength(2);
-    expect(complete.map(o => o.rank)).toEqual([1, 3]);
+    expect(complete.map((o) => o.rank)).toEqual([1, 3]);
   });
 
   it('filtering array: no-shoes wardrobe produces 0 complete outfits', () => {
     const outfits = [
       { rank: 1, items: [{ category: 'top' }, { category: 'bottom' }] },
       { rank: 2, items: [{ category: 'dress' }] },
-      { rank: 3, items: [{ category: 'top' }, { category: 'bottom' }, { category: 'outerwear' }] },
+      {
+        rank: 3,
+        items: [
+          { category: 'top' },
+          { category: 'bottom' },
+          { category: 'outerwear' },
+        ],
+      },
     ];
 
     const complete = outfits.filter(isVisualOutfitComplete);
@@ -1347,12 +1541,34 @@ describe('Post-Assembly Masculine Filter (Defense-in-Depth)', () => {
     });
 
   it('masculine post-filter removes feminine items from LLM output', () => {
-    const dress = makeItem({ id: 'd1', name: 'Floral Midi Dress', main_category: 'Dresses', subcategory: 'Midi Dress' });
-    const top = makeItem({ id: 't1', name: 'Oxford Shirt', main_category: 'Tops', subcategory: 'Oxford Shirt' });
-    const bottom = makeItem({ id: 'b1', name: 'Chinos', main_category: 'Bottoms', subcategory: 'Chinos' });
-    const shoes = makeItem({ id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers' });
+    const dress = makeItem({
+      id: 'd1',
+      name: 'Floral Midi Dress',
+      main_category: 'Dresses',
+      subcategory: 'Midi Dress',
+    });
+    const top = makeItem({
+      id: 't1',
+      name: 'Oxford Shirt',
+      main_category: 'Tops',
+      subcategory: 'Oxford Shirt',
+    });
+    const bottom = makeItem({
+      id: 'b1',
+      name: 'Chinos',
+      main_category: 'Bottoms',
+      subcategory: 'Chinos',
+    });
+    const shoes = makeItem({
+      id: 's1',
+      name: 'Sneakers',
+      main_category: 'Shoes',
+      subcategory: 'Sneakers',
+    });
 
-    const rawLookup = new Map([dress, top, bottom, shoes].map((i) => [i.id, i]));
+    const rawLookup = new Map(
+      [dress, top, bottom, shoes].map((i) => [i.id, i]),
+    );
     const outfitItems = [
       { id: 'd1', name: 'Floral Midi Dress', category: 'dress' },
       { id: 't1', name: 'Oxford Shirt', category: 'top' },
@@ -1368,12 +1584,34 @@ describe('Post-Assembly Masculine Filter (Defense-in-Depth)', () => {
   });
 
   it('masculine post-filter removes heels/skirts/blouse/purse', () => {
-    const heels = makeItem({ id: 'h1', name: 'Red Stilettos', main_category: 'Shoes', subcategory: 'Stiletto Heels' });
-    const skirt = makeItem({ id: 'sk1', name: 'Pleated Skirt', main_category: 'Skirts', subcategory: 'Pleated Skirt' });
-    const blouse = makeItem({ id: 'bl1', name: 'Silk Blouse', main_category: 'Tops', subcategory: 'Blouse' });
-    const purse = makeItem({ id: 'p1', name: 'Leather Purse', main_category: 'Bags', subcategory: 'Purse' });
+    const heels = makeItem({
+      id: 'h1',
+      name: 'Red Stilettos',
+      main_category: 'Shoes',
+      subcategory: 'Stiletto Heels',
+    });
+    const skirt = makeItem({
+      id: 'sk1',
+      name: 'Pleated Skirt',
+      main_category: 'Skirts',
+      subcategory: 'Pleated Skirt',
+    });
+    const blouse = makeItem({
+      id: 'bl1',
+      name: 'Silk Blouse',
+      main_category: 'Tops',
+      subcategory: 'Blouse',
+    });
+    const purse = makeItem({
+      id: 'p1',
+      name: 'Leather Purse',
+      main_category: 'Bags',
+      subcategory: 'Purse',
+    });
 
-    const rawLookup = new Map([heels, skirt, blouse, purse].map((i) => [i.id, i]));
+    const rawLookup = new Map(
+      [heels, skirt, blouse, purse].map((i) => [i.id, i]),
+    );
     const outfitItems = [
       { id: 'h1', name: 'Red Stilettos', category: 'shoes' },
       { id: 'sk1', name: 'Pleated Skirt', category: 'bottom' },
@@ -1387,12 +1625,34 @@ describe('Post-Assembly Masculine Filter (Defense-in-Depth)', () => {
   });
 
   it('masculine post-filter keeps neutral items', () => {
-    const tshirt = makeItem({ id: 't1', name: 'Crew Neck Tee', main_category: 'Tops', subcategory: 'T-Shirts' });
-    const chinos = makeItem({ id: 'b1', name: 'Chinos', main_category: 'Bottoms', subcategory: 'Chinos' });
-    const sneakers = makeItem({ id: 's1', name: 'Canvas Sneakers', main_category: 'Shoes', subcategory: 'Sneakers' });
-    const watch = makeItem({ id: 'w1', name: 'Stainless Watch', main_category: 'Accessories', subcategory: 'Watch' });
+    const tshirt = makeItem({
+      id: 't1',
+      name: 'Crew Neck Tee',
+      main_category: 'Tops',
+      subcategory: 'T-Shirts',
+    });
+    const chinos = makeItem({
+      id: 'b1',
+      name: 'Chinos',
+      main_category: 'Bottoms',
+      subcategory: 'Chinos',
+    });
+    const sneakers = makeItem({
+      id: 's1',
+      name: 'Canvas Sneakers',
+      main_category: 'Shoes',
+      subcategory: 'Sneakers',
+    });
+    const watch = makeItem({
+      id: 'w1',
+      name: 'Stainless Watch',
+      main_category: 'Accessories',
+      subcategory: 'Watch',
+    });
 
-    const rawLookup = new Map([tshirt, chinos, sneakers, watch].map((i) => [i.id, i]));
+    const rawLookup = new Map(
+      [tshirt, chinos, sneakers, watch].map((i) => [i.id, i]),
+    );
     const outfitItems = [
       { id: 't1', name: 'Crew Neck Tee', category: 'top' },
       { id: 'b1', name: 'Chinos', category: 'bottom' },
@@ -1406,8 +1666,18 @@ describe('Post-Assembly Masculine Filter (Defense-in-Depth)', () => {
   });
 
   it('feminine/mixed users skip post-filter entirely', () => {
-    const dress = makeItem({ id: 'd1', name: 'Floral Dress', main_category: 'Dresses', subcategory: 'Midi Dress' });
-    const shoes = makeItem({ id: 's1', name: 'Heels', main_category: 'Shoes', subcategory: 'Stiletto Heels' });
+    const dress = makeItem({
+      id: 'd1',
+      name: 'Floral Dress',
+      main_category: 'Dresses',
+      subcategory: 'Midi Dress',
+    });
+    const shoes = makeItem({
+      id: 's1',
+      name: 'Heels',
+      main_category: 'Shoes',
+      subcategory: 'Stiletto Heels',
+    });
 
     const rawLookup = new Map([dress, shoes].map((i) => [i.id, i]));
     const outfitItems = [
@@ -1431,9 +1701,24 @@ describe('Post-Assembly Masculine Filter (Defense-in-Depth)', () => {
     // Pass 2 catches the injected dress
     // Completeness gate drops the now-incomplete outfit (no top, no bottom, no dress)
 
-    const dress1 = makeItem({ id: 'd1', name: 'Evening Gown', main_category: 'Dresses', subcategory: 'Evening Gown' });
-    const dress2 = makeItem({ id: 'd2', name: 'Summer Dress', main_category: 'Dresses', subcategory: 'Sundress' });
-    const shoes = makeItem({ id: 's1', name: 'Loafers', main_category: 'Shoes', subcategory: 'Loafers' });
+    const dress1 = makeItem({
+      id: 'd1',
+      name: 'Evening Gown',
+      main_category: 'Dresses',
+      subcategory: 'Evening Gown',
+    });
+    const dress2 = makeItem({
+      id: 'd2',
+      name: 'Summer Dress',
+      main_category: 'Dresses',
+      subcategory: 'Sundress',
+    });
+    const shoes = makeItem({
+      id: 's1',
+      name: 'Loafers',
+      main_category: 'Shoes',
+      subcategory: 'Loafers',
+    });
 
     const rawLookup = new Map([dress1, dress2, shoes].map((i) => [i.id, i]));
 
@@ -1466,9 +1751,24 @@ describe('Post-Assembly Masculine Filter (Defense-in-Depth)', () => {
   });
 
   it('post-filter + completeness gate: outfit with feminine shoes (heels) loses them, gets no shoe backfill → dropped', () => {
-    const top = makeItem({ id: 't1', name: 'Polo Shirt', main_category: 'Tops', subcategory: 'Polo' });
-    const bottom = makeItem({ id: 'b1', name: 'Jeans', main_category: 'Bottoms', subcategory: 'Jeans' });
-    const heels = makeItem({ id: 'h1', name: 'Pumps', main_category: 'Shoes', subcategory: 'Pump Heels' });
+    const top = makeItem({
+      id: 't1',
+      name: 'Polo Shirt',
+      main_category: 'Tops',
+      subcategory: 'Polo',
+    });
+    const bottom = makeItem({
+      id: 'b1',
+      name: 'Jeans',
+      main_category: 'Bottoms',
+      subcategory: 'Jeans',
+    });
+    const heels = makeItem({
+      id: 'h1',
+      name: 'Pumps',
+      main_category: 'Shoes',
+      subcategory: 'Pump Heels',
+    });
 
     const rawLookup = new Map([top, bottom, heels].map((i) => [i.id, i]));
     let outfitItems = [
@@ -1496,7 +1796,10 @@ describe('Post-Assembly Masculine Filter (Defense-in-Depth)', () => {
 
 describe('Preferences in Prompt', () => {
   it('non-empty preferences appear in LLM prompt', () => {
-    const preferences = { favoriteColors: ['navy'], favoriteBrands: ['Ralph Lauren'] };
+    const preferences = {
+      favoriteColors: ['navy'],
+      favoriteBrands: ['Ralph Lauren'],
+    };
     const promptFragment = `Preferences: ${JSON.stringify(preferences || {})}`;
 
     expect(promptFragment).toContain('"favoriteColors":["navy"]');
@@ -1525,12 +1828,21 @@ describe('Preferences in Prompt', () => {
     };
 
     const prefs: Record<string, any> = {};
-    if (rawProfile.favorite_colors) prefs.favoriteColors = rawProfile.favorite_colors;
-    if (rawProfile.preferred_brands) prefs.favoriteBrands = rawProfile.preferred_brands;
-    if (rawProfile.style_keywords) prefs.styleKeywords = rawProfile.style_keywords;
-    if (rawProfile.fashion_dislikes) prefs.dislikes = rawProfile.fashion_dislikes;
+    if (rawProfile.favorite_colors)
+      prefs.favoriteColors = rawProfile.favorite_colors;
+    if (rawProfile.preferred_brands)
+      prefs.favoriteBrands = rawProfile.preferred_brands;
+    if (rawProfile.style_keywords)
+      prefs.styleKeywords = rawProfile.style_keywords;
+    if (rawProfile.fashion_dislikes)
+      prefs.dislikes = rawProfile.fashion_dislikes;
 
-    expect(Object.keys(prefs)).toEqual(['favoriteColors', 'favoriteBrands', 'styleKeywords', 'dislikes']);
+    expect(Object.keys(prefs)).toEqual([
+      'favoriteColors',
+      'favoriteBrands',
+      'styleKeywords',
+      'dislikes',
+    ]);
     expect(prefs).not.toHaveProperty('id');
     expect(prefs).not.toHaveProperty('created_at');
     expect(prefs).not.toHaveProperty('user_id');
@@ -1565,19 +1877,27 @@ import {
 } from './elite/tasteValidator';
 
 describe('tasteValidator dress-code gating', () => {
-  const validSeparates = (shoeExtra?: Partial<ValidatorItem>): ValidatorItem[] => [
+  const validSeparates = (
+    shoeExtra?: Partial<ValidatorItem>,
+  ): ValidatorItem[] => [
     { id: 'top-1', slot: 'tops', name: 'Dress Shirt', dress_code: 'Business' },
-    { id: 'bot-1', slot: 'bottoms', name: 'Wool Trousers', dress_code: 'Business' },
+    {
+      id: 'bot-1',
+      slot: 'bottoms',
+      name: 'Wool Trousers',
+      dress_code: 'Business',
+    },
     { id: 'shoe-1', slot: 'shoes', name: 'Sneakers', ...shoeExtra },
   ];
 
   it('formal rejects athletic shoe', () => {
-    const result = validateOutfit(
-      validSeparates({ dress_code: 'Athletic' }),
-      { requestedDressCode: 'formal' },
-    );
+    const result = validateOutfit(validSeparates({ dress_code: 'Athletic' }), {
+      requestedDressCode: 'formal',
+    });
     expect(result.valid).toBe(false);
-    expect(result.hardFails.some(f => f.includes('DRESS_CODE_MISMATCH'))).toBe(true);
+    expect(
+      result.hardFails.some((f) => f.includes('DRESS_CODE_MISMATCH')),
+    ).toBe(true);
   });
 
   it('formal rejects ultra-casual shoe', () => {
@@ -1586,14 +1906,15 @@ describe('tasteValidator dress-code gating', () => {
       { requestedDressCode: 'formal' },
     );
     expect(result.valid).toBe(false);
-    expect(result.hardFails.some(f => f.includes('DRESS_CODE_MISMATCH'))).toBe(true);
+    expect(
+      result.hardFails.some((f) => f.includes('DRESS_CODE_MISMATCH')),
+    ).toBe(true);
   });
 
   it('undefined requestedDressCode does not reject casuals', () => {
-    const result = validateOutfit(
-      validSeparates({ dress_code: 'Athletic' }),
-      { requestedDressCode: undefined },
-    );
+    const result = validateOutfit(validSeparates({ dress_code: 'Athletic' }), {
+      requestedDressCode: undefined,
+    });
     expect(result.valid).toBe(true);
     expect(result.hardFails).toHaveLength(0);
   });
@@ -1620,14 +1941,34 @@ describe('tasteValidator dress-code gating', () => {
 
     // 3. Build candidate outfits — one valid, one with athletic shoe
     const goodOutfit: ValidatorItem[] = [
-      { id: 'top-g', slot: 'tops', name: 'Oxford Shirt', dress_code: 'Business' },
-      { id: 'bot-g', slot: 'bottoms', name: 'Dress Pants', dress_code: 'Business' },
+      {
+        id: 'top-g',
+        slot: 'tops',
+        name: 'Oxford Shirt',
+        dress_code: 'Business',
+      },
+      {
+        id: 'bot-g',
+        slot: 'bottoms',
+        name: 'Dress Pants',
+        dress_code: 'Business',
+      },
       { id: 'shoe-g', slot: 'shoes', name: 'Oxfords', dress_code: 'Business' },
     ];
     const badOutfit: ValidatorItem[] = [
       { id: 'top-b', slot: 'tops', name: 'Tank Top', dress_code: 'Athletic' },
-      { id: 'bot-b', slot: 'bottoms', name: 'Gym Shorts', dress_code: 'Athletic' },
-      { id: 'shoe-b', slot: 'shoes', name: 'Running Shoes', dress_code: 'Athletic' },
+      {
+        id: 'bot-b',
+        slot: 'bottoms',
+        name: 'Gym Shorts',
+        dress_code: 'Athletic',
+      },
+      {
+        id: 'shoe-b',
+        slot: 'shoes',
+        name: 'Running Shoes',
+        dress_code: 'Athletic',
+      },
     ];
 
     // 4. Batch validate (same as production pipeline)
@@ -1641,7 +1982,9 @@ describe('tasteValidator dress-code gating', () => {
 
     // 5. Assert: good passes, bad fails
     const validIds = new Set(
-      validation.results.filter(r => r.validation.valid).map(r => r.outfitId),
+      validation.results
+        .filter((r) => r.validation.valid)
+        .map((r) => r.outfitId),
     );
     expect(validIds.has('good')).toBe(true);
     expect(validIds.has('bad')).toBe(false);
@@ -1658,30 +2001,69 @@ describe('enrichStylistOutfits', () => {
         id: 'outfit-1',
         rank: 1,
         items: [
-          { id: 'item-a', name: 'Linen Shirt', imageUrl: 'https://img/a.jpg', category: 'top' },
-          { id: 'item-b', name: 'Chinos', imageUrl: 'https://img/b.jpg', category: 'bottom' },
-          { id: 'item-c', name: 'Sneakers', imageUrl: 'https://img/c.jpg', category: 'shoes' },
+          {
+            id: 'item-a',
+            name: 'Linen Shirt',
+            imageUrl: 'https://img/a.jpg',
+            category: 'top',
+          },
+          {
+            id: 'item-b',
+            name: 'Chinos',
+            imageUrl: 'https://img/b.jpg',
+            category: 'bottom',
+          },
+          {
+            id: 'item-c',
+            name: 'Sneakers',
+            imageUrl: 'https://img/c.jpg',
+            category: 'shoes',
+          },
         ],
       },
     ];
 
     // Full wardrobe metadata (what DB returns)
     const fullItemMap = new Map<string, any>([
-      ['item-a', {
-        id: 'item-a', brand: 'Uniqlo', color: 'navy', subcategory: 'Button-Down Shirts',
-        style_descriptors: ['minimalist', 'smart-casual'], style_archetypes: ['modern'],
-        formality_score: 2, material: 'linen',
-      }],
-      ['item-b', {
-        id: 'item-b', brand: 'J.Crew', color: 'khaki', subcategory: 'Chinos',
-        style_descriptors: ['classic'], style_archetypes: [],
-        formality_score: 2, material: 'cotton',
-      }],
-      ['item-c', {
-        id: 'item-c', brand: 'Nike', color: 'white', subcategory: 'Sneakers',
-        style_descriptors: [], style_archetypes: [],
-        formality_score: 1, material: 'leather',
-      }],
+      [
+        'item-a',
+        {
+          id: 'item-a',
+          brand: 'Uniqlo',
+          color: 'navy',
+          subcategory: 'Button-Down Shirts',
+          style_descriptors: ['minimalist', 'smart-casual'],
+          style_archetypes: ['modern'],
+          formality_score: 2,
+          material: 'linen',
+        },
+      ],
+      [
+        'item-b',
+        {
+          id: 'item-b',
+          brand: 'J.Crew',
+          color: 'khaki',
+          subcategory: 'Chinos',
+          style_descriptors: ['classic'],
+          style_archetypes: [],
+          formality_score: 2,
+          material: 'cotton',
+        },
+      ],
+      [
+        'item-c',
+        {
+          id: 'item-c',
+          brand: 'Nike',
+          color: 'white',
+          subcategory: 'Sneakers',
+          style_descriptors: [],
+          style_archetypes: [],
+          formality_score: 1,
+          material: 'leather',
+        },
+      ],
     ]);
 
     enrichStylistOutfits(outfits, fullItemMap);
@@ -1689,9 +2071,24 @@ describe('enrichStylistOutfits', () => {
     const items = outfits[0].items as any[];
 
     // Original required fields preserved
-    expect(items[0]).toMatchObject({ id: 'item-a', name: 'Linen Shirt', imageUrl: 'https://img/a.jpg', category: 'top' });
-    expect(items[1]).toMatchObject({ id: 'item-b', name: 'Chinos', imageUrl: 'https://img/b.jpg', category: 'bottom' });
-    expect(items[2]).toMatchObject({ id: 'item-c', name: 'Sneakers', imageUrl: 'https://img/c.jpg', category: 'shoes' });
+    expect(items[0]).toMatchObject({
+      id: 'item-a',
+      name: 'Linen Shirt',
+      imageUrl: 'https://img/a.jpg',
+      category: 'top',
+    });
+    expect(items[1]).toMatchObject({
+      id: 'item-b',
+      name: 'Chinos',
+      imageUrl: 'https://img/b.jpg',
+      category: 'bottom',
+    });
+    expect(items[2]).toMatchObject({
+      id: 'item-c',
+      name: 'Sneakers',
+      imageUrl: 'https://img/c.jpg',
+      category: 'shoes',
+    });
 
     // Enriched fields present
     expect(items[0].brand).toBe('Uniqlo');
@@ -1714,7 +2111,12 @@ describe('enrichStylistOutfits', () => {
       {
         id: 'outfit-2',
         items: [
-          { id: 'item-x', name: 'Unknown', imageUrl: 'https://img/x.jpg', category: 'top' },
+          {
+            id: 'item-x',
+            name: 'Unknown',
+            imageUrl: 'https://img/x.jpg',
+            category: 'top',
+          },
         ],
       },
     ];
@@ -1723,7 +2125,12 @@ describe('enrichStylistOutfits', () => {
     enrichStylistOutfits(outfits, fullItemMap);
 
     // Unchanged — no enrichment, no crash
-    expect(outfits[0].items[0]).toEqual({ id: 'item-x', name: 'Unknown', imageUrl: 'https://img/x.jpg', category: 'top' });
+    expect(outfits[0].items[0]).toEqual({
+      id: 'item-x',
+      name: 'Unknown',
+      imageUrl: 'https://img/x.jpg',
+      category: 'top',
+    });
   });
 
   it('skips empty optional fields (no undefined pollution)', () => {
@@ -1731,16 +2138,29 @@ describe('enrichStylistOutfits', () => {
       {
         id: 'outfit-3',
         items: [
-          { id: 'item-d', name: 'Plain Tee', imageUrl: 'https://img/d.jpg', category: 'top' },
+          {
+            id: 'item-d',
+            name: 'Plain Tee',
+            imageUrl: 'https://img/d.jpg',
+            category: 'top',
+          },
         ],
       },
     ];
     const fullItemMap = new Map<string, any>([
-      ['item-d', {
-        id: 'item-d', brand: '', color: '', subcategory: '',
-        style_descriptors: [], style_archetypes: [],
-        formality_score: null, material: '',
-      }],
+      [
+        'item-d',
+        {
+          id: 'item-d',
+          brand: '',
+          color: '',
+          subcategory: '',
+          style_descriptors: [],
+          style_archetypes: [],
+          formality_score: null,
+          material: '',
+        },
+      ],
     ]);
 
     enrichStylistOutfits(outfits, fullItemMap);
