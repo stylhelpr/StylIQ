@@ -35,14 +35,26 @@ TASTES & BIASES:
 (Always reflect this stylist’s taste — overrides the user profile.)
     `.trim();
   } else if (userStyleProfile) {
-    // 🟢 Default mode = user’s own style profile
-    styleContextLine = `
-USER STYLE PROFILE (use as primary guidance):
-- Preferred colors: ${userStyleProfile.preferredColors?.join(', ') || 'n/a'}
-- Favorite brands: ${userStyleProfile.favoriteBrands?.join(', ') || 'n/a'}
-- Style keywords: ${userStyleProfile.styleKeywords?.join(', ') || 'n/a'}
-- Dress bias: ${userStyleProfile.dressBias || 'n/a'}
-    `.trim();
+    // 🟢 Default mode = user's own style profile (all approved signals)
+    const profileLines: string[] = [];
+    if (userStyleProfile.preferredColors?.length) profileLines.push(`- Preferred colors: ${userStyleProfile.preferredColors.join(', ')}`);
+    if (userStyleProfile.favoriteBrands?.length) profileLines.push(`- Preferred brands: ${userStyleProfile.favoriteBrands.join(', ')}`);
+    if (userStyleProfile.occasions?.length) profileLines.push(`- Typical occasions: ${userStyleProfile.occasions.join(', ')}`);
+    if (userStyleProfile.avoidSubcategories?.length) profileLines.push(`- Disliked styles (avoid): ${userStyleProfile.avoidSubcategories.join(', ')}`);
+    if (userStyleProfile.stylePreferences?.length) profileLines.push(`- Style preferences: ${userStyleProfile.stylePreferences.join(', ')}`);
+    if (userStyleProfile.styleKeywords?.length) profileLines.push(`- Style keywords: ${userStyleProfile.styleKeywords.join(', ')}`);
+    if (userStyleProfile.fitPreferences?.length) profileLines.push(`- Fit preferences: ${userStyleProfile.fitPreferences.join(', ')}`);
+    if (userStyleProfile.fabricPreferences?.length) profileLines.push(`- Fabric preferences: ${userStyleProfile.fabricPreferences.join(', ')}`);
+    if (userStyleProfile.climate) profileLines.push(`- Climate: ${userStyleProfile.climate}`);
+    if (userStyleProfile.dressBias) profileLines.push(`- Dress bias: ${userStyleProfile.dressBias}`);
+
+    if (profileLines.length > 0) {
+      styleContextLine = `
+USER STYLE PROFILE (use as primary guidance — treat as strong signals):
+${profileLines.join('\n')}
+Prioritize items matching these preferences. Avoid items matching disliked styles.
+      `.trim();
+    }
   }
 
   return `

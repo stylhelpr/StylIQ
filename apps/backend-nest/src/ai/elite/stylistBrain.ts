@@ -23,8 +23,7 @@ export interface StyleProfileFields {
   disliked_styles: string[];
   style_preferences: string[];
   preferred_brands: string[];
-  budget_min: number | null;
-  budget_max: number | null;
+  occasions: string[];
   body_type: string | null;
   climate: string | null;
 }
@@ -63,8 +62,7 @@ function parseStyleProfileRow(row: Record<string, unknown>): StyleProfileFields 
     disliked_styles: toStringArray(row.disliked_styles),
     style_preferences: toStringArray(row.style_preferences),
     preferred_brands: toStringArray(row.preferred_brands),
-    budget_min: typeof row.budget_min === 'number' ? row.budget_min : null,
-    budget_max: typeof row.budget_max === 'number' ? row.budget_max : null,
+    occasions: toStringArray(row.occasions),
     body_type: typeof row.body_type === 'string' ? row.body_type : null,
     climate: typeof row.climate === 'string' ? row.climate : null,
   };
@@ -104,7 +102,7 @@ export async function loadStylistBrainContext(
         pool.query(
           `SELECT fit_preferences, fabric_preferences, favorite_colors,
                   disliked_styles, style_preferences, preferred_brands,
-                  budget_min, budget_max, body_type, climate
+                  occasions, body_type, climate
            FROM style_profiles WHERE user_id = $1`,
           [userId],
         ).then(r => r.rows[0] ?? null)

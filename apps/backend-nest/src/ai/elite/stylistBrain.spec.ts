@@ -41,8 +41,7 @@ describe('loadStylistBrainContext', () => {
           disliked_styles: ['bohemian'],
           style_preferences: ['minimalist'],
           preferred_brands: ['Uniqlo', 'J.Crew'],
-          budget_min: 50,
-          budget_max: 200,
+          occasions: ['Work', 'Casual'],
           body_type: 'athletic',
           climate: 'temperate',
         }],
@@ -66,8 +65,7 @@ describe('loadStylistBrainContext', () => {
     expect(result.styleProfile).not.toBeNull();
     expect(result.styleProfile!.fit_preferences).toEqual(['slim', 'tailored']);
     expect(result.styleProfile!.preferred_brands).toEqual(['Uniqlo', 'J.Crew']);
-    expect(result.styleProfile!.budget_min).toBe(50);
-    expect(result.styleProfile!.budget_max).toBe(200);
+    expect(result.styleProfile!.occasions).toEqual(['Work', 'Casual']);
     expect(result.fashionState).not.toBeNull();
     expect(result.fashionState!.topBrands).toEqual(['Nike']);
   });
@@ -136,8 +134,7 @@ describe('loadStylistBrainContext', () => {
           disliked_styles: [],
           style_preferences: ['casual'],
           preferred_brands: ['Nike'],
-          budget_min: null,
-          budget_max: null,
+          occasions: [],
           body_type: null,
           climate: null,
         }],
@@ -160,5 +157,68 @@ describe('loadStylistBrainContext', () => {
 
     const result = await loadStylistBrainContext('user-123', mockFashionStateService);
     expect(result.styleProfile).toBeNull();
+  });
+
+  it('occasions is included in loaded profile', async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Female' }] } as any)
+      .mockResolvedValueOnce({
+        rows: [{
+          fit_preferences: [],
+          fabric_preferences: [],
+          favorite_colors: [],
+          disliked_styles: [],
+          style_preferences: [],
+          preferred_brands: [],
+          occasions: ['Work', 'Gym', 'Date Night'],
+          body_type: null,
+          climate: null,
+        }],
+      } as any);
+    mockFashionStateService.getStateSummary.mockResolvedValue(null);
+
+    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    expect(result.styleProfile!.occasions).toEqual(['Work', 'Gym', 'Date Night']);
+  });
+});
+
+// ── Policy guard: banned fields NEVER appear in StyleProfileFields ──
+
+describe('Banned fields policy', () => {
+  it('StyleProfileFields does NOT include budget_min, budget_max, shopping_habits, or fashion_confidence', async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Male' }] } as any)
+      .mockResolvedValueOnce({
+        rows: [{
+          fit_preferences: ['slim'],
+          fabric_preferences: ['cotton'],
+          favorite_colors: ['navy'],
+          disliked_styles: [],
+          style_preferences: ['minimalist'],
+          preferred_brands: ['Uniqlo'],
+          occasions: ['Work'],
+          body_type: 'athletic',
+          climate: 'temperate',
+          // These banned fields exist in DB but must NOT be loaded:
+          budget_min: 50,
+          budget_max: 200,
+          shopping_habits: ['online'],
+          fashion_confidence: 'high',
+        }],
+      } as any);
+    mockFashionStateService.getStateSummary.mockResolvedValue(null);
+
+    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const sp = result.styleProfile!;
+
+    // Banned fields must NOT exist on the returned object
+    expect(sp).not.toHaveProperty('budget_min');
+    expect(sp).not.toHaveProperty('budget_max');
+    expect(sp).not.toHaveProperty('shopping_habits');
+    expect(sp).not.toHaveProperty('fashion_confidence');
+
+    // Approved fields still present
+    expect(sp.fit_preferences).toEqual(['slim']);
+    expect(sp.occasions).toEqual(['Work']);
   });
 });

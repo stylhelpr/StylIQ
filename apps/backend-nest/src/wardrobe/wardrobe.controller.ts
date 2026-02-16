@@ -72,6 +72,19 @@ function normalizeUserStyle(
   // Pass through dressBias if provided (already correct union on the type)
   if (input.dressBias) out.dressBias = input.dressBias;
 
+  // Forward approved style-profile signals for Studio LLM prompt
+  const styleKeywords = asArr(input.styleKeywords ?? input.style_keywords);
+  const fitPreferences = asArr(input.fitPreferences ?? input.fit_preferences);
+  const fabricPreferences = asArr(input.fabricPreferences ?? input.fabric_preferences);
+  const stylePreferences = asArr(input.stylePreferences ?? input.style_preferences);
+  const occasions = asArr(input.occasions);
+  if (styleKeywords?.length) out.styleKeywords = styleKeywords;
+  if (fitPreferences?.length) out.fitPreferences = fitPreferences;
+  if (fabricPreferences?.length) out.fabricPreferences = fabricPreferences;
+  if (stylePreferences?.length) out.stylePreferences = stylePreferences;
+  if (occasions?.length) out.occasions = occasions;
+  if (input.climate) out.climate = String(input.climate).trim();
+
   return Object.keys(out).length ? out : undefined;
 }
 
@@ -155,6 +168,11 @@ export class WardrobeController {
     console.log('🚀 [OUTFITS] original query:', body.query);
 
     const requestId = randomUUID();
+
+    if (process.env.DEBUG_STUDIO === 'true') {
+      const mode = (body.useFastMode && !body.aaaaMode) ? 'FAST' : 'SLOW';
+      console.log(`🎯 [Studio] mode=${mode} reqId=${requestId} handler=generateOutfits`);
+    }
 
     // aaaaMode forces standard mode (overrides useFastMode)
     // Use fast mode if explicitly requested (and not aaaaMode)

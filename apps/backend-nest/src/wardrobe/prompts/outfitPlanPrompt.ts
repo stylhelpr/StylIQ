@@ -108,6 +108,12 @@ export function buildOutfitPlanPrompt(
       favoriteBrands?: string[];
       styleKeywords?: string[];
       dressBias?: string;
+      occasions?: string[];
+      avoidSubcategories?: string[];
+      stylePreferences?: string[];
+      fitPreferences?: string[];
+      fabricPreferences?: string[];
+      climate?: string;
     } | null;
     weather?: {
       temp_f?: number;
@@ -154,18 +160,26 @@ REFINEMENT MODE:
 - Output ONLY the slots that need to change`;
   }
 
-  // Build style profile soft guidance (FIX 3)
-  const sp = options?.userStyleProfile;
+  // Build style profile soft guidance (all approved signals)
+  const sp = options?.userStyleProfile as Record<string, any> | null | undefined;
   let styleProfileBlock = '';
-  if (sp && (sp.preferredColors?.length || sp.favoriteBrands?.length || sp.styleKeywords?.length || sp.dressBias)) {
+  if (sp) {
     const lines: string[] = [];
     if (sp.preferredColors?.length) lines.push(`- Preferred colors: ${sp.preferredColors.join(', ')}`);
-    if (sp.favoriteBrands?.length) lines.push(`- Favorite brands: ${sp.favoriteBrands.join(', ')}`);
+    if (sp.favoriteBrands?.length) lines.push(`- Preferred brands: ${sp.favoriteBrands.join(', ')}`);
+    if (sp.occasions?.length) lines.push(`- Typical occasions: ${sp.occasions.join(', ')}`);
+    if (sp.avoidSubcategories?.length) lines.push(`- Disliked styles (avoid): ${sp.avoidSubcategories.join(', ')}`);
+    if (sp.stylePreferences?.length) lines.push(`- Style preferences: ${sp.stylePreferences.join(', ')}`);
     if (sp.styleKeywords?.length) lines.push(`- Style keywords: ${sp.styleKeywords.join(', ')}`);
+    if (sp.fitPreferences?.length) lines.push(`- Fit preferences: ${sp.fitPreferences.join(', ')}`);
+    if (sp.fabricPreferences?.length) lines.push(`- Fabric preferences: ${sp.fabricPreferences.join(', ')}`);
+    if (sp.climate) lines.push(`- Climate: ${sp.climate}`);
     if (sp.dressBias) lines.push(`- Dress bias: ${sp.dressBias}`);
-    styleProfileBlock = `
+    if (lines.length > 0) {
+      styleProfileBlock = `
 STYLE PREFERENCES (soft guidance — prefer but do not override constraints):
 ${lines.join('\n')}`;
+    }
   }
 
   return `SYSTEM: Stateless outfit planning engine. Generate exactly 3 ranked outfits. No commentary.
@@ -862,6 +876,7 @@ export type NormalizedStartWithItemInput = {
     humidity?: number;
   };
   availableItems?: string[];
+  userStyleProfile?: Record<string, any>; // Approved style signals (soft guidance)
 };
 
 /**
@@ -1275,7 +1290,31 @@ export function buildStartWithItemPromptV4(
     freeformPrompt,
     weather,
     availableItems,
+    userStyleProfile,
   } = input;
+
+  // Build style profile soft guidance (same pattern as PATH #1)
+  const sp = userStyleProfile;
+  let styleProfileBlock = '';
+  if (sp) {
+    const lines: string[] = [];
+    if (sp.preferredColors?.length) lines.push(`- Preferred colors: ${sp.preferredColors.join(', ')}`);
+    if (sp.favoriteBrands?.length) lines.push(`- Preferred brands: ${sp.favoriteBrands.join(', ')}`);
+    if (sp.occasions?.length) lines.push(`- Typical occasions: ${sp.occasions.join(', ')}`);
+    if (sp.avoidSubcategories?.length) lines.push(`- Disliked styles (avoid): ${sp.avoidSubcategories.join(', ')}`);
+    if (sp.stylePreferences?.length) lines.push(`- Style preferences: ${sp.stylePreferences.join(', ')}`);
+    if (sp.styleKeywords?.length) lines.push(`- Style keywords: ${sp.styleKeywords.join(', ')}`);
+    if (sp.fitPreferences?.length) lines.push(`- Fit preferences: ${sp.fitPreferences.join(', ')}`);
+    if (sp.fabricPreferences?.length) lines.push(`- Fabric preferences: ${sp.fabricPreferences.join(', ')}`);
+    if (sp.climate) lines.push(`- Climate: ${sp.climate}`);
+    if (sp.dressBias) lines.push(`- Dress bias: ${sp.dressBias}`);
+    if (lines.length > 0) {
+      styleProfileBlock = `
+
+STYLE PREFERENCES (soft guidance — prefer but do not override centerpiece or constraints):
+${lines.join('\n')}`;
+    }
+  }
 
   // Derive constraints
   const formality = deriveFormality(freeformPrompt || '');
@@ -1432,7 +1471,7 @@ INPUT:
   "locked_centerpiece": "${centerpieceItem.category}: ${centerpieceDesc}",
   "constraints": ${JSON.stringify(constraints)}
 }
-${availableItemsConstraint}
+${availableItemsConstraint}${styleProfileBlock}
 
 CRITICAL RULES:
 1. The centerpiece ${centerpieceItem.category} is LOCKED - do NOT generate a slot for ${centerpieceItem.category}

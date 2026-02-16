@@ -2337,6 +2337,11 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
               `Style keywords: ${Array.isArray(sp.style_keywords) ? sp.style_keywords.join(', ') : sp.style_keywords}`,
             );
           if (sp.goals) parts.push(`Goals: ${sp.goals}`);
+          if (sp.style_preferences?.length)
+            parts.push(
+              `Style preferences: ${Array.isArray(sp.style_preferences) ? sp.style_preferences.join(', ') : sp.style_preferences}`,
+            );
+          if (sp.waist) parts.push(`Waist: ${sp.waist}`);
           if (parts.length > 0) {
             styleProfileContext = '\n\n👗 STYLE PROFILE:\n' + parts.join('\n');
             console.log(
@@ -3660,13 +3665,9 @@ All items in a single outfit must feel coherent in social context.
       if (fs?.avoidColors?.length)
         lines.push(`• Avoided colors: ${fs.avoidColors.join(', ')}`);
 
-      // Budget
-      if (sp.budget_min != null || sp.budget_max != null) {
-        const budgetParts: string[] = [];
-        if (sp.budget_min != null) budgetParts.push(`min $${sp.budget_min}`);
-        if (sp.budget_max != null) budgetParts.push(`max $${sp.budget_max}`);
-        lines.push(`• Budget range: ${budgetParts.join(', ')}`);
-      }
+      // Occasions
+      if (sp.occasions.length > 0)
+        lines.push(`• Typical occasions: ${sp.occasions.join(', ')}`);
 
       if (lines.length > 0) {
         systemPrompt += `
@@ -4609,8 +4610,6 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       styleProfile: brainCtx.styleProfile ? {
         fit_preferences: brainCtx.styleProfile.fit_preferences,
         fabric_preferences: brainCtx.styleProfile.fabric_preferences,
-        budget_min: brainCtx.styleProfile.budget_min,
-        budget_max: brainCtx.styleProfile.budget_max,
         style_preferences: brainCtx.styleProfile.style_preferences,
         disliked_styles: brainCtx.styleProfile.disliked_styles,
       } : null,
@@ -4638,16 +4637,24 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         presentation_code: it.presentation_code,
       } as ValidatorItem));
 
+    // Derive requestedDressCode from constraint (only reliable formality signal).
+    // Fail-open: undefined = no restriction.
+    const requestedDressCode: string | undefined = (() => {
+      if (!constraint) return undefined;
+      const c = constraint.toLowerCase();
+      if (c.includes('formal') || c.includes('business')) return 'formal';
+      return undefined;
+    })();
+
     const validatorCtx: ValidatorContext = {
       userPresentation: userPresentation as any,
       climateZone: tempToClimateZone(temp),
+      requestedDressCode,
       styleProfile: brainCtx.styleProfile ? {
         fit_preferences: brainCtx.styleProfile.fit_preferences,
         fabric_preferences: brainCtx.styleProfile.fabric_preferences,
         style_preferences: brainCtx.styleProfile.style_preferences,
         disliked_styles: brainCtx.styleProfile.disliked_styles,
-        budget_min: brainCtx.styleProfile.budget_min,
-        budget_max: brainCtx.styleProfile.budget_max,
       } : null,
     };
 
@@ -4684,14 +4691,30 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     }
 
     // Elite Scoring hook — Phase 2: rerank when V2 flag on
+    // ONE-FLAG: ELITE_ENABLED in feature-flags.ts:42 force-enables STYLIST + STYLIST_V2
+    const _usedV2 = ELITE_FLAGS.STYLIST_V2 || demoElite;
+    let _eliteRerankRan = false;
     let eliteOutfits = selectedOutfits;
     if (ELITE_FLAGS.STYLIST || ELITE_FLAGS.STYLIST_V2 || demoElite) {
       const canonical = eliteOutfits.map(normalizeStylistOutfit);
       const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
         mode: 'stylist',
-        rerank: ELITE_FLAGS.STYLIST_V2 || demoElite, debug: ELITE_FLAGS.DEBUG || demoElite,
+        rerank: _usedV2, debug: ELITE_FLAGS.DEBUG || demoElite,
       });
       eliteOutfits = result.outfits.map(denormalizeStylistOutfit);
+      _eliteRerankRan = _usedV2;
+    }
+    if (ELITE_FLAGS.DEBUG) {
+      console.log(JSON.stringify({
+        _tag: 'STYLIST_ELITE_PROOF',
+        eliteEnabled: ELITE_FLAGS.STYLIST || ELITE_FLAGS.STYLIST_V2,
+        usedV2: _eliteRerankRan,
+        returned: eliteOutfits.length,
+        validatorRan: true, // taste validator block at ~4625-4684 is unconditional
+        numHardFailed: invalidOutfits.length,
+        numRepaired: 0, // Stylist uses backfill, not per-item repair
+        backfillUsed: _backfillUsed !== 'NONE',
+      }));
     }
     // ── Elite Scoring: log exposure event (fire-and-forget) ──
     // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker

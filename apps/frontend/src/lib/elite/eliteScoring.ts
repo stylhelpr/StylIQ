@@ -53,12 +53,10 @@ export type StyleContext = {
     totalItems: number;
   };
   preferredBrands?: string[];
-  /** Style profile fields for fit/fabric/budget scoring signals */
+  /** Style profile fields for fit/fabric scoring signals */
   styleProfile?: {
     fit_preferences: string[];
     fabric_preferences: string[];
-    budget_min: number | null;
-    budget_max: number | null;
   } | null;
 };
 
@@ -359,34 +357,6 @@ export function scoreOutfit(
     }
   }
 
-  // ── Budget range (profile-driven) ──
-  {
-    const budgetMin = ctx.styleProfile?.budget_min;
-    const budgetMax = ctx.styleProfile?.budget_max;
-    if (budgetMin != null || budgetMax != null) {
-      signalsAvailable++;
-      let budgetFired = false;
-      for (const item of outfit.items) {
-        const price = (item as any).price as number | undefined;
-        if (typeof price !== 'number' || !isFinite(price)) continue;
-        if (budgetMax != null && price > budgetMax * 1.5) {
-          score -= 4;
-          budgetFired = true;
-        } else if (
-          (budgetMin == null || price >= budgetMin) &&
-          (budgetMax == null || price <= budgetMax)
-        ) {
-          score += 2;
-          budgetFired = true;
-        }
-      }
-      if (budgetFired) {
-        signalsUsed++;
-        flags.push('budget');
-      }
-    }
-  }
-
   // ── Slot completeness (all modes) ──
   {
     signalsAvailable++;
@@ -442,7 +412,7 @@ export function elitePostProcessOutfits<T>(
 
   // Fail-open: if no style-profile signal fired, preserve original order.
   // slot_complete is structural (not profile-dependent) and must NOT cause reorder alone.
-  const STYLE_FLAGS = ['brand', 'color', 'category', 'style', 'formality', 'presentation', 'fit', 'fabric', 'dress_code', 'budget'];
+  const STYLE_FLAGS = ['brand', 'color', 'category', 'style', 'formality', 'presentation', 'fit', 'fabric', 'dress_code'];
   const hasStyleSignal = [...scores.values()].some(
     s => s.flags.some(f => STYLE_FLAGS.includes(f)),
   );

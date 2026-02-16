@@ -76,6 +76,12 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       hints.favorite_colors = styleProfile.favorite_colors;
     if (Array.isArray(styleProfile.preferred_brands) && styleProfile.preferred_brands.length > 0)
       hints.preferred_brands = styleProfile.preferred_brands;
+    const rawDisliked = styleProfile.disliked_styles;
+    if (typeof rawDisliked === 'string' && rawDisliked.trim()) {
+      hints.disliked_styles = rawDisliked.split(/[,|]/).map((s: string) => s.trim()).filter(Boolean);
+    } else if (Array.isArray(rawDisliked) && rawDisliked.length > 0) {
+      hints.disliked_styles = rawDisliked.map(String).map((s: string) => s.trim()).filter(Boolean);
+    }
     return Object.keys(hints).length > 0 ? hints : undefined;
   }, [styleProfile]);
 

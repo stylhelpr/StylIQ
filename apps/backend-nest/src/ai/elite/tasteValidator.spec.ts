@@ -337,15 +337,7 @@ describe('Soft penalties', () => {
     expect(r.softPenalties).not.toContain('FABRIC_CLIMATE_MISMATCH');
   });
 
-  it('fires BUDGET_MISALIGNMENT when price > 2x budget_max', () => {
-    const r = validateOutfit(
-      [top('t1', { price: 500 }), bottom('b1'), shoes('s1')],
-      { styleProfile: { budget_max: 100 } },
-    );
-    expect(r.softPenalties).toContain('BUDGET_MISALIGNMENT');
-  });
-
-  it('no budget penalty when no budget_max', () => {
+  it('budget never influences validation (policy: NEVER)', () => {
     const r = validateOutfit(
       [top('t1', { price: 500 }), bottom('b1'), shoes('s1')],
       {},

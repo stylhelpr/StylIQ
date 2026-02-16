@@ -1024,7 +1024,7 @@ describe('Style Profile scoring layer', () => {
   });
 });
 
-// ── Stylist Brain Scoring Signals (Phase 2 — fit/fabric/dress_code/budget) ──
+// ── Stylist Brain Scoring Signals (Phase 2 — fit/fabric/dress_code) ──
 
 describe('Fit preference signal', () => {
   const makeOutfit = (id: string, items: any[]): any => ({
@@ -1042,8 +1042,6 @@ describe('Fit preference signal', () => {
       styleProfile: {
         fit_preferences: ['slim'],
         fabric_preferences: [],
-        budget_min: null,
-        budget_max: null,
       },
     };
     const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
@@ -1063,8 +1061,6 @@ describe('Fit preference signal', () => {
       styleProfile: {
         fit_preferences: ['slim'],
         fabric_preferences: [],
-        budget_min: null,
-        budget_max: null,
       },
     };
     const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
@@ -1081,8 +1077,6 @@ describe('Fit preference signal', () => {
       styleProfile: {
         fit_preferences: [],
         fabric_preferences: [],
-        budget_min: null,
-        budget_max: null,
       },
     };
     const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
@@ -1097,8 +1091,6 @@ describe('Fit preference signal', () => {
       styleProfile: {
         fit_preferences: ['regular'],
         fabric_preferences: [],
-        budget_min: null,
-        budget_max: null,
       },
     };
     const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
@@ -1122,8 +1114,6 @@ describe('Fabric/material preference signal', () => {
       styleProfile: {
         fit_preferences: [],
         fabric_preferences: ['cotton'],
-        budget_min: null,
-        budget_max: null,
       },
     };
     const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
@@ -1140,8 +1130,6 @@ describe('Fabric/material preference signal', () => {
       styleProfile: {
         fit_preferences: [],
         fabric_preferences: ['silk'],
-        budget_min: null,
-        budget_max: null,
       },
     };
     const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
@@ -1156,8 +1144,6 @@ describe('Fabric/material preference signal', () => {
       styleProfile: {
         fit_preferences: [],
         fabric_preferences: ['wool'],
-        budget_min: null,
-        budget_max: null,
       },
     };
     const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
@@ -1216,14 +1202,14 @@ describe('Dress-code coherence signal', () => {
   });
 });
 
-describe('Budget range signal', () => {
+describe('Budget signal removed (policy: NEVER)', () => {
   const makeOutfit = (id: string, items: any[]): any => ({
     id,
     items: items.map(i => ({ ...i })),
   });
 
-  it('item within budget gives +2', () => {
-    const outfit = makeOutfit('in-budget', [
+  it('budget fields on styleProfile do NOT produce a budget flag', () => {
+    const outfit = makeOutfit('has-price', [
       { id: 'i1', slot: 'tops', price: 50 },
       { id: 'i2', slot: 'bottoms', price: 80 },
       { id: 'i3', slot: 'shoes', price: 100 },
@@ -1232,53 +1218,13 @@ describe('Budget range signal', () => {
       styleProfile: {
         fit_preferences: [],
         fabric_preferences: [],
-        budget_min: 20,
-        budget_max: 150,
-      },
-    };
-    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
-    // 3 items in budget: +6, slot_complete: +5 = 11
-    expect(result.flags).toContain('budget');
-    expect(result.score).toBe(11);
-  });
-
-  it('item way over budget (>1.5x max) gives -4', () => {
-    const outfit = makeOutfit('over-budget', [
-      { id: 'i1', slot: 'tops', price: 500 },
-      { id: 'i2', slot: 'bottoms' },
-      { id: 'i3', slot: 'shoes' },
-    ]);
-    const ctx: any = {
-      styleProfile: {
-        fit_preferences: [],
-        fabric_preferences: [],
-        budget_min: null,
-        budget_max: 100,
-      },
-    };
-    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
-    // price 500 > 100 * 1.5 (150): -4, slot_complete: +5 = 1
-    expect(result.flags).toContain('budget');
-    expect(result.score).toBe(1);
-  });
-
-  it('no price field → fail-open', () => {
-    const outfit = makeOutfit('no-price', [
-      { id: 'i1', slot: 'tops' },
-    ]);
-    const ctx: any = {
-      styleProfile: {
-        fit_preferences: [],
-        fabric_preferences: [],
-        budget_min: 20,
-        budget_max: 100,
       },
     };
     const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
     expect(result.flags).not.toContain('budget');
   });
 
-  it('null styleProfile → all new signals skipped', () => {
+  it('null styleProfile → all profile signals skipped', () => {
     const outfit = makeOutfit('no-profile', [
       { id: 'i1', slot: 'tops', fit: 'slim', material: 'cotton', price: 50 },
       { id: 'i2', slot: 'bottoms' },
@@ -1312,8 +1258,6 @@ describe('New signals in reranking pipeline', () => {
       styleProfile: {
         fit_preferences: ['slim'],
         fabric_preferences: [],
-        budget_min: null,
-        budget_max: null,
       },
     };
     const result = elitePostProcessOutfits(
@@ -1337,8 +1281,6 @@ describe('New signals in reranking pipeline', () => {
       styleProfile: {
         fit_preferences: ['slim'],
         fabric_preferences: ['cotton'],
-        budget_min: 20,
-        budget_max: 100,
       },
     };
     const env: any = { mode: 'studio', rerank: true };

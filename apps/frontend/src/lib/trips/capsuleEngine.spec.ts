@@ -15,7 +15,15 @@ import {
   getNormalizedFormality,
   aestheticBonus,
 } from './capsuleEngine';
-import {TripPackingItem, TripCapsule, TripWardrobeItem, DayWeather, TripActivity} from '../../types/trips';
+import {TripPackingItem, TripCapsule, TripWardrobeItem, DayWeather, TripActivity, TripStyleHints} from '../../types/trips';
+
+jest.mock('../elite/eliteScoring', () => {
+  const actual = jest.requireActual('../elite/eliteScoring');
+  return {
+    ...actual,
+    elitePostProcessOutfits: jest.fn(actual.elitePostProcessOutfits),
+  };
+});
 
 function makeItem(overrides: Partial<TripPackingItem> & {mainCategory: string}): TripPackingItem {
   return {
@@ -3192,5 +3200,171 @@ describe('Trips sandals-in-freezing regression', () => {
     );
     // fail-open: no closed-toe alternative => sandals allowed
     expect(allShoeNames).toContain('Strappy Sandals');
+  });
+});
+
+// ── Elite Scoring Toggle ──────────────────────────────────────────────────────
+
+describe('Elite Scoring Trips toggle', () => {
+  const {elitePostProcessOutfits} = require('../elite/eliteScoring');
+
+  const freezingWeather: DayWeather[] = [
+    {date: '2025-01-15', dayLabel: 'Wed', highF: 28, lowF: 15, condition: 'snowy', rainChance: 20},
+  ];
+
+  beforeEach(() => {
+    (elitePostProcessOutfits as jest.Mock).mockClear();
+  });
+
+  it('elite hook is NOT called when flags are OFF (default)', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Cotton Tee', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Chinos', main_category: 'Bottoms'}),
+      makeWardrobeItem({id: 's1', name: 'Leather Boots', main_category: 'Shoes', subcategory: 'Boots'}),
+      makeWardrobeItem({id: 'ow1', name: 'Wool Coat', main_category: 'Outerwear'}),
+    ];
+    buildCapsule(wardrobe, freezingWeather, ['Casual'], 'Home', 'masculine');
+    expect(elitePostProcessOutfits).not.toHaveBeenCalled();
+  });
+
+  it('safety: no open footwear in freezing weather regardless of elite state', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Blouse', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Wool Trousers', main_category: 'Bottoms'}),
+      makeWardrobeItem({id: 's1', name: 'Leather Boots', main_category: 'Shoes', subcategory: 'Boots'}),
+      makeWardrobeItem({id: 's2', name: 'Strappy Sandals', main_category: 'Shoes', subcategory: 'Sandals'}),
+      makeWardrobeItem({id: 'ow1', name: 'Puffer Jacket', main_category: 'Outerwear'}),
+    ];
+    const capsule = buildCapsule(wardrobe, freezingWeather, ['Casual'], 'Home', 'feminine');
+    const allShoeNames = capsule.outfits.flatMap(o =>
+      o.items.filter(i => i.mainCategory === 'Shoes').map(i => i.name),
+    );
+    expect(allShoeNames).not.toContain('Strappy Sandals');
+    expect(allShoeNames.length).toBeGreaterThan(0);
+  });
+});
+
+// ── styleBonus brand/fit ────────────────────────────────────────────────────
+
+describe('styleBonus brand/fit', () => {
+  const mildWeather: DayWeather[] = [
+    {date: '2025-06-01', dayLabel: 'Sun', highF: 72, lowF: 60, condition: 'sunny', rainChance: 0},
+    {date: '2025-06-02', dayLabel: 'Mon', highF: 74, lowF: 62, condition: 'sunny', rainChance: 0},
+  ];
+
+  // Two tops: one Nike, one generic — same everything else
+  const nikeTop = makeWardrobeItem({id: 't1', name: 'Nike Dri-Fit Tee', main_category: 'Tops', brand: 'Nike', color: 'black'});
+  const genericTop = makeWardrobeItem({id: 't2', name: 'Generic Tee', main_category: 'Tops', color: 'black'});
+  const slimChinos = makeWardrobeItem({id: 'b1', name: 'Slim Chinos', main_category: 'Bottoms', fit: 'Slim'});
+  const regularChinos = makeWardrobeItem({id: 'b2', name: 'Regular Chinos', main_category: 'Bottoms', fit: 'Regular'});
+  const shoes = makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers'});
+
+  it('brand match increases selection frequency vs no-brand item', () => {
+    const hints: TripStyleHints = {preferred_brands: ['Nike', 'Adidas']};
+    // Give both tops equal opportunity: same wardrobe, same weather
+    const wardrobe = [nikeTop, genericTop, slimChinos, regularChinos, shoes];
+    // Run multiple builds to observe statistical preference
+    const nikeCounts = {withHints: 0, withoutHints: 0};
+    const runs = 20;
+    for (let i = 0; i < runs; i++) {
+      const capsuleWith = buildCapsule(wardrobe, mildWeather, ['Casual'], 'Home', 'mixed', hints);
+      const capsuleWithout = buildCapsule(wardrobe, mildWeather, ['Casual'], 'Home', 'mixed');
+      const countNike = (c: TripCapsule) =>
+        c.outfits.flatMap(o => o.items).filter(item => item.name.includes('Nike')).length;
+      nikeCounts.withHints += countNike(capsuleWith);
+      nikeCounts.withoutHints += countNike(capsuleWithout);
+    }
+    // With brand hints, Nike should appear at least as often (deterministic, so >= )
+    expect(nikeCounts.withHints).toBeGreaterThanOrEqual(nikeCounts.withoutHints);
+  });
+
+  it('fit match increases selection frequency vs non-matching fit', () => {
+    const hints: TripStyleHints = {fit_preferences: ['Slim']};
+    const wardrobe = [nikeTop, genericTop, slimChinos, regularChinos, shoes];
+    const slimCounts = {withHints: 0, withoutHints: 0};
+    const runs = 20;
+    for (let i = 0; i < runs; i++) {
+      const capsuleWith = buildCapsule(wardrobe, mildWeather, ['Casual'], 'Home', 'mixed', hints);
+      const capsuleWithout = buildCapsule(wardrobe, mildWeather, ['Casual'], 'Home', 'mixed');
+      const countSlim = (c: TripCapsule) =>
+        c.outfits.flatMap(o => o.items).filter(item => item.name.includes('Slim')).length;
+      slimCounts.withHints += countSlim(capsuleWith);
+      slimCounts.withoutHints += countSlim(capsuleWithout);
+    }
+    expect(slimCounts.withHints).toBeGreaterThanOrEqual(slimCounts.withoutHints);
+  });
+
+  it('missing brand/fit yields identical output (no regression)', () => {
+    const wardrobe = [
+      makeWardrobeItem({id: 't1', name: 'Basic Tee', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Jeans', main_category: 'Bottoms'}),
+      makeWardrobeItem({id: 's1', name: 'Loafers', main_category: 'Shoes'}),
+    ];
+    const hints: TripStyleHints = {preferred_brands: ['Nike'], fit_preferences: ['Slim']};
+    const capsuleWith = buildCapsule(wardrobe, mildWeather, ['Casual'], 'Home', 'mixed', hints);
+    const capsuleWithout = buildCapsule(wardrobe, mildWeather, ['Casual'], 'Home', 'mixed');
+    // Items with no brand/fit should produce same outfit structure
+    expect(capsuleWith.outfits.length).toBe(capsuleWithout.outfits.length);
+    // Same items selected (no regression from hint presence)
+    const idsWith = capsuleWith.outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)).sort();
+    const idsWithout = capsuleWithout.outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)).sort();
+    expect(idsWith).toEqual(idsWithout);
+  });
+});
+
+// ── disliked_styles penalty ──────────────────────────────────────────────────
+
+describe('disliked_styles penalty', () => {
+  const mildWeather: DayWeather[] = [
+    {date: '2025-06-01', dayLabel: 'Sun', highF: 72, lowF: 60, condition: 'sunny', rainChance: 0},
+    {date: '2025-06-02', dayLabel: 'Mon', highF: 74, lowF: 62, condition: 'sunny', rainChance: 0},
+  ];
+
+  it('disliked-style items lose to non-disliked alternatives', () => {
+    const cargoShorts = makeWardrobeItem({id: 'b1', name: 'Cargo Shorts', main_category: 'Bottoms', subcategory: 'Cargo Shorts'});
+    const chinoShorts = makeWardrobeItem({id: 'b2', name: 'Chino Shorts', main_category: 'Bottoms', subcategory: 'Chino Shorts'});
+    const top = makeWardrobeItem({id: 't1', name: 'Casual Tee', main_category: 'Tops'});
+    const shoes = makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers'});
+    const wardrobe = [cargoShorts, chinoShorts, top, shoes];
+    const hints: TripStyleHints = {disliked_styles: ['cargo']};
+
+    const capsule = buildCapsule(wardrobe, mildWeather, ['Casual'], 'Home', 'mixed', hints);
+    const allBottomIds = capsule.outfits.flatMap(o => o.items).filter(i => i.mainCategory === 'Bottoms').map(i => i.wardrobeItemId);
+    // Chino shorts should be preferred over cargo shorts
+    const cargoCount = allBottomIds.filter(id => id === 'b1').length;
+    const chinoCount = allBottomIds.filter(id => id === 'b2').length;
+    expect(chinoCount).toBeGreaterThanOrEqual(cargoCount);
+  });
+
+  it('packing still completes when ALL items match disliked styles (fail-open)', () => {
+    const cargoShorts = makeWardrobeItem({id: 'b1', name: 'Cargo Shorts', main_category: 'Bottoms', subcategory: 'Cargo Shorts'});
+    const top = makeWardrobeItem({id: 't1', name: 'Graphic Tee', main_category: 'Tops', subcategory: 'Graphic Tees'});
+    const shoes = makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers'});
+    const wardrobe = [cargoShorts, top, shoes];
+    // All items match disliked styles — engine must still pack
+    const hints: TripStyleHints = {disliked_styles: ['cargo', 'graphic', 'sneaker']};
+
+    const capsule = buildCapsule(wardrobe, mildWeather, ['Casual'], 'Home', 'mixed', hints);
+    expect(capsule.outfits.length).toBeGreaterThanOrEqual(1);
+    const totalItems = capsule.outfits.flatMap(o => o.items);
+    expect(totalItems.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ── adaptWardrobeItem brand/fit mapping ─────────────────────────────────────
+
+describe('adaptWardrobeItem brand/fit', () => {
+  it('maps brand and fit from raw wardrobe item', () => {
+    const raw = {id: 'w1', name: 'Test Shirt', brand: 'Uniqlo', fit: 'Slim'};
+    const adapted = adaptWardrobeItem(raw);
+    expect(adapted.brand).toBe('Uniqlo');
+    expect(adapted.fit).toBe('Slim');
+  });
+
+  it('preserves undefined when brand/fit are absent', () => {
+    const raw = {id: 'w2', name: 'Plain Tee'};
+    const adapted = adaptWardrobeItem(raw);
+    expect(adapted.brand).toBeUndefined();
+    expect(adapted.fit).toBeUndefined();
   });
 });

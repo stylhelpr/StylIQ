@@ -56,6 +56,12 @@ type UserStylePayload = {
   avoidSubcategories?: string[];
   favoriteBrands?: string[];
   dressBias?: 'Casual' | 'SmartCasual' | 'BusinessCasual' | 'Business';
+  styleKeywords?: string[];
+  fitPreferences?: string[];
+  fabricPreferences?: string[];
+  stylePreferences?: string[];
+  occasions?: string[];
+  climate?: string;
 };
 
 type Weights = {
@@ -130,10 +136,24 @@ function mapStyleProfileToUserStyle(raw: any): UserStylePayload | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const preferredColors = toStringArray(raw.favorite_colors);
   const favoriteBrands = toStringArray(raw.preferred_brands);
+  const avoidSubcategories = toStringArray(raw.disliked_styles);
+  const styleKeywords = toStringArray(raw.style_keywords);
+  const fitPreferences = toStringArray(raw.fit_preferences);
+  const fabricPreferences = toStringArray(raw.fabric_preferences);
+  const stylePreferences = toStringArray(raw.style_preferences);
+  const occasions = toStringArray(raw.occasions);
+  const climate = raw.climate && typeof raw.climate === 'string' ? raw.climate.trim() : undefined;
 
   const out: UserStylePayload = {};
   if (preferredColors) out.preferredColors = preferredColors;
   if (favoriteBrands) out.favoriteBrands = favoriteBrands;
+  if (avoidSubcategories) out.avoidSubcategories = avoidSubcategories;
+  if (styleKeywords) out.styleKeywords = styleKeywords;
+  if (fitPreferences) out.fitPreferences = fitPreferences;
+  if (fabricPreferences) out.fabricPreferences = fabricPreferences;
+  if (stylePreferences) out.stylePreferences = stylePreferences;
+  if (occasions) out.occasions = occasions;
+  if (climate) out.climate = climate;
 
   return Object.keys(out).length ? out : undefined;
 }

@@ -420,7 +420,12 @@ export function buildCapsuleFingerprint(
  * Adapts a raw wardrobe item (mixed camelCase/snake_case from API)
  * into the TripWardrobeItem shape.
  */
+let __brandFitProbeLogged = false;
 export function adaptWardrobeItem(item: any): TripWardrobeItem {
+  if (__DEV__ && !__brandFitProbeLogged) {
+    __brandFitProbeLogged = true;
+    console.log('[Trips] brand/fit probe:', { brand: item.brand ?? '(missing)', fit: item.fit ?? '(missing)' });
+  }
   return {
     id: item.id,
     image_url: item.image_url || item.image,
@@ -444,6 +449,8 @@ export function adaptWardrobeItem(item: any): TripWardrobeItem {
     occasionTags: item.occasionTags || item.occasion_tags,
     dressCode: item.dressCode || item.dress_code,
     formalityScore: item.formalityScore ?? item.formality_score,
+    brand: item.brand,
+    fit: item.fit,
   };
 }
 
@@ -1157,13 +1164,29 @@ function buildOutfitForActivity(
     if (item.color && styleHints.favorite_colors?.length) {
       if (styleHints.favorite_colors.some(c => colorMatches(item.color!, c))) bonus += 0.2;
     }
-    if (item.color && styleHints.disliked_colors?.length) {
-      if (styleHints.disliked_colors.some(c => colorMatches(item.color!, c))) bonus -= 0.3;
-    }
     // Fabric preference
     if (item.material && styleHints.fabric_preferences?.length) {
       const matLower = item.material.toLowerCase();
       if (styleHints.fabric_preferences.some(f => matLower.includes(f.toLowerCase()) || f.toLowerCase().includes(matLower))) bonus += 0.15;
+    }
+    // Brand preference (conservative weight)
+    if (item.brand && styleHints.preferred_brands?.length) {
+      const brandLower = item.brand.toLowerCase();
+      if (styleHints.preferred_brands.some(b => brandLower.includes(b.toLowerCase()))) bonus += 0.05;
+    }
+    // Fit preference (conservative weight)
+    if (item.fit && styleHints.fit_preferences?.length) {
+      const fitLower = item.fit.toLowerCase();
+      if (styleHints.fit_preferences.some(f => fitLower === f.toLowerCase())) bonus += 0.05;
+    }
+    // Disliked styles penalty (soft-avoid: strong negative but never hard-exclude)
+    if (styleHints.disliked_styles?.length) {
+      const subLower = (item.subcategory || '').toLowerCase();
+      const nameLower = (item.name || '').toLowerCase();
+      if (styleHints.disliked_styles.some(d => {
+        const dl = d.toLowerCase();
+        return (subLower && subLower.includes(dl)) || (nameLower && nameLower.includes(dl));
+      })) bonus -= 0.3;
     }
     return bonus;
   };
@@ -2080,6 +2103,8 @@ export function buildCapsule(
   const wardrobeStats = deriveWardrobeStats(wardrobeItems);
 
   // Elite Scoring hook — Phase 2: rerank when V2 flag on
+  // ONE-FLAG: ELITE_ENABLED_TRIPS in eliteFlags.ts:7 force-enables ELITE_SCORING_TRIPS + V2
+  let _eliteHookRan = false;
   let eliteOutfits = outfits;
   if (ELITE_SCORING_TRIPS || ELITE_SCORING_TRIPS_V2) {
     const canonical = outfits.map(normalizeTripsOutfit);
@@ -2090,6 +2115,15 @@ export function buildCapsule(
        rerank: ELITE_SCORING_TRIPS_V2, debug: ELITE_SCORING_DEBUG},
     );
     eliteOutfits = result.outfits.map(denormalizeTripsOutfit);
+    _eliteHookRan = true;
+  }
+  if (ELITE_SCORING_DEBUG) {
+    console.log(JSON.stringify({
+      _tag: 'TRIPS_ELITE_PROOF',
+      eliteEnabled: ELITE_SCORING_TRIPS || ELITE_SCORING_TRIPS_V2,
+      usedV2: ELITE_SCORING_TRIPS_V2 && _eliteHookRan,
+      eliteHookRan: _eliteHookRan,
+    }));
   }
   // NOTE: No exposure event for Trips — no backend call exists.
   // Trips is 100% client-side (AsyncStorage). Revisit in Phase 2.

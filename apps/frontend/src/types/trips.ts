@@ -68,6 +68,8 @@ export type TripWardrobeItem = {
   occasionTags?: string[];
   dressCode?: string;
   formalityScore?: number;
+  brand?: string;
+  fit?: string;
 };
 
 export type TripPackingItem = {
@@ -136,6 +138,6 @@ export type TripStyleHints = {
   fit_preferences?: string[];
   fabric_preferences?: string[];
   favorite_colors?: string[];
-  disliked_colors?: string[];
   preferred_brands?: string[];
+  disliked_styles?: string[];
 };

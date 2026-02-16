@@ -33,6 +33,10 @@ export type UserStyle = {
   // ✨ Extended fields for stylist agents & DB parity
   name?: string;
   styleKeywords?: string[];
+  fitPreferences?: string[];
+  fabricPreferences?: string[];
+  stylePreferences?: string[];
+  occasions?: string[];
   personalityTraits?: string[];
   lifestyle?: string[]; // ✅ always array
   climate?: string;

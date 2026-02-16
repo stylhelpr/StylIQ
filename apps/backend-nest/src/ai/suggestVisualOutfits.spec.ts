@@ -1554,6 +1554,100 @@ describe('isEliteDemoUser', () => {
 });
 
 // ─── Stylist Item Enrichment ──────────────────────────────────
+// ─── Taste Validator: dress-code gating via requestedDressCode ──────────────
+
+import {
+  validateOutfit,
+  validateOutfits as tasteValidateOutfits,
+  tempToClimateZone,
+  type ValidatorItem,
+  type ValidatorContext,
+} from './elite/tasteValidator';
+
+describe('tasteValidator dress-code gating', () => {
+  const validSeparates = (shoeExtra?: Partial<ValidatorItem>): ValidatorItem[] => [
+    { id: 'top-1', slot: 'tops', name: 'Dress Shirt', dress_code: 'Business' },
+    { id: 'bot-1', slot: 'bottoms', name: 'Wool Trousers', dress_code: 'Business' },
+    { id: 'shoe-1', slot: 'shoes', name: 'Sneakers', ...shoeExtra },
+  ];
+
+  it('formal rejects athletic shoe', () => {
+    const result = validateOutfit(
+      validSeparates({ dress_code: 'Athletic' }),
+      { requestedDressCode: 'formal' },
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hardFails.some(f => f.includes('DRESS_CODE_MISMATCH'))).toBe(true);
+  });
+
+  it('formal rejects ultra-casual shoe', () => {
+    const result = validateOutfit(
+      validSeparates({ dress_code: 'Ultra Casual' }),
+      { requestedDressCode: 'formal' },
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hardFails.some(f => f.includes('DRESS_CODE_MISMATCH'))).toBe(true);
+  });
+
+  it('undefined requestedDressCode does not reject casuals', () => {
+    const result = validateOutfit(
+      validSeparates({ dress_code: 'Athletic' }),
+      { requestedDressCode: undefined },
+    );
+    expect(result.valid).toBe(true);
+    expect(result.hardFails).toHaveLength(0);
+  });
+
+  it('pipeline: constraint="more formal" filters athletic outfit via validator', () => {
+    // Simulate what ai.service.ts does:
+    // 1. Derive requestedDressCode from constraint
+    const constraint = 'more formal';
+    const requestedDressCode: string | undefined = (() => {
+      if (!constraint) return undefined;
+      const c = constraint.toLowerCase();
+      if (c.includes('formal') || c.includes('business')) return 'formal';
+      return undefined;
+    })();
+
+    expect(requestedDressCode).toBe('formal'); // proves derivation works
+
+    // 2. Build validator context
+    const ctx: ValidatorContext = {
+      userPresentation: 'masculine',
+      climateZone: 'warm',
+      requestedDressCode,
+    };
+
+    // 3. Build candidate outfits — one valid, one with athletic shoe
+    const goodOutfit: ValidatorItem[] = [
+      { id: 'top-g', slot: 'tops', name: 'Oxford Shirt', dress_code: 'Business' },
+      { id: 'bot-g', slot: 'bottoms', name: 'Dress Pants', dress_code: 'Business' },
+      { id: 'shoe-g', slot: 'shoes', name: 'Oxfords', dress_code: 'Business' },
+    ];
+    const badOutfit: ValidatorItem[] = [
+      { id: 'top-b', slot: 'tops', name: 'Tank Top', dress_code: 'Athletic' },
+      { id: 'bot-b', slot: 'bottoms', name: 'Gym Shorts', dress_code: 'Athletic' },
+      { id: 'shoe-b', slot: 'shoes', name: 'Running Shoes', dress_code: 'Athletic' },
+    ];
+
+    // 4. Batch validate (same as production pipeline)
+    const validation = tasteValidateOutfits(
+      [
+        { outfitId: 'good', items: goodOutfit },
+        { outfitId: 'bad', items: badOutfit },
+      ],
+      ctx,
+    );
+
+    // 5. Assert: good passes, bad fails
+    const validIds = new Set(
+      validation.results.filter(r => r.validation.valid).map(r => r.outfitId),
+    );
+    expect(validIds.has('good')).toBe(true);
+    expect(validIds.has('bad')).toBe(false);
+  });
+});
+
 describe('enrichStylistOutfits', () => {
   const { enrichStylistOutfits } = require('./ai.service');
 

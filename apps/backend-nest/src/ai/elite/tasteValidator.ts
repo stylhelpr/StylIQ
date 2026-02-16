@@ -42,8 +42,6 @@ export type ValidatorContext = {
     fabric_preferences?: string[];
     style_preferences?: string[];
     disliked_styles?: string[];
-    budget_min?: number | null;
-    budget_max?: number | null;
   } | null;
 };
 
@@ -238,19 +236,6 @@ function penaltyFabricClimate(
   return null;
 }
 
-function penaltyBudget(
-  items: ValidatorItem[],
-  ctx: ValidatorContext,
-): string | null {
-  const max = ctx.styleProfile?.budget_max;
-  if (max == null) return null;
-  for (const item of items) {
-    const price = getNum(item.price);
-    if (price != null && price > max * 2) return 'BUDGET_MISALIGNMENT';
-  }
-  return null;
-}
-
 function penaltyDislikedStyle(
   items: ValidatorItem[],
   ctx: ValidatorContext,
@@ -318,9 +303,6 @@ export function validateOutfit(
 
     const fabric = penaltyFabricClimate(items, ctx);
     if (fabric) softPenalties.push(fabric);
-
-    const budget = penaltyBudget(items, ctx);
-    if (budget) softPenalties.push(budget);
 
     const disliked = penaltyDislikedStyle(items, ctx);
     if (disliked) softPenalties.push(disliked);

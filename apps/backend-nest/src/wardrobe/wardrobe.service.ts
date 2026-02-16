@@ -308,8 +308,6 @@ export class WardrobeService {
         styleProfile: brainCtx.styleProfile ? {
           fit_preferences: brainCtx.styleProfile.fit_preferences,
           fabric_preferences: brainCtx.styleProfile.fabric_preferences,
-          budget_min: brainCtx.styleProfile.budget_min,
-          budget_max: brainCtx.styleProfile.budget_max,
           style_preferences: brainCtx.styleProfile.style_preferences,
           disliked_styles: brainCtx.styleProfile.disliked_styles,
         } : null,
@@ -1452,6 +1450,21 @@ export class WardrobeService {
         .map((c) => `${c.index}. ${c.label}`)
         .join('\n');
 
+      if (process.env.DEBUG_STUDIO === 'true') {
+        const us = opts?.userStyle as Record<string, any> | undefined;
+        console.log('🎨 [Studio] style signals →', {
+          occasions: us?.occasions?.length ?? 0,
+          preferredColors: us?.preferredColors?.length ?? 0,
+          favoriteBrands: us?.favoriteBrands?.length ?? 0,
+          avoidSubcategories: us?.avoidSubcategories?.length ?? 0,
+          fitPreferences: us?.fitPreferences?.length ?? 0,
+          fabricPreferences: us?.fabricPreferences?.length ?? 0,
+          stylePreferences: us?.stylePreferences?.length ?? 0,
+          styleKeywords: us?.styleKeywords?.length ?? 0,
+          climate: us?.climate ?? null,
+        });
+      }
+
       let fullPrompt = buildOutfitPrompt(
         catalogLines,
         effectiveQuery,
@@ -1472,6 +1485,17 @@ ${lockedLines}
       }
 
       console.log('📝 Final prompt for outfit generation:\n', fullPrompt);
+
+      if (process.env.DEBUG_STUDIO === 'true') {
+        // Extract the style-profile section from the prompt (bounded to ~25 lines)
+        const profileIdx = fullPrompt.indexOf('USER STYLE PROFILE');
+        if (profileIdx >= 0) {
+          const excerpt = fullPrompt.substring(profileIdx, profileIdx + 800).split('\n').slice(0, 25).join('\n');
+          console.log('🎨 [Studio][SLOW] prompt style-profile excerpt:\n' + excerpt);
+        } else {
+          console.log('🎨 [Studio][SLOW] prompt: no USER STYLE PROFILE section found');
+        }
+      }
 
       logPrompt(reqId, {
         prompt: fullPrompt,
@@ -1835,6 +1859,9 @@ ${lockedLines}
       const eliteStyleContext = await this.loadEliteStyleContext(userId);
 
       // ── Taste Validation + Deterministic Repair (slow path) ──
+      let _validatorRanSlow = false;
+      let _numHardFailedSlow = 0;
+      let _numRepairedViaSwapSlow = 0;
       {
         const _isOpenFoot = (it: any): boolean => {
           const text = `${it?.subcategory ?? ''} ${it?.name ?? it?.label ?? ''}`.toLowerCase();
@@ -1967,13 +1994,16 @@ ${lockedLines}
         const tasteFiltered = scored.slice(0, 3).map((s: any) => s.o);
         withIds.length = 0;
         withIds.push(...tasteFiltered);
+        _validatorRanSlow = true;
+        _numHardFailedSlow = scored.filter((s: any) => !s.valid).length;
+        _numRepairedViaSwapSlow = scored.filter((s: any) => s.wasRepaired).length;
         if (ELITE_FLAGS.DEBUG) {
           console.log(JSON.stringify({
             _tag: 'STUDIO_TASTE_PROOF',
             mode: 'SLOW',
             candidatePoolSize: repaired.length,
-            numHardFailed: scored.filter((s: any) => !s.valid).length,
-            numRepairedViaSwap: scored.filter((s: any) => s.wasRepaired).length,
+            numHardFailed: _numHardFailedSlow,
+            numRepairedViaSwap: _numRepairedViaSwapSlow,
             finalReturnedCount: withIds.length,
             ...(withIds.length < 3 ? { reason: 'WARDROBE_INSUFFICIENT' } : {}),
           }));
@@ -1981,15 +2011,31 @@ ${lockedLines}
       }
 
       // Elite Scoring hook — Phase 2: rerank when V2 flag on
+      // ONE-FLAG: ELITE_ENABLED in feature-flags.ts:42 force-enables STUDIO + STUDIO_V2
       const demoElite = isEliteDemoUser(userId);
+      const _usedV2Slow = ELITE_FLAGS.STUDIO_V2 || demoElite;
+      let _eliteRerankRanSlow = false;
       let eliteOutfits = withIds;
       if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2 || demoElite) {
         const canonical = withIds.map(normalizeStudioOutfit);
         const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
           mode: 'studio', requestId: request_id,
-          rerank: ELITE_FLAGS.STUDIO_V2 || demoElite, debug: ELITE_FLAGS.DEBUG || demoElite,
+          rerank: _usedV2Slow, debug: ELITE_FLAGS.DEBUG || demoElite,
         });
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
+        _eliteRerankRanSlow = _usedV2Slow;
+      }
+      if (ELITE_FLAGS.DEBUG) {
+        console.log(JSON.stringify({
+          _tag: 'STUDIO_ELITE_PROOF',
+          mode: 'STANDARD',
+          eliteEnabled: ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2,
+          usedV2: _eliteRerankRanSlow,
+          returned: eliteOutfits.length,
+          validatorRan: _validatorRanSlow,
+          numHardFailed: _numHardFailedSlow,
+          numRepairedViaSwap: _numRepairedViaSwapSlow,
+        }));
       }
 
       // ── Elite Scoring: log exposure event (fire-and-forget) ──
@@ -2428,6 +2474,11 @@ ${lockedLines}
           );
         }
 
+        // Attach approved style signals (same source as PATH #1)
+        if (opts?.userStyle) {
+          normalizedInput.userStyleProfile = opts.userStyle as any;
+        }
+
         // Build V4 prompt with CENTERPIECE-FIRST enforcement
         planPrompt = buildStartWithItemPromptV4(normalizedInput);
       } else {
@@ -2452,6 +2503,16 @@ ${lockedLines}
         '⚡ [FAST] Plan prompt (first 500 chars):',
         planPrompt.substring(0, 500),
       );
+
+      if (process.env.DEBUG_STUDIO === 'true') {
+        const profileIdx = planPrompt.indexOf('STYLE PREFERENCES');
+        if (profileIdx >= 0) {
+          const excerpt = planPrompt.substring(profileIdx, profileIdx + 800).split('\n').slice(0, 25).join('\n');
+          console.log(`🎨 [Studio][FAST] path=${isStartWithItem ? 'PATH2_START_WITH_ITEM' : 'PATH1_STANDARD'} prompt style excerpt:\n` + excerpt);
+        } else {
+          console.log(`🎨 [Studio][FAST] path=${isStartWithItem ? 'PATH2_START_WITH_ITEM' : 'PATH1_STANDARD'} prompt: no STYLE PREFERENCES section`);
+        }
+      }
 
       logPrompt(reqId, {
         prompt: planPrompt,
@@ -3014,6 +3075,9 @@ ${lockedLines}
       const eliteStyleContext = await this.loadEliteStyleContext(userId);
 
       // ── Taste Validation + Deterministic Repair (fast path) ──
+      let _validatorRanFast = false;
+      let _numHardFailedFast = 0;
+      let _numRepairedViaSwapFast = 0;
       {
         const _isOpenFoot = (it: any): boolean => {
           const text = `${it?.subcategory ?? ''} ${it?.name ?? it?.label ?? ''}`.toLowerCase();
@@ -3143,13 +3207,16 @@ ${lockedLines}
         });
         scored.sort((a: any, b: any) => (a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1));
         outfits = scored.slice(0, 3).map((s: any) => s.o);
+        _validatorRanFast = true;
+        _numHardFailedFast = scored.filter((s: any) => !s.valid).length;
+        _numRepairedViaSwapFast = scored.filter((s: any) => s.wasRepaired).length;
         if (ELITE_FLAGS.DEBUG) {
           console.log(JSON.stringify({
             _tag: 'STUDIO_TASTE_PROOF',
             mode: 'FAST',
             candidatePoolSize: repaired.length,
-            numHardFailed: scored.filter((s: any) => !s.valid).length,
-            numRepairedViaSwap: scored.filter((s: any) => s.wasRepaired).length,
+            numHardFailed: _numHardFailedFast,
+            numRepairedViaSwap: _numRepairedViaSwapFast,
             finalReturnedCount: outfits.length,
             ...(outfits.length < 3 ? { reason: 'WARDROBE_INSUFFICIENT' } : {}),
           }));
@@ -3157,15 +3224,31 @@ ${lockedLines}
       }
 
       // Elite Scoring hook — Phase 2: rerank when V2 flag on
+      // ONE-FLAG: ELITE_ENABLED in feature-flags.ts:42 force-enables STUDIO + STUDIO_V2
       const demoEliteFast = isEliteDemoUser(userId);
+      const _usedV2Fast = ELITE_FLAGS.STUDIO_V2 || demoEliteFast;
+      let _eliteRerankRanFast = false;
       let eliteOutfits = outfits;
       if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2 || demoEliteFast) {
         const canonical = outfits.map(normalizeStudioOutfit);
         const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
           mode: 'studio', requestId: reqId,
-          rerank: ELITE_FLAGS.STUDIO_V2 || demoEliteFast, debug: ELITE_FLAGS.DEBUG || demoEliteFast,
+          rerank: _usedV2Fast, debug: ELITE_FLAGS.DEBUG || demoEliteFast,
         });
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
+        _eliteRerankRanFast = _usedV2Fast;
+      }
+      if (ELITE_FLAGS.DEBUG) {
+        console.log(JSON.stringify({
+          _tag: 'STUDIO_ELITE_PROOF',
+          mode: 'FAST',
+          eliteEnabled: ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2,
+          usedV2: _eliteRerankRanFast,
+          returned: eliteOutfits.length,
+          validatorRan: _validatorRanFast,
+          numHardFailed: _numHardFailedFast,
+          numRepairedViaSwap: _numRepairedViaSwapFast,
+        }));
       }
 
       // ── Elite Scoring: log exposure event (fire-and-forget) ──

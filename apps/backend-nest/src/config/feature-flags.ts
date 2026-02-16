@@ -36,24 +36,31 @@ export const LEARNING_FLAGS = {
 };
 
 /**
+ * Master elite switch: set ELITE_ENABLED=true to force-enable elite scoring +
+ * V2 rerank for ALL users on ALL surfaces (Stylist + Studio). Default: false.
+ */
+const ELITE_ENABLED = getFlag('ELITE_ENABLED', false);
+
+/**
  * Elite Scoring flags — Phase 2 V2 flags default OFF.
  * Controls whether elitePostProcessOutfits() is called per surface.
+ * When ELITE_ENABLED=true, all flags are force-enabled globally.
  */
 export const ELITE_FLAGS = {
-  STYLIST: getFlag('ELITE_SCORING_STYLIST', false),
-  STUDIO: getFlag('ELITE_SCORING_STUDIO', false),
-  STUDIO_V2: getFlag('ELITE_SCORING_STUDIO_V2', false),
-  STYLIST_V2: getFlag('ELITE_SCORING_STYLIST_V2', false),
+  STYLIST: ELITE_ENABLED || getFlag('ELITE_SCORING_STYLIST', false),
+  STUDIO: ELITE_ENABLED || getFlag('ELITE_SCORING_STUDIO', false),
+  STUDIO_V2: ELITE_ENABLED || getFlag('ELITE_SCORING_STUDIO_V2', false),
+  STYLIST_V2: ELITE_ENABLED || getFlag('ELITE_SCORING_STYLIST_V2', false),
   DEBUG: getFlag('ELITE_SCORING_DEBUG', false),
 };
 
-// Demo: set ELITE_DEMO_USER_IDS=<comma-separated Auth0 user IDs> to force-enable
-// elite scoring + rerank for Stylist + Studio surfaces in production demos.
+// Per-user demo allowlist (only active when ELITE_ENABLED is false).
 const ELITE_DEMO_ALLOWLIST: Set<string> = new Set(
   (process.env.ELITE_DEMO_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean),
 );
 
 export function isEliteDemoUser(userId: string): boolean {
+  if (ELITE_ENABLED) return false; // ELITE_ENABLED is the sole force-enable path
   return ELITE_DEMO_ALLOWLIST.has(userId);
 }
 
