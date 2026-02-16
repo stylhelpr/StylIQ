@@ -31,6 +31,11 @@ const options = [
   'Oversized',
 ];
 
+const SILHOUETTE_OPTIONS = ['Structured', 'Relaxed', 'Mix of both'];
+const FOOTWEAR_COMFORT_OPTIONS = ['Comfort first', 'Balanced', 'Style first'];
+const WALKABILITY_OPTIONS = ['Low', 'Medium', 'High'];
+const FOOT_WIDTH_OPTIONS = ['Narrow', 'Standard', 'Wide'];
+
 export default function FitPreferencesScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
@@ -38,6 +43,12 @@ export default function FitPreferencesScreen({navigate}: Props) {
   const [selected, setSelected] = useState<string[]>([]);
   const [customFits, setCustomFits] = useState<string[]>([]);
   const [newFit, setNewFit] = useState('');
+
+  // New single-select states
+  const [silhouette, setSilhouette] = useState('');
+  const [footwearComfort, setFootwearComfort] = useState('');
+  const [walkability, setWalkability] = useState('');
+  const [footWidth, setFootWidth] = useState('');
 
   const insets = useSafeAreaInsets();
 
@@ -72,6 +83,11 @@ export default function FitPreferencesScreen({navigate}: Props) {
       );
       setCustomFits(prev => Array.from(new Set([...prev, ...customOnly])));
     }
+
+    if (styleProfile?.silhouette_preference) setSilhouette(styleProfile.silhouette_preference);
+    if (styleProfile?.footwear_comfort) setFootwearComfort(styleProfile.footwear_comfort);
+    if (styleProfile?.walkability_requirement) setWalkability(styleProfile.walkability_requirement);
+    if (styleProfile?.foot_width) setFootWidth(styleProfile.foot_width);
   }, [styleProfile]);
 
   const toggleSelection = async (label: string) => {
@@ -114,6 +130,19 @@ export default function FitPreferencesScreen({navigate}: Props) {
       setNewFit('');
       Keyboard.dismiss();
       h('impactLight');
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const handleFitSingleSelect = (key: string, value: string) => {
+    h('impactLight');
+    if (key === 'silhouette_preference') setSilhouette(value);
+    if (key === 'footwear_comfort') setFootwearComfort(value);
+    if (key === 'walkability_requirement') setWalkability(value);
+    if (key === 'foot_width') setFootWidth(value);
+    try {
+      updateProfile(key, value);
     } catch {
       h('notificationError');
     }
@@ -183,6 +212,90 @@ export default function FitPreferencesScreen({navigate}: Props) {
               onBlur={handleAddFit}
               returnKeyType="done"
             />
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Silhouette preference:
+          </Text>
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {SILHOUETTE_OPTIONS.map(opt => (
+                <Chip
+                  key={opt}
+                  label={opt}
+                  selected={silhouette === opt}
+                  onPress={() => handleFitSingleSelect('silhouette_preference', opt)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Footwear comfort priority:
+          </Text>
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {FOOTWEAR_COMFORT_OPTIONS.map(opt => (
+                <Chip
+                  key={opt}
+                  label={opt}
+                  selected={footwearComfort === opt}
+                  onPress={() => handleFitSingleSelect('footwear_comfort', opt)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Walkability requirement:
+          </Text>
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {WALKABILITY_OPTIONS.map(opt => (
+                <Chip
+                  key={opt}
+                  label={opt}
+                  selected={walkability === opt}
+                  onPress={() => handleFitSingleSelect('walkability_requirement', opt)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Foot width:
+          </Text>
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {FOOT_WIDTH_OPTIONS.map(opt => (
+                <Chip
+                  key={opt}
+                  label={opt}
+                  selected={footWidth === opt}
+                  onPress={() => handleFitSingleSelect('foot_width', opt)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

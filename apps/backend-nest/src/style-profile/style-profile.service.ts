@@ -2,6 +2,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateStyleProfileDto } from './dto/update-style-profile.dto';
 import { pool } from '../db/pool';
+import { ALLOWED_COLUMNS } from './style-profile.constants';
 
 @Injectable()
 export class StyleProfileService {
@@ -37,8 +38,20 @@ export class StyleProfileService {
 
   async updateProfile(userId: string, dto: UpdateStyleProfileDto) {
     const filteredEntries = Object.entries(dto).filter(
-      ([, val]) => val !== null && val !== undefined,
+      ([key, val]) =>
+        val !== null && val !== undefined && ALLOWED_COLUMNS.has(key),
     );
+
+    // One-way color sync: keep favorite_colors in sync with color_preferences
+    const colorPrefEntry = filteredEntries.find(
+      ([k]) => k === 'color_preferences',
+    );
+    if (
+      colorPrefEntry &&
+      !filteredEntries.find(([k]) => k === 'favorite_colors')
+    ) {
+      filteredEntries.push(['favorite_colors', colorPrefEntry[1]]);
+    }
 
     if (filteredEntries.length === 0) {
       console.warn('⚠️ No valid fields to update.');

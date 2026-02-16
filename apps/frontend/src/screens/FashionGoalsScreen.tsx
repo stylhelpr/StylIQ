@@ -29,6 +29,7 @@ export default function FashionGoalsScreen({navigate}: Props) {
   const [goals, setGoals] = useState('');
   const [confidence, setConfidence] = useState('');
   const [boldness, setBoldness] = useState('');
+  const [formalityFloor, setFormalityFloor] = useState('');
 
   const {user} = useAuth0();
   const userId = user?.sub || '';
@@ -45,6 +46,8 @@ export default function FashionGoalsScreen({navigate}: Props) {
       setConfidence(styleProfile.fashion_confidence);
     if (styleProfile.fashion_boldness)
       setBoldness(styleProfile.fashion_boldness);
+    if (styleProfile.formality_floor)
+      setFormalityFloor(styleProfile.formality_floor);
   }, [styleProfile]);
 
   // ✅ Commit text field to DB when editing finishes
@@ -56,7 +59,17 @@ export default function FashionGoalsScreen({navigate}: Props) {
     }
   };
 
-  // ✅ Immediate update only for chips (they’re single clicks)
+  const handleFormalityFloor = (value: string) => {
+    h('impactLight');
+    setFormalityFloor(value);
+    try {
+      updateProfile('formality_floor', value);
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  // ✅ Immediate update only for chips (they're single clicks)
   const handleSet = (
     key: 'fashion_confidence' | 'fashion_boldness',
     value: string,
@@ -177,6 +190,33 @@ export default function FashionGoalsScreen({navigate}: Props) {
                   label={option}
                   selected={boldness === option}
                   onPress={() => handleSet('fashion_boldness', option)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Text style={globalStyles.sectionTitle4}>
+            Minimum formality level (never suggest below this):
+          </Text>
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {[
+                'No minimum',
+                'Casual',
+                'Smart Casual',
+                'Business Casual',
+                'Business Formal',
+                'Black Tie',
+              ].map(option => (
+                <Chip
+                  key={option}
+                  label={option}
+                  selected={formalityFloor === option}
+                  onPress={() => handleFormalityFloor(option)}
                 />
               ))}
             </View>
