@@ -85,7 +85,12 @@ import {
   type StyleProfileFields,
 } from '../ai/elite/stylistBrain';
 import { LearningEventsService } from '../learning/learning-events.service';
-import { validateOutfit as tasteValidateOutfit } from '../ai/elite/tasteValidator';
+import {
+  validateOutfit as tasteValidateOutfit,
+  extractItemColors,
+  expandAvoidColors,
+  colorMatchesSafe,
+} from '../ai/elite/tasteValidator';
 import type {
   ValidatorItem,
   ValidatorContext,
@@ -1906,6 +1911,7 @@ ${lockedLines}
       let _validatorRanSlow = false;
       let _numHardFailedSlow = 0;
       let _numRepairedViaSwapSlow = 0;
+      let vCtx: ValidatorContext;
       {
         const _isOpenFoot = (it: any): boolean => {
           const text =
@@ -1937,7 +1943,7 @@ ${lockedLines}
           return 'hot' as const;
         };
         const _bp = (eliteStyleContext as any)?._brainStyleProfile;
-        const vCtx: ValidatorContext = {
+        vCtx = {
           userPresentation:
             userPresentation === 'masculine' || userPresentation === 'feminine'
               ? userPresentation
@@ -2166,6 +2172,23 @@ ${lockedLines}
           },
         );
         this.learningEventsService.logEvent(exposureEvent).catch(() => {});
+      }
+
+      // ── AVOID_COLOR RETURN GUARD (mirrors suggestVisualOutfits) ──
+      const _avoid = vCtx?.styleProfile?.avoid_colors ?? [];
+      if (_avoid.length > 0) {
+        const _expandedSlow = expandAvoidColors(_avoid);
+        const _hasAvoided = (outfit: any): boolean => {
+          for (const it of outfit.items ?? []) {
+            for (const ic of extractItemColors(it as any)) {
+              for (const ac of _expandedSlow) {
+                if (colorMatchesSafe(ic, ac)) return true;
+              }
+            }
+          }
+          return false;
+        };
+        eliteOutfits = eliteOutfits.filter((o: any) => !_hasAvoided(o));
       }
 
       return {
@@ -3209,6 +3232,7 @@ ${lockedLines}
       let _validatorRanFast = false;
       let _numHardFailedFast = 0;
       let _numRepairedViaSwapFast = 0;
+      let vCtx: ValidatorContext;
       {
         const _isOpenFoot = (it: any): boolean => {
           const text =
@@ -3240,7 +3264,7 @@ ${lockedLines}
           return 'hot' as const;
         };
         const _bpFast = (eliteStyleContext as any)?._brainStyleProfile;
-        const vCtx: ValidatorContext = {
+        vCtx = {
           userPresentation:
             userPresentation === 'masculine' || userPresentation === 'feminine'
               ? userPresentation
@@ -3466,6 +3490,23 @@ ${lockedLines}
           },
         );
         this.learningEventsService.logEvent(exposureEvent).catch(() => {});
+      }
+
+      // ── AVOID_COLOR RETURN GUARD (mirrors suggestVisualOutfits) ──
+      const _avoid = vCtx?.styleProfile?.avoid_colors ?? [];
+      if (_avoid.length > 0) {
+        const _expandedFast = expandAvoidColors(_avoid);
+        const _hasAvoided = (outfit: any): boolean => {
+          for (const it of outfit.items ?? []) {
+            for (const ic of extractItemColors(it as any)) {
+              for (const ac of _expandedFast) {
+                if (colorMatchesSafe(ic, ac)) return true;
+              }
+            }
+          }
+          return false;
+        };
+        eliteOutfits = eliteOutfits.filter((o: any) => !_hasAvoided(o));
       }
 
       return {
