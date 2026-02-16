@@ -5513,7 +5513,22 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       const items = Array.isArray(outfit?.items) ? outfit.items : [];
       outfit.items = items.map((it: any) => {
         const full = it?.id ? fullItemMap.get(it.id) : null;
-        const canonicalColors = _getCanonicalColors(full);
+        let canonicalColors = _getCanonicalColors(full);
+        // Stub fallback: when item ID is missing from fullItemMap, extract
+        // colors from the outfit stub itself so avoid_colors guards still work.
+        if (canonicalColors.length === 0 && it) {
+          const stubRaw: any[] = [];
+          if (it.color) stubRaw.push(it.color);
+          if (Array.isArray(it.colors)) stubRaw.push(...it.colors);
+          if (it.metadata?.color) stubRaw.push(it.metadata.color);
+          if (Array.isArray(it.metadata?.colors)) stubRaw.push(...it.metadata.colors);
+          const stubOut = new Set<string>();
+          for (const r of stubRaw) {
+            const n = _normColor(r);
+            if (n) stubOut.add(n);
+          }
+          if (stubOut.size > 0) canonicalColors = [...stubOut];
+        }
         return { ...it, __canonicalColors: canonicalColors };
       });
       return outfit;

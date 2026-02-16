@@ -2176,3 +2176,149 @@ describe('enrichStylistOutfits', () => {
     expect(item).not.toHaveProperty('material');
   });
 });
+
+// ─── 17️⃣ Hydration Stub Fallback (Scenario-3 avoid_colors gap) ──────────────
+
+import {
+  colorMatchesSafe,
+  expandAvoidColors,
+} from './elite/tasteValidator';
+
+describe('Hydration stub fallback — avoid_colors for unknown IDs', () => {
+  // Replicate exact production helpers from ai.service.ts:5484-5535
+  const _normColor = (v: any): string | null => {
+    if (typeof v !== 'string') return null;
+    return v.trim().toLowerCase().replace(/[-_]/g, ' ').replace(/\s+/g, ' ');
+  };
+
+  const _getCanonicalColors = (full: any): string[] => {
+    const raw: any[] = [];
+    if (!full) return [];
+    raw.push(full.color);
+    if (Array.isArray(full.colors)) raw.push(...full.colors);
+    raw.push(full.metadata?.color);
+    if (Array.isArray(full.metadata?.colors)) raw.push(...full.metadata.colors);
+    raw.push(full.enrichment?.color);
+    if (Array.isArray(full.enrichment?.colors)) raw.push(...full.enrichment.colors);
+    const out = new Set<string>();
+    for (const r of raw) {
+      const n = _normColor(r);
+      if (n) out.add(n);
+    }
+    return [...out];
+  };
+
+  // Replicate _hydrateOutfitColors WITH the stub fallback fix
+  const _hydrateOutfitColors = (outfit: any, fullItemMap: Map<string, any>): any => {
+    const items = Array.isArray(outfit?.items) ? outfit.items : [];
+    outfit.items = items.map((it: any) => {
+      const full = it?.id ? fullItemMap.get(it.id) : null;
+      let canonicalColors = _getCanonicalColors(full);
+      if (canonicalColors.length === 0 && it) {
+        const stubRaw: any[] = [];
+        if (it.color) stubRaw.push(it.color);
+        if (Array.isArray(it.colors)) stubRaw.push(...it.colors);
+        if (it.metadata?.color) stubRaw.push(it.metadata.color);
+        if (Array.isArray(it.metadata?.colors)) stubRaw.push(...it.metadata.colors);
+        const stubOut = new Set<string>();
+        for (const r of stubRaw) {
+          const n = _normColor(r);
+          if (n) stubOut.add(n);
+        }
+        if (stubOut.size > 0) canonicalColors = [...stubOut];
+      }
+      return { ...it, __canonicalColors: canonicalColors };
+    });
+    return outfit;
+  };
+
+  // Replicate RETURN_GUARD logic from ai.service.ts:5696-5708
+  const rtHasAvoid = (outfit: any, expandedAvoid: string[]): boolean => {
+    const items = Array.isArray(outfit?.items) ? outfit.items : [];
+    for (const it of items) {
+      const colors: string[] = Array.isArray(it.__canonicalColors) ? it.__canonicalColors : [];
+      for (const c of colors) {
+        for (const a of expandedAvoid) {
+          if (colorMatchesSafe(c, a)) return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  it('stub with color "Navy" is caught when avoid_colors=["navy"]', () => {
+    const fullItemMap = new Map<string, any>(); // empty — ID not found
+    const outfit: any = {
+      id: 'outfit-1',
+      items: [
+        { id: 'hallucinated-id', name: 'Navy Blazer', color: 'Navy', category: 'top' },
+        { id: 'real-shoes', name: 'Loafers', color: 'Brown', category: 'shoes' },
+      ],
+    };
+
+    _hydrateOutfitColors(outfit, fullItemMap);
+
+    // Prove __canonicalColors was populated from stub
+    expect(outfit.items[0].__canonicalColors).toEqual(['navy']);
+    expect(outfit.items[1].__canonicalColors).toEqual(['brown']);
+
+    // Prove RETURN_GUARD catches it
+    const expanded = expandAvoidColors(['navy']);
+    expect(rtHasAvoid(outfit, expanded)).toBe(true);
+  });
+
+  it('stub with NO color gets empty __canonicalColors (no false positive)', () => {
+    const fullItemMap = new Map<string, any>();
+    const outfit: any = {
+      id: 'outfit-2',
+      items: [
+        { id: 'no-color-stub', name: 'Mystery Item', category: 'top' },
+      ],
+    };
+
+    _hydrateOutfitColors(outfit, fullItemMap);
+
+    expect(outfit.items[0].__canonicalColors).toEqual([]);
+
+    const expanded = expandAvoidColors(['navy']);
+    expect(rtHasAvoid(outfit, expanded)).toBe(false);
+  });
+
+  it('full item in map still uses fullItemMap data (existing behavior preserved)', () => {
+    const fullItemMap = new Map<string, any>([
+      ['item-a', { color: 'Red', metadata: { colors: ['Burgundy'] } }],
+    ]);
+    const outfit: any = {
+      id: 'outfit-3',
+      items: [
+        { id: 'item-a', name: 'Red Top', color: 'should-be-ignored', category: 'top' },
+      ],
+    };
+
+    _hydrateOutfitColors(outfit, fullItemMap);
+
+    // Uses fullItemMap, not stub
+    expect(outfit.items[0].__canonicalColors).toEqual(
+      expect.arrayContaining(['red', 'burgundy']),
+    );
+    expect(outfit.items[0].__canonicalColors).not.toContain('should-be-ignored');
+  });
+
+  it('avoid "navy" does NOT match stub color "blue" (no navy-bans-blue bug)', () => {
+    const fullItemMap = new Map<string, any>();
+    const outfit: any = {
+      id: 'outfit-4',
+      items: [
+        { id: 'stub-1', name: 'Blue Tee', color: 'Blue', category: 'top' },
+      ],
+    };
+
+    _hydrateOutfitColors(outfit, fullItemMap);
+    expect(outfit.items[0].__canonicalColors).toEqual(['blue']);
+
+    const expanded = expandAvoidColors(['navy']);
+    // "navy" expanded = ["navy", "navy blue", "dark navy", "midnight", "ink"]
+    // "blue" should NOT match any of those
+    expect(rtHasAvoid(outfit, expanded)).toBe(false);
+  });
+});

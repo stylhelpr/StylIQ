@@ -352,7 +352,6 @@ export class WardrobeService {
               style_preferences: _toArr(_p0Row.style_preferences),
               disliked_styles: _toArr(_p0Row.disliked_styles),
             };
-            console.log(JSON.stringify({ _tag: 'STUDIO_P0_VETO_FALLBACK_FIRED', avoid: (brainCtx as any).styleProfile.avoid_colors }));
           }
         } catch {
           // fail-open: no P0 vetoes if fallback also fails
@@ -1556,6 +1555,11 @@ export class WardrobeService {
         opts?.userStyle,
         buildGenderDirective(userPresentation),
       );
+      // ── Oversize candidate pool: request more so valid-only gate still yields 3 ──
+      fullPrompt = fullPrompt.replace(
+        'Build 2–3 complete outfits',
+        'Build 6–9 complete outfits',
+      );
       if (refinement) fullPrompt += `\n\nUser refinement: ${refinement}`;
       if (locked.length) {
         fullPrompt += `
@@ -2149,21 +2153,6 @@ ${lockedLines}
         _numRepairedViaSwapSlow = scored.filter(
           (s: any) => s.wasRepaired,
         ).length;
-        if (ELITE_FLAGS.DEBUG) {
-          console.log(
-            JSON.stringify({
-              _tag: 'STUDIO_TASTE_PROOF',
-              mode: 'SLOW',
-              candidatePoolSize: repaired.length,
-              numHardFailed: _numHardFailedSlow,
-              numRepairedViaSwap: _numRepairedViaSwapSlow,
-              finalReturnedCount: withIds.length,
-              ...(withIds.length < 3
-                ? { reason: 'WARDROBE_INSUFFICIENT' }
-                : {}),
-            }),
-          );
-        }
       }
 
       // Elite Scoring hook — Phase 2: rerank when V2 flag on
@@ -2183,21 +2172,6 @@ ${lockedLines}
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
         _eliteRerankRanSlow = _usedV2Slow;
       }
-      if (ELITE_FLAGS.DEBUG) {
-        console.log(
-          JSON.stringify({
-            _tag: 'STUDIO_ELITE_PROOF',
-            mode: 'STANDARD',
-            eliteEnabled: ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2,
-            usedV2: _eliteRerankRanSlow,
-            returned: eliteOutfits.length,
-            validatorRan: _validatorRanSlow,
-            numHardFailed: _numHardFailedSlow,
-            numRepairedViaSwap: _numRepairedViaSwapSlow,
-          }),
-        );
-      }
-
       // ── Elite Scoring: log exposure event (fire-and-forget) ──
       // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker
       {
@@ -2214,7 +2188,7 @@ ${lockedLines}
         this.learningEventsService.logEvent(exposureEvent).catch(() => {});
       }
 
-      // ── AVOID_COLOR RETURN GUARD (mirrors suggestVisualOutfits) ──
+      // ── Avoided-color return guard (mirrors suggestVisualOutfits) ──
       const _avoid = vCtx?.styleProfile?.avoid_colors ?? [];
       if (_avoid.length > 0) {
         const _expandedSlow = expandAvoidColors(_avoid);
@@ -2230,10 +2204,6 @@ ${lockedLines}
         };
         eliteOutfits = eliteOutfits.filter((o: any) => !_hasAvoided(o));
       }
-
-      // ALWAYS-ON: gate ensures numInvalidReturned=0 by construction
-      // (scored.filter(valid) → elite rerank (reorder only) → RETURN_GUARD (remove only))
-      console.log(JSON.stringify({ _tag: 'STUDIO_RETURN_VALIDITY_PROOF', mode: 'SLOW', returned: eliteOutfits.length, numInvalidReturned: 0 }));
 
       return {
         request_id,
@@ -2680,6 +2650,13 @@ ${lockedLines}
           genderDirective: buildGenderDirective(userPresentation), // FIX 4
         });
       }
+
+      // ── Oversize candidate pool: request 9 so valid-only gate still yields 3 ──
+      planPrompt = planPrompt
+        .replace(/exactly 3 ranked outfits/gi, 'exactly 9 ranked outfits')
+        .replace(/Exactly 3 outfits/g, 'Exactly 9 outfits')
+        .replace(/ALL 3 outfits/g, 'ALL 9 outfits')
+        .replace(/All 3 outfits/g, 'All 9 outfits');
 
       console.log('⚡ [FAST] Plan prompt length:', planPrompt.length, 'chars');
       console.log(
@@ -3470,21 +3447,6 @@ ${lockedLines}
         _numRepairedViaSwapFast = scored.filter(
           (s: any) => s.wasRepaired,
         ).length;
-        if (ELITE_FLAGS.DEBUG) {
-          console.log(
-            JSON.stringify({
-              _tag: 'STUDIO_TASTE_PROOF',
-              mode: 'FAST',
-              candidatePoolSize: repaired.length,
-              numHardFailed: _numHardFailedFast,
-              numRepairedViaSwap: _numRepairedViaSwapFast,
-              finalReturnedCount: outfits.length,
-              ...(outfits.length < 3
-                ? { reason: 'WARDROBE_INSUFFICIENT' }
-                : {}),
-            }),
-          );
-        }
       }
 
       // Elite Scoring hook — Phase 2: rerank when V2 flag on
@@ -3504,21 +3466,6 @@ ${lockedLines}
         eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
         _eliteRerankRanFast = _usedV2Fast;
       }
-      if (ELITE_FLAGS.DEBUG) {
-        console.log(
-          JSON.stringify({
-            _tag: 'STUDIO_ELITE_PROOF',
-            mode: 'FAST',
-            eliteEnabled: ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2,
-            usedV2: _eliteRerankRanFast,
-            returned: eliteOutfits.length,
-            validatorRan: _validatorRanFast,
-            numHardFailed: _numHardFailedFast,
-            numRepairedViaSwap: _numRepairedViaSwapFast,
-          }),
-        );
-      }
-
       // ── Elite Scoring: log exposure event (fire-and-forget) ──
       // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker
       {
@@ -3535,7 +3482,7 @@ ${lockedLines}
         this.learningEventsService.logEvent(exposureEvent).catch(() => {});
       }
 
-      // ── AVOID_COLOR RETURN GUARD (mirrors suggestVisualOutfits) ──
+      // ── Avoided-color return guard (mirrors suggestVisualOutfits) ──
       const _avoid = vCtx?.styleProfile?.avoid_colors ?? [];
       if (_avoid.length > 0) {
         const _expandedFast = expandAvoidColors(_avoid);
@@ -3551,10 +3498,6 @@ ${lockedLines}
         };
         eliteOutfits = eliteOutfits.filter((o: any) => !_hasAvoided(o));
       }
-
-      // ALWAYS-ON: gate ensures numInvalidReturned=0 by construction
-      // (scored.filter(valid) → elite rerank (reorder only) → RETURN_GUARD (remove only))
-      console.log(JSON.stringify({ _tag: 'STUDIO_RETURN_VALIDITY_PROOF', mode: 'FAST', returned: eliteOutfits.length, numInvalidReturned: 0 }));
 
       return {
         request_id: reqId,
@@ -4528,7 +4471,51 @@ ${lockedLines}
       (dto as any).pattern_scale =
         this.normalizePatternScaleDto(dto.pattern_scale) ?? null;
 
+    // Allowlist of real wardrobe_items columns safe to SET via dynamic UPDATE.
+    // Derived from createItem() add() calls. Blocks ANY unknown key (category,
+    // __proto__, randomField, etc.) from reaching Postgres SQL.
+    // System columns (id, user_id, created_at, updated_at) excluded deliberately.
+    const ALLOWED_UPDATE_KEYS = new Set([
+      // core
+      'image_url', 'name', 'main_category', 'subcategory', 'color', 'material',
+      'fit', 'size', 'brand', 'gsutil_uri', 'object_key', 'processed_image_url',
+      'processed_gsutil_uri', 'metadata', 'width', 'height', 'tags',
+      // visuals & styling
+      'style_descriptors', 'style_archetypes', 'anchor_role', 'pattern',
+      'pattern_scale', 'dominant_hex', 'palette_hex', 'color_family', 'color_temp',
+      'contrast_profile',
+      // occasion & formality
+      'occasion_tags', 'dress_code', 'formality_score',
+      // seasonality & climate
+      'seasonality', 'layering', 'seasonality_arr', 'thermal_rating',
+      'breathability', 'rain_ok', 'wind_ok', 'waterproof_rating',
+      'climate_sweetspot_f_min', 'climate_sweetspot_f_max',
+      // construction & sizing
+      'fabric_blend', 'fabric_weight_gsm', 'wrinkle_resistance',
+      'stretch_direction', 'stretch_pct', 'thickness', 'size_system',
+      'size_label', 'measurements',
+      // silhouette & cut
+      'neckline', 'collar_type', 'sleeve_length', 'hem_style', 'rise', 'leg',
+      'inseam_in', 'cuff', 'lapel', 'closure', 'length_class', 'shoe_style',
+      'sole', 'toe_shape',
+      // care
+      'care_symbols', 'wash_temp_c', 'dry_clean', 'iron_ok',
+      // usage
+      'wear_count', 'last_worn_at', 'rotation_priority',
+      // commerce & provenance
+      'purchase_date', 'purchase_price', 'retailer', 'country_of_origin',
+      'condition', 'defects_notes',
+      // pairing & feedback
+      'goes_with_ids', 'avoid_with_ids', 'user_rating', 'fit_confidence',
+      'outfit_feedback', 'disliked_features',
+      // AI
+      'ai_title', 'ai_description', 'ai_key_attributes', 'ai_confidence',
+      // location & availability
+      'location_id', 'care_status', 'cleaner_info', 'constraints',
+    ]);
+
     for (const [key, value] of Object.entries(dto)) {
+      if (!ALLOWED_UPDATE_KEYS.has(key)) continue;
       if (value !== undefined) {
         fields.push(`${key} = $${index}`);
         if (Array.isArray(value)) {
