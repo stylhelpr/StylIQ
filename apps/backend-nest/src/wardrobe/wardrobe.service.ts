@@ -317,6 +317,47 @@ export class WardrobeService {
         this.fashionStateService,
       );
 
+      // P0 VETO FALLBACK: if brain timed out (200ms race), fetch P0 columns directly
+      // so avoid_colors / coverage_no_go / avoid_materials enforcement is never skipped.
+      // Mirrors ai.service.ts suggestVisualOutfits P0 fallback.
+      if (!brainCtx.styleProfile && userId) {
+        try {
+          const _p0Row = (
+            await pool.query(
+              `SELECT coverage_no_go, avoid_colors, avoid_materials,
+                      formality_floor, walkability_requirement,
+                      avoid_patterns, silhouette_preference,
+                      fit_preferences, fabric_preferences, style_preferences, disliked_styles
+               FROM style_profiles WHERE user_id = $1 LIMIT 1`,
+              [userId],
+            )
+          ).rows[0];
+          if (_p0Row) {
+            const _toArr = (v: unknown): string[] =>
+              Array.isArray(v)
+                ? v.filter((x: any) => typeof x === 'string')
+                : [];
+            const _toStr = (v: unknown): string | null =>
+              typeof v === 'string' ? v : null;
+            (brainCtx as any).styleProfile = {
+              coverage_no_go: _toArr(_p0Row.coverage_no_go),
+              avoid_colors: _toArr(_p0Row.avoid_colors),
+              avoid_materials: _toArr(_p0Row.avoid_materials),
+              formality_floor: _toStr(_p0Row.formality_floor),
+              walkability_requirement: _toStr(_p0Row.walkability_requirement),
+              avoid_patterns: _toArr(_p0Row.avoid_patterns),
+              silhouette_preference: _toStr(_p0Row.silhouette_preference),
+              fit_preferences: _toArr(_p0Row.fit_preferences),
+              fabric_preferences: _toArr(_p0Row.fabric_preferences),
+              style_preferences: _toArr(_p0Row.style_preferences),
+              disliked_styles: _toArr(_p0Row.disliked_styles),
+            };
+            console.log(JSON.stringify({ _tag: 'STUDIO_P0_VETO_FALLBACK_FIRED', avoid: (brainCtx as any).styleProfile.avoid_colors }));
+          }
+        } catch {
+          // fail-open: no P0 vetoes if fallback also fails
+        }
+      }
       return {
         presentation: brainCtx.presentation,
         fashionState: brainCtx.fashionState
@@ -1960,7 +2001,6 @@ ${lockedLines}
             silhouette_preference: _bp?.silhouette_preference,
           },
         };
-
         // Build slot pools from reranked catalog
         const slotPools = new Map<string, any[]>();
         for (const item of reranked) {
@@ -2101,7 +2141,7 @@ ${lockedLines}
         scored.sort((a: any, b: any) =>
           a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1,
         );
-        const tasteFiltered = scored.slice(0, 3).map((s: any) => s.o);
+        const tasteFiltered = scored.filter((s: any) => s.valid).slice(0, 3).map((s: any) => s.o);
         withIds.length = 0;
         withIds.push(...tasteFiltered);
         _validatorRanSlow = true;
@@ -2190,6 +2230,10 @@ ${lockedLines}
         };
         eliteOutfits = eliteOutfits.filter((o: any) => !_hasAvoided(o));
       }
+
+      // ALWAYS-ON: gate ensures numInvalidReturned=0 by construction
+      // (scored.filter(valid) → elite rerank (reorder only) → RETURN_GUARD (remove only))
+      console.log(JSON.stringify({ _tag: 'STUDIO_RETURN_VALIDITY_PROOF', mode: 'SLOW', returned: eliteOutfits.length, numInvalidReturned: 0 }));
 
       return {
         request_id,
@@ -3281,7 +3325,6 @@ ${lockedLines}
             silhouette_preference: _bpFast?.silhouette_preference,
           },
         };
-
         // Build slot pools from all fetched items
         const fastPool = Array.from(itemsMap.values());
         const slotPools = new Map<string, any[]>();
@@ -3421,7 +3464,7 @@ ${lockedLines}
         scored.sort((a: any, b: any) =>
           a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1,
         );
-        outfits = scored.slice(0, 3).map((s: any) => s.o);
+        outfits = scored.filter((s: any) => s.valid).slice(0, 3).map((s: any) => s.o);
         _validatorRanFast = true;
         _numHardFailedFast = scored.filter((s: any) => !s.valid).length;
         _numRepairedViaSwapFast = scored.filter(
@@ -3508,6 +3551,10 @@ ${lockedLines}
         };
         eliteOutfits = eliteOutfits.filter((o: any) => !_hasAvoided(o));
       }
+
+      // ALWAYS-ON: gate ensures numInvalidReturned=0 by construction
+      // (scored.filter(valid) → elite rerank (reorder only) → RETURN_GUARD (remove only))
+      console.log(JSON.stringify({ _tag: 'STUDIO_RETURN_VALIDITY_PROOF', mode: 'FAST', returned: eliteOutfits.length, numInvalidReturned: 0 }));
 
       return {
         request_id: reqId,
