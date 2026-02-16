@@ -636,19 +636,37 @@ Return format:
     let profileCtx = '';
     try {
       const res = await pool.query(
-        `SELECT favorite_colors, fit_preferences, preferred_brands, disliked_styles
+        `SELECT favorite_colors, fit_preferences, preferred_brands, disliked_styles,
+                coverage_no_go, avoid_colors, avoid_materials,
+                formality_floor, walkability_requirement
        FROM style_profiles WHERE user_id::text = $1 LIMIT 1`,
         [user_id],
       );
       const prof = res.rows[0];
       if (prof) {
+        const pLines: string[] = [
+          `• Preferred colors: ${(prof.favorite_colors || []).join(', ') || '—'}`,
+          `• Fit preferences: ${(prof.fit_preferences || []).join(', ') || '—'}`,
+          `• Favorite brands: ${(prof.preferred_brands || []).join(', ') || '—'}`,
+          `• Disliked styles: ${Array.isArray(prof.disliked_styles) ? prof.disliked_styles.join(', ') : (prof.disliked_styles || '—')}`,
+        ];
+        const _covNoGo = Array.isArray(prof.coverage_no_go) ? prof.coverage_no_go : [];
+        const _avCol = Array.isArray(prof.avoid_colors) ? prof.avoid_colors : [];
+        const _avMat = Array.isArray(prof.avoid_materials) ? prof.avoid_materials : [];
+        if (_covNoGo.length > 0)
+          pLines.push(`HARD RULE — Coverage restrictions: ${_covNoGo.join(', ')}`);
+        if (_avCol.length > 0)
+          pLines.push(`HARD RULE — NEVER use these colors: ${_avCol.join(', ')}`);
+        if (_avMat.length > 0)
+          pLines.push(`HARD RULE — NEVER use these materials: ${_avMat.join(', ')}`);
+        if (prof.formality_floor && prof.formality_floor !== 'No minimum')
+          pLines.push(`HARD RULE — Minimum formality: ${prof.formality_floor}`);
+        if (prof.walkability_requirement && prof.walkability_requirement !== 'Low')
+          pLines.push(`HARD RULE — Walkability: ${prof.walkability_requirement}`);
         profileCtx = `
-      # USER STYLE CONTEXT (soft influence)
-      • Preferred colors: ${(prof.favorite_colors || []).join(', ') || '—'}
-      • Fit preferences: ${(prof.fit_preferences || []).join(', ') || '—'}
-      • Favorite brands: ${(prof.preferred_brands || []).join(', ') || '—'}
-      • Disliked styles: ${prof.disliked_styles || '—'}
-      Do NOT override the image’s vibe — just bias tone/material choices if relevant.
+      # USER STYLE CONTEXT (soft influence — hard rules MUST be obeyed)
+      ${pLines.join('\n      ')}
+      Do NOT override the image's vibe — just bias tone/material choices if relevant.
       `;
       }
     } catch {
@@ -1092,6 +1110,28 @@ ${colorRule}
 • Skin tone / hair / eyes: ${profile.skin_tone || '—'}, ${
         profile.hair_color || '—'
       }, ${profile.eye_color || '—'} — choose tones that complement.
+
+${(() => {
+  const hardRules: string[] = [];
+  const covNoGo = Array.isArray(profile.coverage_no_go) ? profile.coverage_no_go : [];
+  const avCol = Array.isArray(profile.avoid_colors) ? profile.avoid_colors : [];
+  const avMat = Array.isArray(profile.avoid_materials) ? profile.avoid_materials : [];
+  if (covNoGo.length > 0) hardRules.push(`HARD RULE — Coverage restrictions: ${covNoGo.join(', ')}`);
+  if (avCol.length > 0) hardRules.push(`HARD RULE — NEVER use these colors: ${avCol.join(', ')}`);
+  if (avMat.length > 0) hardRules.push(`HARD RULE — NEVER use these materials: ${avMat.join(', ')}`);
+  if (profile.formality_floor && profile.formality_floor !== 'No minimum')
+    hardRules.push(`HARD RULE — Minimum formality: ${profile.formality_floor}`);
+  if (profile.walkability_requirement && profile.walkability_requirement !== 'Low')
+    hardRules.push(`HARD RULE — Walkability: ${profile.walkability_requirement}`);
+  const patPrefs = Array.isArray(profile.pattern_preferences) ? profile.pattern_preferences : [];
+  const avPat = Array.isArray(profile.avoid_patterns) ? profile.avoid_patterns : [];
+  if (patPrefs.length > 0) hardRules.push(`• Preferred patterns: ${patPrefs.join(', ')}`);
+  if (avPat.length > 0) hardRules.push(`• Avoid patterns: ${avPat.join(', ')}`);
+  if (profile.silhouette_preference) hardRules.push(`• Silhouette preference: ${profile.silhouette_preference}`);
+  if (profile.budget_min != null || profile.budget_max != null)
+    hardRules.push(`• Budget range: ${profile.budget_min ?? '?'}–${profile.budget_max ?? '?'}`);
+  return hardRules.join('\n');
+})()}
 `;
     }
 
@@ -1139,7 +1179,17 @@ ${colorRule}
     height,
     waist,
     fit_preferences,
-    style_preferences
+    style_preferences,
+    coverage_no_go,
+    avoid_colors,
+    avoid_materials,
+    formality_floor,
+    walkability_requirement,
+    pattern_preferences,
+    avoid_patterns,
+    silhouette_preference,
+    budget_min,
+    budget_max
   FROM style_profiles
   WHERE user_id::text = $1
   LIMIT 1
@@ -2300,7 +2350,10 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
           `SELECT body_type, skin_tone, undertone, climate,
                 favorite_colors, fit_preferences, preferred_brands,
                 disliked_styles, style_keywords, style_preferences,
-                hair_color, eye_color, height, waist, goals
+                hair_color, eye_color, height, waist, goals,
+                coverage_no_go, avoid_colors, avoid_materials,
+                formality_floor, walkability_requirement,
+                fashion_boldness, budget_min, budget_max, style_icons
          FROM style_profiles
          WHERE user_id = $1
          LIMIT 1`,
@@ -2342,6 +2395,28 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
               `Style preferences: ${Array.isArray(sp.style_preferences) ? sp.style_preferences.join(', ') : sp.style_preferences}`,
             );
           if (sp.waist) parts.push(`Waist: ${sp.waist}`);
+          // P0 hard vetoes
+          const coverageNoGo = Array.isArray(sp.coverage_no_go) ? sp.coverage_no_go : [];
+          const avoidColors = Array.isArray(sp.avoid_colors) ? sp.avoid_colors : [];
+          const avoidMaterials = Array.isArray(sp.avoid_materials) ? sp.avoid_materials : [];
+          if (coverageNoGo.length > 0)
+            parts.push(`HARD RULE — Coverage restrictions: ${coverageNoGo.join(', ')}`);
+          if (avoidColors.length > 0)
+            parts.push(`HARD RULE — NEVER use these colors: ${avoidColors.join(', ')}`);
+          if (avoidMaterials.length > 0)
+            parts.push(`HARD RULE — NEVER use these materials: ${avoidMaterials.join(', ')}`);
+          if (sp.formality_floor && sp.formality_floor !== 'No minimum')
+            parts.push(`HARD RULE — Minimum formality: ${sp.formality_floor}`);
+          if (sp.walkability_requirement && sp.walkability_requirement !== 'Low')
+            parts.push(`HARD RULE — Walkability requirement: ${sp.walkability_requirement}`);
+          // LLM-only soft context
+          if (sp.fashion_boldness)
+            parts.push(`Fashion boldness: ${sp.fashion_boldness}`);
+          if (sp.budget_min != null || sp.budget_max != null)
+            parts.push(`Budget range: ${sp.budget_min ?? '?'}–${sp.budget_max ?? '?'}`);
+          const styleIcons = Array.isArray(sp.style_icons) ? sp.style_icons : [];
+          if (styleIcons.length > 0)
+            parts.push(`Style icons: ${styleIcons.join(', ')}`);
           if (parts.length > 0) {
             styleProfileContext = '\n\n👗 STYLE PROFILE:\n' + parts.join('\n');
             console.log(
@@ -3668,6 +3743,54 @@ All items in a single outfit must feel coherent in social context.
       // Occasions
       if (sp.occasions.length > 0)
         lines.push(`• Typical occasions: ${sp.occasions.join(', ')}`);
+
+      // P0 hard vetoes — LLM must respect
+      if (sp.coverage_no_go.length > 0)
+        lines.push(`HARD RULE — Coverage restrictions (NEVER include items violating these): ${sp.coverage_no_go.join(', ')}`);
+      if (sp.avoid_colors.length > 0)
+        lines.push(`HARD RULE — NEVER use these colors: ${sp.avoid_colors.join(', ')}`);
+      if (sp.avoid_materials.length > 0)
+        lines.push(`HARD RULE — NEVER use these materials: ${sp.avoid_materials.join(', ')}`);
+      if (sp.formality_floor)
+        lines.push(`HARD RULE — Minimum formality: ${sp.formality_floor} (never suggest items below this level)`);
+      if (sp.walkability_requirement && sp.walkability_requirement !== 'Low')
+        lines.push(`HARD RULE — Walkability requirement: ${sp.walkability_requirement} (avoid impractical footwear)`);
+
+      // P1 soft preferences
+      if (sp.pattern_preferences.length > 0)
+        lines.push(`• Preferred patterns: ${sp.pattern_preferences.join(', ')}`);
+      if (sp.avoid_patterns.length > 0)
+        lines.push(`• Avoided patterns: ${sp.avoid_patterns.join(', ')}`);
+      if (sp.silhouette_preference)
+        lines.push(`• Silhouette preference: ${sp.silhouette_preference}`);
+      if (sp.care_tolerance)
+        lines.push(`• Care tolerance: ${sp.care_tolerance}`);
+      if (sp.metal_preference && sp.metal_preference !== 'No preference')
+        lines.push(`• Jewelry metal preference: ${sp.metal_preference}`);
+      if (sp.contrast_preference && sp.contrast_preference !== 'No preference')
+        lines.push(`• Contrast preference: ${sp.contrast_preference}`);
+      if (sp.footwear_comfort)
+        lines.push(`• Footwear comfort priority: ${sp.footwear_comfort}`);
+      if (sp.foot_width && sp.foot_width !== 'Standard')
+        lines.push(`• Foot width: ${sp.foot_width}`);
+
+      // LLM-only soft context
+      if (sp.fashion_boldness)
+        lines.push(`• Fashion boldness: ${sp.fashion_boldness}`);
+      if (sp.trend_appetite)
+        lines.push(`• Trend appetite: ${sp.trend_appetite}`);
+      if (sp.fashion_confidence)
+        lines.push(`• Fashion confidence: ${sp.fashion_confidence}`);
+      if (sp.budget_min != null || sp.budget_max != null)
+        lines.push(`• Budget range: ${sp.budget_min ?? '?'}–${sp.budget_max ?? '?'}`);
+      if (sp.style_icons.length > 0)
+        lines.push(`• Style icons: ${sp.style_icons.join(', ')}`);
+      if (sp.daily_activities.length > 0)
+        lines.push(`• Daily activities: ${sp.daily_activities.join(', ')}`);
+      if (sp.personality_traits.length > 0)
+        lines.push(`• Personality traits: ${sp.personality_traits.join(', ')}`);
+      if (sp.lifestyle_notes)
+        lines.push(`• Lifestyle notes: ${sp.lifestyle_notes}`);
 
       if (lines.length > 0) {
         systemPrompt += `

@@ -60,7 +60,13 @@ export class StyleProfileService {
 
     const keys = filteredEntries.map(([key]) => key);
     const values = filteredEntries.map(([, val]) => val);
-    const setClause = keys.map((key, i) => `${key} = $${i + 2}`).join(', ');
+    const setClause = keys
+      .map((key, i) =>
+        key === 'prefs_jsonb'
+          ? `prefs_jsonb = COALESCE(style_profiles.prefs_jsonb, '{}'::jsonb) || $${i + 2}::jsonb`
+          : `${key} = $${i + 2}`,
+      )
+      .join(', ');
 
     const query = `
       INSERT INTO style_profiles (user_id, ${keys.join(', ')})

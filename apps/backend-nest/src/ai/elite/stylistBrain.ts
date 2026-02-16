@@ -26,6 +26,34 @@ export interface StyleProfileFields {
   occasions: string[];
   body_type: string | null;
   climate: string | null;
+
+  // P0 hard vetoes
+  coverage_no_go: string[];
+  avoid_colors: string[];
+  avoid_materials: string[];
+  formality_floor: string | null;
+  walkability_requirement: string | null;
+
+  // P1 soft preferences
+  pattern_preferences: string[];
+  avoid_patterns: string[];
+  silhouette_preference: string | null;
+  care_tolerance: string | null;
+  metal_preference: string | null;
+  contrast_preference: string | null;
+  footwear_comfort: string | null;
+  foot_width: string | null;
+
+  // LLM-only context
+  fashion_boldness: string | null;
+  trend_appetite: string | null;
+  fashion_confidence: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  style_icons: string[];
+  daily_activities: string[];
+  personality_traits: string[];
+  lifestyle_notes: string | null;
 }
 
 export interface StylistBrainContext {
@@ -55,6 +83,12 @@ function parseStyleProfileRow(row: Record<string, unknown>): StyleProfileFields 
   const toStringArray = (v: unknown): string[] =>
     Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 
+  const toNullableString = (v: unknown): string | null =>
+    typeof v === 'string' ? v : null;
+
+  const toNullableNumber = (v: unknown): number | null =>
+    typeof v === 'number' && isFinite(v) ? v : null;
+
   return {
     fit_preferences: toStringArray(row.fit_preferences),
     fabric_preferences: toStringArray(row.fabric_preferences),
@@ -63,8 +97,36 @@ function parseStyleProfileRow(row: Record<string, unknown>): StyleProfileFields 
     style_preferences: toStringArray(row.style_preferences),
     preferred_brands: toStringArray(row.preferred_brands),
     occasions: toStringArray(row.occasions),
-    body_type: typeof row.body_type === 'string' ? row.body_type : null,
-    climate: typeof row.climate === 'string' ? row.climate : null,
+    body_type: toNullableString(row.body_type),
+    climate: toNullableString(row.climate),
+
+    // P0 hard vetoes
+    coverage_no_go: toStringArray(row.coverage_no_go),
+    avoid_colors: toStringArray(row.avoid_colors),
+    avoid_materials: toStringArray(row.avoid_materials),
+    formality_floor: toNullableString(row.formality_floor),
+    walkability_requirement: toNullableString(row.walkability_requirement),
+
+    // P1 soft preferences
+    pattern_preferences: toStringArray(row.pattern_preferences),
+    avoid_patterns: toStringArray(row.avoid_patterns),
+    silhouette_preference: toNullableString(row.silhouette_preference),
+    care_tolerance: toNullableString(row.care_tolerance),
+    metal_preference: toNullableString(row.metal_preference),
+    contrast_preference: toNullableString(row.contrast_preference),
+    footwear_comfort: toNullableString(row.footwear_comfort),
+    foot_width: toNullableString(row.foot_width),
+
+    // LLM-only context
+    fashion_boldness: toNullableString(row.fashion_boldness),
+    trend_appetite: toNullableString(row.trend_appetite),
+    fashion_confidence: toNullableString(row.fashion_confidence),
+    budget_min: toNullableNumber(row.budget_min),
+    budget_max: toNullableNumber(row.budget_max),
+    style_icons: toStringArray(row.style_icons),
+    daily_activities: toStringArray(row.daily_activities),
+    personality_traits: toStringArray(row.personality_traits),
+    lifestyle_notes: toNullableString(row.lifestyle_notes),
   };
 }
 
@@ -102,7 +164,15 @@ export async function loadStylistBrainContext(
         pool.query(
           `SELECT fit_preferences, fabric_preferences, favorite_colors,
                   disliked_styles, style_preferences, preferred_brands,
-                  occasions, body_type, climate
+                  occasions, body_type, climate,
+                  coverage_no_go, avoid_colors, avoid_materials,
+                  formality_floor, walkability_requirement,
+                  pattern_preferences, avoid_patterns, silhouette_preference,
+                  care_tolerance, metal_preference, contrast_preference,
+                  footwear_comfort, foot_width,
+                  fashion_boldness, trend_appetite, fashion_confidence,
+                  budget_min, budget_max, style_icons, daily_activities,
+                  personality_traits, lifestyle_notes
            FROM style_profiles WHERE user_id = $1`,
           [userId],
         ).then(r => r.rows[0] ?? null)

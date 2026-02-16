@@ -42,6 +42,15 @@ export type ValidatorContext = {
     fabric_preferences?: string[];
     style_preferences?: string[];
     disliked_styles?: string[];
+    // P0 hard vetoes
+    coverage_no_go?: string[];
+    avoid_colors?: string[];
+    avoid_materials?: string[];
+    formality_floor?: string | null;
+    walkability_requirement?: string | null;
+    // P1 soft preferences
+    avoid_patterns?: string[];
+    silhouette_preference?: string | null;
   } | null;
 };
 
@@ -187,6 +196,125 @@ function checkRequiredSlots(items: ValidatorItem[]): string | null {
   return `MISSING_REQUIRED_SLOTS: separates missing ${missing.join(', ')}`;
 }
 
+// ── P0 Hard Fail: Profile Vetoes ─────────────────────────────────────────────
+
+const COVERAGE_PATTERNS: Record<string, RegExp> = {
+  'No midriff exposure': /crop.?top|bralette|bustier/i,
+  'No leg exposure above knee': /mini.?skirt|short shorts|micro/i,
+  'No shoulder exposure': /strapless|tube top|off.?shoulder/i,
+  'No cleavage': /deep.?v|plunging/i,
+};
+
+function checkCoverageNoGo(
+  items: ValidatorItem[],
+  ctx: ValidatorContext,
+): string | null {
+  const noGo = ctx.styleProfile?.coverage_no_go;
+  if (!noGo || noGo.length === 0) return null;
+  for (const rule of noGo) {
+    const pattern = COVERAGE_PATTERNS[rule];
+    if (!pattern) continue;
+    for (const item of items) {
+      const text = `${item.subcategory ?? ''} ${item.name ?? ''}`;
+      if (pattern.test(text)) {
+        return `COVERAGE_NO_GO: "${rule}" violated by item ${item.id} ("${text.trim()}")`;
+      }
+    }
+  }
+  return null;
+}
+
+function colorMatchesCI(itemColor: string, avoidColor: string): boolean {
+  const a = itemColor.toLowerCase();
+  const b = avoidColor.toLowerCase();
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+function checkAvoidColors(
+  items: ValidatorItem[],
+  ctx: ValidatorContext,
+): string | null {
+  const avoid = ctx.styleProfile?.avoid_colors;
+  if (!avoid || avoid.length === 0) return null;
+  for (const item of items) {
+    if (!item.color) continue;
+    for (const ac of avoid) {
+      if (colorMatchesCI(item.color, ac)) {
+        return `AVOID_COLOR: item ${item.id} color "${item.color}" matches avoided "${ac}"`;
+      }
+    }
+  }
+  return null;
+}
+
+function checkAvoidMaterials(
+  items: ValidatorItem[],
+  ctx: ValidatorContext,
+): string | null {
+  const avoid = ctx.styleProfile?.avoid_materials;
+  if (!avoid || avoid.length === 0) return null;
+  for (const item of items) {
+    if (!item.material) continue;
+    const matLower = item.material.toLowerCase();
+    for (const am of avoid) {
+      if (matLower.includes(am.toLowerCase())) {
+        return `AVOID_MATERIAL: item ${item.id} material "${item.material}" matches avoided "${am}"`;
+      }
+    }
+  }
+  return null;
+}
+
+const FORMALITY_RANKS = ['Casual', 'Smart Casual', 'Business Casual', 'Business Formal', 'Black Tie'];
+
+function checkFormalityFloor(
+  items: ValidatorItem[],
+  ctx: ValidatorContext,
+): string | null {
+  const floor = ctx.styleProfile?.formality_floor;
+  if (!floor || floor === 'No minimum') return null;
+  const floorIdx = FORMALITY_RANKS.indexOf(floor);
+  if (floorIdx < 0) return null;
+  for (const item of items) {
+    // Estimate item formality from dress_code or formality_score
+    let itemIdx = -1;
+    if (item.dress_code) {
+      const dc = item.dress_code;
+      const dcIdx = FORMALITY_RANKS.findIndex(r => r.toLowerCase() === dc.toLowerCase());
+      if (dcIdx >= 0) itemIdx = dcIdx;
+    }
+    if (itemIdx < 0 && item.formality_score != null) {
+      // Map 1-10 score → 0-4 rank
+      itemIdx = Math.min(4, Math.max(0, Math.round((item.formality_score / 10) * 4)));
+    }
+    if (itemIdx < 0) continue; // no formality data → fail-open
+    // 2+ ranks below floor → hard fail (1-step tolerance)
+    if (floorIdx - itemIdx >= 2) {
+      return `FORMALITY_FLOOR: item ${item.id} formality rank ${FORMALITY_RANKS[itemIdx] ?? itemIdx} is 2+ below floor "${floor}"`;
+    }
+  }
+  return null;
+}
+
+function checkWalkability(
+  items: ValidatorItem[],
+  ctx: ValidatorContext,
+): string | null {
+  const req = ctx.styleProfile?.walkability_requirement;
+  if (!req || req === 'Low') return null;
+  for (const item of items) {
+    if (item.slot !== 'shoes') continue;
+    const text = `${item.subcategory ?? ''} ${item.name ?? ''}`.toLowerCase();
+    if (req === 'High' && /stiletto|platform heel|sky.?high/i.test(text)) {
+      return `WALKABILITY: item ${item.id} ("${text.trim()}") incompatible with High walkability`;
+    }
+    if (req === 'Medium' && /stiletto/i.test(text)) {
+      return `WALKABILITY: item ${item.id} ("${text.trim()}") incompatible with Medium walkability`;
+    }
+  }
+  return null;
+}
+
 // ── Soft Penalty Checks ─────────────────────────────────────────────────────
 
 function penaltyFormalityIncoherence(items: ValidatorItem[]): string | null {
@@ -271,6 +399,39 @@ function penaltyStylePreference(
   return 'STYLE_PREFERENCE_MISMATCH';
 }
 
+function penaltyAvoidPatterns(
+  items: ValidatorItem[],
+  ctx: ValidatorContext,
+): string | null {
+  const avoid = ctx.styleProfile?.avoid_patterns;
+  if (!avoid || avoid.length === 0) return null;
+  for (const item of items) {
+    const descriptors = item.style_descriptors ?? [];
+    if (descriptors.length === 0) continue;
+    if (intersects(descriptors, avoid)) return 'AVOID_PATTERN_MATCH';
+  }
+  return null;
+}
+
+function penaltySilhouetteMismatch(
+  items: ValidatorItem[],
+  ctx: ValidatorContext,
+): string | null {
+  const pref = ctx.styleProfile?.silhouette_preference;
+  if (!pref || pref === 'Mix of both') return null;
+  for (const item of items) {
+    if (!item.fit) continue;
+    const fitLower = item.fit.toLowerCase();
+    if (pref === 'Structured' && /oversized|relaxed|loose/i.test(fitLower)) {
+      return 'SILHOUETTE_MISMATCH';
+    }
+    if (pref === 'Relaxed' && /slim|tailored|structured/i.test(fitLower)) {
+      return 'SILHOUETTE_MISMATCH';
+    }
+  }
+  return null;
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export function validateOutfit(
@@ -293,6 +454,22 @@ export function validateOutfit(
   const slots = checkRequiredSlots(items);
   if (slots) hardFails.push(slots);
 
+  // P0 profile vetoes (hard fails)
+  const coverage = checkCoverageNoGo(items, ctx);
+  if (coverage) hardFails.push(coverage);
+
+  const avoidCol = checkAvoidColors(items, ctx);
+  if (avoidCol) hardFails.push(avoidCol);
+
+  const avoidMat = checkAvoidMaterials(items, ctx);
+  if (avoidMat) hardFails.push(avoidMat);
+
+  const formalFloor = checkFormalityFloor(items, ctx);
+  if (formalFloor) hardFails.push(formalFloor);
+
+  const walkable = checkWalkability(items, ctx);
+  if (walkable) hardFails.push(walkable);
+
   // Soft penalties (skip if already hard-failed for efficiency)
   if (hardFails.length === 0) {
     const formality = penaltyFormalityIncoherence(items);
@@ -309,6 +486,12 @@ export function validateOutfit(
 
     const stylePref = penaltyStylePreference(items, ctx);
     if (stylePref) softPenalties.push(stylePref);
+
+    const avoidPat = penaltyAvoidPatterns(items, ctx);
+    if (avoidPat) softPenalties.push(avoidPat);
+
+    const silhouette = penaltySilhouetteMismatch(items, ctx);
+    if (silhouette) softPenalties.push(silhouette);
   }
 
   const totalPenalty = softPenalties.length * -3;

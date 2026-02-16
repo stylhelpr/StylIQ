@@ -185,7 +185,7 @@ describe('loadStylistBrainContext', () => {
 // ── Policy guard: banned fields NEVER appear in StyleProfileFields ──
 
 describe('Banned fields policy', () => {
-  it('StyleProfileFields does NOT include budget_min, budget_max, shopping_habits, or fashion_confidence', async () => {
+  it('StyleProfileFields does NOT include shopping_habits', async () => {
     mockPool.query
       .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Male' }] } as any)
       .mockResolvedValueOnce({
@@ -199,11 +199,10 @@ describe('Banned fields policy', () => {
           occasions: ['Work'],
           body_type: 'athletic',
           climate: 'temperate',
-          // These banned fields exist in DB but must NOT be loaded:
           budget_min: 50,
           budget_max: 200,
-          shopping_habits: ['online'],
           fashion_confidence: 'high',
+          shopping_habits: ['online'],
         }],
       } as any);
     mockFashionStateService.getStateSummary.mockResolvedValue(null);
@@ -211,14 +210,132 @@ describe('Banned fields policy', () => {
     const result = await loadStylistBrainContext('user-123', mockFashionStateService);
     const sp = result.styleProfile!;
 
-    // Banned fields must NOT exist on the returned object
-    expect(sp).not.toHaveProperty('budget_min');
-    expect(sp).not.toHaveProperty('budget_max');
+    // shopping_habits remains banned (not AI-relevant)
     expect(sp).not.toHaveProperty('shopping_habits');
-    expect(sp).not.toHaveProperty('fashion_confidence');
+
+    // budget_min, budget_max, fashion_confidence are now LLM-only fields
+    expect(sp.budget_min).toBe(50);
+    expect(sp.budget_max).toBe(200);
+    expect(sp.fashion_confidence).toBe('high');
 
     // Approved fields still present
     expect(sp.fit_preferences).toEqual(['slim']);
     expect(sp.occasions).toEqual(['Work']);
+  });
+});
+
+// ── P0 fields parsing ─────────────────────────────────────────────────────
+
+describe('P0/P1/LLM field parsing', () => {
+  it('parseStyleProfileRow returns P0 fields from DB row', async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Female' }] } as any)
+      .mockResolvedValueOnce({
+        rows: [{
+          fit_preferences: [],
+          fabric_preferences: [],
+          favorite_colors: [],
+          disliked_styles: [],
+          style_preferences: [],
+          preferred_brands: [],
+          occasions: [],
+          body_type: null,
+          climate: null,
+          // P0
+          coverage_no_go: ['No midriff exposure', 'No cleavage'],
+          avoid_colors: ['Neon', 'Hot Pink'],
+          avoid_materials: ['Leather', 'Fur'],
+          formality_floor: 'Business Casual',
+          walkability_requirement: 'High',
+          // P1
+          pattern_preferences: ['Solid', 'Stripe'],
+          avoid_patterns: ['Floral'],
+          silhouette_preference: 'Structured',
+          care_tolerance: 'Easy care only',
+          metal_preference: 'Gold',
+          contrast_preference: 'High contrast',
+          footwear_comfort: 'Comfort first',
+          foot_width: 'Wide',
+          // LLM
+          fashion_boldness: 'Bold standout pieces',
+          trend_appetite: 'Selectively trendy',
+          fashion_confidence: 'Very confident',
+          budget_min: 50,
+          budget_max: 300,
+          style_icons: ['Zendaya', 'Harry Styles'],
+          daily_activities: ['Office', 'Gym'],
+          personality_traits: ['Creative', 'Confident'],
+          lifestyle_notes: 'Walks to work daily',
+        }],
+      } as any);
+    mockFashionStateService.getStateSummary.mockResolvedValue(null);
+
+    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const sp = result.styleProfile!;
+
+    // P0
+    expect(sp.coverage_no_go).toEqual(['No midriff exposure', 'No cleavage']);
+    expect(sp.avoid_colors).toEqual(['Neon', 'Hot Pink']);
+    expect(sp.avoid_materials).toEqual(['Leather', 'Fur']);
+    expect(sp.formality_floor).toBe('Business Casual');
+    expect(sp.walkability_requirement).toBe('High');
+
+    // P1
+    expect(sp.pattern_preferences).toEqual(['Solid', 'Stripe']);
+    expect(sp.avoid_patterns).toEqual(['Floral']);
+    expect(sp.silhouette_preference).toBe('Structured');
+    expect(sp.care_tolerance).toBe('Easy care only');
+    expect(sp.metal_preference).toBe('Gold');
+    expect(sp.contrast_preference).toBe('High contrast');
+    expect(sp.footwear_comfort).toBe('Comfort first');
+    expect(sp.foot_width).toBe('Wide');
+
+    // LLM
+    expect(sp.fashion_boldness).toBe('Bold standout pieces');
+    expect(sp.trend_appetite).toBe('Selectively trendy');
+    expect(sp.budget_min).toBe(50);
+    expect(sp.budget_max).toBe(300);
+    expect(sp.style_icons).toEqual(['Zendaya', 'Harry Styles']);
+    expect(sp.daily_activities).toEqual(['Office', 'Gym']);
+    expect(sp.personality_traits).toEqual(['Creative', 'Confident']);
+    expect(sp.lifestyle_notes).toBe('Walks to work daily');
+  });
+
+  it('returns empty arrays/null for missing P0 fields (fail-open)', async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [{ gender_presentation: 'Male' }] } as any)
+      .mockResolvedValueOnce({
+        rows: [{
+          fit_preferences: [],
+          fabric_preferences: [],
+          favorite_colors: [],
+          disliked_styles: [],
+          style_preferences: [],
+          preferred_brands: [],
+          occasions: [],
+          body_type: null,
+          climate: null,
+          // P0 all missing/null
+          coverage_no_go: null,
+          avoid_colors: undefined,
+          avoid_materials: null,
+          formality_floor: null,
+          walkability_requirement: null,
+        }],
+      } as any);
+    mockFashionStateService.getStateSummary.mockResolvedValue(null);
+
+    const result = await loadStylistBrainContext('user-123', mockFashionStateService);
+    const sp = result.styleProfile!;
+
+    expect(sp.coverage_no_go).toEqual([]);
+    expect(sp.avoid_colors).toEqual([]);
+    expect(sp.avoid_materials).toEqual([]);
+    expect(sp.formality_floor).toBeNull();
+    expect(sp.walkability_requirement).toBeNull();
+    expect(sp.budget_min).toBeNull();
+    expect(sp.budget_max).toBeNull();
+    expect(sp.style_icons).toEqual([]);
+    expect(sp.lifestyle_notes).toBeNull();
   });
 });

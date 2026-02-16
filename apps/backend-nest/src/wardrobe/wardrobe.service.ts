@@ -80,7 +80,7 @@ import {
 } from '../ai/elite/eliteScoring';
 import type { StyleContext } from '../ai/elite/eliteScoring';
 import { FashionStateService } from '../learning/fashion-state.service';
-import { loadStylistBrainContext } from '../ai/elite/stylistBrain';
+import { loadStylistBrainContext, type StyleProfileFields } from '../ai/elite/stylistBrain';
 import { LearningEventsService } from '../learning/learning-events.service';
 import { validateOutfit as tasteValidateOutfit } from '../ai/elite/tasteValidator';
 import type { ValidatorItem, ValidatorContext, ValidatorSlot } from '../ai/elite/tasteValidator';
@@ -287,7 +287,7 @@ export class WardrobeService {
   /**
    * Load StyleContext for elite scoring (non-blocking).
    */
-  private async loadEliteStyleContext(userId: string): Promise<StyleContext> {
+  private async loadEliteStyleContext(userId: string): Promise<StyleContext & { _brainStyleProfile?: StyleProfileFields | null }> {
     try {
       const brainCtx = await loadStylistBrainContext(userId, this.fashionStateService);
 
@@ -310,7 +310,16 @@ export class WardrobeService {
           fabric_preferences: brainCtx.styleProfile.fabric_preferences,
           style_preferences: brainCtx.styleProfile.style_preferences,
           disliked_styles: brainCtx.styleProfile.disliked_styles,
+          // P0/P1 profile-driven scoring
+          avoid_colors: brainCtx.styleProfile.avoid_colors,
+          avoid_materials: brainCtx.styleProfile.avoid_materials,
+          pattern_preferences: brainCtx.styleProfile.pattern_preferences,
+          avoid_patterns: brainCtx.styleProfile.avoid_patterns,
+          silhouette_preference: brainCtx.styleProfile.silhouette_preference,
+          contrast_preference: brainCtx.styleProfile.contrast_preference,
         } : null,
+        // Full brain profile for validator P0 fields (coverage_no_go, formality_floor, walkability_requirement)
+        _brainStyleProfile: brainCtx.styleProfile ?? null,
       };
     } catch {
       return {};
@@ -1874,8 +1883,10 @@ ${lockedLines}
           subcategory: it?.subcategory,
           color: it?.color,
           material: it?.material,
+          fit: it?.fit ?? it?.fit_type,
           dress_code: it?.dress_code,
           formality_score: it?.formality_score,
+          style_descriptors: it?.style_descriptors,
           presentation_code: it?.presentation_code,
         });
         const _tempToZone = (tempF?: number | null) => {
@@ -1887,11 +1898,21 @@ ${lockedLines}
           if (tempF < 85) return 'warm' as const;
           return 'hot' as const;
         };
+        const _bp = (eliteStyleContext as any)?._brainStyleProfile;
         const vCtx: ValidatorContext = {
           userPresentation: (userPresentation === 'masculine' || userPresentation === 'feminine')
             ? userPresentation : undefined,
           climateZone: _tempToZone(opts?.weather?.tempF),
-          styleProfile: eliteStyleContext?.styleProfile ?? null,
+          styleProfile: {
+            ...(eliteStyleContext?.styleProfile ?? {}),
+            coverage_no_go: _bp?.coverage_no_go,
+            avoid_colors: _bp?.avoid_colors,
+            avoid_materials: _bp?.avoid_materials,
+            formality_floor: _bp?.formality_floor,
+            walkability_requirement: _bp?.walkability_requirement,
+            avoid_patterns: _bp?.avoid_patterns,
+            silhouette_preference: _bp?.silhouette_preference,
+          },
         };
 
         // Build slot pools from reranked catalog
@@ -3090,8 +3111,10 @@ ${lockedLines}
           subcategory: it?.subcategory,
           color: it?.color,
           material: it?.material,
+          fit: it?.fit ?? it?.fit_type,
           dress_code: it?.dress_code,
           formality_score: it?.formality_score,
+          style_descriptors: it?.style_descriptors,
           presentation_code: it?.presentation_code,
         });
         const _tempToZone = (tempF?: number | null) => {
@@ -3103,11 +3126,21 @@ ${lockedLines}
           if (tempF < 85) return 'warm' as const;
           return 'hot' as const;
         };
+        const _bpFast = (eliteStyleContext as any)?._brainStyleProfile;
         const vCtx: ValidatorContext = {
           userPresentation: (userPresentation === 'masculine' || userPresentation === 'feminine')
             ? userPresentation : undefined,
           climateZone: _tempToZone(opts?.weather?.tempF),
-          styleProfile: eliteStyleContext?.styleProfile ?? null,
+          styleProfile: {
+            ...(eliteStyleContext?.styleProfile ?? {}),
+            coverage_no_go: _bpFast?.coverage_no_go,
+            avoid_colors: _bpFast?.avoid_colors,
+            avoid_materials: _bpFast?.avoid_materials,
+            formality_floor: _bpFast?.formality_floor,
+            walkability_requirement: _bpFast?.walkability_requirement,
+            avoid_patterns: _bpFast?.avoid_patterns,
+            silhouette_preference: _bpFast?.silhouette_preference,
+          },
         };
 
         // Build slot pools from all fetched items

@@ -54,6 +54,13 @@ export const FOOT_WIDTH_VALUES = [
   'Wide',
 ] as const;
 
+export const TREND_APPETITE_VALUES = [
+  'Classic / timeless',
+  'Selectively trendy',
+  'Trend-forward',
+  'Cutting edge',
+] as const;
+
 // ── Column allowlist (all valid DB columns for UPSERT gating) ──
 
 export const ALLOWED_COLUMNS = new Set([

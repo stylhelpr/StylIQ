@@ -30,6 +30,7 @@ export default function FashionGoalsScreen({navigate}: Props) {
   const [confidence, setConfidence] = useState('');
   const [boldness, setBoldness] = useState('');
   const [formalityFloor, setFormalityFloor] = useState('');
+  const [trendAppetite, setTrendAppetite] = useState('');
 
   const {user} = useAuth0();
   const userId = user?.sub || '';
@@ -48,6 +49,8 @@ export default function FashionGoalsScreen({navigate}: Props) {
       setBoldness(styleProfile.fashion_boldness);
     if (styleProfile.formality_floor)
       setFormalityFloor(styleProfile.formality_floor);
+    if (styleProfile.trend_appetite)
+      setTrendAppetite(styleProfile.trend_appetite);
   }, [styleProfile]);
 
   // ✅ Commit text field to DB when editing finishes
@@ -64,6 +67,16 @@ export default function FashionGoalsScreen({navigate}: Props) {
     setFormalityFloor(value);
     try {
       updateProfile('formality_floor', value);
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const handleTrendAppetite = (value: string) => {
+    h('impactLight');
+    setTrendAppetite(value);
+    try {
+      updateProfile('trend_appetite', value);
     } catch {
       h('notificationError');
     }
@@ -217,6 +230,31 @@ export default function FashionGoalsScreen({navigate}: Props) {
                   label={option}
                   selected={formalityFloor === option}
                   onPress={() => handleFormalityFloor(option)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Text style={globalStyles.sectionTitle4}>
+            How trendy do you want your suggestions?
+          </Text>
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {[
+                'Classic / timeless',
+                'Selectively trendy',
+                'Trend-forward',
+                'Cutting edge',
+              ].map(option => (
+                <Chip
+                  key={option}
+                  label={option}
+                  selected={trendAppetite === option}
+                  onPress={() => handleTrendAppetite(option)}
                 />
               ))}
             </View>

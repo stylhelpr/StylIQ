@@ -60,6 +60,13 @@ export type StyleContext = {
     fabric_preferences: string[];
     style_preferences?: string[];
     disliked_styles?: string[];
+    // P0/P1 profile-driven scoring
+    avoid_colors?: string[];
+    avoid_materials?: string[];
+    pattern_preferences?: string[];
+    avoid_patterns?: string[];
+    silhouette_preference?: string | null;
+    contrast_preference?: string | null;
   } | null;
 };
 
@@ -370,6 +377,130 @@ export function scoreOutfit(
     }
   }
 
+  // ── Profile avoid_colors (P0 veto — stronger than fashionState avoidColors) ──
+  {
+    const profAvoidColors = ctx.styleProfile?.avoid_colors ?? [];
+    if (profAvoidColors.length > 0) {
+      signalsAvailable++;
+      let profColorFired = false;
+      for (const item of outfit.items) {
+        const itemColor = (item as any).color as string | undefined;
+        if (!itemColor) continue;
+        if (profAvoidColors.some(c => colorMatches(itemColor, c))) {
+          score -= 10;
+          profColorFired = true;
+        }
+      }
+      if (profColorFired) {
+        signalsUsed++;
+        flags.push('profile_avoid_colors');
+      }
+    }
+  }
+
+  // ── Profile avoid_materials (P0 veto) ──
+  {
+    const profAvoidMats = ctx.styleProfile?.avoid_materials ?? [];
+    if (profAvoidMats.length > 0) {
+      signalsAvailable++;
+      let profMatFired = false;
+      for (const item of outfit.items) {
+        const itemMat = ((item as any).material ?? (item as any).fabric_blend) as string | undefined;
+        if (!itemMat) continue;
+        const matLower = itemMat.toLowerCase();
+        if (profAvoidMats.some(m => matLower.includes(m.toLowerCase()))) {
+          score -= 10;
+          profMatFired = true;
+        }
+      }
+      if (profMatFired) {
+        signalsUsed++;
+        flags.push('profile_avoid_materials');
+      }
+    }
+  }
+
+  // ── Pattern preferences (P1: +2 match / -5 avoid) ──
+  {
+    const patternPrefs = ctx.styleProfile?.pattern_preferences ?? [];
+    const avoidPatterns = ctx.styleProfile?.avoid_patterns ?? [];
+    if (patternPrefs.length > 0 || avoidPatterns.length > 0) {
+      signalsAvailable++;
+      let patternFired = false;
+      const prefsLower = patternPrefs.map(p => p.toLowerCase());
+      const avoidLower = avoidPatterns.map(p => p.toLowerCase());
+      for (const item of outfit.items) {
+        const descriptors = (item as any).style_descriptors as string[] | undefined;
+        if (!Array.isArray(descriptors) || descriptors.length === 0) continue;
+        for (const d of descriptors) {
+          const dLower = d.toLowerCase();
+          if (prefsLower.includes(dLower)) { score += 2; patternFired = true; }
+          if (avoidLower.includes(dLower)) { score -= 5; patternFired = true; }
+        }
+      }
+      if (patternFired) {
+        signalsUsed++;
+        flags.push('pattern');
+      }
+    }
+  }
+
+  // ── Silhouette preference (P1: +2 match / -3 mismatch) ──
+  {
+    const silPref = ctx.styleProfile?.silhouette_preference;
+    if (silPref && silPref !== 'Mix of both') {
+      signalsAvailable++;
+      let silFired = false;
+      const structuredTokens = ['tailored', 'slim', 'structured'];
+      const relaxedTokens = ['relaxed', 'oversized', 'loose'];
+      for (const item of outfit.items) {
+        const itemFit = ((item as any).fit ?? (item as any).fit_type) as string | undefined;
+        if (!itemFit) continue;
+        const fitLower = itemFit.toLowerCase();
+        if (silPref === 'Structured') {
+          if (structuredTokens.some(t => fitLower.includes(t))) { score += 2; silFired = true; }
+          if (relaxedTokens.some(t => fitLower.includes(t))) { score -= 3; silFired = true; }
+        } else if (silPref === 'Relaxed') {
+          if (relaxedTokens.some(t => fitLower.includes(t))) { score += 2; silFired = true; }
+          if (structuredTokens.some(t => fitLower.includes(t))) { score -= 3; silFired = true; }
+        }
+      }
+      if (silFired) {
+        signalsUsed++;
+        flags.push('silhouette');
+      }
+    }
+  }
+
+  // ── Contrast preference (P1: +3 when outfit contrast matches) ──
+  {
+    const contrastPref = ctx.styleProfile?.contrast_preference;
+    if (contrastPref && contrastPref !== 'No preference') {
+      signalsAvailable++;
+      const lightTokens = ['white', 'cream', 'beige', 'ivory', 'pastel', 'light'];
+      const darkTokens = ['black', 'navy', 'charcoal', 'dark'];
+      let hasLight = false;
+      let hasDark = false;
+      for (const item of outfit.items) {
+        const c = ((item as any).color as string | undefined)?.toLowerCase();
+        if (!c) continue;
+        if (lightTokens.some(t => c.includes(t))) hasLight = true;
+        if (darkTokens.some(t => c.includes(t))) hasDark = true;
+      }
+      const isHighContrast = hasLight && hasDark;
+      const isLowContrast = !hasLight || !hasDark; // monochrome-ish
+      let matched = false;
+      if (contrastPref === 'High contrast' && isHighContrast) matched = true;
+      if (contrastPref === 'Low contrast' && isLowContrast && !isHighContrast) matched = true;
+      if (contrastPref === 'Medium contrast') matched = true; // medium always matches
+      if (matched) {
+        score += 3;
+        signalsUsed++;
+        flags.push('contrast');
+      }
+    }
+  }
+
   // ── Dress-code coherence (extends formality — Studio only) ──
   if (env.mode === 'studio') {
     const dressCodes: string[] = [];
@@ -458,7 +589,7 @@ export function elitePostProcessOutfits<T>(
 
   // Fail-open: if no style-profile signal fired, preserve original order.
   // slot_complete is structural (not profile-dependent) and must NOT cause reorder alone.
-  const STYLE_FLAGS = ['brand', 'color', 'category', 'style', 'formality', 'presentation', 'fit', 'fabric', 'dress_code', 'style_preference', 'disliked_style'];
+  const STYLE_FLAGS = ['brand', 'color', 'category', 'style', 'formality', 'presentation', 'fit', 'fabric', 'dress_code', 'style_preference', 'disliked_style', 'profile_avoid_colors', 'profile_avoid_materials', 'pattern', 'silhouette', 'contrast'];
   const hasStyleSignal = [...scores.values()].some(
     s => s.flags.some(f => STYLE_FLAGS.includes(f)),
   );

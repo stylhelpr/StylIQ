@@ -1291,3 +1291,165 @@ describe('New signals in reranking pipeline', () => {
     expect(r2.outfits.map((o: any) => o.id)).toEqual(r3.outfits.map((o: any) => o.id));
   });
 });
+
+// ── P0/P1 Profile Scoring Tests ─────────────────────────────────────────────
+
+describe('Profile avoid_colors scoring', () => {
+  const makeOutfit = (id: string, items: any[]): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('-10 for matching item color against profile avoid_colors', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', color: 'Neon Green' },
+      { id: 'i2', slot: 'bottoms' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        avoid_colors: ['Neon'],
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).toContain('profile_avoid_colors');
+    // -10 for neon match + 5 slot_complete = -5
+    expect(result.score).toBe(-5);
+  });
+
+  it('skips gracefully when avoid_colors is empty', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', color: 'blue' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        avoid_colors: [],
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).not.toContain('profile_avoid_colors');
+  });
+});
+
+describe('Profile avoid_materials scoring', () => {
+  const makeOutfit = (id: string, items: any[]): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('-10 for matching item material against profile avoid_materials', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', material: 'Genuine Leather' },
+      { id: 'i2', slot: 'bottoms' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        avoid_materials: ['Leather'],
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).toContain('profile_avoid_materials');
+    expect(result.score).toBe(-5); // -10 + 5 slot
+  });
+});
+
+describe('Pattern preferences scoring', () => {
+  const makeOutfit = (id: string, items: any[]): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('+2 for matching pattern, -5 for avoided pattern', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', style_descriptors: ['Solid', 'Floral'] },
+      { id: 'i2', slot: 'bottoms' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        pattern_preferences: ['Solid'],
+        avoid_patterns: ['Floral'],
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).toContain('pattern');
+    // +2 solid match, -5 floral avoid, +5 slot = 2
+    expect(result.score).toBe(2);
+  });
+});
+
+describe('Silhouette preference scoring', () => {
+  const makeOutfit = (id: string, items: any[]): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('+2 for matching fit, -3 for mismatching', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', fit: 'tailored' },
+      { id: 'i2', slot: 'bottoms', fit: 'oversized' },
+      { id: 'i3', slot: 'shoes' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        silhouette_preference: 'Structured',
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).toContain('silhouette');
+    // tailored +2, oversized -3, slot +5 = 4
+    expect(result.score).toBe(4);
+  });
+});
+
+describe('Contrast preference scoring', () => {
+  const makeOutfit = (id: string, items: any[]): any => ({
+    id,
+    items: items.map(i => ({ ...i })),
+  });
+
+  it('+3 when outfit contrast matches "High contrast"', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', color: 'white' },
+      { id: 'i2', slot: 'bottoms', color: 'black' },
+      { id: 'i3', slot: 'shoes', color: 'brown' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        contrast_preference: 'High contrast',
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).toContain('contrast');
+    // +3 contrast, +5 slot = 8
+    expect(result.score).toBe(8);
+  });
+
+  it('skips when preference is "No preference"', () => {
+    const outfit = makeOutfit('o1', [
+      { id: 'i1', slot: 'tops', color: 'white' },
+    ]);
+    const ctx: any = {
+      styleProfile: {
+        fit_preferences: [],
+        fabric_preferences: [],
+        contrast_preference: 'No preference',
+      },
+    };
+    const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
+    expect(result.flags).not.toContain('contrast');
+  });
+});

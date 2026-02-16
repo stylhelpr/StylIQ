@@ -362,6 +362,161 @@ describe('Soft penalties', () => {
   });
 });
 
+// ── P0 Hard fail: COVERAGE_NO_GO ───────────────────────────────────────────
+
+describe('COVERAGE_NO_GO', () => {
+  it('hard fail: crop top + "No midriff exposure"', () => {
+    const r = validateOutfit(
+      [top('t1', { name: 'Cute Crop Top', subcategory: 'Crop Top' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { coverage_no_go: ['No midriff exposure'] } },
+    );
+    expect(r.valid).toBe(false);
+    expect(r.hardFails[0]).toContain('COVERAGE_NO_GO');
+  });
+
+  it('pass: regular t-shirt + "No midriff exposure"', () => {
+    const r = validateOutfit(
+      [top('t1', { name: 'Classic T-Shirt', subcategory: 'T-Shirt' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { coverage_no_go: ['No midriff exposure'] } },
+    );
+    expect(r.valid).toBe(true);
+  });
+
+  it('pass: empty coverage_no_go (fail-open)', () => {
+    const r = validateOutfit(
+      [top('t1', { name: 'Crop Top' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { coverage_no_go: [] } },
+    );
+    expect(r.valid).toBe(true);
+  });
+
+  it('pass: no styleProfile (fail-open)', () => {
+    const r = validateOutfit(
+      [top('t1', { name: 'Crop Top' }), bottom('b1'), shoes('s1')],
+      {},
+    );
+    expect(r.valid).toBe(true);
+  });
+});
+
+// ── P0 Hard fail: AVOID_COLOR ───────────────────────────────────────────────
+
+describe('AVOID_COLOR', () => {
+  it('hard fail: neon item + avoid_colors=["Neon"]', () => {
+    const r = validateOutfit(
+      [top('t1', { color: 'Neon Green' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { avoid_colors: ['Neon'] } },
+    );
+    expect(r.valid).toBe(false);
+    expect(r.hardFails[0]).toContain('AVOID_COLOR');
+  });
+
+  it('pass: no color match', () => {
+    const r = validateOutfit(
+      [top('t1', { color: 'Navy Blue' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { avoid_colors: ['Neon', 'Hot Pink'] } },
+    );
+    expect(r.valid).toBe(true);
+  });
+});
+
+// ── P0 Hard fail: AVOID_MATERIAL ────────────────────────────────────────────
+
+describe('AVOID_MATERIAL', () => {
+  it('hard fail: leather item + avoid_materials=["Leather"]', () => {
+    const r = validateOutfit(
+      [top('t1', { material: 'Genuine Leather' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { avoid_materials: ['Leather'] } },
+    );
+    expect(r.valid).toBe(false);
+    expect(r.hardFails[0]).toContain('AVOID_MATERIAL');
+  });
+});
+
+// ── P0 Hard fail: FORMALITY_FLOOR ───────────────────────────────────────────
+
+describe('FORMALITY_FLOOR', () => {
+  it('hard fail: casual item + floor="Business Casual" (2+ ranks below)', () => {
+    const r = validateOutfit(
+      [top('t1', { dress_code: 'Casual' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { formality_floor: 'Business Casual' } },
+    );
+    expect(r.valid).toBe(false);
+    expect(r.hardFails[0]).toContain('FORMALITY_FLOOR');
+  });
+
+  it('pass: smart casual item + floor="Business Casual" (1-step tolerance)', () => {
+    const r = validateOutfit(
+      [top('t1', { dress_code: 'Smart Casual' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { formality_floor: 'Business Casual' } },
+    );
+    expect(r.valid).toBe(true);
+  });
+
+  it('pass: floor="No minimum" always passes', () => {
+    const r = validateOutfit(
+      [top('t1', { dress_code: 'Casual' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { formality_floor: 'No minimum' } },
+    );
+    expect(r.valid).toBe(true);
+  });
+});
+
+// ── P0 Hard fail: WALKABILITY ───────────────────────────────────────────────
+
+describe('WALKABILITY', () => {
+  it('hard fail: stiletto + walkability="High"', () => {
+    const r = validateOutfit(
+      [top('t1'), bottom('b1'), shoes('s1', { name: 'Black Stiletto Heels', subcategory: 'Stiletto' })],
+      { styleProfile: { walkability_requirement: 'High' } },
+    );
+    expect(r.valid).toBe(false);
+    expect(r.hardFails[0]).toContain('WALKABILITY');
+  });
+
+  it('pass: sneaker + walkability="High"', () => {
+    const r = validateOutfit(
+      [top('t1'), bottom('b1'), shoes('s1', { name: 'White Sneakers', subcategory: 'Sneakers' })],
+      { styleProfile: { walkability_requirement: 'High' } },
+    );
+    expect(r.valid).toBe(true);
+  });
+});
+
+// ── P1 Soft penalty: AVOID_PATTERN_MATCH ────────────────────────────────────
+
+describe('AVOID_PATTERN_MATCH', () => {
+  it('soft penalty: floral item + avoid_patterns=["Floral"]', () => {
+    const r = validateOutfit(
+      [top('t1', { style_descriptors: ['Floral', 'Bohemian'] }), bottom('b1'), shoes('s1')],
+      { styleProfile: { avoid_patterns: ['Floral'] } },
+    );
+    expect(r.valid).toBe(true);
+    expect(r.softPenalties).toContain('AVOID_PATTERN_MATCH');
+  });
+});
+
+// ── P1 Soft penalty: SILHOUETTE_MISMATCH ────────────────────────────────────
+
+describe('SILHOUETTE_MISMATCH', () => {
+  it('soft penalty: oversized item + silhouette="Structured"', () => {
+    const r = validateOutfit(
+      [top('t1', { fit: 'Oversized' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { silhouette_preference: 'Structured' } },
+    );
+    expect(r.valid).toBe(true);
+    expect(r.softPenalties).toContain('SILHOUETTE_MISMATCH');
+  });
+
+  it('no penalty: "Mix of both" always passes', () => {
+    const r = validateOutfit(
+      [top('t1', { fit: 'Oversized' }), bottom('b1'), shoes('s1')],
+      { styleProfile: { silhouette_preference: 'Mix of both' } },
+    );
+    expect(r.softPenalties).not.toContain('SILHOUETTE_MISMATCH');
+  });
+});
+
 // ── Fail-open integration ───────────────────────────────────────────────────
 
 describe('Fail-open / integration', () => {
