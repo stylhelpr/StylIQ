@@ -37,6 +37,13 @@ import { isStylisticallyIncoherent } from './styleVeto';
 import { isOccasionAppropriate, getOccasionRejectionReason } from './occasionFilter';
 import { FashionStateService } from '../learning/fashion-state.service';
 import { LearningEventsService } from '../learning/learning-events.service';
+import {
+  selectAnchorItem,
+  buildCompositionContext,
+  rankByComposition,
+  scoreOutfitComposition,
+  type CompositionItem,
+} from './composition';
 
 // 🧥 Basic capsule wardrobe templates
 const CAPSULES = {
@@ -4195,9 +4202,97 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       swimwear: buildPool('swimwear'),
     };
 
-    // Enforce completeness for each outfit
+    // ── Formality scoring constants (hoisted for composition context) ──
+    // Scores: 0=athletic, 1=casual, 2=smart-casual, 3=business, 4=formal
+    const CATEGORY_FORMALITY: Record<string, number> = {
+      activewear: 0,
+      swimwear: 0,
+      top: 2,
+      bottom: 2,
+      shoes: 2,
+      outerwear: 2,
+      dress: 2,
+      accessory: 2,
+    };
+
+    const SUBCATEGORY_SIGNALS: Array<[number, string[]]> = [
+      [
+        0,
+        [
+          'performance',
+          'running',
+          'training',
+          'gym',
+          'track',
+          'athletic',
+          'sport',
+          'jogger',
+          'sweatpant',
+          'sweatshort',
+          'slide',
+          'flip flop',
+        ],
+      ],
+      [
+        1,
+        [
+          't-shirt',
+          'tee',
+          'hoodie',
+          'sweatshirt',
+          'sneaker',
+          'canvas',
+          'sandal',
+          'jean',
+          'denim',
+          'cargo',
+          'tank top',
+          'jersey',
+          'short',
+        ],
+      ],
+      [
+        2,
+        [
+          'polo',
+          'sweater',
+          'knit',
+          'cardigan',
+          'henley',
+          'boot',
+          'chino',
+          'khaki',
+          'loafer',
+          'moccasin',
+          'pullover',
+        ],
+      ],
+      [
+        3,
+        [
+          'button down',
+          'dress shirt',
+          'blouse',
+          'blazer',
+          'trouser',
+          'slack',
+          'dress pant',
+          'oxford',
+          'derby',
+          'brogue',
+          'wingtip',
+          'heel',
+          'pump',
+          'cocktail',
+        ],
+      ],
+      [4, ['tuxedo', 'gown', 'formal', 'patent', 'evening', 'black tie']],
+    ];
+
+    // Enforce completeness for each outfit — COMPOSITION-AWARE
     // Dress-based outfits: dress + shoes (no top/bottom needed)
     // Separates outfits: top + bottom + shoes
+    // Items injected via composition context to match anchor palette/silhouette/material.
     for (const outfit of outfitsWithItems) {
       const existingIds = new Set(
         outfit.items.map((item) => item?.id).filter(Boolean),
@@ -4209,13 +4304,59 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       );
       const hasShoes = outfit.items.some((item) => item?.category === 'shoes');
 
+      // Build composition context from existing outfit items for guided injection
+      const existingCompositionItems: CompositionItem[] = outfit.items
+        .filter(Boolean)
+        .map((i: any) => {
+          const full = availableWardrobe.find((w) => w.id === i.id);
+          return {
+            id: i.id,
+            category: i.category,
+            main_category: full?.main_category,
+            subcategory: full?.subcategory,
+            name: full?.name || full?.ai_title || i.name,
+            color: full?.color,
+            material: full?.material,
+          };
+        });
+
+      const compositionAnchor = selectAnchorItem(existingCompositionItems);
+      const compositionCtx = compositionAnchor
+        ? buildCompositionContext(compositionAnchor, CATEGORY_FORMALITY, SUBCATEGORY_SIGNALS)
+        : null;
+
+      // Helper: pick best composition-compatible item from a pool
+      const pickCompositionFallback = (
+        pool: any[],
+        category: string,
+      ): any | null => {
+        const available = pool.filter((item) => !existingIds.has(item.id));
+        if (available.length === 0) return null;
+        if (!compositionCtx) return available[0]; // no context → original behavior
+
+        const ranked = rankByComposition(
+          available.map((item) => ({
+            id: item.id,
+            category,
+            main_category: item.main_category,
+            subcategory: item.subcategory,
+            name: item.name || item.ai_title,
+            color: item.color,
+            material: item.material,
+          })),
+          compositionCtx,
+          CATEGORY_FORMALITY,
+          SUBCATEGORY_SIGNALS,
+        );
+        // Return the original pool item matching the best-ranked candidate
+        return available.find((item) => item.id === ranked[0]?.id) ?? available[0];
+      };
+
       // Skip top/bottom injection for dress-based outfits (dresses are one-piece)
       if (!hasDress) {
-        // Inject missing top
+        // Inject missing top — composition-guided
         if (!hasTop && categoryPools.top.length > 0) {
-          const fallback = categoryPools.top.find(
-            (item) => !existingIds.has(item.id),
-          );
+          const fallback = pickCompositionFallback(categoryPools.top, 'top');
           if (fallback) {
             outfit.items.push({
               id: fallback.id,
@@ -4231,11 +4372,9 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           }
         }
 
-        // Inject missing bottom
+        // Inject missing bottom — composition-guided
         if (!hasBottom && categoryPools.bottom.length > 0) {
-          const fallback = categoryPools.bottom.find(
-            (item) => !existingIds.has(item.id),
-          );
+          const fallback = pickCompositionFallback(categoryPools.bottom, 'bottom');
           if (fallback) {
             outfit.items.push({
               id: fallback.id,
@@ -4252,11 +4391,9 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         }
       }
 
-      // Inject missing shoes (always required for all outfit types)
+      // Inject missing shoes — composition-guided (always required for all outfit types)
       if (!hasShoes && categoryPools.shoes.length > 0) {
-        const fallback = categoryPools.shoes.find(
-          (item) => !existingIds.has(item.id),
-        );
+        const fallback = pickCompositionFallback(categoryPools.shoes, 'shoes');
         if (fallback) {
           outfit.items.push({
             id: fallback.id,
@@ -4376,94 +4513,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
     // 🛡️ FORMALITY COHERENCE GATE — reject outfits with extreme formality mismatches.
     // Uses structured scoring (0–4) instead of fragile regex. If uncertain → default neutral (2).
-    // Scores: 0=athletic, 1=casual, 2=smart-casual, 3=business, 4=formal
-
-    // Base formality by simplified category (from mapToCategory)
-    const CATEGORY_FORMALITY: Record<string, number> = {
-      activewear: 0,
-      swimwear: 0,
-      top: 2,
-      bottom: 2,
-      shoes: 2,
-      outerwear: 2,
-      dress: 2,
-      accessory: 2,
-    };
-
-    // Subcategory signal words → formality override (first match wins)
-    const SUBCATEGORY_SIGNALS: Array<[number, string[]]> = [
-      [
-        0,
-        [
-          'performance',
-          'running',
-          'training',
-          'gym',
-          'track',
-          'athletic',
-          'sport',
-          'jogger',
-          'sweatpant',
-          'sweatshort',
-          'slide',
-          'flip flop',
-        ],
-      ],
-      [
-        1,
-        [
-          't-shirt',
-          'tee',
-          'hoodie',
-          'sweatshirt',
-          'sneaker',
-          'canvas',
-          'sandal',
-          'jean',
-          'denim',
-          'cargo',
-          'tank top',
-          'jersey',
-          'short',
-        ],
-      ],
-      [
-        2,
-        [
-          'polo',
-          'sweater',
-          'knit',
-          'cardigan',
-          'henley',
-          'boot',
-          'chino',
-          'khaki',
-          'loafer',
-          'moccasin',
-          'pullover',
-        ],
-      ],
-      [
-        3,
-        [
-          'button down',
-          'dress shirt',
-          'blouse',
-          'blazer',
-          'trouser',
-          'slack',
-          'dress pant',
-          'oxford',
-          'derby',
-          'brogue',
-          'wingtip',
-          'heel',
-          'pump',
-          'cocktail',
-        ],
-      ],
-      [4, ['tuxedo', 'gown', 'formal', 'patent', 'evening', 'black tie']],
-    ];
+    // CATEGORY_FORMALITY and SUBCATEGORY_SIGNALS hoisted above completeness injection.
 
     // Lookup full item metadata by ID for subcategory access
     const fullItemMap = new Map(availableWardrobe.map((i) => [i.id, i]));
@@ -4545,12 +4595,15 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         return false;
       };
 
+      // Build slot pools with full metadata for composition scoring
       const _bySlot: Record<string, any[]> = {};
+      const _bySlotFull: Record<string, CompositionItem[]> = {};
       for (const item of availableWardrobe) {
         // Skip items whose colors match avoid list
         if (_synItemHasAvoidedColor(item)) continue;
         const cat = this.mapToCategory(item.main_category || item.category);
         if (!_bySlot[cat]) _bySlot[cat] = [];
+        if (!_bySlotFull[cat]) _bySlotFull[cat] = [];
         _bySlot[cat].push({
           id: item.id,
           name: item.name || item.ai_title || 'Item',
@@ -4561,11 +4614,24 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
             item.image,
           category: cat,
         });
+        _bySlotFull[cat].push({
+          id: item.id,
+          category: cat,
+          main_category: item.main_category,
+          subcategory: item.subcategory,
+          name: item.name || item.ai_title,
+          color: item.color,
+          material: item.material,
+        });
       }
       const _synTops = _bySlot['top'] ?? [];
       const _synBottoms = _bySlot['bottom'] ?? [];
       const _synShoes = _bySlot['shoes'] ?? [];
       const _synDresses = _bySlot['dress'] ?? [];
+      const _synTopsFull = _bySlotFull['top'] ?? [];
+      const _synBottomsFull = _bySlotFull['bottom'] ?? [];
+      const _synShoesFull = _bySlotFull['shoes'] ?? [];
+      const _synDressesFull = _bySlotFull['dress'] ?? [];
       const _existingCombos = new Set(
         candidateOutfits.map((o) =>
           (o.items || [])
@@ -4576,35 +4642,83 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         ),
       );
       let _synId = 0;
-      // Separates: top + bottom + shoes
-      for (let ti = 0; ti < _synTops.length && candidateOutfits.length < _POOL_TARGET; ti++) {
-        for (let bi = 0; bi < _synBottoms.length && candidateOutfits.length < _POOL_TARGET; bi++) {
-          for (let si = 0; si < _synShoes.length && candidateOutfits.length < _POOL_TARGET; si++) {
-            const items = [_synTops[ti], _synBottoms[bi], _synShoes[si]];
-            const combo = items.map((i) => i.id).sort().join(',');
-            if (_existingCombos.has(combo)) continue;
-            _existingCombos.add(combo);
-            candidateOutfits.push({
-              id: `syn-${_synId++}`,
-              rank: 3 as any,
-              summary: 'Synthetic candidate',
-              reasoning: '',
-              items,
-            });
+
+      // ── COMPOSITION-GUIDED SYNTHETIC EXPANSION ──
+      // Instead of brute-force top × bottom × shoes, anchor on the highest-scored
+      // item per slot and build outfits around it using composition context.
+
+      // Helper: get thin stub from _bySlot matching an id
+      const _synStub = (id: string, slotArr: any[]): any =>
+        slotArr.find((s) => s.id === id);
+
+      // Separates: anchor → rank other slots by composition compatibility
+      const _synAnchors = [
+        ..._synTopsFull.map((i) => ({ ...i, _srcSlot: 'top' as const })),
+        ..._synBottomsFull.map((i) => ({ ...i, _srcSlot: 'bottom' as const })),
+        ..._synShoesFull.map((i) => ({ ...i, _srcSlot: 'shoes' as const })),
+      ].sort((a, b) => {
+        // Sort by weather+feedback score (match original pool ordering)
+        const aFull = availableWardrobe.find((w) => w.id === a.id);
+        const bFull = availableWardrobe.find((w) => w.id === b.id);
+        const aScore = (aFull?.__weatherScore ?? 0) + (feedbackContext.itemScores.get(a.id) ?? 0);
+        const bScore = (bFull?.__weatherScore ?? 0) + (feedbackContext.itemScores.get(b.id) ?? 0);
+        return bScore - aScore;
+      });
+
+      for (const anchor of _synAnchors) {
+        if (candidateOutfits.length >= _POOL_TARGET) break;
+
+        const ctx = buildCompositionContext(anchor, CATEGORY_FORMALITY, SUBCATEGORY_SIGNALS);
+
+        // Rank items in each slot by compatibility with anchor
+        const pickSlot = (slot: string, fullArr: CompositionItem[], stubArr: any[]): any | null => {
+          if (slot === anchor._srcSlot) return _synStub(anchor.id, stubArr);
+          const ranked = rankByComposition(fullArr, ctx, CATEGORY_FORMALITY, SUBCATEGORY_SIGNALS);
+          for (const r of ranked) {
+            const stub = _synStub(r.id, stubArr);
+            if (stub) return stub;
           }
-        }
+          return stubArr[0] ?? null;
+        };
+
+        const top = pickSlot('top', _synTopsFull, _synTops);
+        const bottom = pickSlot('bottom', _synBottomsFull, _synBottoms);
+        const shoes = pickSlot('shoes', _synShoesFull, _synShoes);
+
+        if (!top || !bottom || !shoes) continue;
+        const items = [top, bottom, shoes];
+        const combo = items.map((i) => i.id).sort().join(',');
+        if (_existingCombos.has(combo)) continue;
+        _existingCombos.add(combo);
+        candidateOutfits.push({
+          id: `syn-${_synId++}`,
+          rank: 3 as any,
+          summary: 'Synthetic candidate (composition-guided)',
+          reasoning: '',
+          items,
+        });
       }
-      // Dresses: dress + shoes
-      for (let di = 0; di < _synDresses.length && candidateOutfits.length < _POOL_TARGET; di++) {
-        for (let si = 0; si < _synShoes.length && candidateOutfits.length < _POOL_TARGET; si++) {
-          const items = [_synDresses[di], _synShoes[si]];
+
+      // Dress-based synthetics: anchor on dress, rank shoes by composition
+      for (const dress of _synDressesFull) {
+        if (candidateOutfits.length >= _POOL_TARGET) break;
+
+        const ctx = buildCompositionContext(dress, CATEGORY_FORMALITY, SUBCATEGORY_SIGNALS);
+        const rankedShoes = rankByComposition(_synShoesFull, ctx, CATEGORY_FORMALITY, SUBCATEGORY_SIGNALS);
+
+        for (const shoe of rankedShoes) {
+          if (candidateOutfits.length >= _POOL_TARGET) break;
+          const dressStub = _synStub(dress.id, _synDresses);
+          const shoeStub = _synStub(shoe.id, _synShoes);
+          if (!dressStub || !shoeStub) continue;
+          const items = [dressStub, shoeStub];
           const combo = items.map((i) => i.id).sort().join(',');
           if (_existingCombos.has(combo)) continue;
           _existingCombos.add(combo);
           candidateOutfits.push({
             id: `syn-${_synId++}`,
             rank: 3 as any,
-            summary: 'Synthetic candidate',
+            summary: 'Synthetic candidate (composition-guided)',
             reasoning: '',
             items,
           });
@@ -4710,42 +4824,6 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       return 0;
     };
 
-    const computeSilhouetteBalance = (outfit: any): number => {
-      const items = (outfit.items || []).filter(Boolean);
-      if (items.some((i: any) => i.category === 'dress')) return 1.0;
-
-      const TAILORED_RE =
-        /blazer|sport coat|suit|dress shirt|button.?down|oxford|tailored/;
-      let allTailored = true;
-      let allRelaxed = true;
-      for (const i of items) {
-        if (i.category !== 'top' && i.category !== 'outerwear') continue;
-        const full = fullItemMap.get(i.id);
-        const sub = (full?.subcategory || '').toLowerCase();
-        const name = (full?.name || '').toLowerCase();
-        const isTailored = TAILORED_RE.test(sub) || TAILORED_RE.test(name);
-        if (isTailored) allRelaxed = false;
-        else allTailored = false;
-      }
-      if (allTailored || allRelaxed) return 1.0;
-      return 0.5;
-    };
-
-    const computeRedundancyPenalty = (outfit: any): number => {
-      const items = (outfit.items || []).filter(Boolean);
-      const coreItems = items.filter((i: any) => i.category !== 'accessory');
-      if (coreItems.length === 0) return 0;
-      const catCounts = new Map<string, number>();
-      for (const i of coreItems) {
-        catCounts.set(i.category, (catCounts.get(i.category) || 0) + 1);
-      }
-      let duplicates = 0;
-      for (const count of catCounts.values()) {
-        if (count > 1) duplicates += count - 1;
-      }
-      return Math.min(1, duplicates / coreItems.length);
-    };
-
     // Score an outfit — reusable for initial scoring and retry pipeline
     const scoreOutfit = (outfit: any): any => {
       const itemDetails = outfit.items.filter(Boolean).map((i: any) => {
@@ -4770,17 +4848,21 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         0.2 * formalitySpread +
         0.1 * diversityBonus;
 
-      // Aesthetic tie-breaker — max ±0.15 impact, never overrides core signals
-      const colorHarmony = computeColorHarmony(outfit, fullItemMap);
-      const silhouetteBalance = computeSilhouetteBalance(outfit);
-      const redundancyPenalty = computeRedundancyPenalty(outfit);
+      // Composition coherence tie-breaker — max ±0.15 impact, never overrides core signals.
+      // Replaces old colorHarmony + silhouetteBalance + redundancyPenalty block with
+      // anchor-derived palette/silhouette/material/formality coherence scoring.
+      const compositionScore = scoreOutfitComposition(
+        outfit.items.filter(Boolean).map((i: any) => ({
+          id: i.id,
+          category: i.category,
+        })),
+        fullItemMap,
+        CATEGORY_FORMALITY,
+        SUBCATEGORY_SIGNALS,
+      );
 
-      const aestheticAdjustment =
-        0.05 * colorHarmony +
-        0.03 * silhouetteBalance -
-        0.03 * redundancyPenalty;
-
-      finalScore += aestheticAdjustment;
+      // Scale to ±0.15 budget: compositionScore is in [-1, +1], multiply by 0.15
+      finalScore += 0.15 * compositionScore;
 
       const anchor = outfit.__anchor || getAnchor(outfit);
       const tieBreaker = hashString(seedString + anchor) % 1000;
