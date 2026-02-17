@@ -61,34 +61,58 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
     [wardrobe, trip.startingLocationId],
   );
 
-  // Fetch style profile for capsule hints (fail-open — undefined if unavailable)
+  // Fetch style profile for capsule hints
   const {user} = useAuth0();
   const userId = user?.sub || '';
   const {styleProfile} = useStyleProfile(userId);
+
+  // --- Profile readiness gate (prevents build with undefined styleHints) ---
+  const profileReady = !!styleProfile && Object.keys(styleProfile).length > 0;
+  const lastProfileRef = useRef<typeof styleProfile | null>(null);
+
+  useEffect(() => {
+    if (profileReady) lastProfileRef.current = styleProfile;
+  }, [profileReady, styleProfile]);
+
+  const effectiveProfile = profileReady ? styleProfile : lastProfileRef.current;
+
   const styleHints: TripStyleHints | undefined = useMemo(() => {
-    if (!styleProfile) return undefined;
+    if (!effectiveProfile) return undefined;
     const hints: TripStyleHints = {};
-    if (Array.isArray(styleProfile.fit_preferences) && styleProfile.fit_preferences.length > 0)
-      hints.fit_preferences = styleProfile.fit_preferences;
-    if (Array.isArray(styleProfile.fabric_preferences) && styleProfile.fabric_preferences.length > 0)
-      hints.fabric_preferences = styleProfile.fabric_preferences;
-    if (Array.isArray(styleProfile.favorite_colors) && styleProfile.favorite_colors.length > 0)
-      hints.favorite_colors = styleProfile.favorite_colors;
-    if (Array.isArray(styleProfile.preferred_brands) && styleProfile.preferred_brands.length > 0)
-      hints.preferred_brands = styleProfile.preferred_brands;
-    const rawDisliked = styleProfile.disliked_styles;
+    if (Array.isArray(effectiveProfile.fit_preferences) && effectiveProfile.fit_preferences.length > 0)
+      hints.fit_preferences = effectiveProfile.fit_preferences;
+    if (Array.isArray(effectiveProfile.fabric_preferences) && effectiveProfile.fabric_preferences.length > 0)
+      hints.fabric_preferences = effectiveProfile.fabric_preferences;
+    if (Array.isArray(effectiveProfile.favorite_colors) && effectiveProfile.favorite_colors.length > 0)
+      hints.favorite_colors = effectiveProfile.favorite_colors;
+    if (Array.isArray(effectiveProfile.preferred_brands) && effectiveProfile.preferred_brands.length > 0)
+      hints.preferred_brands = effectiveProfile.preferred_brands;
+    const rawDisliked = effectiveProfile.disliked_styles;
     if (typeof rawDisliked === 'string' && rawDisliked.trim()) {
       hints.disliked_styles = rawDisliked.split(/[,|]/).map((s: string) => s.trim()).filter(Boolean);
     } else if (Array.isArray(rawDisliked) && rawDisliked.length > 0) {
       hints.disliked_styles = rawDisliked.map(String).map((s: string) => s.trim()).filter(Boolean);
     }
+    if (Array.isArray(effectiveProfile.avoid_colors) && effectiveProfile.avoid_colors.length > 0)
+      hints.avoid_colors = effectiveProfile.avoid_colors;
     return Object.keys(hints).length > 0 ? hints : undefined;
-  }, [styleProfile]);
+  }, [effectiveProfile]);
 
   // Auto-rebuild stale capsules (created before current engine version)
   const didRebuildRef = useRef(false);
+  // Ref to track latest styleHints so the async rebuild always reads current value
+  const styleHintsRef = useRef(styleHints);
+  useEffect(() => { styleHintsRef.current = styleHints; }, [styleHints]);
 
   useEffect(() => {
+    // BLOCK: never build without a valid profile snapshot
+    if (!effectiveProfile) {
+      if (__DEV__) {
+        console.log('[TRIP BLOCK] prevented build — profile not ready');
+      }
+      return;
+    }
+
     const presentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
       ? normalizeGenderToPresentation(rawGender)
       : detectPresentation(adaptedWardrobe);
@@ -113,17 +137,16 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       );
     }
 
- if (didRebuildRef.current) return;
+    if (didRebuildRef.current) return;
 
-// DEV: force rebuild so capsuleEngine logging runs
-if (__DEV__) {
-  console.log('[TripCapsule] DEV forcing rebuild for logging');
-} else if (!needsRebuild) {
-  return;
-}
+    // DEV: force rebuild so capsuleEngine logging runs
+    if (__DEV__) {
+      console.log('[TripCapsule] DEV forcing rebuild for logging');
+    } else if (!needsRebuild) {
+      return;
+    }
 
-didRebuildRef.current = true;
-
+    didRebuildRef.current = true;
 
     let cancelled = false;
 
@@ -150,15 +173,21 @@ didRebuildRef.current = true;
         );
         if (cancelled) return;
 
+        // Read latest styleHints from ref (profile may have loaded during await)
+        const currentHints = styleHintsRef.current;
+
         // Rebuild from clean state
         assertCapsuleWiped(wipedTrip.capsule, 'auto-rebuild');
+        if (__DEV__) {
+          console.log('[TRIP DEBUG] sending styleHints', currentHints);
+        }
         const newCapsule = buildCapsule(
           adaptedWardrobe,
           weatherResult.days,
           trip.activities,
           trip.startingLocationLabel,
           presentation,
-          styleHints,
+          currentHints,
         );
         if (__DEV__) {
           console.log('[TripCapsule] Rebuilding fresh capsule', newCapsule.build_id, 'presentation:', presentation);
@@ -190,7 +219,7 @@ didRebuildRef.current = true;
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [effectiveProfile]);
 
   const start = new Date(trip.startDate + 'T00:00:00');
   const end = new Date(trip.endDate + 'T00:00:00');
@@ -217,6 +246,15 @@ didRebuildRef.current = true;
   );
 
   const handleRebuild = useCallback(() => {
+    // BLOCK: never rebuild without a valid profile snapshot
+    if (!styleHintsRef.current) {
+      if (__DEV__) {
+        console.log('[TRIP BLOCK] prevented FORCE rebuild — profile not ready');
+      }
+      Alert.alert('Style Profile Loading', 'Please wait for your style profile to load before rebuilding.');
+      return;
+    }
+
     Alert.alert(
       'Rebuild Capsule',
       'Rebuild your packing list? Packed checkmarks will be reset.',
@@ -251,13 +289,15 @@ didRebuildRef.current = true;
               const forcePresentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
                 ? normalizeGenderToPresentation(rawGender)
                 : detectPresentation(adaptedWardrobe);
+              // Read latest styleHints from ref
+              const currentHints = styleHintsRef.current;
               const newCapsule = buildCapsule(
                 adaptedWardrobe,
                 weatherResult.days,
                 trip.activities,
                 trip.startingLocationLabel,
                 forcePresentation,
-                styleHints,
+                currentHints,
               );
               if (__DEV__) {
                 console.log(`[TripCapsule] FORCE REBUILD trip=${trip.id} build=${newCapsule.build_id} presentation=${forcePresentation}`);
@@ -289,7 +329,7 @@ didRebuildRef.current = true;
         },
       ],
     );
-  }, [trip, adaptedWardrobe, onRefresh]);
+  }, [trip, adaptedWardrobe, rawGender, onRefresh]);
 
   const handleTogglePacked = useCallback(
     (itemId: string) => {
