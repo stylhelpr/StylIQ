@@ -893,6 +893,28 @@ function isNeutralColor(item: TripWardrobeItem): boolean {
   return words.length > 0 && words.every(w => AESTHETIC_NEUTRALS.includes(w));
 }
 
+// ── Taste Gate (personal color veto — pre-selection filter) ──
+
+function violatesAvoidColor(item: TripWardrobeItem, avoidColors: string[]): boolean {
+  if (!item.color) return false;
+  const words = item.color.toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+  return words.some(w => avoidColors.some(a => colorMatches(w, a)));
+}
+
+function applyTasteGate(
+  candidates: TripWardrobeItem[],
+  avoidColors?: string[],
+): TripWardrobeItem[] {
+  if (!avoidColors || avoidColors.length === 0) return candidates;
+  const allowed = candidates.filter(i => !violatesAvoidColor(i, avoidColors));
+  if (__DEV__ && candidates.length !== allowed.length) {
+    console.log('[TASTE_GATE] filtered avoided colors', candidates.length, '→', allowed.length);
+  }
+  // Emergency fallback: only if every option is avoided
+  if (allowed.length === 0) return candidates;
+  return allowed;
+}
+
 /** Returns true if item matches fabric or fit preferences. */
 function matchesFabricOrFit(item: TripWardrobeItem, styleHints?: TripStyleHints): boolean {
   if (!styleHints) return false;
@@ -1224,6 +1246,7 @@ type CapsuleIntent = {
   accentColor: string | null;  // next most frequent non-neutral
   baselineFormality: number;   // 0–3 from activities
   silhouetteBias: string | null; // from fit preferences
+  avoidColors: string[];       // user-vetoed colors (lowercase)
 };
 
 /**
@@ -1306,15 +1329,21 @@ function buildCapsuleIntent(
   // 6. Silhouette bias: from fit preferences
   const silhouetteBias = styleHints?.fit_preferences?.[0]?.toLowerCase() ?? null;
 
+  // 7. Avoid colors: user-vetoed colors from style profile (read if present)
+  const rawAvoid = (styleHints as Record<string, unknown> | undefined)?.avoid_colors;
+  const avoidColors: string[] = Array.isArray(rawAvoid)
+    ? rawAvoid.map((c: string) => c.toLowerCase())
+    : [];
+
   if (__DEV__) {
-    console.log('[TripCapsule][INTENT]', {paletteColors, accentColor, baselineFormality, silhouetteBias});
+    console.log('[TripCapsule][INTENT]', {paletteColors, accentColor, baselineFormality, silhouetteBias, avoidColors});
   }
 
   if (TRIP_TRACE) trace('capsule_intent', 'Capsule intent computed', {
-    paletteColors, accentColor, baselineFormality,
+    paletteColors, accentColor, baselineFormality, avoidColors,
   });
 
-  return {paletteColors, accentColor, baselineFormality, silhouetteBias};
+  return {paletteColors, accentColor, baselineFormality, silhouetteBias, avoidColors};
 }
 
 // ── Required Role Coverage ──
@@ -1819,6 +1848,8 @@ function buildOutfitForActivity(
         gatedBuckets[key] = buckets[key];
       }
     }
+    // Taste gate: filter user-avoided colors (emergency fallback preserves pool if all vetoed)
+    gatedBuckets[key] = applyTasteGate(gatedBuckets[key], capsuleIntent?.avoidColors);
   }
   const gatedShoes = gatePool(selectedShoes, climateZone, activityProfile, presentation);
   // Shoe fallback: NEVER bypass formality or gender rules
@@ -1858,6 +1889,9 @@ function buildOutfitForActivity(
       }
     }
   }
+
+  // ── Taste gate: remove user-avoided colors from shoes ──
+  finalShoes = applyTasteGate(finalShoes, capsuleIntent?.avoidColors);
 
   // ── Weighted pick helpers (replaces modulo rotation) ──
   const maxUsesForBucket = (len: number) =>
