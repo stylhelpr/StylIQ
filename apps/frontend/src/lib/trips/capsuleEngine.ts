@@ -37,7 +37,7 @@ import {
 } from '../elite/eliteScoring';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 12;
+export const CAPSULE_VERSION = 13;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ██  GLOBAL CLIMATE GATING (minimal layer)
@@ -827,11 +827,11 @@ function weightedPick(
     const lastUsedDay = uses.length > 0 ? uses[uses.length - 1] : -Infinity;
     const daysSinceUse = dayIndex - lastUsedDay;
     const cooldownPenalty =
-      daysSinceUse <= 1 ? 40 :
-      daysSinceUse === 2 ? 20 :
-      daysSinceUse === 3 ? 10 : 0;
+      daysSinceUse <= 1 ? 25 :
+      daysSinceUse === 2 ? 12 :
+      daysSinceUse === 3 ? 5 : 0;
     const quality = qualityFn ? qualityFn(item) : 0;
-    const penalty = -(quality * 10) + useCount * 20 + cooldownPenalty;
+    const penalty = -(quality * 10) + useCount * 14 + cooldownPenalty;
     return { item, penalty, useCount, cooldownPenalty };
   });
 
@@ -848,6 +848,108 @@ function weightedPick(
   }
 
   return { picked: scored[0].item, runners: scored };
+}
+
+// ── Tiered Candidate Pool Selection ──
+
+/** Returns true if item color matches any palette color. */
+function matchesPalette(item: TripWardrobeItem, paletteColors: string[]): boolean {
+  if (!item.color || paletteColors.length === 0) return false;
+  const words = item.color.toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+  return words.some(w => paletteColors.some(p => colorMatches(w, p)));
+}
+
+/** Returns true if item color is entirely neutral (anchors any palette). */
+function isNeutralColor(item: TripWardrobeItem): boolean {
+  if (!item.color) return true; // no color info → treat as neutral (safe default)
+  const words = item.color.toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+  return words.length > 0 && words.every(w => AESTHETIC_NEUTRALS.includes(w));
+}
+
+/** Returns true if item matches fabric or fit preferences. */
+function matchesFabricOrFit(item: TripWardrobeItem, styleHints?: TripStyleHints): boolean {
+  if (!styleHints) return false;
+  if (item.material && styleHints.fabric_preferences?.length) {
+    const matLower = item.material.toLowerCase();
+    if (styleHints.fabric_preferences.some(f =>
+      matLower.includes(f.toLowerCase()) || f.toLowerCase().includes(matLower),
+    )) return true;
+  }
+  if (item.fit && styleHints.fit_preferences?.length) {
+    const fitLower = item.fit.toLowerCase();
+    if (styleHints.fit_preferences.some(f => fitLower === f.toLowerCase())) return true;
+  }
+  return false;
+}
+
+/** Returns true if item matches a disliked style (soft-avoid). */
+function matchesDisliked(item: TripWardrobeItem, styleHints?: TripStyleHints): boolean {
+  if (!styleHints?.disliked_styles?.length) return false;
+  const subLower = (item.subcategory || '').toLowerCase();
+  const nameLower = (item.name || '').toLowerCase();
+  return styleHints.disliked_styles.some(d => {
+    const dl = d.toLowerCase();
+    return (subLower && subLower.includes(dl)) || (nameLower && nameLower.includes(dl));
+  });
+}
+
+/**
+ * Tiered candidate selection: PRIMARY → SECONDARY → FALLBACK.
+ * Style drives selection before reuse scoring.
+ */
+function tieredPick(
+  candidates: TripWardrobeItem[],
+  capsuleIntent: CapsuleIntent,
+  styleHints: TripStyleHints | undefined,
+  usageTracker: Map<string, number[]>,
+  dayIndex: number,
+  maxUsesPerItem: number,
+  qualityFn?: (item: TripWardrobeItem) => number,
+  debugLabel?: string,
+): WeightedPickResult | null {
+  if (candidates.length === 0) return null;
+
+  // Split into tiers
+  const primary: TripWardrobeItem[] = [];
+  const secondary: TripWardrobeItem[] = [];
+  const fallback: TripWardrobeItem[] = [];
+
+  for (const item of candidates) {
+    const onPalette = matchesPalette(item, capsuleIntent.paletteColors);
+    const avoided = matchesDisliked(item, styleHints);
+    const neutral = isNeutralColor(item);
+    const fabricFitMatch = matchesFabricOrFit(item, styleHints);
+
+    if (onPalette && !avoided) {
+      primary.push(item);
+    } else if (neutral || fabricFitMatch) {
+      secondary.push(item);
+    } else {
+      fallback.push(item);
+    }
+  }
+
+  if (__DEV__ && debugLabel) {
+    console.log(
+      `[TripCapsule][TIERED] day=${dayIndex} ${debugLabel}: ` +
+      `primary=${primary.length} secondary=${secondary.length} fallback=${fallback.length}`,
+    );
+  }
+
+  // Try PRIMARY first
+  let result = primary.length > 0
+    ? weightedPick(primary, usageTracker, dayIndex, maxUsesPerItem, qualityFn, debugLabel ? `${debugLabel}/P` : undefined)
+    : null;
+  if (result) return result;
+
+  // Then SECONDARY
+  result = secondary.length > 0
+    ? weightedPick(secondary, usageTracker, dayIndex, maxUsesPerItem, qualityFn, debugLabel ? `${debugLabel}/S` : undefined)
+    : null;
+  if (result) return result;
+
+  // Then FALLBACK (everything that passed safety)
+  return weightedPick(fallback, usageTracker, dayIndex, maxUsesPerItem, qualityFn, debugLabel ? `${debugLabel}/F` : undefined);
 }
 
 // ── Aesthetic tie-breaker for outfit building ──
@@ -903,6 +1005,225 @@ export function aestheticBonus(
 
   // Clamp to ±0.5
   return Math.max(-0.5, Math.min(0.5, bonus));
+}
+
+// ── Outfit Coherence Guard ──
+
+/**
+ * Post-assembly coherence guard: ensures outfit palette consistency.
+ * Rules:
+ *   1. Max 1 off-palette item per outfit
+ *   2. Shoes must match palette OR be neutral
+ *   3. Outerwear must match palette OR match baselineFormality
+ * If violation: attempt deterministic swap from same category, never break safety.
+ * If no swap possible: keep original (never fail packing).
+ */
+function applyCoherenceGuard(
+  outfitItems: TripPackingItem[],
+  capsuleIntent: CapsuleIntent,
+  gatedBuckets: Record<CategoryBucket, TripWardrobeItem[]>,
+  finalShoes: TripWardrobeItem[],
+  usageTracker: Map<string, number[]>,
+  dayIndex: number,
+  locationLabel: string,
+  poolLookup: Map<string, TripWardrobeItem>,
+): TripPackingItem[] {
+  if (capsuleIntent.paletteColors.length === 0) return outfitItems;
+
+  const result = [...outfitItems];
+  const paletteOrNeutral = (full: TripWardrobeItem): boolean =>
+    matchesPalette(full, capsuleIntent.paletteColors) || isNeutralColor(full);
+
+  // Count off-palette items
+  const offPaletteIndices: number[] = [];
+  for (let i = 0; i < result.length; i++) {
+    const full = poolLookup.get(result[i].wardrobeItemId);
+    if (full && !paletteOrNeutral(full)) {
+      offPaletteIndices.push(i);
+    }
+  }
+
+  // Rule 1: Max 1 off-palette item — swap excess (keep the first, swap the rest)
+  if (offPaletteIndices.length > 1) {
+    for (let swapIdx = 1; swapIdx < offPaletteIndices.length; swapIdx++) {
+      const idx = offPaletteIndices[swapIdx];
+      const currentItem = result[idx];
+      const bucket = CATEGORY_MAP[currentItem.mainCategory] as CategoryBucket;
+      if (!bucket || !gatedBuckets[bucket]) continue;
+
+      const usedInOutfit = new Set(result.map(r => r.wardrobeItemId));
+      const swapCandidates = gatedBuckets[bucket]
+        .filter(c => !usedInOutfit.has(c.id) && paletteOrNeutral(c))
+        .sort((a, b) => {
+          const aUses = (usageTracker.get(a.id) || []).length;
+          const bUses = (usageTracker.get(b.id) || []).length;
+          return aUses - bUses || a.id.localeCompare(b.id);
+        });
+
+      if (swapCandidates.length > 0) {
+        if (__DEV__) {
+          console.log(
+            `[TripCapsule][COHERENCE] day=${dayIndex} swapped ${currentItem.name} → ${swapCandidates[0].name} (palette fix)`,
+          );
+        }
+        result[idx] = toPackingItem(swapCandidates[0], locationLabel);
+      }
+    }
+  }
+
+  // Rule 2: Shoes must match palette or neutral
+  for (let i = 0; i < result.length; i++) {
+    const slot = CATEGORY_MAP[result[i].mainCategory];
+    if (slot !== 'shoes') continue;
+    const full = poolLookup.get(result[i].wardrobeItemId);
+    if (!full || paletteOrNeutral(full)) continue;
+
+    const usedInOutfit = new Set(result.map(r => r.wardrobeItemId));
+    const shoeSwaps = finalShoes
+      .filter(c => !usedInOutfit.has(c.id) && paletteOrNeutral(c))
+      .sort((a, b) => {
+        const aUses = (usageTracker.get(a.id) || []).length;
+        const bUses = (usageTracker.get(b.id) || []).length;
+        return aUses - bUses || a.id.localeCompare(b.id);
+      });
+    if (shoeSwaps.length > 0) {
+      if (__DEV__) {
+        console.log(
+          `[TripCapsule][COHERENCE] day=${dayIndex} shoe swap: ${full.name} → ${shoeSwaps[0].name}`,
+        );
+      }
+      result[i] = toPackingItem(shoeSwaps[0], locationLabel);
+    }
+  }
+
+  // Rule 3: Outerwear must match palette or baselineFormality
+  for (let i = 0; i < result.length; i++) {
+    const slot = CATEGORY_MAP[result[i].mainCategory];
+    if (slot !== 'outerwear') continue;
+    const full = poolLookup.get(result[i].wardrobeItemId);
+    if (!full) continue;
+    if (paletteOrNeutral(full)) continue;
+    // Accept if formality matches baseline
+    if (getNormalizedFormality(full) >= capsuleIntent.baselineFormality * 25) continue;
+
+    const usedInOutfit = new Set(result.map(r => r.wardrobeItemId));
+    const outerSwaps = (gatedBuckets.outerwear || [])
+      .filter(c =>
+        !usedInOutfit.has(c.id) &&
+        (paletteOrNeutral(c) || getNormalizedFormality(c) >= capsuleIntent.baselineFormality * 25),
+      )
+      .sort((a, b) => {
+        const aUses = (usageTracker.get(a.id) || []).length;
+        const bUses = (usageTracker.get(b.id) || []).length;
+        return aUses - bUses || a.id.localeCompare(b.id);
+      });
+    if (outerSwaps.length > 0) {
+      if (__DEV__) {
+        console.log(
+          `[TripCapsule][COHERENCE] day=${dayIndex} outerwear swap: ${full.name} → ${outerSwaps[0].name}`,
+        );
+      }
+      result[i] = toPackingItem(outerSwaps[0], locationLabel);
+    }
+  }
+
+  return result;
+}
+
+// ── Capsule Intent (stylist direction pre-computed once per packing run) ──
+
+type CapsuleIntent = {
+  paletteColors: string[];     // 2–4 base colors (lowercase)
+  accentColor: string | null;  // next most frequent non-neutral
+  baselineFormality: number;   // 0–3 from activities
+  silhouetteBias: string | null; // from fit preferences
+};
+
+/**
+ * Deterministically computes a consistent stylist direction BEFORE item selection.
+ * Uses: favorite_colors from style profile, cross-category color frequency in wardrobe,
+ * activity formality, and fit preferences.
+ * Pure deterministic — no randomness, no filtering, no AI.
+ */
+function buildCapsuleIntent(
+  eligibleItems: TripWardrobeItem[],
+  activities: TripActivity[],
+  styleHints?: TripStyleHints,
+): CapsuleIntent {
+  // 1. Count cross-category color frequency
+  const colorFreq = new Map<string, number>();
+  for (const item of eligibleItems) {
+    if (!item.color) continue;
+    const words = item.color.toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+    for (const w of words) {
+      colorFreq.set(w, (colorFreq.get(w) || 0) + 1);
+    }
+  }
+
+  // 2. Separate neutrals from chromatic colors
+  const neutralSet = new Set(AESTHETIC_NEUTRALS);
+  const chromaticEntries = [...colorFreq.entries()]
+    .filter(([c]) => !neutralSet.has(c))
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+  // 3. Build palette: prefer favorite_colors that exist in wardrobe, then fill by frequency
+  const favoriteSet = new Set(
+    (styleHints?.favorite_colors || []).map(c => c.toLowerCase()),
+  );
+  const paletteColors: string[] = [];
+
+  // First pass: favorites that appear in wardrobe (sorted by frequency)
+  for (const [color] of chromaticEntries) {
+    if (paletteColors.length >= 4) break;
+    if (favoriteSet.has(color) && !paletteColors.includes(color)) {
+      paletteColors.push(color);
+    }
+  }
+
+  // Second pass: fill to at least 2 from most frequent chromatic
+  for (const [color] of chromaticEntries) {
+    if (paletteColors.length >= 2) break;
+    if (!paletteColors.includes(color)) {
+      paletteColors.push(color);
+    }
+  }
+
+  // If still under 2 (tiny wardrobe), add most common neutrals as palette anchors
+  if (paletteColors.length < 2) {
+    const neutralEntries = [...colorFreq.entries()]
+      .filter(([c]) => neutralSet.has(c))
+      .sort((a, b) => b[1] - a[1]);
+    for (const [color] of neutralEntries) {
+      if (paletteColors.length >= 2) break;
+      if (!paletteColors.includes(color)) {
+        paletteColors.push(color);
+      }
+    }
+  }
+
+  // 4. Accent color: next frequent chromatic NOT in palette
+  let accentColor: string | null = null;
+  for (const [color] of chromaticEntries) {
+    if (!paletteColors.includes(color)) {
+      accentColor = color;
+      break;
+    }
+  }
+
+  // 5. Baseline formality: max formality from activities
+  const baselineFormality = Math.max(
+    ...activities.map(a => getActivityProfile(a).formality),
+    0,
+  );
+
+  // 6. Silhouette bias: from fit preferences
+  const silhouetteBias = styleHints?.fit_preferences?.[0]?.toLowerCase() ?? null;
+
+  if (__DEV__) {
+    console.log('[TripCapsule][INTENT]', {paletteColors, accentColor, baselineFormality, silhouetteBias});
+  }
+
+  return {paletteColors, accentColor, baselineFormality, silhouetteBias};
 }
 
 // ── Wardrobe presentation detection ──
@@ -1093,6 +1414,7 @@ function buildOutfitForActivity(
   mode: 'anchor' | 'support',
   presentation: Presentation,
   styleHints?: TripStyleHints,
+  capsuleIntent?: CapsuleIntent,
 ): TripPackingItem[] {
   const items: TripPackingItem[] = [];
 
@@ -1156,37 +1478,34 @@ function buildOutfitForActivity(
   ];
   const poolLookup = new Map(allPoolItems.map(i => [i.id, i]));
 
-  // Style hints bonus: deterministic scoring from user's style profile
+  // Style hints bonus: tiebreaker scoring within tiered pools.
+  // Color preference is now handled by tiered candidate pools (Layer 2).
   const styleBonus = (item: TripWardrobeItem): number => {
     if (!styleHints) return 0;
     let bonus = 0;
-    // Color preference
-    if (item.color && styleHints.favorite_colors?.length) {
-      if (styleHints.favorite_colors.some(c => colorMatches(item.color!, c))) bonus += 0.2;
-    }
-    // Fabric preference
+    // Fabric preference (tiebreaker within tier)
     if (item.material && styleHints.fabric_preferences?.length) {
       const matLower = item.material.toLowerCase();
-      if (styleHints.fabric_preferences.some(f => matLower.includes(f.toLowerCase()) || f.toLowerCase().includes(matLower))) bonus += 0.15;
+      if (styleHints.fabric_preferences.some(f => matLower.includes(f.toLowerCase()) || f.toLowerCase().includes(matLower))) bonus += 0.1;
     }
-    // Brand preference (conservative weight)
+    // Brand preference (conservative)
     if (item.brand && styleHints.preferred_brands?.length) {
       const brandLower = item.brand.toLowerCase();
       if (styleHints.preferred_brands.some(b => brandLower.includes(b.toLowerCase()))) bonus += 0.05;
     }
-    // Fit preference (conservative weight)
+    // Fit preference (conservative)
     if (item.fit && styleHints.fit_preferences?.length) {
       const fitLower = item.fit.toLowerCase();
       if (styleHints.fit_preferences.some(f => fitLower === f.toLowerCase())) bonus += 0.05;
     }
-    // Disliked styles penalty (soft-avoid: strong negative but never hard-exclude)
+    // Disliked styles penalty (soft-avoid tiebreaker — primary filtering in tiered pools)
     if (styleHints.disliked_styles?.length) {
       const subLower = (item.subcategory || '').toLowerCase();
       const nameLower = (item.name || '').toLowerCase();
       if (styleHints.disliked_styles.some(d => {
         const dl = d.toLowerCase();
         return (subLower && subLower.includes(dl)) || (nameLower && nameLower.includes(dl));
-      })) bonus -= 0.3;
+      })) bonus -= 0.15;
     }
     return bonus;
   };
@@ -1196,11 +1515,12 @@ function buildOutfitForActivity(
     activityScore(item, [activity]) + aestheticBonus(item, items, poolLookup) + styleBonus(item);
 
   const pickW = (bucket: TripWardrobeItem[], label?: string): WeightedPickResult | null => {
-    return weightedPick(
-      bucket, usageTracker, dayIndex,
-      maxUsesForBucket(bucket.length),
-      qualityFn, __DEV__ ? `${activity}/${label}` : undefined,
-    );
+    const maxUses = maxUsesForBucket(bucket.length);
+    const dbgLabel = __DEV__ ? `${activity}/${label}` : undefined;
+    if (capsuleIntent) {
+      return tieredPick(bucket, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel);
+    }
+    return weightedPick(bucket, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel);
   };
 
   // Wrapper that picks, pushes to items, and annotates alternates
@@ -1212,11 +1532,11 @@ function buildOutfitForActivity(
   };
 
   const pickShoeW = () => {
-    const result = weightedPick(
-      finalShoes, usageTracker, dayIndex,
-      maxUsesForBucket(finalShoes.length),
-      qualityFn, __DEV__ ? `${activity}/shoes` : undefined,
-    );
+    const maxUses = maxUsesForBucket(finalShoes.length);
+    const dbgLabel = __DEV__ ? `${activity}/shoes` : undefined;
+    const result = capsuleIntent
+      ? tieredPick(finalShoes, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel)
+      : weightedPick(finalShoes, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel);
     if (!result) return;
     items.push(toPackingItem(result.picked, locationLabel));
     annotateLastPick(items, result.runners);
@@ -1342,8 +1662,13 @@ function buildOutfitForActivity(
     }
   }
 
+  // Apply coherence guard: enforce palette consistency before normalization
+  const coherenceChecked = capsuleIntent
+    ? applyCoherenceGuard(items, capsuleIntent, gatedBuckets, finalShoes, usageTracker, dayIndex, locationLabel, poolLookup)
+    : items;
+
   // Enforce one-piece vs separates structure
-  let normalized = normalizeOutfitStructure(items);
+  let normalized = normalizeOutfitStructure(coherenceChecked);
 
   // Last line of defense: strip any dress-bucket item that escaped for masculine wardrobes
   if (presentation === 'masculine') {
@@ -1520,6 +1845,9 @@ export function buildCapsule(
 
   // Step 0b: Pre-filter ineligible items BEFORE any bucketing/scoring
   const eligibleItems = filterEligibleItems(wardrobeItems, presentation);
+
+  // Step 0c: Build capsule intent — stylist direction computed once, passed through engine
+  const capsuleIntent = buildCapsuleIntent(eligibleItems, activities, styleHints);
 
   logInput(requestId, {
     numDays,
@@ -1793,6 +2121,7 @@ export function buildCapsule(
       'anchor',
       presentation,
       styleHints,
+      capsuleIntent,
     );
     if (anchorItems.length > 0) {
       outfits.push({
@@ -1822,6 +2151,7 @@ export function buildCapsule(
         'support',
         presentation,
         styleHints,
+        capsuleIntent,
       );
       if (supportItems.length >= 2) {
         outfits.push({
