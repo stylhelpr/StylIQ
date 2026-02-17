@@ -21,7 +21,7 @@ import {
   buildEliteExposureEvent,
 } from './elite/eliteScoring';
 import type { StyleContext } from './elite/eliteScoring';
-import { loadStylistBrainContext } from './elite/stylistBrain';
+import { loadStylistBrainContext, parseStyleProfileRow, resolvePresentation } from './elite/stylistBrain';
 import {
   validateOutfits as tasteValidateOutfits,
   validateOutfit as tasteValidateOutfit,
@@ -3491,6 +3491,54 @@ Preferences: ${JSON.stringify(preferences || {})}
         this.fashionStateService,
       );
     }
+
+    // ── BLOCKING FALLBACK: Guarantee styleProfile for Suggestions path ──
+    // loadStylistBrainContext uses Promise.race with 200ms timeout.
+    // Cloud SQL can exceed this, returning defaults. Recover here with
+    // a direct blocking fetch — no timeout race — so outfit generation
+    // never runs against null styleProfile.
+    if (userId && !brainCtx.styleProfile) {
+      try {
+        const [profileResult, presentationResult] = await Promise.all([
+          pool.query(
+            'SELECT * FROM style_profiles WHERE user_id = $1',
+            [userId],
+          ),
+          // Also recover presentation if brain timed out (still 'mixed' default)
+          brainCtx.presentation === 'mixed'
+            ? pool.query(
+                'SELECT gender_presentation FROM users WHERE id = $1 LIMIT 1',
+                [userId],
+              )
+            : Promise.resolve(null),
+        ]);
+
+        if (profileResult.rows[0]) {
+          brainCtx.styleProfile = parseStyleProfileRow(profileResult.rows[0]);
+        }
+        if (presentationResult?.rows?.[0]?.gender_presentation) {
+          brainCtx.presentation = resolvePresentation(
+            presentationResult.rows[0].gender_presentation,
+          );
+        }
+
+        console.log(
+          JSON.stringify({
+            _tag: 'STYLIST_BRAIN_FALLBACK_USED',
+            recoveredProfile: !!brainCtx.styleProfile,
+            presentation: brainCtx.presentation,
+          }),
+        );
+      } catch (err) {
+        console.error('STYLIST_BRAIN_FALLBACK_FAILED:', err);
+      }
+    }
+
+    // HARD GUARD: Never generate outfits without personalization
+    if (userId && !brainCtx?.styleProfile) {
+      throw new Error('STYLIST_BRAIN_MISSING: personalization required');
+    }
+
     // ALWAYS-ON: prove what brainCtx.styleProfile contains after load
     console.log(
       JSON.stringify({
@@ -3498,6 +3546,16 @@ Preferences: ${JSON.stringify(preferences || {})}
         hasStyleProfile: !!brainCtx?.styleProfile,
         keys: Object.keys(brainCtx?.styleProfile ?? {}),
         avoid: (brainCtx as any)?.styleProfile?.avoid_colors ?? null,
+      }),
+    );
+
+    // STYLIST_BRAIN_READY: Proof brain is loaded BEFORE candidate generation
+    console.log(
+      JSON.stringify({
+        _tag: 'STYLIST_BRAIN_READY',
+        hasProfile: true,
+        presentation: brainCtx.presentation,
+        keys: Object.keys(brainCtx.styleProfile || {}),
       }),
     );
     let userPresentation = brainCtx.presentation;

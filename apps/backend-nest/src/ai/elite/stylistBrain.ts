@@ -91,7 +91,7 @@ export interface StylistBrainContext {
 
 // ── Presentation Resolver ───────────────────────────────────────────────────
 
-function resolvePresentation(
+export function resolvePresentation(
   raw: string | null | undefined,
 ): 'masculine' | 'feminine' | 'mixed' {
   const gp = (raw || '').toLowerCase().replace(/[\s_-]+/g, '');
@@ -105,7 +105,7 @@ function resolvePresentation(
 
 // ── Style Profile Row Parser ────────────────────────────────────────────────
 
-function parseStyleProfileRow(
+export function parseStyleProfileRow(
   row: Record<string, unknown>,
 ): StyleProfileFields {
   const toStringArray = (v: unknown): string[] =>
