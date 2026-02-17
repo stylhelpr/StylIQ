@@ -1239,6 +1239,292 @@ function applyCoherenceGuard(
   return result;
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  COMPOSITION VALIDATOR (deterministic post-assembly aesthetic check)
+// ══════════════════════════════════════════════════════════════════════════════
+// Rejects visually incoherent outfits and repairs using existing alternates.
+// Never regenerates, never changes item count, never calls AI.
+
+const PATTERN_TOKENS = [
+  'plaid', 'stripe', 'striped', 'floral', 'print', 'printed', 'paisley',
+  'polka', 'dot', 'check', 'checked', 'gingham', 'houndstooth', 'camo',
+  'camouflage', 'leopard', 'animal', 'abstract', 'geometric', 'tie-dye',
+  'argyle', 'tartan', 'ikat', 'tropical',
+];
+
+const TEXTURE_CONFLICT_PAIRS: ReadonlySet<string> = new Set([
+  'suede:patent', 'patent:suede',
+  'velvet:patent', 'patent:velvet',
+]);
+
+function isPatterned(item: TripWardrobeItem): boolean {
+  const text = `${item.subcategory ?? ''} ${item.name ?? ''}`.toLowerCase();
+  return PATTERN_TOKENS.some(t => text.includes(t));
+}
+
+function isStatementItem(item: TripWardrobeItem): boolean {
+  if (isPatterned(item)) return true;
+  if (item.color) {
+    const words = item.color.toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+    if (words.some(w => AESTHETIC_BOLDS.includes(w))) return true;
+  }
+  const bucket = mapMainCategoryToSlot(item.main_category ?? '');
+  if (bucket === 'accessories' && !isNeutralColor(item)) return true;
+  return false;
+}
+
+function isHeavyGarment(item: TripWardrobeItem): boolean {
+  const text = `${item.subcategory ?? ''} ${item.name ?? ''} ${item.material ?? ''}`.toLowerCase();
+  const isCoat = text.includes('coat') || text.includes('parka') || text.includes('puffer');
+  const isChunkyKnit = text.includes('chunky') || text.includes('cable knit');
+  const isBoot = /\bboots?\b/.test(text) && !text.includes('bootcut') && !text.includes('bootleg');
+  return isCoat || isChunkyKnit || isBoot;
+}
+
+function getGarmentZone(item: TripWardrobeItem): 'top' | 'bottom' {
+  const bucket = mapMainCategoryToSlot(item.main_category ?? '');
+  if (bucket === 'tops' || bucket === 'outerwear') return 'top';
+  return 'bottom';
+}
+
+function getDominantTexture(item: TripWardrobeItem): string | null {
+  const text = `${item.material ?? ''} ${item.subcategory ?? ''} ${item.name ?? ''}`.toLowerCase();
+  if (text.includes('suede')) return 'suede';
+  if (text.includes('patent')) return 'patent';
+  if (text.includes('velvet')) return 'velvet';
+  if (text.includes('corduroy')) return 'corduroy';
+  if (text.includes('tweed')) return 'tweed';
+  if (text.includes('leather')) return 'leather';
+  if (text.includes('fur') || text.includes('shearling')) return 'fur';
+  return null;
+}
+
+function getItemColorWords(item: TripWardrobeItem): string[] {
+  if (!item.color) return [];
+  return item.color.toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+}
+
+/** Attempt to swap a packing item using its pre-computed alternates. */
+function tryCompositionSwap(
+  packingItem: TripPackingItem,
+  poolLookup: Map<string, TripWardrobeItem>,
+  locationLabel: string,
+  usedIds: Set<string>,
+  isValid: (candidate: TripWardrobeItem) => boolean,
+): TripPackingItem | null {
+  const alts = (packingItem as any).alternates as AlternateItem[] | undefined;
+  if (!alts || alts.length === 0) return null;
+
+  for (const alt of alts) {
+    if (usedIds.has(alt.id)) continue;
+    const full = poolLookup.get(alt.id);
+    if (!full) continue;
+    if (isValid(full)) {
+      const replacement = toPackingItem(full, locationLabel);
+      (replacement as any).alternates = alts.filter(a => a.id !== alt.id);
+      return replacement;
+    }
+  }
+  return null;
+}
+
+/**
+ * Deterministic post-assembly validator.
+ * Checks 5 composition rules and swaps from existing alternates when violated.
+ * Never adds/removes items, never regenerates, never calls AI.
+ */
+function validateOutfitComposition(
+  items: TripPackingItem[],
+  poolLookup: Map<string, TripWardrobeItem>,
+  activityProfile: ActivityProfile,
+  locationLabel: string,
+): TripPackingItem[] {
+  const result = [...items];
+  const getFullItem = (pi: TripPackingItem) => poolLookup.get(pi.wardrobeItemId);
+  const currentIds = () => new Set(result.map(r => r.wardrobeItemId));
+
+  // ── RULE 1: Focal Point Limit ──
+  // Max one "statement" item (patterned, bold color, non-neutral accessory).
+  // Keep the first (anchor), swap the rest via alternates.
+  const statementIndices: number[] = [];
+  for (let i = 0; i < result.length; i++) {
+    const full = getFullItem(result[i]);
+    if (full && isStatementItem(full)) statementIndices.push(i);
+  }
+  if (statementIndices.length > 1) {
+    for (let s = 1; s < statementIndices.length; s++) {
+      const idx = statementIndices[s];
+      const swap = tryCompositionSwap(
+        result[idx], poolLookup, locationLabel, currentIds(),
+        candidate => !isStatementItem(candidate),
+      );
+      if (swap) {
+        if (__DEV__) {
+          console.log(`[COMPOSITION] violation: focal_conflict | swapped: ${result[idx].name} → ${swap.name}`);
+        }
+        result[idx] = swap;
+      }
+    }
+  }
+
+  // ── RULE 2: Formal Hierarchy Consistency ──
+  // No tier 3 item with tier 0 item unless activity is casual (formality 0).
+  if (activityProfile.formality > 0) {
+    const tiers = result.map(pi => {
+      const full = getFullItem(pi);
+      return full ? getFormalityTier(full) : -1;
+    });
+    const maxTier = Math.max(...tiers);
+    const minTier = Math.min(...tiers.filter(t => t >= 0));
+
+    if (maxTier >= 3 && minTier <= 0) {
+      for (let i = 0; i < result.length; i++) {
+        if (tiers[i] !== 0) continue;
+        const swap = tryCompositionSwap(
+          result[i], poolLookup, locationLabel, currentIds(),
+          candidate => getFormalityTier(candidate) >= 1,
+        );
+        if (swap) {
+          if (__DEV__) {
+            console.log(`[COMPOSITION] violation: formal_hierarchy | swapped: ${result[i].name} → ${swap.name}`);
+          }
+          result[i] = swap;
+        }
+      }
+    }
+  }
+
+  // ── RULE 3: Visual Weight Balance ──
+  // Heavy garments (coats, chunky knits, boots) must not all stack on one zone.
+  const heavyItems: {idx: number; zone: 'top' | 'bottom'}[] = [];
+  for (let i = 0; i < result.length; i++) {
+    const full = getFullItem(result[i]);
+    if (full && isHeavyGarment(full)) {
+      heavyItems.push({idx: i, zone: getGarmentZone(full)});
+    }
+  }
+  if (heavyItems.length >= 2) {
+    const topHeavy = heavyItems.filter(h => h.zone === 'top');
+    const bottomHeavy = heavyItems.filter(h => h.zone === 'bottom');
+
+    const swapTarget = (topHeavy.length >= 2 && bottomHeavy.length === 0)
+      ? topHeavy[topHeavy.length - 1]
+      : (bottomHeavy.length >= 2 && topHeavy.length === 0)
+        ? bottomHeavy[bottomHeavy.length - 1]
+        : null;
+
+    if (swapTarget) {
+      const swap = tryCompositionSwap(
+        result[swapTarget.idx], poolLookup, locationLabel, currentIds(),
+        candidate => !isHeavyGarment(candidate),
+      );
+      if (swap) {
+        if (__DEV__) {
+          console.log(`[COMPOSITION] violation: visual_weight_${swapTarget.zone} | swapped: ${result[swapTarget.idx].name} → ${swap.name}`);
+        }
+        result[swapTarget.idx] = swap;
+      }
+    }
+  }
+
+  // ── RULE 4: Palette Cohesion ──
+  // Every non-neutral color must connect to at least one other item's color.
+  const neutralTokens = new Set(AESTHETIC_NEUTRALS);
+  const outfitColors = result.map((pi, idx) => {
+    const full = getFullItem(pi);
+    return {idx, words: full ? getItemColorWords(full) : []};
+  });
+
+  for (const entry of outfitColors) {
+    const nonNeutral = entry.words.filter(w => !neutralTokens.has(w));
+    if (nonNeutral.length === 0) continue;
+
+    const otherColors = outfitColors
+      .filter(e => e.idx !== entry.idx)
+      .flatMap(e => e.words);
+
+    const connected = nonNeutral.some(w =>
+      otherColors.some(oc => colorMatches(w, oc)),
+    );
+
+    if (!connected) {
+      const swap = tryCompositionSwap(
+        result[entry.idx], poolLookup, locationLabel, currentIds(),
+        candidate => {
+          const candWords = getItemColorWords(candidate).filter(w => !neutralTokens.has(w));
+          if (candWords.length === 0) return true; // neutral always safe
+          return candWords.some(w => otherColors.some(oc => colorMatches(w, oc)));
+        },
+      );
+      if (swap) {
+        if (__DEV__) {
+          console.log(`[COMPOSITION] violation: isolated_color | swapped: ${result[entry.idx].name} → ${swap.name}`);
+        }
+        result[entry.idx] = swap;
+      }
+    }
+  }
+
+  // ── RULE 5: Texture Conflict ──
+  // No >1 competing dominant texture (suede+patent, velvet+patent).
+  const texturedItems: {idx: number; texture: string}[] = [];
+  for (let i = 0; i < result.length; i++) {
+    const full = getFullItem(result[i]);
+    if (!full) continue;
+    const tex = getDominantTexture(full);
+    if (tex) texturedItems.push({idx: i, texture: tex});
+  }
+
+  if (texturedItems.length >= 2) {
+    for (let a = 0; a < texturedItems.length; a++) {
+      for (let b = a + 1; b < texturedItems.length; b++) {
+        const pairKey = `${texturedItems[a].texture}:${texturedItems[b].texture}`;
+        if (TEXTURE_CONFLICT_PAIRS.has(pairKey)) {
+          const swapIdx = texturedItems[b].idx;
+          const anchorTex = texturedItems[a].texture;
+          const swap = tryCompositionSwap(
+            result[swapIdx], poolLookup, locationLabel, currentIds(),
+            candidate => {
+              const ct = getDominantTexture(candidate);
+              return !ct || !TEXTURE_CONFLICT_PAIRS.has(`${anchorTex}:${ct}`);
+            },
+          );
+          if (swap) {
+            if (__DEV__) {
+              console.log(`[COMPOSITION] violation: texture_conflict | swapped: ${result[swapIdx].name} → ${swap.name}`);
+            }
+            result[swapIdx] = swap;
+          }
+        }
+      }
+    }
+  }
+
+  // Double heavy pattern check (visual noise — separate from material textures)
+  const patternedIndices: number[] = [];
+  for (let i = 0; i < result.length; i++) {
+    const full = getFullItem(result[i]);
+    if (full && isPatterned(full)) patternedIndices.push(i);
+  }
+  if (patternedIndices.length >= 2) {
+    for (let p = 1; p < patternedIndices.length; p++) {
+      const idx = patternedIndices[p];
+      const swap = tryCompositionSwap(
+        result[idx], poolLookup, locationLabel, currentIds(),
+        candidate => !isPatterned(candidate),
+      );
+      if (swap) {
+        if (__DEV__) {
+          console.log(`[COMPOSITION] violation: double_pattern | swapped: ${result[idx].name} → ${swap.name}`);
+        }
+        result[idx] = swap;
+      }
+    }
+  }
+
+  return result;
+}
+
 // ── Capsule Intent (stylist direction pre-computed once per packing run) ──
 
 type CapsuleIntent = {
@@ -2124,6 +2410,9 @@ function buildOutfitForActivity(
       return bucket !== 'dresses';
     });
   }
+
+  // Apply composition validator: repair visually incoherent outfits using alternates
+  normalized = validateOutfitComposition(normalized, poolLookup, activityProfile, locationLabel);
 
   if (__DEV__) {
     console.log('[TripCapsule][OUTFIT_PICK]', {
