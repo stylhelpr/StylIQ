@@ -25,6 +25,7 @@ export interface OutfitCompositionContext {
   silhouetteProfile: SilhouetteProfile;
   materialTier: MaterialTier;
   formalityTarget: number; // 0–4
+  requestedDescription?: string; // overall request text for tone detection (e.g., "understated", "minimal")
 }
 
 /**
@@ -202,6 +203,59 @@ const ATHLETIC_MATERIALS = new Set([
   'moisture',
 ]);
 
+// ── Style-color precision vocabulary (5th dimension) ──
+
+const COLOR_FAMILIES: [string, string[]][] = [
+  ['white', ['white', 'off white', 'cream', 'ivory', 'ecru']],
+  ['beige', ['beige', 'tan', 'taupe', 'khaki', 'stone', 'oatmeal', 'sand', 'nude']],
+  ['gray', ['gray', 'grey', 'charcoal', 'silver', 'slate', 'heather']],
+  ['black', ['black']],
+  ['navy', ['navy', 'dark blue']],
+  ['brown', ['brown', 'cognac', 'camel', 'chocolate', 'espresso']],
+  ['olive', ['olive', 'army', 'moss']],
+  ['rust', ['rust', 'terracotta', 'brick', 'copper']],
+  ['burgundy', ['burgundy', 'wine', 'maroon', 'oxblood']],
+  ['red', ['red', 'scarlet', 'crimson']],
+  ['orange', ['orange', 'tangerine', 'coral', 'peach']],
+  ['yellow', ['yellow', 'mustard', 'gold', 'amber']],
+  ['pink', ['pink', 'rose', 'blush', 'salmon']],
+  ['magenta', ['magenta', 'fuchsia', 'hot pink']],
+  ['blue', ['blue', 'cobalt', 'royal', 'indigo', 'sapphire']],
+  ['light-blue', ['light blue', 'sky', 'ice', 'powder']],
+  ['teal', ['teal', 'turquoise', 'aqua', 'cyan']],
+  ['green', ['green', 'emerald', 'forest', 'mint']],
+  ['purple', ['purple', 'violet']],
+  ['lavender', ['lavender', 'mauve', 'plum', 'periwinkle', 'lilac']],
+  ['neon', ['neon']],
+  ['bright', ['bright']],
+  ['lime', ['lime']],
+];
+
+const COLOR_FAMILY_MAP: Record<string, string> = {};
+for (const [family, members] of COLOR_FAMILIES) {
+  for (const m of members) COLOR_FAMILY_MAP[m] = family;
+}
+
+const NEUTRAL_FAMILIES = new Set([
+  'white', 'beige', 'gray', 'black', 'navy', 'brown', 'olive',
+]);
+
+const LOUD_FAMILIES = new Set([
+  'red', 'magenta', 'neon', 'bright', 'lime', 'purple',
+]);
+
+const UNDERSTATED_TONE_WORDS = [
+  'understated', 'low-key', 'lowkey', 'minimal', 'minimalist', 'simple',
+  'effortless', 'subtle', 'muted', 'quiet', 'clean', 'classic',
+  'neutral', 'monochrome', 'tonal', 'balanced',
+];
+
+const STATEMENT_KEYWORDS = [
+  'logo', 'graphic', 'statement', 'print', 'printed', 'pattern',
+  'patterned', 'tie-dye', 'neon', 'sequin', 'glitter', 'metallic',
+  'colorblock', 'striped',
+];
+
 // ── Anchor priority by category (spec: outerwear > shoes > statement top > statement bottom > dress) ──
 
 const ANCHOR_PRIORITY: Record<string, number> = {
@@ -252,6 +306,128 @@ function textContainsKeyword(text: string, keywords: Set<string>): boolean {
     if (lower.includes(kw)) return true;
   }
   return false;
+}
+
+// ── Style-color precision helpers ──
+
+function extractColorTokens(text: string): string[] {
+  if (!text) return [];
+  const lower = text.toLowerCase().replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const words = lower.split(' ');
+  const tokens: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    if (i < words.length - 1) {
+      const bigram = `${words[i]} ${words[i + 1]}`;
+      if (COLOR_FAMILY_MAP[bigram] !== undefined) {
+        tokens.push(bigram);
+        i++;
+        continue;
+      }
+    }
+    if (COLOR_FAMILY_MAP[words[i]] !== undefined) {
+      tokens.push(words[i]);
+    }
+  }
+  return tokens;
+}
+
+function hasUnderstatedTone(text: string): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return UNDERSTATED_TONE_WORDS.some((w) => lower.includes(w));
+}
+
+function scoreStyleColorPrecision(
+  candidate: CompositionItem,
+  ctx: OutfitCompositionContext,
+  requestedSlotDescription?: string,
+): { score: number; reason: string } | null {
+  const candidateText = `${candidate.color || ''} ${candidate.name || candidate.ai_title || ''}`;
+  const candidateTokens = extractColorTokens(candidateText);
+  const candidateFamilies = candidateTokens.map((t) => COLOR_FAMILY_MAP[t]).filter(Boolean);
+
+  let colorScore = 0;
+  let reason = '';
+  let hasData = false;
+
+  // ── Color precision: requested description > anchor families ──
+  let refFamilies: string[] = [];
+  if (requestedSlotDescription) {
+    refFamilies = extractColorTokens(requestedSlotDescription)
+      .map((t) => COLOR_FAMILY_MAP[t])
+      .filter((f): f is string => !!f);
+  }
+  if (refFamilies.length === 0) {
+    refFamilies = (ctx.paletteProfile.dominantFamilies || [])
+      .map((c) => COLOR_FAMILY_MAP[c])
+      .filter((f): f is string => !!f);
+  }
+
+  if (refFamilies.length > 0 && candidateFamilies.length > 0) {
+    hasData = true;
+    const refSet = new Set(refFamilies);
+    const overlap = candidateFamilies.filter((f) => refSet.has(f));
+
+    if (overlap.length > 0) {
+      colorScore = 1.0;
+      reason = `colorMatch:${overlap[0]}`;
+    } else {
+      const refNeutral = refFamilies.some((f) => NEUTRAL_FAMILIES.has(f));
+      const candNeutral = candidateFamilies.some((f) => NEUTRAL_FAMILIES.has(f));
+      const candLoud = candidateFamilies.some((f) => LOUD_FAMILIES.has(f));
+
+      if (refNeutral && candNeutral) {
+        colorScore = 0.5;
+        reason = 'neutralHarmony';
+      } else if (refNeutral && candLoud) {
+        colorScore = -0.5;
+        reason = 'colorMiss:loudVsNeutral';
+      } else {
+        colorScore = 0.0;
+        reason = 'colorMismatch';
+      }
+    }
+  }
+
+  // ── Understated tone adjustment ──
+  const toneText = ctx.requestedDescription || '';
+  const hasTone = hasUnderstatedTone(toneText);
+  const useNeutralProxy = !toneText && ctx.paletteProfile.neutralBase;
+
+  if ((hasTone || useNeutralProxy) && candidateFamilies.length > 0) {
+    hasData = true;
+    const toneStrength = hasTone ? 1.0 : 0.5;
+    const candNeutral = candidateFamilies.some((f) => NEUTRAL_FAMILIES.has(f));
+    const candLoud = candidateFamilies.some((f) => LOUD_FAMILIES.has(f));
+
+    if (candNeutral) {
+      colorScore += 0.4 * toneStrength;
+      if (!reason) reason = 'understatedBonus';
+    }
+    if (candLoud) {
+      colorScore -= 0.6 * toneStrength;
+      reason = reason ? `${reason}+understatedPenalty:loud` : 'understatedPenalty:loud';
+    }
+
+    const candName = (candidate.name || candidate.ai_title || '').toLowerCase();
+    if (STATEMENT_KEYWORDS.some((k) => candName.includes(k))) {
+      colorScore -= 0.3 * toneStrength;
+      reason = reason ? `${reason}+statementPenalty` : 'statementPenalty';
+    }
+
+    // Multi-color penalty (e.g., "white and green striped")
+    if (new Set(candidateFamilies).size > 1) {
+      colorScore -= 0.2 * toneStrength;
+      reason = reason ? `${reason}+multiColor` : 'multiColor';
+    }
+  }
+
+  if (!hasData) return null;
+
+  const finalScore = Math.max(-1, Math.min(1, colorScore));
+  if (Math.abs(finalScore) < 0.01) return null;
+
+  return { score: finalScore, reason: reason || 'neutral' };
 }
 
 // ── Core derivation functions ──
@@ -415,6 +591,8 @@ export function scoreItemComposition(
   ctx: OutfitCompositionContext,
   categoryFormalityMap: Record<string, number>,
   subcategorySignals: Array<[number, string[]]>,
+  requestedSlotDescription?: string,
+  _skipStyleDim = false,
 ): number {
   let score = 0;
   let signals = 0;
@@ -475,6 +653,15 @@ export function scoreItemComposition(
     score -= 1.0;
   }
   signals++;
+
+  // ── Style-color precision (5th dimension — additive, skippable for base-score calc) ──
+  if (!_skipStyleDim) {
+    const styleResult = scoreStyleColorPrecision(candidate, ctx, requestedSlotDescription);
+    if (styleResult !== null) {
+      score += styleResult.score;
+      signals++;
+    }
+  }
 
   // Normalize to [-1.0, +1.0]
   return signals > 0 ? Math.max(-1, Math.min(1, score / signals)) : 0;
@@ -551,8 +738,9 @@ export function rankByComposition<T extends CompositionItem>(
   ctx: OutfitCompositionContext,
   categoryFormalityMap: Record<string, number>,
   subcategorySignals: Array<[number, string[]]>,
+  requestedSlotDescription?: string,
 ): (T & { __compositionScore: number })[] {
-  return candidates
+  const ranked = candidates
     .map((item) => ({
       ...item,
       __compositionScore: scoreItemComposition(
@@ -560,7 +748,26 @@ export function rankByComposition<T extends CompositionItem>(
         ctx,
         categoryFormalityMap,
         subcategorySignals,
+        requestedSlotDescription,
       ),
     }))
     .sort((a, b) => b.__compositionScore - a.__compositionScore);
+
+  // Log style adjustment for the winning candidate only
+  if (ranked.length > 0) {
+    const winner = ranked[0];
+    const baseScore = scoreItemComposition(
+      winner, ctx, categoryFormalityMap, subcategorySignals,
+      undefined, true, // skip style dimension for base score
+    );
+    const adjustment = winner.__compositionScore - baseScore;
+    if (Math.abs(adjustment) > 0.001) {
+      const styleResult = scoreStyleColorPrecision(winner, ctx, requestedSlotDescription);
+      console.log(
+        `STYLE_SCORE_ADJUSTMENT { slot: "${winner.category || ''}", requested: "${(requestedSlotDescription || '').slice(0, 60)}", itemId: "${winner.id}", itemName: "${(winner.name || '').slice(0, 40)}", baseScore: ${baseScore.toFixed(3)}, adjustment: ${adjustment.toFixed(3)}, finalScore: ${winner.__compositionScore.toFixed(3)}, reason: "${styleResult?.reason || 'none'}" }`,
+      );
+    }
+  }
+
+  return ranked;
 }

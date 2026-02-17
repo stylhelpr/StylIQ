@@ -4226,6 +4226,445 @@ ${lockedLines}
   }
 
   /**
+   * DETERMINISTIC OUTFIT MUTATION (Refine Path)
+   *
+   * Mutates a single slot in an existing outfit based on natural language refinement.
+   * 1 Pinecone query for the changed slot. No LLM. No full generation.
+   *
+   * Flow:
+   * 1. Parse refinement text → identify target slot
+   * 2. Fetch current outfit items from DB
+   * 3. Embed refinement text → 1 Pinecone query for target slot
+   * 4. Rank candidates by composition compatibility
+   * 5. Replace slot with best candidate
+   * 6. Validate (taste + veto, fail-open)
+   * 7. Return single mutated outfit
+   *
+   * Returns null if parsing fails or no candidates found → caller falls back.
+   */
+
+  // ── Refinement constraint filter ──────────────────────────────────
+  private static readonly REFINE_COLOR_FAMILIES = [
+    'red', 'blue', 'navy', 'brown', 'black', 'white', 'gray', 'grey',
+    'green', 'olive', 'tan', 'beige', 'cream', 'pink', 'purple', 'orange',
+    'yellow', 'burgundy', 'maroon', 'teal', 'coral', 'gold', 'silver',
+    'ivory', 'khaki', 'charcoal', 'camel',
+  ];
+
+  private static readonly REFINE_SUBTYPE_KEYWORDS: Record<string, string[]> = {
+    shoes: ['sneakers', 'loafers', 'boots', 'derbies', 'oxfords', 'trainers', 'sandals', 'mules', 'heels', 'pumps', 'flats', 'slides', 'espadrilles', 'moccasins', 'clogs'],
+    tops: ['hoodie', 'sweater', 't-shirt', 'tshirt', 'shirt', 'blouse', 'tank', 'polo', 'henley', 'cardigan', 'turtleneck', 'crop top', 'camisole', 'tunic'],
+    outerwear: ['blazer', 'coat', 'jacket', 'parka', 'vest', 'windbreaker', 'trench', 'bomber', 'peacoat', 'overcoat', 'anorak', 'cape', 'poncho'],
+    bottoms: ['jeans', 'chinos', 'trousers', 'pants', 'shorts', 'skirt', 'leggings', 'joggers', 'culottes', 'cargo'],
+    dresses: ['dress', 'gown', 'romper', 'jumpsuit'],
+  };
+
+  private static parseRefinementConstraints(
+    refinementPrompt: string,
+    targetSlot: string,
+  ): { colors: string[]; subtypes: string[] } {
+    const lower = refinementPrompt.toLowerCase();
+    const colors = WardrobeService.REFINE_COLOR_FAMILIES.filter(
+      (c) => new RegExp(`\\b${c}\\b`).test(lower),
+    );
+    const slotKeywords = WardrobeService.REFINE_SUBTYPE_KEYWORDS[targetSlot] ?? [];
+    const subtypes = slotKeywords.filter((kw) => lower.includes(kw));
+    return { colors, subtypes };
+  }
+
+  private static filterCandidatesByRefinementIntent(
+    candidates: any[],
+    refinementPrompt: string,
+    targetSlot: string,
+  ): { filtered: any[]; colors: string[]; subtypes: string[] } {
+    const { colors, subtypes } = WardrobeService.parseRefinementConstraints(refinementPrompt, targetSlot);
+
+    if (colors.length === 0 && subtypes.length === 0) {
+      return { filtered: candidates, colors, subtypes };
+    }
+
+    console.log(`REFINE_CONSTRAINTS_PARSED ${JSON.stringify({ slot: targetSlot, colors, subtypes })}`);
+    console.log(`REFINE_POOL_BEFORE ${JSON.stringify({ count: candidates.length })}`);
+
+    const filtered = candidates.filter((c) => {
+      const cColor = (c.color || c.color_family || '').toLowerCase();
+      const cName = (c.name || '').toLowerCase();
+      const cSub = (c.subcategory || '').toLowerCase();
+
+      const colorMatch =
+        colors.length === 0 ||
+        colors.some((col) => cColor.includes(col) || cName.includes(col));
+
+      const subtypeMatch =
+        subtypes.length === 0 ||
+        subtypes.some((st) => cSub.includes(st) || cName.includes(st));
+
+      return colorMatch && subtypeMatch;
+    });
+
+    console.log(`REFINE_POOL_AFTER ${JSON.stringify({ count: filtered.length })}`);
+
+    if (filtered.length === 0) {
+      console.log('REFINE_CONSTRAINTS_EMPTY_FALLBACK');
+      return { filtered: candidates, colors, subtypes };
+    }
+
+    return { filtered, colors, subtypes };
+  }
+
+  private static computeIntentBonus(
+    candidate: any,
+    colors: string[],
+    subtypes: string[],
+  ): { bonus: number; colorMatch: 'exact' | 'family' | 'none'; subtypeMatch: boolean } {
+    if (colors.length === 0 && subtypes.length === 0) {
+      return { bonus: 0, colorMatch: 'none', subtypeMatch: false };
+    }
+
+    const cColor = (candidate.color || '').toLowerCase();
+    const cColorFamily = (candidate.color_family || '').toLowerCase();
+    const cName = (candidate.name || '').toLowerCase();
+    const cSub = (candidate.subcategory || '').toLowerCase();
+
+    let colorMatch: 'exact' | 'family' | 'none' = 'none';
+    if (colors.length > 0) {
+      if (colors.some((col) => cColor === col || cColor.startsWith(col + ' '))) {
+        colorMatch = 'exact';
+      } else if (colors.some((col) => cColorFamily.includes(col) || cName.includes(col) || cColor.includes(col))) {
+        colorMatch = 'family';
+      }
+    }
+
+    const subtypeMatch = subtypes.length > 0 &&
+      subtypes.some((st) => cSub.includes(st) || cName.includes(st));
+
+    let bonus = 0;
+    if (colorMatch === 'exact') bonus += 0.35;
+    else if (colorMatch === 'family') bonus += 0.20;
+    if (subtypeMatch) bonus += 0.35;
+
+    return { bonus, colorMatch, subtypeMatch };
+  }
+
+  async mutateOutfit(
+    userId: string,
+    input: {
+      currentItemIds: string[];
+      refinementPrompt: string;
+      weather?: WeatherContext;
+      requestId?: string;
+    },
+  ) {
+    const startTime = Date.now();
+    const reqId = input.requestId || randomUUID();
+
+    // 1. Parse which slot to CHANGE (not keep)
+    //    "Keep the shirt and slacks but give me brown shoes instead"
+    //    → change zone = "give me brown shoes instead" → shoes
+    //    Split on change markers; detect slots in change zone only.
+    const lower = input.refinementPrompt.toLowerCase();
+    const changeMarkers = /\b(but|instead|give me|swap|change|replace|switch|try|want|different|another|new)\b/;
+    const markerMatch = lower.match(changeMarkers);
+    let changeZone = lower; // default: whole prompt
+    if (markerMatch && markerMatch.index != null) {
+      changeZone = lower.substring(markerMatch.index);
+    }
+    // Strip keep phrases but ONLY up to the next comma or "and" — NOT to end-of-string.
+    // "keep everything except the shoes" → strip "keep everything" up to "except", preserve "the shoes".
+    // The old regex .*?(and|,|$) consumed to $ which destroyed the entire prompt.
+    const keepPhrases = /\b(keep|love|like|don't change|leave)\b[^,]*(and|,)/gi;
+    changeZone = changeZone.replace(keepPhrases, ' ');
+    // Also handle "except/but" after keep — promote everything AFTER except/but as the change zone
+    const exceptMatch = changeZone.match(/\b(except|but|other than|aside from)\b\s*(.*)/i);
+    if (exceptMatch && exceptMatch[2]) {
+      changeZone = exceptMatch[2];
+    }
+
+    const detectedSlots = detectSlotsInText(changeZone);
+    if (detectedSlots.length === 0) {
+      // Fallback: try full prompt (maybe no change marker, e.g. "brown shoes please")
+      const fallbackSlots = detectSlotsInText(lower);
+      if (fallbackSlots.length !== 1) {
+        console.log(`MUTATE_OUTFIT_NULL { reason: "slot_parse_failed: changeZone detected ${detectedSlots.length} slots, full prompt detected ${fallbackSlots.length} slots from '${input.refinementPrompt}'" }`);
+        return null;
+      }
+      detectedSlots.push(fallbackSlots[0]);
+    }
+    if (detectedSlots.length !== 1) {
+      console.log(`MUTATE_OUTFIT_NULL { reason: "ambiguous_slots: detected ${detectedSlots.length} slots [${detectedSlots.join(',')}] from '${input.refinementPrompt}'" }`);
+      return null;
+    }
+    const targetSlot: Slot = detectedSlots[0];
+    console.log(`⚡ [MUTATE] reqId=${reqId} slot=${targetSlot} prompt="${input.refinementPrompt}"`);
+
+    // 2. Fetch current outfit items from DB
+    const { rows: currentDbItems } = await pool.query(
+      `SELECT id, name, image_url, touched_up_image_url, processed_image_url,
+              main_category, subcategory, color, color_family, brand,
+              dress_code, formality_score, material, fit
+       FROM wardrobe_items
+       WHERE id = ANY($1) AND user_id = $2`,
+      [input.currentItemIds, userId],
+    );
+    if (currentDbItems.length === 0) {
+      console.log(`MUTATE_OUTFIT_NULL { reason: "no_current_items: none of ${input.currentItemIds.length} IDs found in DB for user" }`);
+      return null;
+    }
+
+    // Split into kept items vs items in the target slot
+    const keptItems: any[] = [];
+    const oldSlotItems: any[] = [];
+    for (const row of currentDbItems) {
+      if (mapMainCategoryToSlot(row.main_category) === targetSlot) {
+        oldSlotItems.push(row);
+      } else {
+        keptItems.push(row);
+      }
+    }
+
+    // 3. Single Pinecone query for the target slot
+    const slotFilter = pineconeFilterForSlot(targetSlot);
+    let candidateIds: string[] = [];
+    try {
+      const queryVec = await this.vertex.embedText(input.refinementPrompt);
+      const matches = await queryUserNs({
+        userId,
+        vector: queryVec,
+        topK: 20,
+        includeMetadata: true,
+        filter: { ...slotFilter, kind: { $eq: 'text' } },
+      });
+      candidateIds = (matches || [])
+        .map((m: any) => {
+          const raw: string = m.metadata?.db_id || m.id || '';
+          // Pinecone IDs may have ":text" or ":image" suffix — strip to pure UUID
+          const normalized = raw.includes(':') ? raw.split(':')[0] : raw;
+          if (raw !== normalized) {
+            console.log(`MUTATE_ID_NORMALIZED { before: "${raw}", after: "${normalized}" }`);
+          }
+          return normalized;
+        })
+        .filter(Boolean);
+    } catch (err) {
+      console.warn('⚡ [MUTATE] Pinecone query failed (falling back to DB):', (err as any)?.message);
+    }
+
+    // Fallback: if Pinecone returned nothing, query DB directly for slot items
+    if (candidateIds.length === 0) {
+      const mainCats = Object.values(REFINEMENT_CATEGORY_KEYWORDS).length > 0
+        ? (() => {
+            // Get main categories for the target slot from the Pinecone filter
+            const f = slotFilter?.main_category;
+            if (f?.$eq) return [f.$eq];
+            if (f?.$in) return f.$in;
+            return [];
+          })()
+        : [];
+      if (mainCats.length > 0) {
+        const { rows: fallbackRows } = await pool.query(
+          `SELECT id FROM wardrobe_items
+           WHERE user_id = $1 AND main_category = ANY($2)
+           ORDER BY created_at DESC LIMIT 30`,
+          [userId, mainCats],
+        );
+        candidateIds = fallbackRows.map((r: any) => r.id);
+      }
+    }
+
+    // Exclude items already in the outfit
+    const currentIdSet = new Set(input.currentItemIds);
+    candidateIds = candidateIds.filter((id) => !currentIdSet.has(id));
+
+    if (candidateIds.length === 0) {
+      console.log(`MUTATE_OUTFIT_NULL { reason: "no_candidates: pinecone returned 0 and DB fallback returned 0 for slot=${targetSlot}" }`);
+      return null;
+    }
+
+    // 4. Fetch candidate DB rows
+    const { rows: candidateRows } = await pool.query(
+      `SELECT id, name, image_url, touched_up_image_url, processed_image_url,
+              main_category, subcategory, color, color_family, brand,
+              dress_code, formality_score, material, fit
+       FROM wardrobe_items
+       WHERE id = ANY($1) AND user_id = $2`,
+      [candidateIds, userId],
+    );
+
+    if (candidateRows.length === 0) {
+      console.log(`MUTATE_OUTFIT_NULL { reason: "no_candidate_rows: ${candidateIds.length} IDs from pinecone/fallback but 0 matched in DB for slot=${targetSlot}" }`);
+      return null;
+    }
+
+    // 4b. Filter candidates by explicit user constraints (color, subtype)
+    const {
+      filtered: filteredCandidateRows,
+      colors: refineColors,
+      subtypes: refineSubtypes,
+    } = WardrobeService.filterCandidatesByRefinementIntent(
+      candidateRows,
+      input.refinementPrompt,
+      targetSlot,
+    );
+
+    // 5. Score candidates with composition
+    const slotToCompCat = (mainCat: string): string => {
+      const s = mapMainCategoryToSlot(mainCat);
+      if (s === 'tops') return 'top';
+      if (s === 'bottoms') return 'bottom';
+      if (s === 'dresses') return 'dress';
+      if (s === 'accessories') return 'accessory';
+      return s;
+    };
+
+    // Build composition items from kept items for context
+    const contextItems: CompositionItem[] = keptItems.map((it: any) => ({
+      id: it.id,
+      category: slotToCompCat(it.main_category ?? ''),
+      main_category: it.main_category,
+      subcategory: it.subcategory,
+      name: it.name,
+      color: it.color,
+      material: it.material,
+    }));
+
+    // Score each candidate
+    let bestCandidate: any = filteredCandidateRows[0];
+    let bestScore = -Infinity;
+    const fullItemMap = new Map(
+      [...keptItems, ...filteredCandidateRows].map((it: any) => [it.id, it]),
+    );
+
+    for (const candidate of filteredCandidateRows) {
+      const testItems: CompositionItem[] = [
+        ...contextItems,
+        {
+          id: candidate.id,
+          category: slotToCompCat(candidate.main_category ?? ''),
+          main_category: candidate.main_category,
+          subcategory: candidate.subcategory,
+          name: candidate.name,
+          color: candidate.color,
+          material: candidate.material,
+        },
+      ];
+      const baseScore = scoreOutfitComposition(
+        testItems,
+        fullItemMap,
+        WardrobeService.SWAP_CATEGORY_FORMALITY,
+        WardrobeService.SWAP_SUBCATEGORY_SIGNALS,
+      );
+      const { bonus, colorMatch, subtypeMatch } = WardrobeService.computeIntentBonus(
+        candidate, refineColors, refineSubtypes,
+      );
+      const score = Math.min(baseScore + bonus, 1.0);
+      if (bonus > 0) {
+        console.log(`REFINE_INTENT_SCORE ${JSON.stringify({ itemId: candidate.id, baseScore: +baseScore.toFixed(3), bonus: +bonus.toFixed(2), finalScore: +score.toFixed(3), colorMatch, subtypeMatch })}`);
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestCandidate = candidate;
+      }
+    }
+
+    // 6. Build the mutated outfit
+    const allItems = [...keptItems, bestCandidate];
+    const formatItem = (it: any, idx: number) => ({
+      index: idx,
+      id: it.id,
+      name: it.name,
+      label: it.name || 'Item',
+      image: it.touched_up_image_url || it.processed_image_url || it.image_url,
+      image_url: it.image_url,
+      main_category: it.main_category,
+      subcategory: it.subcategory,
+      color: it.color,
+      color_family: it.color_family,
+      brand: it.brand,
+      dress_code: it.dress_code,
+      formality_score: it.formality_score,
+      material: it.material,
+      fit: it.fit,
+    });
+    const outfitItems = allItems.map(formatItem);
+
+    // 7. Validate (fail-open)
+    let validationPassed = true;
+    try {
+      const toVI = (it: any): ValidatorItem => ({
+        id: it?.id ?? '',
+        slot: (mapMainCategoryToSlot(it?.main_category) as ValidatorSlot) || ('accessories' as ValidatorSlot),
+        name: it?.name ?? it?.label,
+        subcategory: it?.subcategory,
+        color: it?.color,
+        material: it?.material,
+        fit: it?.fit,
+        dress_code: it?.dress_code,
+        formality_score: it?.formality_score,
+      });
+      const eliteCtx = await this.loadEliteStyleContext(userId);
+      const _bp = (eliteCtx as any)?._brainStyleProfile;
+      const _tempToZone = (tempF?: number | null) => {
+        if (tempF == null) return undefined;
+        if (tempF < 32) return 'freezing' as const;
+        if (tempF < 45) return 'cold' as const;
+        if (tempF < 55) return 'cool' as const;
+        if (tempF < 65) return 'mild' as const;
+        if (tempF < 85) return 'warm' as const;
+        return 'hot' as const;
+      };
+      const vCtx: ValidatorContext = {
+        userPresentation: undefined,
+        climateZone: _tempToZone(input.weather?.tempF),
+        styleProfile: {
+          ...(eliteCtx?.styleProfile ?? {}),
+          coverage_no_go: _bp?.coverage_no_go,
+          avoid_colors: _bp?.avoid_colors,
+          avoid_materials: _bp?.avoid_materials,
+          formality_floor: _bp?.formality_floor,
+          walkability_requirement: _bp?.walkability_requirement,
+        },
+      };
+      const vItems = allItems.map(toVI);
+      const result = tasteValidateOutfit(vItems, vCtx);
+      if (!result.valid) {
+        console.log(`⚡ [MUTATE] Taste validation failed: ${result.hardFails.join(', ')}`);
+        validationPassed = false;
+      }
+
+      const vetoOutfit = { items: outfitItems, outfit_id: reqId };
+      const vetoResult = isStylisticallyIncoherent(vetoOutfit, {});
+      if (vetoResult.invalid) {
+        console.log(`⚡ [MUTATE] Style veto triggered: ${vetoResult.reason}`);
+        validationPassed = false;
+      }
+    } catch (err) {
+      console.warn('⚡ [MUTATE] Validation error (fail-open):', (err as any)?.message);
+    }
+
+    const elapsed = Date.now() - startTime;
+    console.log(`MUTATE_OUTFIT_SUCCESS { reason: "slot=${targetSlot} candidate=${bestCandidate.id} score=${bestScore.toFixed(3)} elapsed=${elapsed}ms valid=${validationPassed}" }`);
+
+    // 8. Return in generateOutfitsFast shape
+    const outfit = {
+      outfit_id: reqId,
+      title: 'Refined Outfit',
+      items: outfitItems,
+      why: validationPassed
+        ? 'Outfit refined with composition-compatible replacement.'
+        : 'Outfit refined (validation warnings present).',
+      missing: undefined,
+    };
+
+    return {
+      request_id: reqId,
+      outfit_id: reqId,
+      items: outfitItems,
+      why: outfit.why,
+      outfits: [outfit],
+    };
+  }
+
+  /**
    * Maps slot category to Pinecone metadata filter.
    * Uses canonical categoryMapping - ALWAYS returns a filter, NEVER undefined.
    */

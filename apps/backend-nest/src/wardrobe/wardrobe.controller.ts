@@ -208,9 +208,33 @@ export class WardrobeController {
       console.log('⚡ [SWAP] recomposeOutfitSlot returned null, falling through to full generation');
     }
 
+    // ── REFINE FAST PATH: detect natural language slot refinements ──
+    // "Keep the shirt and slacks but give me brown shoes instead"
+    // Routes to deterministic mutation (~200ms) instead of full LLM (~50s)
+    const isRefineCandidate = !swapMatch && !!body.refinementPrompt && locked.length >= 2 && !!body.useFastMode && !body.aaaaMode;
+    console.log(`REFINE_ROUTE_CHECK { reason: "swapMatch=${!!swapMatch} refinementPrompt=${!!body.refinementPrompt} locked=${locked.length} fastMode=${!!body.useFastMode} aaaaMode=${!!body.aaaaMode} => ${isRefineCandidate}" }`);
+
+    if (isRefineCandidate) {
+      console.log(`REFINE_ROUTE_ENTERED { reason: "prompt=${body.refinementPrompt} lockedCount=${locked.length}" }`);
+
+      const mutateResult = await this.service.mutateOutfit(userId, {
+        currentItemIds: locked,
+        refinementPrompt: body.refinementPrompt!, // guarded by isRefineCandidate check
+        weather: weatherArg,
+        requestId,
+      });
+
+      if (mutateResult) return mutateResult;
+      // mutateOutfit already logged MUTATE_OUTFIT_NULL with reason
+    }
+
     // aaaaMode forces standard mode (overrides useFastMode)
     // Use fast mode if explicitly requested (and not aaaaMode)
     if (body.useFastMode && !body.aaaaMode) {
+      if (body.refinementPrompt) {
+        console.log(`FALLBACK_TO_GENERATE_OUTFITS_FAST { reason: "refine attempted but mutateOutfit returned null or refine gate failed, falling through to LLM generation" }`);
+      }
+
       // If there's a refinement prompt, append it to the query
       const queryWithRefinement = body.refinementPrompt
         ? `${body.query}. IMPORTANT REFINEMENT: User specifically requested: "${body.refinementPrompt}". You MUST incorporate this into ALL outfits.`
