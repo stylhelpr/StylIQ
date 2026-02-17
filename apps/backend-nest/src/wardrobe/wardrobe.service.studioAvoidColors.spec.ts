@@ -249,3 +249,76 @@ describe('Studio full pipeline — oversized pool + avoid_colors', () => {
     expect(gated.map((o: any) => o.outfit_id)).toEqual(['2', '5']);
   });
 });
+
+// ── Tests: Slot-pick pre-filter (skip P0 violators at selection time) ──
+
+describe('Studio slot-pick — skip avoid_color violators in Pinecone matches', () => {
+  /**
+   * Mirrors the new _itemViolatesAvoidColors() logic in the FAST path:
+   * iterate Pinecone matches in order, skip items whose colors match
+   * expandedAvoidColors, pick the first safe one.
+   */
+  function pickFirstSafe(
+    matches: { id: string; color: string }[],
+    avoidColors: string[],
+  ): { id: string; color: string } | null {
+    if (!avoidColors.length) return matches[0] ?? null;
+    const expanded = expandAvoidColors(avoidColors);
+    let fallback: { id: string; color: string } | null = null;
+    for (const m of matches) {
+      const colors = extractItemColors(m as any);
+      let violated = false;
+      for (const ic of colors) {
+        for (const ac of expanded) {
+          if (colorMatchesSafe(ic, ac)) { violated = true; break; }
+        }
+        if (violated) break;
+      }
+      if (violated) {
+        if (!fallback) fallback = m;
+        continue;
+      }
+      return m;
+    }
+    return fallback; // all violated → fall back to first
+  }
+
+  it('skips magenta #1, picks non-magenta #2', () => {
+    const matches = [
+      { id: '1', color: 'Magenta' },
+      { id: '2', color: 'Navy' },
+      { id: '3', color: 'Black' },
+    ];
+    const picked = pickFirstSafe(matches, ['pink', 'magenta']);
+    expect(picked?.id).toBe('2');
+  });
+
+  it('skips rust #1, picks non-rust #2', () => {
+    const matches = [
+      { id: '1', color: 'Rust' },
+      { id: '2', color: 'Grey' },
+      { id: '3', color: 'Black' },
+    ];
+    const picked = pickFirstSafe(matches, ['rust']);
+    expect(picked?.id).toBe('2');
+  });
+
+  it('returns #1 when no avoid_colors set', () => {
+    const matches = [
+      { id: '1', color: 'Magenta' },
+      { id: '2', color: 'Black' },
+    ];
+    const picked = pickFirstSafe(matches, []);
+    expect(picked?.id).toBe('1');
+  });
+
+  it('falls back to #1 if ALL matches violate avoid_colors', () => {
+    const matches = [
+      { id: '1', color: 'Magenta' },
+      { id: '2', color: 'Hot Pink' },
+      { id: '3', color: 'Pink' },
+    ];
+    const picked = pickFirstSafe(matches, ['pink', 'magenta']);
+    expect(picked?.id).toBe('1');
+  });
+});

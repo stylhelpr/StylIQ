@@ -32,6 +32,9 @@ import {
   type ValidatorContext,
 } from './elite/tasteValidator';
 import type { StylistBrainContext } from './elite/stylistBrain';
+import { selectTopOutfits, scoreOutfit } from './styleJudge';
+import { isStylisticallyIncoherent } from './styleVeto';
+import { isOccasionAppropriate, getOccasionRejectionReason } from './occasionFilter';
 import { FashionStateService } from '../learning/fashion-state.service';
 import { LearningEventsService } from '../learning/learning-events.service';
 
@@ -5539,6 +5542,32 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     // Hydrate BEFORE taste validation so checkAvoidColors sees canonical colors
     candidatePool.forEach(_hydrateOutfitColors);
 
+    // ── Occasion filter: reject outfits containing inappropriate items for formal contexts ──
+    {
+      const _occasionCtx = { query: constraint };
+      const _beforeOccasion = candidatePool.length;
+      for (let i = candidatePool.length - 1; i >= 0; i--) {
+        const o = candidatePool[i];
+        const badItem = (o.items ?? []).find((it: any) => !isOccasionAppropriate(it, _occasionCtx));
+        if (badItem) {
+          console.log(
+            JSON.stringify({
+              _tag: 'OCCASION_FILTER_REJECTED',
+              mode: 'stylist',
+              itemName: badItem.name ?? badItem.label ?? '?',
+              reason: getOccasionRejectionReason(badItem, _occasionCtx),
+            }),
+          );
+          candidatePool.splice(i, 1);
+        }
+      }
+      if (_beforeOccasion > candidatePool.length) {
+        console.log(
+          `[STYLIST] Occasion filter: ${_beforeOccasion} → ${candidatePool.length} outfits`,
+        );
+      }
+    }
+
     // ALWAYS-ON: prove expanded pool size before validation
     console.log(
       JSON.stringify({
@@ -5582,11 +5611,11 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       (o, i) => !validIds.has(o.id ?? `outfit-${i}`),
     );
 
-    // Build result: prefer valid outfits, take top 3
+    // Build result: prefer valid outfits, keep all for judge to curate
     let selectedOutfits: any[];
     let _backfillUsed = 'NONE';
     if (validOutfits.length >= 3) {
-      selectedOutfits = validOutfits.slice(0, 3);
+      selectedOutfits = validOutfits;
     } else {
       // Backfill: start with valid, then fill from invalid (fail-open — bad outfit > no outfit)
       selectedOutfits = [...validOutfits, ...invalidOutfits].slice(0, 3);
@@ -5639,6 +5668,130 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     // Re-hydrate eliteOutfits (elite scoring creates new objects via denormalize)
     eliteOutfits.forEach(_hydrateOutfitColors);
 
+    // ── AVOID_COLOR REGENERATION: generate new valid outfits instead of restoring invalid ones ──
+    const _regenerateAvoidSafe = (
+      avoidExpanded: string[],
+      existingIds: Set<string>,
+      outfitChecker: (outfit: any) => boolean,
+    ): any[] => {
+      const _itemHasAvoidColor = (item: any): boolean => {
+        const colors: string[] = [];
+        if (item.color) colors.push(item.color);
+        if (Array.isArray(item.colors)) colors.push(...item.colors);
+        if (item.metadata?.color) colors.push(item.metadata.color);
+        if (Array.isArray(item.metadata?.colors)) colors.push(...item.metadata.colors);
+        if (item.enrichment?.color) colors.push(item.enrichment.color);
+        if (Array.isArray(item.enrichment?.colors)) colors.push(...item.enrichment.colors);
+        for (const raw of colors) {
+          if (typeof raw !== 'string') continue;
+          const ic = raw.trim().toLowerCase();
+          for (const ac of avoidExpanded) {
+            if (colorMatchesSafe(ic, ac)) return true;
+          }
+        }
+        return false;
+      };
+
+      const _bySlot: Record<string, any[]> = {};
+      for (const item of availableWardrobe) {
+        if (_itemHasAvoidColor(item)) continue;
+        const cat = this.mapToCategory(item.main_category || item.category);
+        if (!_bySlot[cat]) _bySlot[cat] = [];
+        _bySlot[cat].push({
+          id: item.id,
+          name: item.name || item.ai_title || 'Item',
+          imageUrl:
+            item.touched_up_image_url ||
+            item.processed_image_url ||
+            item.image_url ||
+            item.image,
+          category: cat,
+        });
+      }
+
+      const tops = _bySlot['top'] ?? [];
+      const bottoms = _bySlot['bottom'] ?? [];
+      const shoes = _bySlot['shoes'] ?? [];
+      const dresses = _bySlot['dress'] ?? [];
+
+      let generated: any[] = [];
+      let _synId = 0;
+      const _usedCombos = new Set<string>();
+
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(
+          JSON.stringify({
+            _tag: 'AVOID_COLOR_REGEN_TRIGGERED',
+            avoid: avoidExpanded.slice(0, 20),
+            attempt,
+          }),
+        );
+
+        // Separates: top + bottom + shoes
+        for (let ti = 0; ti < tops.length && generated.length < 3; ti++) {
+          for (let bi = 0; bi < bottoms.length && generated.length < 3; bi++) {
+            for (let si = 0; si < shoes.length && generated.length < 3; si++) {
+              const items = [tops[ti], bottoms[bi], shoes[si]];
+              const combo = items
+                .map((i) => i.id)
+                .sort()
+                .join(',');
+              if (_usedCombos.has(combo) || existingIds.has(combo)) continue;
+              _usedCombos.add(combo);
+              const outfit = {
+                id: `regen-${_synId++}`,
+                rank: 3 as any,
+                summary: 'Regenerated (avoid-safe)',
+                reasoning: '',
+                items,
+              };
+              _hydrateOutfitColors(outfit);
+              if (!outfitChecker(outfit)) {
+                generated.push(outfit);
+              }
+            }
+          }
+        }
+
+        // Dresses: dress + shoes
+        for (let di = 0; di < dresses.length && generated.length < 3; di++) {
+          for (let si = 0; si < shoes.length && generated.length < 3; si++) {
+            const items = [dresses[di], shoes[si]];
+            const combo = items
+              .map((i) => i.id)
+              .sort()
+              .join(',');
+            if (_usedCombos.has(combo) || existingIds.has(combo)) continue;
+            _usedCombos.add(combo);
+            const outfit = {
+              id: `regen-${_synId++}`,
+              rank: 3 as any,
+              summary: 'Regenerated (avoid-safe)',
+              reasoning: '',
+              items,
+            };
+            _hydrateOutfitColors(outfit);
+            if (!outfitChecker(outfit)) {
+              generated.push(outfit);
+            }
+          }
+        }
+
+        console.log(
+          JSON.stringify({
+            _tag: 'AVOID_COLOR_REGEN_RESULT',
+            generated: generated.length,
+            valid: generated.length,
+            attempt,
+          }),
+        );
+
+        if (generated.length >= 1) break;
+      }
+
+      return generated;
+    };
+
     // ── AVOID_COLOR FINAL GUARD: deterministic post-repair filter ──
     const _avoidColorList = validatorCtx.styleProfile?.avoid_colors;
     if (_avoidColorList && _avoidColorList.length > 0) {
@@ -5668,6 +5821,39 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
             (o) => !_cleanElite.some((c) => (c.id ?? '') === (o.id ?? '')),
           );
         _cleanElite = [..._cleanElite, ..._cleanBackfill].slice(0, 3);
+      }
+      // REGENERATION: generate new valid outfits instead of restoring invalid ones
+      if (_cleanElite.length === 0 && _beforeCount > 0) {
+        const _regenExistingIds = new Set(
+          candidatePool.map((o) =>
+            (o.items || [])
+              .map((i: any) => i?.id)
+              .filter(Boolean)
+              .sort()
+              .join(','),
+          ),
+        );
+        const _regenerated = _regenerateAvoidSafe(
+          _expanded,
+          _regenExistingIds,
+          _outfitHasAvoidedColor,
+        );
+        if (_regenerated.length > 0) {
+          _cleanElite = _regenerated.slice(0, 3);
+          console.log(
+            JSON.stringify({
+              _tag: 'AVOID_COLOR_REGEN_SUCCESS',
+              returned: _cleanElite.length,
+            }),
+          );
+        } else {
+          console.log(
+            JSON.stringify({
+              _tag: 'AVOID_COLOR_REGEN_FAILED',
+              reason: 'WARDROBE_TRULY_INSUFFICIENT',
+            }),
+          );
+        }
       }
       eliteOutfits = _cleanElite;
       // ALWAYS-ON: final guard proof (ungated for debugging avoid_colors)
@@ -5724,6 +5910,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     };
     if (_rtAvoid.length > 0) {
       const _rtBefore = eliteOutfits.length;
+
       eliteOutfits = eliteOutfits.filter((o: any) => !_rtHasAvoid(o));
       if (eliteOutfits.length < 3) {
         const _rtBackfill = candidatePool
@@ -5735,6 +5922,39 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
               ),
           );
         eliteOutfits = [...eliteOutfits, ..._rtBackfill].slice(0, 3);
+      }
+      // REGENERATION: generate new valid outfits instead of restoring invalid ones
+      if (eliteOutfits.length === 0 && _rtBefore > 0) {
+        const _rtRegenExistingIds = new Set(
+          candidatePool.map((o) =>
+            (o.items || [])
+              .map((i: any) => i?.id)
+              .filter(Boolean)
+              .sort()
+              .join(','),
+          ),
+        );
+        const _rtRegenerated = _regenerateAvoidSafe(
+          _rtExpandedAvoid,
+          _rtRegenExistingIds,
+          _rtHasAvoid,
+        );
+        if (_rtRegenerated.length > 0) {
+          eliteOutfits = _rtRegenerated.slice(0, 3);
+          console.log(
+            JSON.stringify({
+              _tag: 'AVOID_COLOR_REGEN_SUCCESS',
+              returned: eliteOutfits.length,
+            }),
+          );
+        } else {
+          console.log(
+            JSON.stringify({
+              _tag: 'AVOID_COLOR_REGEN_FAILED',
+              reason: 'WARDROBE_TRULY_INSUFFICIENT',
+            }),
+          );
+        }
       }
       console.log(
         JSON.stringify({
@@ -5760,6 +5980,57 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         }),
       );
     }
+
+    // ── Style Veto: remove structurally incoherent outfits ──
+    {
+      const _vetoCtxStylist = { query: constraint };
+      const _beforeVetoStylist = eliteOutfits.length;
+      const _coherentStylist = eliteOutfits.filter((o: any) => {
+        const v = isStylisticallyIncoherent(o, _vetoCtxStylist);
+        if (v.invalid) {
+          console.log(
+            JSON.stringify({
+              _tag: 'STYLIST_VETO_REJECTED',
+              mode: 'stylist',
+              reason: v.reason,
+              outfitSummary: (o.items ?? []).map((it: any) =>
+                `${it.name ?? it.label ?? '?'} (${it.subcategory ?? it.main_category ?? '?'})`
+              ),
+            }),
+          );
+        }
+        return !v.invalid;
+      });
+      if (_coherentStylist.length < _beforeVetoStylist && _coherentStylist.length < 3) {
+        console.log(
+          JSON.stringify({
+            _tag: 'STYLIST_VETO_INSUFFICIENT',
+            mode: 'stylist',
+            remainingCount: _coherentStylist.length,
+          }),
+        );
+      }
+      eliteOutfits = _coherentStylist;
+    }
+
+    // ── Style Judge: curate best outfits by holistic taste scoring ──
+    const _judgeCtxStylist = {
+      requestedDressCode: validatorCtx?.requestedDressCode,
+      query: constraint,
+    };
+    const _candidateCountStylist = eliteOutfits.length;
+    eliteOutfits = selectTopOutfits(eliteOutfits, _judgeCtxStylist);
+    console.log(
+      JSON.stringify({
+        _tag: 'STUDIO_FINAL_CURATION_PROOF',
+        mode: 'stylist',
+        candidateCount: _candidateCountStylist,
+        returnedCount: eliteOutfits.length,
+        topScores: eliteOutfits.map((o: any) =>
+          (scoreOutfit as any)(o, _judgeCtxStylist).total,
+        ),
+      }),
+    );
 
     return { weatherSummary, outfits: eliteOutfits };
   }

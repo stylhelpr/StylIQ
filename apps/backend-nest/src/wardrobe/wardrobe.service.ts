@@ -63,6 +63,7 @@ import {
   SLOT_TO_PLAN_CATEGORY,
   filterBySlot,
 } from './logic/categoryMapping';
+import { validateSlotMatch } from './logic/slotCompatibilityValidator';
 
 // NEW: feedback filters
 import {
@@ -79,6 +80,9 @@ import {
   buildEliteExposureEvent,
 } from '../ai/elite/eliteScoring';
 import type { StyleContext } from '../ai/elite/eliteScoring';
+import { selectTopOutfits, scoreOutfit } from '../ai/styleJudge';
+import { isStylisticallyIncoherent } from '../ai/styleVeto';
+import { isOccasionAppropriate, getOccasionRejectionReason } from '../ai/occasionFilter';
 import { FashionStateService } from '../learning/fashion-state.service';
 import {
   loadStylistBrainContext,
@@ -124,6 +128,7 @@ const storage = new Storage();
 type CatalogItem = {
   index: number;
   id: string;
+  name?: string; // original DB name — used by styleJudge detectors
   label: string;
   image?: string; // computed best: touched_up > processed > original
   image_url?: string; // original uploaded image (preserved for semantics)
@@ -1159,6 +1164,29 @@ export class WardrobeService {
         );
       }
 
+      // ── Occasion appropriateness filter (Layer 1.5: pre-pool) ──────
+      {
+        const _occasionCtx = { query };
+        const _beforeOccasion = catalog.length;
+        catalog = catalog.filter((item) => {
+          if (isOccasionAppropriate(item, _occasionCtx)) return true;
+          console.log(
+            JSON.stringify({
+              _tag: 'OCCASION_FILTER_REJECTED',
+              mode: 'standard',
+              itemName: item.label,
+              reason: getOccasionRejectionReason(item, _occasionCtx),
+            }),
+          );
+          return false;
+        });
+        if (_beforeOccasion > catalog.length) {
+          console.log(
+            `[STD] Occasion filter: ${_beforeOccasion} → ${catalog.length} items`,
+          );
+        }
+      }
+
       // 👇 ADD THIS
       const catalogPreAgent = [...catalog];
 
@@ -1988,12 +2016,20 @@ ${lockedLines}
           return 'hot' as const;
         };
         const _bp = (eliteStyleContext as any)?._brainStyleProfile;
+        const _requestedDressCodeSlow: string | undefined = (() => {
+          if (!query) return undefined;
+          const c = query.toLowerCase();
+          if (c.includes('formal') || c.includes('business')) return 'formal';
+          if (c.includes('church') || c.includes('wedding') || c.includes('funeral') || c.includes('interview')) return 'formal';
+          return undefined;
+        })();
         vCtx = {
           userPresentation:
             userPresentation === 'masculine' || userPresentation === 'feminine'
               ? userPresentation
               : undefined,
           climateZone: _tempToZone(opts?.weather?.tempF),
+          requestedDressCode: _requestedDressCodeSlow,
           styleProfile: {
             ...(eliteStyleContext?.styleProfile ?? {}),
             coverage_no_go: _bp?.coverage_no_go,
@@ -2096,6 +2132,38 @@ ${lockedLines}
                   }
                 }
               }
+            } else if (fail.startsWith('AVOID_COLOR')) {
+              const idMatch = fail.match(/item (\S+)/);
+              if (idMatch) {
+                const badItem = fixedItems.find(
+                  (it: any) => it?.id === idMatch[1],
+                );
+                if (badItem) {
+                  const slot = mapMainCategoryToSlot(badItem?.main_category);
+                  const _avoidExp = expandAvoidColors(
+                    vCtx?.styleProfile?.avoid_colors ?? [],
+                  );
+                  const pool = (slotPools.get(slot) ?? []).filter((c: any) => {
+                    if (usedIds.has(c?.id)) return false;
+                    const cColors = extractItemColors(c as any);
+                    if (c.color_family) cColors.push(c.color_family.trim().toLowerCase());
+                    if (c.name ?? c.label) cColors.push((c.name ?? c.label).trim().toLowerCase());
+                    for (const ic of cColors) {
+                      for (const ac of _avoidExp) {
+                        if (colorMatchesSafe(ic, ac)) return false;
+                      }
+                    }
+                    return true;
+                  });
+                  if (pool.length > 0) {
+                    fixedItems = fixedItems.filter(
+                      (it: any) => it?.id !== idMatch[1],
+                    );
+                    fixedItems.push(pool[0]);
+                    usedIds.add(pool[0].id);
+                  }
+                }
+              }
             } else if (fail.startsWith('MISSING_REQUIRED_SLOTS')) {
               const slots = new Set(
                 fixedItems.map((it: any) =>
@@ -2145,7 +2213,7 @@ ${lockedLines}
         scored.sort((a: any, b: any) =>
           a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1,
         );
-        const tasteFiltered = scored.filter((s: any) => s.valid).slice(0, 3).map((s: any) => s.o);
+        const tasteFiltered = scored.filter((s: any) => s.valid).map((s: any) => s.o);
         withIds.length = 0;
         withIds.push(...tasteFiltered);
         _validatorRanSlow = true;
@@ -2204,6 +2272,57 @@ ${lockedLines}
         };
         eliteOutfits = eliteOutfits.filter((o: any) => !_hasAvoided(o));
       }
+
+      // ── Style Veto: remove structurally incoherent outfits ──
+      {
+        const _vetoCtx = { query };
+        const _beforeVetoSlow = eliteOutfits.length;
+        const _coherentSlow = eliteOutfits.filter((o: any) => {
+          const v = isStylisticallyIncoherent(o, _vetoCtx);
+          if (v.invalid) {
+            console.log(
+              JSON.stringify({
+                _tag: 'STYLIST_VETO_REJECTED',
+                mode: 'standard',
+                reason: v.reason,
+                outfitSummary: (o.items ?? []).map((it: any) =>
+                  `${it.name ?? it.label ?? '?'} (${it.subcategory ?? it.main_category ?? '?'})`
+                ),
+              }),
+            );
+          }
+          return !v.invalid;
+        });
+        if (_coherentSlow.length < _beforeVetoSlow && _coherentSlow.length < 3) {
+          console.log(
+            JSON.stringify({
+              _tag: 'STYLIST_VETO_INSUFFICIENT',
+              mode: 'standard',
+              remainingCount: _coherentSlow.length,
+            }),
+          );
+        }
+        eliteOutfits = _coherentSlow.length >= 3 ? _coherentSlow : _coherentSlow;
+      }
+
+      // ── Style Judge: curate best outfits by holistic taste scoring ──
+      const _judgeCtxSlow = {
+        requestedDressCode: vCtx?.requestedDressCode,
+        query,
+      };
+      const _candidateCountSlow = eliteOutfits.length;
+      eliteOutfits = selectTopOutfits(eliteOutfits, _judgeCtxSlow);
+      console.log(
+        JSON.stringify({
+          _tag: 'STUDIO_FINAL_CURATION_PROOF',
+          mode: 'standard',
+          candidateCount: _candidateCountSlow,
+          returnedCount: eliteOutfits.length,
+          topScores: eliteOutfits.map((o: any) =>
+            scoreOutfit(o, _judgeCtxSlow).total,
+          ),
+        }),
+      );
 
       return {
         request_id,
@@ -2658,6 +2777,14 @@ ${lockedLines}
         .replace(/ALL 3 outfits/g, 'ALL 9 outfits')
         .replace(/All 3 outfits/g, 'All 9 outfits');
 
+      // ── JSON safety constraints to reduce malformed output ──
+      planPrompt += `\n\nJSON SAFETY RULES (MANDATORY):
+- Return ONLY valid JSON. No markdown, no backticks, no trailing text.
+- All string values must be single-line (no newline characters inside strings).
+- Do not use unescaped quotes inside string values.
+- "why" must be <= 140 chars, single sentence.
+- If you cannot produce 9 outfits, produce as many as possible but still valid JSON.`;
+
       console.log('⚡ [FAST] Plan prompt length:', planPrompt.length, 'chars');
       console.log(
         '⚡ [FAST] Plan prompt (first 500 chars):',
@@ -2691,23 +2818,95 @@ ${lockedLines}
 
       const planStartTime = Date.now();
 
-      const plan = await this.vertex.generateOutfitPlan(planPrompt);
+      // Use generateOutfits (returns raw response) instead of generateOutfitPlan
+      // so we retain the raw text for robust salvage parsing when JSON is truncated.
+      const planRaw = await this.vertex.generateOutfits(planPrompt);
+      const planText: string =
+        (planRaw?.candidates?.[0]?.content?.parts?.[0]?.text as string) ??
+        (typeof planRaw === 'string' ? planRaw : '');
 
       const planLatencyMs = Date.now() - planStartTime;
       console.log('⚡ [FAST] Plan generated in', planLatencyMs, 'ms');
-      console.log('⚡ [FAST] Plan:', JSON.stringify(plan, null, 2));
+      console.log('⚡ [FAST] Plan raw text:', planText.substring(0, 800));
 
       logRawResponse(reqId, {
-        responseText: JSON.stringify(plan),
-        model: 'gemini-2.0-flash',
+        responseText: planText,
+        model: 'gemini-2.5-flash',
         latencyMs: planLatencyMs,
       });
 
-      // Handle both new format (single outfit) and old format (outfits array)
-      const outfitsArray = plan.outfit ? [plan.outfit] : plan.outfits || [];
+      // ── Robust JSON extraction + salvage ──
+      let plan: { outfit?: any; outfits?: any[] } = { outfits: [] };
+
+      // Step 1: Brace-balanced JSON extraction
+      const _extractBraceBalanced = (raw: string): string | null => {
+        const idx = raw.indexOf('{');
+        if (idx === -1) return null;
+        let depth = 0;
+        let inStr = false;
+        let escaped = false;
+        for (let i = idx; i < raw.length; i++) {
+          const ch = raw[i];
+          if (escaped) { escaped = false; continue; }
+          if (ch === '\\' && inStr) { escaped = true; continue; }
+          if (ch === '"') { inStr = !inStr; continue; }
+          if (inStr) continue;
+          if (ch === '{') depth++;
+          else if (ch === '}') { depth--; if (depth === 0) return raw.slice(idx, i + 1); }
+        }
+        return null; // unbalanced
+      };
+
+      // Step 2: Strip control chars that break JSON
+      const _sanitize = (s: string): string =>
+        s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ' ');
+
+      // Try brace-balanced extraction first
+      const balanced = _extractBraceBalanced(_sanitize(planText));
+      if (balanced) {
+        try {
+          plan = JSON.parse(balanced);
+        } catch {
+          // Try extractStrictJson as fallback (first { to last })
+          try { plan = extractStrictJson(_sanitize(planText)); } catch { /* handled below */ }
+        }
+      } else {
+        try { plan = extractStrictJson(_sanitize(planText)); } catch { /* handled below */ }
+      }
+
+      // Step 3: Partial salvage via regex when JSON parse fails entirely
+      let outfitsArray = plan.outfit ? [plan.outfit] : plan.outfits || [];
+
+      if (!outfitsArray.length && planText.length > 50) {
+        console.warn('⚡ [FAST] JSON parse failed, attempting partial outfit salvage');
+        const salvaged: any[] = [];
+        // Match each outfit block: "title" + "slots" array
+        const outfitRe = /"title"\s*:\s*"([^"]*)"[\s\S]*?"slots"\s*:\s*\[([\s\S]*?)\]/g;
+        let regexMatch: RegExpExecArray | null;
+        while ((regexMatch = outfitRe.exec(planText)) !== null && salvaged.length < 9) {
+          const title = regexMatch[1];
+          const slotsRaw = regexMatch[2];
+          // Extract individual slot objects
+          const slotRe = /\{\s*"category"\s*:\s*"([^"]*)"\s*,\s*"description"\s*:\s*"([^"]*)"/g;
+          const slots: any[] = [];
+          let slotMatch: RegExpExecArray | null;
+          while ((slotMatch = slotRe.exec(slotsRaw)) !== null) {
+            slots.push({ category: slotMatch[1], description: slotMatch[2], formality: 5 });
+          }
+          if (title && slots.length >= 2) {
+            salvaged.push({ title, slots, why: '' });
+          }
+        }
+        if (salvaged.length > 0) {
+          console.log(`⚡ [FAST] Salvaged ${salvaged.length} outfits from malformed JSON`);
+          outfitsArray = salvaged;
+        }
+      }
+
+      console.log('⚡ [FAST] Plan outfits count:', outfitsArray.length);
 
       if (!outfitsArray.length) {
-        console.warn('⚡ [FAST] No outfits in plan, returning empty');
+        console.warn('⚡ [FAST] No outfits in plan after salvage, returning empty');
         return {
           request_id: randomUUID(),
           outfit_id: randomUUID(),
@@ -2874,6 +3073,29 @@ ${lockedLines}
         'ms',
       );
 
+      // ── Elite Scoring: load context early (needed for slot-pick avoid_colors + taste validator + rerank) ──
+      const eliteStyleContext = await this.loadEliteStyleContext(userId);
+      const _bpEarly = (eliteStyleContext as any)?._brainStyleProfile;
+      const _earlyAvoid: string[] = _bpEarly?.avoid_colors ?? eliteStyleContext?.styleProfile?.avoid_colors ?? [];
+      const _earlyAvoidExpanded = _earlyAvoid.length > 0 ? expandAvoidColors(_earlyAvoid) : [];
+
+      const _itemViolatesAvoidColors = (item: any): boolean => {
+        if (_earlyAvoidExpanded.length === 0) return false;
+        // Collect all color signals from hydrated DB row:
+        // extractItemColors reads .color, .colors, .metadata.color, etc.
+        // We also check .color_family and item .name to catch cases where
+        // the color DB field is null but the name contains the color word.
+        const colors = extractItemColors(item as any);
+        if (item.color_family) colors.push(item.color_family.trim().toLowerCase());
+        if (item.name) colors.push(item.name.trim().toLowerCase());
+        for (const ic of colors) {
+          for (const ac of _earlyAvoidExpanded) {
+            if (colorMatchesSafe(ic, ac)) return true;
+          }
+        }
+        return false;
+      };
+
       // ── 4) Assemble final outfits with real items ──
       // PATH #1 (standard): LLM generates all slots, we match with Pinecone
       // PATH #2 (start with item): Centerpiece is FIRST in every outfit, LLM generated complementary slots
@@ -2957,26 +3179,72 @@ ${lockedLines}
             continue;
           }
 
-          // Pick best unused match from Pinecone results
+          // Pick best unused match from Pinecone results,
+          // skipping P0 avoid_color violators AND slot-incompatible items
+          let _pickedFallback: any = null;
+          let _slotPicked = false;
           for (const match of sr.matches) {
             const itemId = this.normalizePineconeId(match.id).id;
             if (usedIds.has(itemId)) continue;
 
             const item = itemsMap.get(itemId);
-            if (item) {
-              items.push(this.dbRowToCatalogItem(item));
-              usedIds.add(itemId);
-              if (isRefinement) {
-                console.log(
-                  `⚡ [FAST] Changed ${targetSlot} slot: ${item.name} (from LLM description: "${sr.slot.description}")`,
-                );
-              } else if (isStartWithItem) {
-                console.log(
-                  `⚡ [FAST] PATH #2: Complementary ${targetSlot}: ${item.name} (matched: "${sr.slot.description}")`,
-                );
-              }
-              break;
+            if (!item) continue;
+
+            // P-1: occasion appropriateness — reject items inappropriate for formal contexts
+            if (!isOccasionAppropriate(item, { query })) {
+              console.log(
+                JSON.stringify({
+                  _tag: 'OCCASION_FILTER_REJECTED',
+                  mode: 'fast',
+                  itemName: item.name,
+                  reason: getOccasionRejectionReason(item, { query }),
+                }),
+              );
+              continue;
             }
+
+            // P0: skip items whose colors match avoid_colors
+            if (_itemViolatesAvoidColors(item)) {
+              if (!_pickedFallback) _pickedFallback = item;
+              continue;
+            }
+
+            // P1: slot compatibility — reject garment-type mismatches
+            const slotCheck = validateSlotMatch(
+              { category: targetSlot, description: sr.slot.description, formality: sr.slot.formality },
+              { id: item.id, name: item.name, main_category: item.main_category, subcategory: item.subcategory, dress_code: item.dress_code, formality_score: item.formality_score },
+              query,
+            );
+            if (!slotCheck.valid) {
+              console.log(
+                `⚡ [FAST] STUDIO_SLOT_REJECTED | slot: "${sr.slot.description}" | candidate: "${item.name}" (${item.subcategory || item.main_category}) | reason: ${slotCheck.reason}`,
+              );
+              continue;
+            }
+
+            items.push(this.dbRowToCatalogItem(item));
+            usedIds.add(itemId);
+            _slotPicked = true;
+            console.log(
+              `⚡ [FAST] STUDIO_SLOT_ACCEPTED | slot: "${sr.slot.description}" | picked: "${item.name}" (${item.subcategory || item.main_category})`,
+            );
+            if (isRefinement) {
+              console.log(
+                `⚡ [FAST] Changed ${targetSlot} slot: ${item.name} (from LLM description: "${sr.slot.description}")`,
+              );
+            } else if (isStartWithItem) {
+              console.log(
+                `⚡ [FAST] PATH #2: Complementary ${targetSlot}: ${item.name} (matched: "${sr.slot.description}")`,
+              );
+            }
+            _pickedFallback = null;
+            break;
+          }
+          // If ALL candidates violated avoid_colors, fall back to top match
+          // so we fail-closed later in validation rather than crashing selection
+          if (!_slotPicked && _pickedFallback && !items.some((it) => mapMainCategoryToSlot(it.main_category) === targetSlot)) {
+            items.push(this.dbRowToCatalogItem(_pickedFallback));
+            usedIds.add(_pickedFallback.id);
           }
         }
 
@@ -3246,9 +3514,6 @@ ${lockedLines}
         itemCounts: outfits.map((o: any) => o.items?.length ?? 0),
       });
 
-      // ── Elite Scoring: load context (non-blocking, used by taste validator + rerank) ──
-      const eliteStyleContext = await this.loadEliteStyleContext(userId);
-
       // ── Taste Validation + Deterministic Repair (fast path) ──
       let _validatorRanFast = false;
       let _numHardFailedFast = 0;
@@ -3285,12 +3550,20 @@ ${lockedLines}
           return 'hot' as const;
         };
         const _bpFast = (eliteStyleContext as any)?._brainStyleProfile;
+        const _requestedDressCodeFast: string | undefined = (() => {
+          if (!query) return undefined;
+          const c = query.toLowerCase();
+          if (c.includes('formal') || c.includes('business')) return 'formal';
+          if (c.includes('church') || c.includes('wedding') || c.includes('funeral') || c.includes('interview')) return 'formal';
+          return undefined;
+        })();
         vCtx = {
           userPresentation:
             userPresentation === 'masculine' || userPresentation === 'feminine'
               ? userPresentation
               : undefined,
           climateZone: _tempToZone(opts?.weather?.tempF),
+          requestedDressCode: _requestedDressCodeFast,
           styleProfile: {
             ...(eliteStyleContext?.styleProfile ?? {}),
             coverage_no_go: _bpFast?.coverage_no_go,
@@ -3354,6 +3627,38 @@ ${lockedLines}
                       return pc !== 'feminine';
                     if (vCtx.userPresentation === 'feminine')
                       return pc !== 'masculine';
+                    return true;
+                  });
+                  if (pool.length > 0) {
+                    fixedItems = fixedItems.filter(
+                      (it: any) => it?.id !== idMatch[1],
+                    );
+                    fixedItems.push(pool[0]);
+                    usedIds.add(pool[0].id);
+                  }
+                }
+              }
+            } else if (fail.startsWith('AVOID_COLOR')) {
+              const idMatch = fail.match(/item (\S+)/);
+              if (idMatch) {
+                const badItem = fixedItems.find(
+                  (it: any) => it?.id === idMatch[1],
+                );
+                if (badItem) {
+                  const slot = mapMainCategoryToSlot(badItem?.main_category);
+                  const _avoidExp = expandAvoidColors(
+                    vCtx?.styleProfile?.avoid_colors ?? [],
+                  );
+                  const pool = (slotPools.get(slot) ?? []).filter((c: any) => {
+                    if (usedIds.has(c?.id)) return false;
+                    const cColors = extractItemColors(c as any);
+                    if (c.color_family) cColors.push(c.color_family.trim().toLowerCase());
+                    if (c.name ?? c.label) cColors.push((c.name ?? c.label).trim().toLowerCase());
+                    for (const ic of cColors) {
+                      for (const ac of _avoidExp) {
+                        if (colorMatchesSafe(ic, ac)) return false;
+                      }
+                    }
                     return true;
                   });
                   if (pool.length > 0) {
@@ -3441,7 +3746,7 @@ ${lockedLines}
         scored.sort((a: any, b: any) =>
           a.valid === b.valid ? b.cs - a.cs : a.valid ? -1 : 1,
         );
-        outfits = scored.filter((s: any) => s.valid).slice(0, 3).map((s: any) => s.o);
+        outfits = scored.filter((s: any) => s.valid).map((s: any) => s.o);
         _validatorRanFast = true;
         _numHardFailedFast = scored.filter((s: any) => !s.valid).length;
         _numRepairedViaSwapFast = scored.filter(
@@ -3499,6 +3804,57 @@ ${lockedLines}
         eliteOutfits = eliteOutfits.filter((o: any) => !_hasAvoided(o));
       }
 
+      // ── Style Veto: remove structurally incoherent outfits ──
+      {
+        const _vetoCtxFast = { query };
+        const _beforeVetoFast = eliteOutfits.length;
+        const _coherentFast = eliteOutfits.filter((o: any) => {
+          const v = isStylisticallyIncoherent(o, _vetoCtxFast);
+          if (v.invalid) {
+            console.log(
+              JSON.stringify({
+                _tag: 'STYLIST_VETO_REJECTED',
+                mode: 'fast',
+                reason: v.reason,
+                outfitSummary: (o.items ?? []).map((it: any) =>
+                  `${it.name ?? it.label ?? '?'} (${it.subcategory ?? it.main_category ?? '?'})`
+                ),
+              }),
+            );
+          }
+          return !v.invalid;
+        });
+        if (_coherentFast.length < _beforeVetoFast && _coherentFast.length < 3) {
+          console.log(
+            JSON.stringify({
+              _tag: 'STYLIST_VETO_INSUFFICIENT',
+              mode: 'fast',
+              remainingCount: _coherentFast.length,
+            }),
+          );
+        }
+        eliteOutfits = _coherentFast;
+      }
+
+      // ── Style Judge: curate best outfits by holistic taste scoring ──
+      const _judgeCtxFast = {
+        requestedDressCode: vCtx?.requestedDressCode,
+        query,
+      };
+      const _candidateCountFast = eliteOutfits.length;
+      eliteOutfits = selectTopOutfits(eliteOutfits, _judgeCtxFast);
+      console.log(
+        JSON.stringify({
+          _tag: 'STUDIO_FINAL_CURATION_PROOF',
+          mode: 'fast',
+          candidateCount: _candidateCountFast,
+          returnedCount: eliteOutfits.length,
+          topScores: eliteOutfits.map((o: any) =>
+            scoreOutfit(o, _judgeCtxFast).total,
+          ),
+        }),
+      );
+
       return {
         request_id: reqId,
         outfit_id: best.outfit_id,
@@ -3542,6 +3898,7 @@ ${lockedLines}
     return {
       index,
       id: row.id,
+      name: row.name || undefined,
       label: row.name || 'Unknown Item',
       image:
         row.touched_up_image_url || row.processed_image_url || row.image_url,
