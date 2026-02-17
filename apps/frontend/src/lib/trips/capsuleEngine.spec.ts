@@ -548,8 +548,8 @@ describe('Global Climate Gating', () => {
   });
 
   // Additional: CAPSULE_VERSION bumped for final validation gate
-  it('CAPSULE_VERSION is 13 (stylist-driven capsule intent)', () => {
-    expect(CAPSULE_VERSION).toBe(13);
+  it('CAPSULE_VERSION is 14 (required role coverage)', () => {
+    expect(CAPSULE_VERSION).toBe(14);
   });
 
   // ══════════════════════════════════════════════════════════════════════════

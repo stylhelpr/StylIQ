@@ -37,7 +37,22 @@ import {
 } from '../elite/eliteScoring';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 13;
+export const CAPSULE_VERSION = 14;
+
+// ── Trip Trace Instrumentation ──
+const TRIP_TRACE = true;
+
+type TripTraceEvent = {
+  step: string;
+  message: string;
+  data?: any;
+};
+
+let tripTrace: TripTraceEvent[] = [];
+
+function trace(step: string, message: string, data?: any) {
+  tripTrace.push({step, message, data});
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ██  GLOBAL CLIMATE GATING (minimal layer)
@@ -794,6 +809,18 @@ type WeightedPickResult = {
   runners: CandidateInfo[];
 };
 
+// ── Anchor Budget: caps how often a shoe can be the daily anchor ──
+
+type AnchorBudget = Map<string, number>;
+
+function computeAnchorBudget(viableAnchorIds: string[], totalDays: number): AnchorBudget {
+  const budget: AnchorBudget = new Map();
+  if (viableAnchorIds.length === 0) return budget;
+  const maxPer = Math.ceil(totalDays / viableAnchorIds.length);
+  for (const id of viableAnchorIds) budget.set(id, maxPer);
+  return budget;
+}
+
 /**
  * Scores candidates and picks the best item. NO modulo rotation.
  *
@@ -906,6 +933,7 @@ function tieredPick(
   maxUsesPerItem: number,
   qualityFn?: (item: TripWardrobeItem) => number,
   debugLabel?: string,
+  toleranceIds?: ReadonlySet<string>,
 ): WeightedPickResult | null {
   if (candidates.length === 0) return null;
 
@@ -915,6 +943,11 @@ function tieredPick(
   const fallback: TripWardrobeItem[] = [];
 
   for (const item of candidates) {
+    // Tolerance candidates: force to SECONDARY (formality soft-fail)
+    if (toleranceIds?.has(item.id)) {
+      secondary.push(item);
+      continue;
+    }
     const onPalette = matchesPalette(item, capsuleIntent.paletteColors);
     const avoided = matchesDisliked(item, styleHints);
     const neutral = isNeutralColor(item);
@@ -928,6 +961,16 @@ function tieredPick(
       fallback.push(item);
     }
   }
+
+  if (TRIP_TRACE) trace('tiered_pick', `Pool split: ${debugLabel ?? 'unknown'}`, {
+    debugLabel, dayIndex,
+    primaryCount: primary.length,
+    secondaryCount: secondary.length,
+    fallbackCount: fallback.length,
+    primaryIds: primary.map(i => i.id),
+    secondaryIds: secondary.map(i => i.id),
+    fallbackIds: fallback.map(i => i.id),
+  });
 
   if (__DEV__ && debugLabel) {
     console.log(
@@ -1061,12 +1104,21 @@ function applyCoherenceGuard(
         });
 
       if (swapCandidates.length > 0) {
+        if (TRIP_TRACE) trace('coherence_guard', `Rule1 swap: off-palette excess`, {
+          dayIndex, rule: 'max_1_off_palette',
+          swappedOut: currentItem.name, swappedIn: swapCandidates[0].name,
+          bucket, candidateCount: swapCandidates.length,
+        });
         if (__DEV__) {
           console.log(
             `[TripCapsule][COHERENCE] day=${dayIndex} swapped ${currentItem.name} → ${swapCandidates[0].name} (palette fix)`,
           );
         }
         result[idx] = toPackingItem(swapCandidates[0], locationLabel);
+      } else {
+        if (TRIP_TRACE) trace('coherence_guard', `Rule1 no swap: no on-palette candidate`, {
+          dayIndex, rule: 'max_1_off_palette', item: currentItem.name, bucket,
+        });
       }
     }
   }
@@ -1087,12 +1139,21 @@ function applyCoherenceGuard(
         return aUses - bUses || a.id.localeCompare(b.id);
       });
     if (shoeSwaps.length > 0) {
+      if (TRIP_TRACE) trace('coherence_guard', `Rule2 shoe swap: off-palette shoe`, {
+        dayIndex, rule: 'shoe_palette',
+        swappedOut: full.name, swappedIn: shoeSwaps[0].name,
+        candidateCount: shoeSwaps.length,
+      });
       if (__DEV__) {
         console.log(
           `[TripCapsule][COHERENCE] day=${dayIndex} shoe swap: ${full.name} → ${shoeSwaps[0].name}`,
         );
       }
       result[i] = toPackingItem(shoeSwaps[0], locationLabel);
+    } else {
+      if (TRIP_TRACE) trace('coherence_guard', `Rule2 no swap: no palette shoe available`, {
+        dayIndex, rule: 'shoe_palette', shoe: full.name,
+      });
     }
   }
 
@@ -1118,6 +1179,11 @@ function applyCoherenceGuard(
         return aUses - bUses || a.id.localeCompare(b.id);
       });
     if (outerSwaps.length > 0) {
+      if (TRIP_TRACE) trace('coherence_guard', `Rule3 outerwear swap`, {
+        dayIndex, rule: 'outerwear_palette_formality',
+        swappedOut: full.name, swappedIn: outerSwaps[0].name,
+        candidateCount: outerSwaps.length,
+      });
       if (__DEV__) {
         console.log(
           `[TripCapsule][COHERENCE] day=${dayIndex} outerwear swap: ${full.name} → ${outerSwaps[0].name}`,
@@ -1223,7 +1289,266 @@ function buildCapsuleIntent(
     console.log('[TripCapsule][INTENT]', {paletteColors, accentColor, baselineFormality, silhouetteBias});
   }
 
+  if (TRIP_TRACE) trace('capsule_intent', 'Capsule intent computed', {
+    paletteColors, accentColor, baselineFormality,
+  });
+
   return {paletteColors, accentColor, baselineFormality, silhouetteBias};
+}
+
+// ── Required Role Coverage ──
+
+type FootwearRole = 'anchor_shoe' | 'contrast_shoe' | 'condition_shoe';
+type OuterwearRole = 'structured_layer' | 'casual_layer';
+type ItemRole = FootwearRole | OuterwearRole;
+
+type RoleRequirement = {
+  role: ItemRole;
+  required: boolean;
+  reason: string;
+};
+
+type RoleRegistry = Map<ItemRole, TripWardrobeItem>;
+
+/** Coarse formality tier for shoe contrast comparison. */
+function getFormalityTier(item: TripWardrobeItem): number {
+  const f = getNormalizedFormality(item);
+  if (f >= 70) return 3;
+  if (f >= 50) return 2;
+  if (f >= 30) return 1;
+  return 0;
+}
+
+/** Classify item color as light, dark, or accent for contrast comparison. */
+function getColorWeight(item: TripWardrobeItem): 'light' | 'dark' | 'accent' {
+  const words = (item.color || '').toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+  const LIGHT_TOKENS = ['white', 'cream', 'beige', 'ivory', 'tan', 'nude', 'khaki', 'light'];
+  const DARK_TOKENS = ['black', 'navy', 'charcoal', 'brown', 'dark', 'espresso', 'midnight'];
+  if (words.some(w => DARK_TOKENS.some(d => w.includes(d)))) return 'dark';
+  if (words.some(w => LIGHT_TOKENS.includes(w))) return 'light';
+  return 'accent';
+}
+
+/** True if candidate differs from anchor in formality tier OR color weight. */
+function differsFromAnchor(candidate: TripWardrobeItem, anchor: TripWardrobeItem): boolean {
+  if (getFormalityTier(candidate) !== getFormalityTier(anchor)) return true;
+  if (getColorWeight(candidate) !== getColorWeight(anchor)) return true;
+  return false;
+}
+
+/**
+ * Determines required item roles based on trip context.
+ * Called immediately after buildCapsuleIntent, before any item selection.
+ */
+function determineRequiredRoles(
+  activities: TripActivity[],
+  weather: DayWeather[],
+): RoleRequirement[] {
+  const roles: RoleRequirement[] = [];
+
+  // Footwear roles — always required
+  roles.push({role: 'anchor_shoe', required: true, reason: 'Most versatile palette-matching shoe'});
+  roles.push({role: 'contrast_shoe', required: true, reason: 'Differs from anchor in formality or color weight'});
+
+  // Condition shoe — precipitation, hot weather, or activity-specific
+  const hasPrecipitation = weather.some(d => d.rainChance > 50);
+  const isHotWeather = weather.some(d => d.highF > 85);
+  const hasConditionActivity = activities.some(a => a === 'Active' || a === 'Beach');
+  if (hasPrecipitation || isHotWeather || hasConditionActivity) {
+    roles.push({role: 'condition_shoe', required: true, reason: 'Weather or activity specific footwear'});
+  }
+
+  // Outerwear roles — conditional on temperature range or mixed formality
+  if (weather.length > 0) {
+    const tripTempRange = Math.max(...weather.map(d => d.highF)) - Math.min(...weather.map(d => d.lowF));
+    const formalityValues = activities.map(a => getActivityProfile(a).formality >= 2);
+    const hasMixedFormality = formalityValues.includes(true) && formalityValues.includes(false);
+    if (tripTempRange > 25 || hasMixedFormality) {
+      roles.push({role: 'structured_layer', required: true, reason: 'Smart/formal compatible layer'});
+      roles.push({role: 'casual_layer', required: true, reason: 'Relaxed compatible layer'});
+    }
+  }
+
+  if (__DEV__) {
+    console.log('[TripCapsule][ROLES]', roles.map(r => r.role));
+  }
+
+  if (TRIP_TRACE) trace('role_determination', 'Required roles determined', {
+    roles: roles.map(r => ({role: r.role, reason: r.reason})),
+  });
+
+  return roles;
+}
+
+/**
+ * Fills footwear roles using tieredPick, ensuring complementary shoe selection.
+ * anchor_shoe: most versatile palette-matching shoe
+ * contrast_shoe: differs from anchor in formality tier or color weight
+ * condition_shoe: weather/activity-appropriate (only if role required AND room in maxShoes)
+ */
+function fillFootwearRoles(
+  shoeBucket: TripWardrobeItem[],
+  roles: RoleRequirement[],
+  capsuleIntent: CapsuleIntent,
+  styleHints: TripStyleHints | undefined,
+  activities: TripActivity[],
+  weather: DayWeather[],
+  maxShoes: number,
+  roleRegistry: RoleRegistry,
+): TripWardrobeItem[] {
+  if (shoeBucket.length === 0) return [];
+
+  const footwearRoles = roles.filter(r =>
+    r.role === 'anchor_shoe' || r.role === 'contrast_shoe' || r.role === 'condition_shoe',
+  );
+
+  // Pre-filter: exclude casual-only shoes when trip has formal activities.
+  // Mirrors per-day gating so role selection doesn't pick shoes that will be gated out.
+  const tripFormality = capsuleIntent.baselineFormality;
+  const usableShoes = tripFormality >= 2
+    ? shoeBucket.filter(s => !inferGarmentFlags(s).isCasualOnly)
+    : shoeBucket;
+  const effectivePool = usableShoes.length > 0 ? usableShoes : shoeBucket; // fail-open
+
+  // Trace point 3: Candidate buckets (shoes only)
+  if (TRIP_TRACE) {
+    for (const shoe of shoeBucket) {
+      const inEffective = effectivePool.some(s => s.id === shoe.id);
+      const flags = inferGarmentFlags(shoe);
+      trace('shoe_candidate', `Evaluating shoe: ${shoe.name}`, {
+        id: shoe.id,
+        color: shoe.color,
+        formalityTier: getFormalityTier(shoe),
+        colorWeight: getColorWeight(shoe),
+        passedSafety: inEffective,
+        paletteMatch: matchesPalette(shoe, capsuleIntent.paletteColors),
+        isNeutral: isNeutralColor(shoe),
+        isCasualOnly: flags.isCasualOnly,
+        rejectedReason: !inEffective ? `casual-only filtered (tripFormality=${tripFormality})` : null,
+      });
+    }
+  }
+
+  // Fallback: if only 1 usable shoe or no footwear roles, use original slice behavior
+  if (footwearRoles.length === 0 || effectivePool.length === 1) {
+    if (effectivePool.length >= 1) roleRegistry.set('anchor_shoe', effectivePool[0]);
+    return effectivePool.slice(0, maxShoes);
+  }
+
+  const selected: TripWardrobeItem[] = [];
+  const usedIds = new Set<string>();
+  const emptyTracker = new Map<string, number[]>();
+  const qualityFn = (item: TripWardrobeItem) => activityScore(item, activities);
+
+  // 1. anchor_shoe — most versatile palette-matching shoe
+  const anchorResult = tieredPick(
+    effectivePool, capsuleIntent, styleHints,
+    emptyTracker, 0, Infinity, qualityFn,
+    __DEV__ ? 'role/anchor_shoe' : undefined,
+  );
+  if (anchorResult) {
+    roleRegistry.set('anchor_shoe', anchorResult.picked);
+    selected.push(anchorResult.picked);
+    usedIds.add(anchorResult.picked.id);
+    if (TRIP_TRACE) trace('role_fill', 'anchor_shoe filled', {
+      role: 'anchor_shoe',
+      chosen: {id: anchorResult.picked.id, name: anchorResult.picked.name, color: anchorResult.picked.color},
+      candidatesEvaluated: anchorResult.runners.map(r => ({id: r.item.id, name: r.item.name, penalty: r.penalty})),
+      skippedReasons: anchorResult.runners.slice(1).map(r => ({id: r.item.id, reason: `penalty=${r.penalty} vs winner=${anchorResult.runners[0].penalty}`})),
+    });
+  } else {
+    if (TRIP_TRACE) trace('role_fill', 'anchor_shoe FAILED — no result from tieredPick', {role: 'anchor_shoe', poolSize: effectivePool.length});
+  }
+
+  // 2. contrast_shoe — must differ from anchor in formality tier or color weight
+  const anchor = roleRegistry.get('anchor_shoe');
+  if (anchor && selected.length < maxShoes) {
+    const contrastCandidates = effectivePool.filter(
+      s => !usedIds.has(s.id) && differsFromAnchor(s, anchor),
+    );
+
+    if (TRIP_TRACE) {
+      const remaining = effectivePool.filter(s => !usedIds.has(s.id));
+      trace('role_fill', 'contrast_shoe evaluation', {
+        role: 'contrast_shoe',
+        anchorId: anchor.id,
+        anchorFormalityTier: getFormalityTier(anchor),
+        anchorColorWeight: getColorWeight(anchor),
+        trueContrastCount: contrastCandidates.length,
+        trueContrastIds: contrastCandidates.map(s => ({id: s.id, name: s.name, formalityTier: getFormalityTier(s), colorWeight: getColorWeight(s)})),
+        remainingNonContrastIds: remaining.filter(s => !contrastCandidates.some(c => c.id === s.id)).map(s => ({id: s.id, name: s.name, formalityTier: getFormalityTier(s), colorWeight: getColorWeight(s), differsFromAnchor: false})),
+        usedFallback: contrastCandidates.length === 0,
+      });
+    }
+
+    // If no shoe truly differs, pick the next-best available (still prevents repetition)
+    const pool = contrastCandidates.length > 0
+      ? contrastCandidates
+      : effectivePool.filter(s => !usedIds.has(s.id));
+
+    if (pool.length > 0) {
+      const result = tieredPick(
+        pool, capsuleIntent, styleHints,
+        emptyTracker, 0, Infinity, qualityFn,
+        __DEV__ ? `role/contrast_shoe${contrastCandidates.length > 0 ? '' : '_fallback'}` : undefined,
+      );
+      if (result) {
+        roleRegistry.set('contrast_shoe', result.picked);
+        selected.push(result.picked);
+        usedIds.add(result.picked.id);
+        if (TRIP_TRACE) trace('role_fill', 'contrast_shoe filled', {
+          role: 'contrast_shoe',
+          chosen: {id: result.picked.id, name: result.picked.name, color: result.picked.color},
+          candidatesEvaluated: result.runners.map(r => ({id: r.item.id, name: r.item.name, penalty: r.penalty})),
+        });
+      }
+    }
+  }
+
+  // 3. condition_shoe — weather/activity specific (only if role required AND room)
+  if (footwearRoles.some(r => r.role === 'condition_shoe') && selected.length < maxShoes) {
+    const hasPrecip = weather.some(d => d.rainChance > 50);
+    const isHot = weather.some(d => d.highF > 85);
+    const hasActive = activities.includes('Active');
+    const hasBeach = activities.includes('Beach');
+
+    const conditionCandidates = effectivePool.filter(s => {
+      if (usedIds.has(s.id)) return false;
+      if (hasPrecip && s.rainOk) return true;
+      if (isHot && isOpenFootwear(s)) return true;
+      if (hasActive) {
+        const sub = (s.subcategory || '').toLowerCase();
+        if (sub.includes('athletic') || sub.includes('sneaker') || sub.includes('running') || sub.includes('trainer')) return true;
+      }
+      if (hasBeach && isOpenFootwear(s)) return true;
+      return false;
+    });
+
+    const pool = conditionCandidates.length > 0
+      ? conditionCandidates
+      : effectivePool.filter(s => !usedIds.has(s.id));
+
+    if (pool.length > 0) {
+      const result = tieredPick(
+        pool, capsuleIntent, styleHints,
+        emptyTracker, 0, Infinity, qualityFn,
+        __DEV__ ? `role/condition_shoe${conditionCandidates.length > 0 ? '' : '_fallback'}` : undefined,
+      );
+      if (result) {
+        roleRegistry.set('condition_shoe', result.picked);
+        selected.push(result.picked);
+        usedIds.add(result.picked.id);
+        if (TRIP_TRACE) trace('role_fill', 'condition_shoe filled', {
+          role: 'condition_shoe',
+          chosen: {id: result.picked.id, name: result.picked.name, color: result.picked.color},
+          conditionMatchCount: conditionCandidates.length,
+          usedFallback: conditionCandidates.length === 0,
+        });
+      }
+    }
+  }
+
+  return selected.slice(0, maxShoes);
 }
 
 // ── Wardrobe presentation detection ──
@@ -1401,6 +1726,35 @@ function filterUsed<T extends {id: string}>(
   return pool.filter(item => !usedIds.has(item.id));
 }
 
+/**
+ * Evaluates whether a role-packed shoe that failed formality gating should be
+ * reinserted as a penalized candidate. Safety gates (weather, presentation,
+ * coverage) remain HARD FAIL — only formality rejection is softened.
+ */
+function evaluatePackedItemTolerance(
+  item: TripWardrobeItem,
+  climateZone: ClimateZone,
+  presentation: Presentation,
+  roleRegistry: RoleRegistry,
+): boolean {
+  // Only tolerate items intentionally packed via role planning
+  const isRoleItem = [...roleRegistry.values()].some(v => v.id === item.id);
+  if (!isRoleItem) return false;
+
+  const flags = inferGarmentFlags(item);
+
+  // HARD FAIL: presentation violation
+  if (presentation === 'masculine' && flags.isFeminineOnly) return false;
+
+  // HARD FAIL: weather incompatibility
+  const isColdOrFreezing = climateZone === 'cold' || climateZone === 'freezing';
+  if (isColdOrFreezing && flags.isMinimalCoverage) return false;
+  if (isColdOrFreezing && isOpenFootwear(item)) return false;
+
+  // Passed safety — formality-only rejection is tolerated
+  return true;
+}
+
 function buildOutfitForActivity(
   activity: TripActivity,
   dayIndex: number,
@@ -1415,6 +1769,8 @@ function buildOutfitForActivity(
   presentation: Presentation,
   styleHints?: TripStyleHints,
   capsuleIntent?: CapsuleIntent,
+  roleRegistry?: RoleRegistry,
+  anchorBudget?: AnchorBudget,
 ): TripPackingItem[] {
   const items: TripPackingItem[] = [];
 
@@ -1463,6 +1819,22 @@ function buildOutfitForActivity(
     const closedToe = finalShoes.filter(s => !isOpenFootwear(s));
     if (closedToe.length > 0) {
       finalShoes = closedToe;
+    }
+  }
+
+  // ── Soft-fail tolerance: reinsert role-packed shoes that only failed formality ──
+  // Only applies when valid shoes already exist (preserves fail-closed when ALL shoes are invalid)
+  const toleranceShoeIds = new Set<string>();
+  if (roleRegistry && roleRegistry.size > 0 && finalShoes.length > 0) {
+    const rejectedShoes = selectedShoes.filter(s => !finalShoes.some(f => f.id === s.id));
+    for (const shoe of rejectedShoes) {
+      if (evaluatePackedItemTolerance(shoe, climateZone, presentation, roleRegistry)) {
+        finalShoes.push(shoe);
+        toleranceShoeIds.add(shoe.id);
+        if (__DEV__) {
+          console.log(`[TripCapsule][TOLERANCE] Reinsert ${shoe.name} (${shoe.id}) | penalized soft-fail for ${activity}`);
+        }
+      }
     }
   }
 
@@ -1531,13 +1903,33 @@ function buildOutfitForActivity(
     annotateLastPick(items, result.runners);
   };
 
+  // ── Anchor budget: restrict shoe pool to shoes that haven't exhausted their budget ──
+  let budgetedShoes = finalShoes;
+  if (anchorBudget && anchorBudget.size > 0) {
+    const eligible = finalShoes.filter(s => {
+      const remaining = anchorBudget.get(s.id);
+      return remaining === undefined || remaining > 0;
+    });
+    budgetedShoes = eligible.length > 0 ? eligible : finalShoes; // fail-open: reset if all exhausted
+  }
+
   const pickShoeW = () => {
-    const maxUses = maxUsesForBucket(finalShoes.length);
+    const maxUses = maxUsesForBucket(budgetedShoes.length);
     const dbgLabel = __DEV__ ? `${activity}/shoes` : undefined;
+    // Penalize tolerance shoes: forced to SECONDARY tier via toleranceIds,
+    // and quality penalty ensures they rank below other SECONDARY items too
+    const shoeQualityFn = toleranceShoeIds.size > 0
+      ? (item: TripWardrobeItem) => qualityFn(item) + (toleranceShoeIds.has(item.id) ? -5 : 0)
+      : qualityFn;
     const result = capsuleIntent
-      ? tieredPick(finalShoes, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel)
-      : weightedPick(finalShoes, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel);
+      ? tieredPick(budgetedShoes, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, shoeQualityFn, dbgLabel, toleranceShoeIds)
+      : weightedPick(budgetedShoes, usageTracker, dayIndex, maxUses, shoeQualityFn, dbgLabel);
     if (!result) return;
+    // Consume anchor budget for the selected shoe
+    if (anchorBudget) {
+      const left = anchorBudget.get(result.picked.id);
+      if (left !== undefined) anchorBudget.set(result.picked.id, left - 1);
+    }
     items.push(toPackingItem(result.picked, locationLabel));
     annotateLastPick(items, result.runners);
   };
@@ -1836,6 +2228,9 @@ export function buildCapsule(
   explicitPresentation?: Presentation,
   styleHints?: TripStyleHints,
 ): TripCapsule {
+  // Reset trace collector for this build
+  if (TRIP_TRACE) tripTrace = [];
+
   const requestId = `trip_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const numDays = Math.max(weather.length, 1);
   const needs = analyzeWeather(weather);
@@ -1848,6 +2243,10 @@ export function buildCapsule(
 
   // Step 0c: Build capsule intent — stylist direction computed once, passed through engine
   const capsuleIntent = buildCapsuleIntent(eligibleItems, activities, styleHints);
+
+  // Step 0d: Determine required roles — guides shoe/outerwear selection for complementary coverage
+  const requiredRoles = determineRequiredRoles(activities, weather);
+  const roleRegistry: RoleRegistry = new Map();
 
   logInput(requestId, {
     numDays,
@@ -2071,15 +2470,18 @@ export function buildCapsule(
     // else fail-open: keep original pool
   }
   const maxShoes = numDays <= 5 ? 2 : 3;
-  const selectedShoes = buckets.shoes.slice(0, maxShoes);
+  const selectedShoes = fillFootwearRoles(
+    buckets.shoes, requiredRoles, capsuleIntent, styleHints,
+    activities, weather, maxShoes, roleRegistry,
+  );
 
   logSlotDecision(requestId, {
     category: 'shoes_selected',
     requiredCount: maxShoes,
     selectedCount: selectedShoes.length,
     selected: selectedShoes.map(s => s.name || s.id),
-    rejected: buckets.shoes.slice(maxShoes).map(s => s.name || s.id),
-    reason: `max ${maxShoes} shoes for ${numDays}-day trip`,
+    rejected: buckets.shoes.filter(s => !selectedShoes.some(ss => ss.id === s.id)).map(s => s.name || s.id),
+    reason: `max ${maxShoes} shoes for ${numDays}-day trip (role-based)`,
   });
 
   // Step 5: Select outerwear
@@ -2095,6 +2497,38 @@ export function buildCapsule(
     }
   }
 
+  // Step 5b: Outerwear role coverage — ensure formality diversity when roles require it
+  const outerwearRoles = requiredRoles.filter(r => r.role === 'structured_layer' || r.role === 'casual_layer');
+  if (outerwearRoles.length > 0 && buckets.outerwear.length >= 2) {
+    if (selectedOuterwear.length === 1) {
+      // One layer selected by weather — add a complementary formality layer
+      const existing = selectedOuterwear[0];
+      const existingFormal = getNormalizedFormality(existing) >= 50;
+      const complement = buckets.outerwear.find(o =>
+        o.id !== existing.id &&
+        (existingFormal ? getNormalizedFormality(o) < 50 : getNormalizedFormality(o) >= 50),
+      );
+      if (complement) {
+        selectedOuterwear.push(complement);
+        roleRegistry.set(existingFormal ? 'structured_layer' : 'casual_layer', existing);
+        roleRegistry.set(existingFormal ? 'casual_layer' : 'structured_layer', complement);
+      }
+    } else if (selectedOuterwear.length >= 2) {
+      // Tag existing selections with roles based on relative formality
+      const [a, b] = selectedOuterwear;
+      const aMoreFormal = getNormalizedFormality(a) >= getNormalizedFormality(b);
+      roleRegistry.set(aMoreFormal ? 'structured_layer' : 'casual_layer', a);
+      roleRegistry.set(aMoreFormal ? 'casual_layer' : 'structured_layer', b);
+    }
+  }
+
+  if (__DEV__ && roleRegistry.size > 0) {
+    console.log(
+      '[TripCapsule][ROLE_REGISTRY]',
+      Object.fromEntries([...roleRegistry.entries()].map(([role, item]) => [role, item.name || item.id])),
+    );
+  }
+
   logSlotDecision(requestId, {
     category: 'outerwear_selected',
     selectedCount: selectedOuterwear.length,
@@ -2105,6 +2539,7 @@ export function buildCapsule(
   // Step 6: Build ANCHOR outfits (first pass)
   const outfits: CapsuleOutfit[] = [];
   const usageTracker = new Map<string, number[]>();
+  const anchorBudget = computeAnchorBudget(selectedShoes.map(s => s.id), numDays);
 
   for (let day = 0; day < numDays; day++) {
     const schedule = daySchedules[day];
@@ -2122,6 +2557,8 @@ export function buildCapsule(
       presentation,
       styleHints,
       capsuleIntent,
+      roleRegistry,
+      anchorBudget,
     );
     if (anchorItems.length > 0) {
       outfits.push({
@@ -2152,6 +2589,8 @@ export function buildCapsule(
         presentation,
         styleHints,
         capsuleIntent,
+        roleRegistry,
+        anchorBudget,
       );
       if (supportItems.length >= 2) {
         outfits.push({
@@ -2458,7 +2897,32 @@ export function buildCapsule(
   // NOTE: No exposure event for Trips — no backend call exists.
   // Trips is 100% client-side (AsyncStorage). Revisit in Phase 2.
 
-  return {
+  // Trace point 7: Final outcome
+  if (TRIP_TRACE) {
+    const shoeItems = eliteOutfits.flatMap(o => o.items.filter(i => CATEGORY_MAP[i.mainCategory] === 'shoes'));
+    const uniqueShoeIds = [...new Set(shoeItems.map(s => s.wardrobeItemId))];
+    trace('final_outcome', 'Packing complete', {
+      finalShoesPacked: uniqueShoeIds.map(id => {
+        const item = shoeItems.find(s => s.wardrobeItemId === id);
+        const uses = usageTracker.get(id) || [];
+        return {id, name: item?.name, usedOnDays: uses, useCount: uses.length};
+      }),
+      roleRegistry: Object.fromEntries(
+        [...roleRegistry.entries()].map(([role, item]) => [role, {id: item.id, name: item.name, color: item.color}]),
+      ),
+      reusePenalties: uniqueShoeIds.map(id => {
+        const uses = usageTracker.get(id) || [];
+        return {id, useCount: uses.length, days: uses};
+      }),
+      totalOutfits: eliteOutfits.length,
+      totalUniqueItems: packingList.reduce((sum, g) => sum + g.items.length, 0),
+    });
+
+    // Single log line
+    console.log('TRIP TRACE', tripTrace);
+  }
+
+  const capsuleResult = {
     build_id: buildId,
     outfits: eliteOutfits,
     packingList,
@@ -2466,6 +2930,13 @@ export function buildCapsule(
     fingerprint,
     ...(tripBackupKit.length > 0 ? {tripBackupKit} : {}),
   };
+
+  // Attach trace to result for external inspection
+  if (TRIP_TRACE) {
+    (capsuleResult as any).__trace = tripTrace;
+  }
+
+  return capsuleResult;
 }
 
 // ── Capsule validation ──
