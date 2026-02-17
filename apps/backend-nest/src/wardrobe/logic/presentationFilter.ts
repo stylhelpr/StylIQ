@@ -74,6 +74,32 @@ export function isFeminineItem(
   );
 }
 
+/**
+ * Infer implicit presentation from wardrobe composition when no style profile exists.
+ * Returns 'feminine' if ≥70% of non-accessory items are feminine-coded,
+ * 'masculine' if ≤5%, or null if genuinely mixed or too few items.
+ */
+export function inferImplicitPresentation(
+  items: { main_category?: string; category?: string; subcategory?: string; name?: string }[],
+): UserPresentation | null {
+  const wearable = items.filter((item) => {
+    const cat = (item.main_category || item.category || '').toLowerCase();
+    return cat !== 'accessories' && cat !== 'jewelry' && cat !== 'bags';
+  });
+  if (wearable.length < 5) return null;
+  const feminineCount = wearable.filter((item) =>
+    isFeminineItem(
+      item.main_category || item.category || '',
+      item.subcategory || '',
+      item.name || '',
+    ),
+  ).length;
+  const ratio = feminineCount / wearable.length;
+  if (ratio >= 0.70) return 'feminine';
+  if (ratio <= 0.05) return 'masculine';
+  return null;
+}
+
 /** Build the gender directive string for LLM prompts. */
 export function buildGenderDirective(presentation: UserPresentation): string {
   if (presentation === 'masculine')

@@ -11,7 +11,7 @@ import {
   scoreItemForWeather,
   type WeatherContext,
 } from '../wardrobe/logic/weather';
-import { isFeminineItem } from '../wardrobe/logic/presentationFilter';
+import { isFeminineItem, inferImplicitPresentation } from '../wardrobe/logic/presentationFilter';
 import { getSecret, secretExists } from '../config/secrets';
 import { ELITE_FLAGS, isEliteDemoUser } from '../config/feature-flags';
 import {
@@ -24,6 +24,8 @@ import type { StyleContext } from './elite/eliteScoring';
 import { loadStylistBrainContext } from './elite/stylistBrain';
 import {
   validateOutfits as tasteValidateOutfits,
+  validateOutfit as tasteValidateOutfit,
+  isOpenFootwear,
   tempToClimateZone,
   extractItemColors,
   expandAvoidColors,
@@ -3498,7 +3500,25 @@ Preferences: ${JSON.stringify(preferences || {})}
         avoid: (brainCtx as any)?.styleProfile?.avoid_colors ?? null,
       }),
     );
-    const userPresentation = brainCtx.presentation;
+    let userPresentation = brainCtx.presentation;
+
+    // ── Implicit presentation fallback when no style profile exists ──
+    // If brain returned 'mixed' AND no style profile, infer from wardrobe composition.
+    // This prevents cross-presentation outfits (e.g. men's sweater + women's skirt).
+    let _implicitPresentation: 'masculine' | 'feminine' | 'mixed' | null = null;
+    if (userPresentation === 'mixed' && !brainCtx.styleProfile) {
+      _implicitPresentation = inferImplicitPresentation(wardrobe);
+      if (_implicitPresentation) {
+        userPresentation = _implicitPresentation;
+      }
+      console.log(
+        JSON.stringify({
+          _tag: 'IMPLICIT_PRESENTATION_PROOF',
+          implicitPresentation: _implicitPresentation,
+          effectivePresentation: userPresentation,
+        }),
+      );
+    }
 
     // Build filtered wardrobe: exclude feminine-only items for masculine users.
     // Does NOT mutate the original wardrobe array.
@@ -3609,16 +3629,24 @@ Preferences: ${JSON.stringify(preferences || {})}
     }
 
     // Build wardrobe summary with IDs for AI to reference
-    // Apply feedback-based filtering: boost high-score items, deprioritize low-score
+    // Blended ranking: weather relevance (0.6) + feedback preference (0.4)
+    // Weather hard filter preserved: items below -5 still excluded
     const wardrobeSummary = llmWardrobe
       .filter((item) => item.image_url || item.image)
-      .filter((item) => item.__weatherScore >= -5)
-      .map((item) => ({
-        ...item,
-        feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
-      }))
-      // Sort by feedback score (higher = more preferred) then by recency
-      .sort((a, b) => b.feedbackScore - a.feedbackScore)
+      .filter((item) => item.__weatherScore >= -5) // hard weather filter preserved
+      .map((item) => {
+        const feedbackScore = feedbackContext.itemScores.get(item.id) || 0;
+        // Normalize weather to [0,1]: __weatherScore range is approx [-5, +10]
+        // Items that passed filter are >= -5. Clamp to [0,1].
+        const rawWeather = item.__weatherScore ?? 0;
+        const normWeather = Math.max(0, Math.min(1, (rawWeather + 5) / 15));
+        // Normalize feedback to [0,1]: typical range [-5, +5]
+        const normFeedback = Math.max(0, Math.min(1, (feedbackScore + 5) / 10));
+        const blendedScore = 0.6 * normWeather + 0.4 * normFeedback;
+        return { ...item, feedbackScore, __blendedScore: blendedScore };
+      })
+      // Sort by blended score (weather + feedback) — best contextual fit first
+      .sort((a, b) => b.__blendedScore - a.__blendedScore)
       .slice(0, 50) // Limit to prevent token overflow
       .map((item) => ({
         id: item.id,
@@ -3853,6 +3881,10 @@ If the answer is not an immediate YES → DO NOT OUTPUT.
 OUTPUT FORMAT
 ════════════════════════
 
+Build 6–9 complete outfits. We will select the best 3 downstream — your job is to
+give us a strong pool of candidates. Each outfit must stand on its own as a complete,
+wearable look. Prefer items listed earlier in the wardrobe (they are ordered by relevance).
+
 Output valid JSON only:
 {
   "outfits": [
@@ -3869,14 +3901,8 @@ Output valid JSON only:
       "summary": "...",
       "reasoning": "...",
       "itemIds": ["..."]
-    },
-    {
-      "id": "outfit-3",
-      "rank": 3,
-      "summary": "...",
-      "reasoning": "...",
-      "itemIds": ["..."]
     }
+    // ... continue for 6-9 outfits total. Rank each 1-9 (1 = best).
   ]
 }
 `;
@@ -4044,7 +4070,7 @@ Weather: ${tempDesc}
 ${preferences && Object.keys(preferences).length > 0 ? `Client-provided preferences (treat as session overrides): ${JSON.stringify(preferences)}` : ''}
 ${feedbackContext.recentFeedbackSummary}
 
-Available wardrobe items:
+Available wardrobe items (ordered by relevance — prefer items listed earlier):
 ${JSON.stringify(wardrobeSummary, null, 2)}
 
 ${feedbackContext.likedPatterns.length > 0 ? `NOTE: Items marked with "preference": "liked" are user favorites - prioritize these.` : ''}
@@ -4068,7 +4094,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     let parsed: {
       outfits: Array<{
         id: string;
-        rank: 1 | 2 | 3;
+        rank: number;
         summary: string;
         reasoning?: string;
         itemIds: string[];
@@ -5681,34 +5707,209 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       })),
       validatorCtx,
     );
-    const validIds = new Set(
-      validation.results
-        .filter((r) => r.validation.valid)
-        .map((r) => r.outfitId),
-    );
-    const validOutfits = candidatePool.filter((o, i) =>
-      validIds.has(o.id ?? `outfit-${i}`),
-    );
-    const invalidOutfits = candidatePool.filter(
-      (o, i) => !validIds.has(o.id ?? `outfit-${i}`),
-    );
 
-    // Build result: prefer valid outfits, keep all for judge to curate
+    // ── Per-item repair for invalid outfits (reuses Studio pattern) ──
+    // Instead of rejecting entire outfits, swap offending items from slot pools.
+    const _slotToSimpleCat: Record<string, string> = {
+      tops: 'top', bottoms: 'bottom', shoes: 'shoes',
+      outerwear: 'outerwear', dresses: 'dress',
+      accessories: 'accessory', activewear: 'activewear', swimwear: 'swimwear',
+    };
+    const _avoidExpRepair = expandAvoidColors(
+      validatorCtx?.styleProfile?.avoid_colors ?? [],
+    );
+    let _numRepairedViaSwap = 0;
+
+    const repairedPool: any[] = [];
+    for (let oi = 0; oi < candidatePool.length; oi++) {
+      const outfit = candidatePool[oi];
+      const outfitId = outfit.id ?? `outfit-${oi}`;
+      const vResult = validation.results.find((r) => r.outfitId === outfitId);
+      if (!vResult || vResult.validation.valid) {
+        repairedPool.push(outfit);
+        continue;
+      }
+      // Attempt per-item repair
+      let fixedItems = [...(outfit.items ?? [])];
+      const usedIds = new Set(fixedItems.map((it: any) => it?.id).filter(Boolean));
+      for (const fail of vResult.validation.hardFails) {
+        if (fail.startsWith('EXTREME_WEATHER_CONTRADICTION') && fail.includes('footwear')) {
+          const pool = (categoryPools.shoes ?? []).filter(
+            (s: any) => !isOpenFootwear(s) && !usedIds.has(s?.id),
+          );
+          if (pool.length > 0) {
+            fixedItems = fixedItems.filter((it: any) => it?.category !== 'shoes');
+            const pick = pool[0];
+            fixedItems.push({
+              id: pick.id,
+              name: pick.name || pick.ai_title || 'Item',
+              imageUrl: pick.touched_up_image_url || pick.processed_image_url || pick.image_url || pick.image,
+              category: 'shoes',
+            });
+            usedIds.add(pick.id);
+          }
+        } else if (fail.startsWith('CROSS_PRESENTATION')) {
+          const idMatch = fail.match(/item (\S+)/);
+          if (idMatch) {
+            const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+            if (badItem) {
+              const cat = badItem.category as string;
+              const poolKey = cat as keyof typeof categoryPools;
+              const pool = ((categoryPools as any)[poolKey] ?? []).filter((c: any) => {
+                if (usedIds.has(c?.id)) return false;
+                const pc = c?.presentation_code;
+                if (!pc) return true;
+                if (validatorCtx.userPresentation === 'masculine') return pc !== 'feminine';
+                if (validatorCtx.userPresentation === 'feminine') return pc !== 'masculine';
+                return true;
+              });
+              if (pool.length > 0) {
+                fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                const pick = pool[0];
+                fixedItems.push({
+                  id: pick.id,
+                  name: pick.name || pick.ai_title || 'Item',
+                  imageUrl: pick.touched_up_image_url || pick.processed_image_url || pick.image_url || pick.image,
+                  category: cat,
+                });
+                usedIds.add(pick.id);
+              }
+            }
+          }
+        } else if (fail.startsWith('DRESS_CODE_MISMATCH')) {
+          const idMatch = fail.match(/item (\S+)/);
+          if (idMatch) {
+            const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+            if (badItem) {
+              const cat = badItem.category as string;
+              const poolKey = cat as keyof typeof categoryPools;
+              const casualCodes = ['ultracasual', 'ultra casual', 'athletic'];
+              const pool = ((categoryPools as any)[poolKey] ?? []).filter((c: any) => {
+                if (usedIds.has(c?.id)) return false;
+                const dc = (c?.dress_code ?? '').toLowerCase();
+                if (!dc) return true;
+                return !casualCodes.some((cc) => dc.includes(cc));
+              });
+              if (pool.length > 0) {
+                fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                const pick = pool[0];
+                fixedItems.push({
+                  id: pick.id,
+                  name: pick.name || pick.ai_title || 'Item',
+                  imageUrl: pick.touched_up_image_url || pick.processed_image_url || pick.image_url || pick.image,
+                  category: cat,
+                });
+                usedIds.add(pick.id);
+              }
+            }
+          }
+        } else if (fail.startsWith('AVOID_COLOR')) {
+          const idMatch = fail.match(/item (\S+)/);
+          if (idMatch) {
+            const badItem = fixedItems.find((it: any) => it?.id === idMatch[1]);
+            if (badItem) {
+              const cat = badItem.category as string;
+              const poolKey = cat as keyof typeof categoryPools;
+              const pool = ((categoryPools as any)[poolKey] ?? []).filter((c: any) => {
+                if (usedIds.has(c?.id)) return false;
+                const cColors = extractItemColors(c as any);
+                if (c.color_family) cColors.push(c.color_family.trim().toLowerCase());
+                for (const ic of cColors) {
+                  for (const ac of _avoidExpRepair) {
+                    if (colorMatchesSafe(ic, ac)) return false;
+                  }
+                }
+                return true;
+              });
+              if (pool.length > 0) {
+                fixedItems = fixedItems.filter((it: any) => it?.id !== idMatch[1]);
+                const pick = pool[0];
+                fixedItems.push({
+                  id: pick.id,
+                  name: pick.name || pick.ai_title || 'Item',
+                  imageUrl: pick.touched_up_image_url || pick.processed_image_url || pick.image_url || pick.image,
+                  category: cat,
+                });
+                usedIds.add(pick.id);
+              }
+            }
+          }
+        } else if (fail.startsWith('MISSING_REQUIRED_SLOTS')) {
+          const existingCats = new Set(fixedItems.map((it: any) => it?.category));
+          const hasDressLike = existingCats.has('dress') || existingCats.has('activewear') || existingCats.has('swimwear');
+          if (!hasDressLike) {
+            for (const [cat, poolKey] of [['top', 'top'], ['bottom', 'bottom'], ['shoes', 'shoes']] as const) {
+              if (!existingCats.has(cat)) {
+                const pool = ((categoryPools as any)[poolKey] ?? []).filter((c: any) => !usedIds.has(c?.id));
+                if (pool.length > 0) {
+                  const pick = pool[0];
+                  fixedItems.push({
+                    id: pick.id,
+                    name: pick.name || pick.ai_title || 'Item',
+                    imageUrl: pick.touched_up_image_url || pick.processed_image_url || pick.image_url || pick.image,
+                    category: cat,
+                  });
+                  usedIds.add(pick.id);
+                }
+              }
+            }
+          } else if (!existingCats.has('shoes') && !existingCats.has('swimwear')) {
+            const pool = (categoryPools.shoes ?? []).filter((c: any) => !usedIds.has(c?.id));
+            if (pool.length > 0) {
+              const pick = pool[0];
+              fixedItems.push({
+                id: pick.id,
+                name: pick.name || pick.ai_title || 'Item',
+                imageUrl: pick.touched_up_image_url || pick.processed_image_url || pick.image_url || pick.image,
+                category: 'shoes',
+              });
+              usedIds.add(pick.id);
+            }
+          }
+        }
+      }
+      // Re-validate repaired outfit; hydrate colors on new items first
+      const repairedOutfit = { ...outfit, items: fixedItems };
+      _hydrateOutfitColors(repairedOutfit);
+      const recheck = tasteValidateOutfit(toValidatorItems(repairedOutfit), validatorCtx);
+      if (recheck.valid) {
+        _numRepairedViaSwap++;
+        repairedPool.push(repairedOutfit);
+        console.log(JSON.stringify({
+          _tag: 'STYLIST_TASTE_REPAIR_SUCCESS',
+          outfitId,
+          failsFixed: vResult.validation.hardFails,
+        }));
+      } else {
+        // Repair failed — discard (no fail-open backfill of broken outfits)
+        console.log(JSON.stringify({
+          _tag: 'STYLIST_TASTE_REPAIR_FAILED',
+          outfitId,
+          remainingFails: recheck.hardFails,
+        }));
+      }
+    }
+
+    const validOutfits = repairedPool;
+    const invalidCount = candidatePool.length - repairedPool.length;
+
+    // Build result: only valid (including repaired) outfits proceed
     let selectedOutfits: any[];
     let _backfillUsed = 'NONE';
     if (validOutfits.length >= 3) {
       selectedOutfits = validOutfits;
     } else {
-      // Backfill: start with valid, then fill from invalid (fail-open — bad outfit > no outfit)
-      selectedOutfits = [...validOutfits, ...invalidOutfits].slice(0, 3);
-      _backfillUsed = 'EXTRA_CANDIDATE';
+      // Fallback: if repair couldn't salvage 3, use what we have (fail-open)
+      selectedOutfits = validOutfits;
+      _backfillUsed = validOutfits.length < 3 ? 'INSUFFICIENT' : 'NONE';
     }
     // ALWAYS-ON: taste validation proof (ungated for debugging avoid_colors)
     console.log(
       JSON.stringify({
         _tag: 'STYLIST_TASTE_PROOF',
         candidatePoolSize: candidatePool.length,
-        numHardFailed: invalidOutfits.length,
+        numHardFailed: invalidCount,
+        numRepairedViaSwap: _numRepairedViaSwap,
         numValidAfterValidation: validOutfits.length,
         backfillUsed: _backfillUsed,
         finalReturnedCount: selectedOutfits.length,
@@ -5740,9 +5941,9 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           eliteEnabled: ELITE_FLAGS.STYLIST || ELITE_FLAGS.STYLIST_V2,
           usedV2: _eliteRerankRan,
           returned: eliteOutfits.length,
-          validatorRan: true, // taste validator block at ~4625-4684 is unconditional
-          numHardFailed: invalidOutfits.length,
-          numRepaired: 0, // Stylist uses backfill, not per-item repair
+          validatorRan: true,
+          numHardFailed: invalidCount,
+          numRepaired: _numRepairedViaSwap,
           backfillUsed: _backfillUsed !== 'NONE',
         }),
       );
