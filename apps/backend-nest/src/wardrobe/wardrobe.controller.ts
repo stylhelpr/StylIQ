@@ -159,7 +159,7 @@ export class WardrobeController {
   }
 
   @Post('outfits')
-  generateOutfits(@Req() req, @Body() body: GenerateOutfitsDto) {
+  async generateOutfits(@Req() req, @Body() body: GenerateOutfitsDto) {
     const userId = req.user.userId;
     const weatherArg = body.useWeather === false ? undefined : body.weather;
     const userStyle = normalizeUserStyle(body.style_profile);
@@ -175,6 +175,37 @@ export class WardrobeController {
       console.log(
         `🎯 [Studio] mode=${mode} reqId=${requestId} handler=generateOutfits`,
       );
+    }
+
+    // ── SWAP FAST PATH: detect "Replace ONLY the {slot}" swap requests ──
+    // Routes to deterministic recomposition (~100ms) instead of full LLM (~50s)
+    const swapMatch = body.refinementPrompt?.match(
+      /^Replace ONLY the (top|bottom|shoes|outerwear|accessories)\b/i,
+    );
+    const locked = body.lockedItemIds ?? [];
+    if (
+      swapMatch &&
+      locked.length >= 2 &&
+      body.useFastMode &&
+      !body.aaaaMode
+    ) {
+      const swapSlot = swapMatch[1].toLowerCase();
+      const newItemId = locked[locked.length - 1];
+      const keptItemIds = locked.slice(0, -1);
+
+      console.log(`⚡ [SWAP] Detected swap request: slot=${swapSlot} newItem=${newItemId} kept=${keptItemIds.length}`);
+
+      const swapResult = await this.service.recomposeOutfitSlot(userId, {
+        outfitItems: keptItemIds.map((id) => ({ id })),
+        swapSlot,
+        newItemId,
+        weather: weatherArg,
+        requestId,
+      });
+
+      // If recompose succeeds, return it; otherwise fall through to full generation
+      if (swapResult) return swapResult;
+      console.log('⚡ [SWAP] recomposeOutfitSlot returned null, falling through to full generation');
     }
 
     // aaaaMode forces standard mode (overrides useFastMode)

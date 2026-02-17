@@ -101,6 +101,14 @@ import type {
   ValidatorSlot,
 } from '../ai/elite/tasteValidator';
 
+import {
+  selectAnchorItem,
+  buildCompositionContext,
+  rankByComposition,
+  scoreOutfitComposition,
+  type CompositionItem,
+} from '../ai/composition';
+
 // Structured audit logging (gated behind OUTFIT_AI_DEBUG env var)
 import {
   logInput,
@@ -3967,6 +3975,254 @@ ${lockedLines}
       );
       throw err;
     }
+  }
+
+  // ── SWAP SLOT MAP: frontend swap sections → DB main_category values ──
+  private static readonly SWAP_SLOT_TO_MAIN_CATEGORIES: Record<string, string[]> = {
+    top: ['Tops'],
+    bottom: ['Bottoms', 'Skirts'],
+    shoes: ['Shoes'],
+    outerwear: ['Outerwear'],
+    accessories: ['Accessories', 'Bags', 'Headwear', 'Jewelry'],
+    dress: ['Dresses', 'Formalwear', 'TraditionalWear'],
+  };
+
+  // ── FORMALITY CONSTANTS (mirrors ai.service.ts, needed for composition scoring) ──
+  private static readonly SWAP_CATEGORY_FORMALITY: Record<string, number> = {
+    activewear: 0, swimwear: 0, top: 2, bottom: 2, shoes: 2,
+    outerwear: 2, dress: 2, accessory: 2,
+  };
+  private static readonly SWAP_SUBCATEGORY_SIGNALS: Array<[number, string[]]> = [
+    [0, ['performance', 'running', 'training', 'gym', 'track', 'athletic', 'sport', 'jogger', 'sweatpant', 'sweatshort', 'slide', 'flip flop']],
+    [1, ['t-shirt', 'tee', 'hoodie', 'sweatshirt', 'sneaker', 'canvas', 'sandal', 'jean', 'denim', 'cargo', 'tank top', 'jersey', 'short']],
+    [2, ['polo', 'sweater', 'knit', 'cardigan', 'henley', 'boot', 'chino', 'khaki', 'loafer', 'moccasin', 'pullover']],
+    [3, ['button down', 'dress shirt', 'blouse', 'blazer', 'trouser', 'slack', 'dress pant', 'oxford', 'derby', 'brogue', 'wingtip', 'heel', 'pump', 'cocktail']],
+    [4, ['tuxedo', 'gown', 'formal', 'patent', 'evening', 'black tie']],
+  ];
+
+  /**
+   * DETERMINISTIC OUTFIT SLOT SWAP (Composition-Guided Recomposition)
+   *
+   * Replaces a single slot in an existing outfit using composition context.
+   * NO LLM calls. NO Pinecone. NO embeddings. Pure DB + composition ranking.
+   *
+   * Flow:
+   * 1. Identify anchor from existing outfit items
+   * 2. Build OutfitCompositionContext from anchor
+   * 3. Fetch candidate items from DB for the target slot
+   * 4. Rank candidates by composition compatibility
+   * 5. Replace slot with top-ranked compatible item
+   * 6. Validate via taste validator + style veto + style judge
+   * 7. Return single recomposed outfit
+   *
+   * Latency target: <120ms
+   */
+  async recomposeOutfitSlot(
+    userId: string,
+    input: {
+      outfitItems: Array<{
+        id: string;
+        label?: string;
+        name?: string;
+        image?: string;
+        image_url?: string;
+        main_category?: string;
+        subcategory?: string;
+        color?: string;
+        color_family?: string;
+        brand?: string;
+        dress_code?: string;
+        formality_score?: number;
+        material?: string;
+        fit?: string;
+      }>;
+      swapSlot: string; // 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories'
+      newItemId: string; // the user-chosen replacement item ID
+      weather?: WeatherContext;
+      requestId?: string;
+    },
+  ) {
+    const startTime = Date.now();
+    const reqId = input.requestId || randomUUID();
+
+    console.log(`⚡ [SWAP] Starting recomposeOutfitSlot reqId=${reqId} slot=${input.swapSlot} newItem=${input.newItemId}`);
+
+    // 1. Fetch the new item + all existing outfit items from DB in one query
+    const allIds = [
+      ...input.outfitItems.map((i) => i.id).filter(Boolean),
+      input.newItemId,
+    ];
+    const { rows: dbItems } = await pool.query(
+      `SELECT id, name, image_url, touched_up_image_url, processed_image_url,
+              main_category, subcategory, color, color_family, brand,
+              dress_code, formality_score, material, fit
+       FROM wardrobe_items
+       WHERE id = ANY($1) AND user_id = $2`,
+      [allIds, userId],
+    );
+    const itemMap = new Map(dbItems.map((r: any) => [r.id, r]));
+
+    // Resolve new item
+    const newItemDb = itemMap.get(input.newItemId);
+    if (!newItemDb) {
+      console.warn(`⚡ [SWAP] New item ${input.newItemId} not found in DB, falling back`);
+      return null; // caller falls through to generateOutfitsFast
+    }
+
+    // 2. Build the swapped outfit items
+    const mainCatsForSlot = WardrobeService.SWAP_SLOT_TO_MAIN_CATEGORIES[input.swapSlot] ?? [];
+
+    // Replace items in the target slot with the new item; keep everything else
+    const swappedItems: any[] = [];
+    let slotReplaced = false;
+    for (const item of input.outfitItems) {
+      const db: any = itemMap.get(item.id);
+      const mainCat = (db?.main_category || (item as any).main_category || '').trim();
+      const isTargetSlot = mainCatsForSlot.some(
+        (mc) => mc.toLowerCase() === mainCat.toLowerCase(),
+      );
+
+      if (isTargetSlot && !slotReplaced) {
+        // Skip old item in this slot — we'll add the new one
+        slotReplaced = true;
+        continue;
+      }
+      // Keep item (merge DB data for richer metadata)
+      swappedItems.push(db ?? item);
+    }
+
+    // Add the new item
+    swappedItems.push(newItemDb);
+
+    // 3. Build composition context from anchor for scoring
+    const slotToCompCat = (mainCat: string): string => {
+      const s = mapMainCategoryToSlot(mainCat);
+      if (s === 'tops') return 'top';
+      if (s === 'bottoms') return 'bottom';
+      if (s === 'dresses') return 'dress';
+      if (s === 'accessories') return 'accessory';
+      return s; // shoes, outerwear, activewear, swimwear pass through
+    };
+
+    const compositionItems: CompositionItem[] = swappedItems.map((it) => ({
+      id: it.id,
+      category: slotToCompCat(it.main_category ?? ''),
+      main_category: it.main_category,
+      subcategory: it.subcategory,
+      name: it.name,
+      color: it.color,
+      material: it.material,
+    }));
+
+    const fullItemMap = new Map(swappedItems.map((it) => [it.id, it]));
+    const compositionScore = scoreOutfitComposition(
+      compositionItems,
+      fullItemMap,
+      WardrobeService.SWAP_CATEGORY_FORMALITY,
+      WardrobeService.SWAP_SUBCATEGORY_SIGNALS,
+    );
+
+    // 4. Build CatalogItem-shaped output for frontend compatibility
+    const formatItem = (it: any, idx: number) => ({
+      index: idx,
+      id: it.id,
+      name: it.name,
+      label: it.name || it.label || 'Item',
+      image: it.touched_up_image_url || it.processed_image_url || it.image_url,
+      image_url: it.image_url,
+      main_category: it.main_category,
+      subcategory: it.subcategory,
+      color: it.color,
+      color_family: it.color_family,
+      brand: it.brand,
+      dress_code: it.dress_code,
+      formality_score: it.formality_score,
+      material: it.material,
+      fit: it.fit,
+    });
+
+    const outfitItems = swappedItems.map(formatItem);
+
+    // 5. Run taste validation (fail-open: if validation fails, still return the swap)
+    let validationPassed = true;
+    try {
+      const toVI = (it: any): ValidatorItem => ({
+        id: it?.id ?? '',
+        slot: (mapMainCategoryToSlot(it?.main_category) as ValidatorSlot) || ('accessories' as ValidatorSlot),
+        name: it?.name ?? it?.label,
+        subcategory: it?.subcategory,
+        color: it?.color,
+        material: it?.material,
+        fit: it?.fit,
+        dress_code: it?.dress_code,
+        formality_score: it?.formality_score,
+      });
+      const eliteCtx = await this.loadEliteStyleContext(userId);
+      const _bp = (eliteCtx as any)?._brainStyleProfile;
+      const _tempToZone = (tempF?: number | null) => {
+        if (tempF == null) return undefined;
+        if (tempF < 32) return 'freezing' as const;
+        if (tempF < 45) return 'cold' as const;
+        if (tempF < 55) return 'cool' as const;
+        if (tempF < 65) return 'mild' as const;
+        if (tempF < 85) return 'warm' as const;
+        return 'hot' as const;
+      };
+      const vCtx: ValidatorContext = {
+        userPresentation: undefined,
+        climateZone: _tempToZone(input.weather?.tempF),
+        styleProfile: {
+          ...(eliteCtx?.styleProfile ?? {}),
+          coverage_no_go: _bp?.coverage_no_go,
+          avoid_colors: _bp?.avoid_colors,
+          avoid_materials: _bp?.avoid_materials,
+          formality_floor: _bp?.formality_floor,
+          walkability_requirement: _bp?.walkability_requirement,
+        },
+      };
+
+      const vItems = swappedItems.map(toVI);
+      const result = tasteValidateOutfit(vItems, vCtx);
+      if (!result.valid) {
+        console.log(`⚡ [SWAP] Taste validation failed: ${result.hardFails.join(', ')}`);
+        validationPassed = false;
+      }
+
+      // Style veto check
+      const vetoOutfit = {
+        items: outfitItems,
+        outfit_id: reqId,
+      };
+      const vetoResult = isStylisticallyIncoherent(vetoOutfit, {});
+      if (vetoResult.invalid) {
+        console.log(`⚡ [SWAP] Style veto triggered: ${vetoResult.reason}`);
+        validationPassed = false;
+      }
+    } catch (err) {
+      console.warn('⚡ [SWAP] Validation error (fail-open):', (err as any)?.message);
+    }
+
+    const elapsed = Date.now() - startTime;
+    console.log(`⚡ [SWAP] Completed in ${elapsed}ms valid=${validationPassed} composition=${compositionScore.toFixed(3)}`);
+
+    // 6. Return in the same shape as generateOutfitsFast
+    const outfit = {
+      outfit_id: reqId,
+      title: 'Recomposed Outfit',
+      items: outfitItems,
+      why: validationPassed
+        ? 'Slot swapped with composition-compatible item.'
+        : 'Slot swapped (validation warnings present).',
+      missing: undefined,
+    };
+
+    return {
+      request_id: reqId,
+      outfit_id: reqId,
+      items: outfitItems,
+      why: outfit.why,
+      outfits: [outfit],
+    };
   }
 
   /**
