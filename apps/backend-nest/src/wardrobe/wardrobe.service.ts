@@ -72,7 +72,7 @@ import {
   OutfitFeedbackRow, // ✅ correct type
 } from './logic/feedbackFilters';
 
-import { ELITE_FLAGS, isEliteDemoUser } from '../config/feature-flags';
+import { ELITE_FLAGS, LEARNING_FLAGS, isEliteDemoUser } from '../config/feature-flags';
 import {
   elitePostProcessOutfits,
   normalizeStudioOutfit,
@@ -2227,6 +2227,11 @@ ${lockedLines}
       // ONE-FLAG: ELITE_ENABLED in feature-flags.ts:42 force-enables STUDIO + STUDIO_V2
       const demoElite = isEliteDemoUser(userId);
       const _usedV2Slow = ELITE_FLAGS.STUDIO_V2 || demoElite;
+      const _shadowOnlySlow =
+        demoElite &&
+        LEARNING_FLAGS.SHADOW_MODE &&
+        !ELITE_FLAGS.STUDIO &&
+        !ELITE_FLAGS.STUDIO_V2;
       let _eliteRerankRanSlow = false;
       let eliteOutfits = withIds;
       if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2 || demoElite) {
@@ -2235,10 +2240,54 @@ ${lockedLines}
           mode: 'studio',
           requestId: request_id,
           rerank: _usedV2Slow,
-          debug: ELITE_FLAGS.DEBUG || demoElite,
+          debug: true,
         });
-        eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
-        _eliteRerankRanSlow = _usedV2Slow;
+        if (_shadowOnlySlow) {
+          const eliteIds = (result.outfits as any[]).map((o) => o.id);
+          const baseIds = canonical.map((o) => o.id);
+          console.log(
+            JSON.stringify({
+              _tag: 'ELITE_SHADOW_COMPARE',
+              mode: 'standard',
+              baseOrder: baseIds,
+              eliteOrder: eliteIds,
+              orderChanged:
+                JSON.stringify(baseIds) !== JSON.stringify(eliteIds),
+              scores: result.debug?.scores,
+            }),
+          );
+          // Shadow: keep original order
+        } else {
+          eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
+          _eliteRerankRanSlow = _usedV2Slow;
+          // Safety: fall back if count unexpectedly reduced
+          if (eliteOutfits.length < withIds.length) {
+            console.log(
+              JSON.stringify({
+                _tag: 'ELITE_RERANK_FALLBACK',
+                mode: 'standard',
+                preCount: withIds.length,
+                postCount: eliteOutfits.length,
+              }),
+            );
+            eliteOutfits = withIds;
+          }
+        }
+      }
+      // Activation status (allowlist users only — no noise for general traffic)
+      if (demoElite) {
+        console.log(
+          JSON.stringify({
+            _tag: 'ELITE_ACTIVATION_STATUS',
+            mode: 'standard',
+            shadowMode: _shadowOnlySlow,
+            demoElite: true,
+            stateLoaded: !!eliteStyleContext?.fashionState,
+            signalCount: eliteStyleContext?.fashionState
+              ? Object.keys(eliteStyleContext.fashionState).length
+              : 0,
+          }),
+        );
       }
       // ── Elite Scoring: log exposure event (fire-and-forget) ──
       // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker
@@ -3758,6 +3807,11 @@ ${lockedLines}
       // ONE-FLAG: ELITE_ENABLED in feature-flags.ts:42 force-enables STUDIO + STUDIO_V2
       const demoEliteFast = isEliteDemoUser(userId);
       const _usedV2Fast = ELITE_FLAGS.STUDIO_V2 || demoEliteFast;
+      const _shadowOnlyFast =
+        demoEliteFast &&
+        LEARNING_FLAGS.SHADOW_MODE &&
+        !ELITE_FLAGS.STUDIO &&
+        !ELITE_FLAGS.STUDIO_V2;
       let _eliteRerankRanFast = false;
       let eliteOutfits = outfits;
       if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2 || demoEliteFast) {
@@ -3766,10 +3820,53 @@ ${lockedLines}
           mode: 'studio',
           requestId: reqId,
           rerank: _usedV2Fast,
-          debug: ELITE_FLAGS.DEBUG || demoEliteFast,
+          debug: true,
         });
-        eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
-        _eliteRerankRanFast = _usedV2Fast;
+        if (_shadowOnlyFast) {
+          const eliteIds = (result.outfits as any[]).map((o) => o.id);
+          const baseIds = canonical.map((o) => o.id);
+          console.log(
+            JSON.stringify({
+              _tag: 'ELITE_SHADOW_COMPARE',
+              mode: 'fast',
+              baseOrder: baseIds,
+              eliteOrder: eliteIds,
+              orderChanged:
+                JSON.stringify(baseIds) !== JSON.stringify(eliteIds),
+              scores: result.debug?.scores,
+            }),
+          );
+          // Shadow: keep original order
+        } else {
+          eliteOutfits = result.outfits.map(denormalizeStudioOutfit);
+          _eliteRerankRanFast = _usedV2Fast;
+          // Safety: fall back if count unexpectedly reduced
+          if (eliteOutfits.length < outfits.length) {
+            console.log(
+              JSON.stringify({
+                _tag: 'ELITE_RERANK_FALLBACK',
+                mode: 'fast',
+                preCount: outfits.length,
+                postCount: eliteOutfits.length,
+              }),
+            );
+            eliteOutfits = outfits;
+          }
+        }
+      }
+      if (demoEliteFast) {
+        console.log(
+          JSON.stringify({
+            _tag: 'ELITE_ACTIVATION_STATUS',
+            mode: 'fast',
+            shadowMode: _shadowOnlyFast,
+            demoElite: true,
+            stateLoaded: !!eliteStyleContext?.fashionState,
+            signalCount: eliteStyleContext?.fashionState
+              ? Object.keys(eliteStyleContext.fashionState).length
+              : 0,
+          }),
+        );
       }
       // ── Elite Scoring: log exposure event (fire-and-forget) ──
       // NOT gated by ELITE_FLAGS — gated by LEARNING_FLAGS + consent + circuit breaker

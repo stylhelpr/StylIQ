@@ -48,8 +48,8 @@ export class LearningEventsService {
       return;
     }
 
-    // Circuit breaker check
-    if (this.circuitOpen) {
+    // Circuit breaker check (production only)
+    if (process.env.NODE_ENV === 'production' && this.circuitOpen) {
       if (
         Date.now() - this.circuitOpenedAt <
         EVENT_LOGGING_CONFIG.CIRCUIT_BREAKER_RESET_MS
@@ -73,6 +73,18 @@ export class LearningEventsService {
       this.logger.warn(
         `[LearningEvents] Consent check failed for ${input.userId}: ${error.message}`,
       );
+      return;
+    }
+
+    // DEV MODE: bypass timeout + circuit breaker so events always persist locally
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        await this.insertEvent(input);
+      } catch (error) {
+        this.logger.warn(
+          `[LearningEvents] Dev insert failed for ${input.userId}: ${error.message}`,
+        );
+      }
       return;
     }
 
