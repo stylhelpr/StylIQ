@@ -235,15 +235,15 @@ export function getNormalizedFormality(item: TripWardrobeItem): number {
 }
 
 /**
- * Derive the minimum formalityScore an item needs to be acceptable for a trip.
- * Based on the trip's highest-formality activity, not garment names.
- *   formality 0–1 (Casual/Sightseeing/Active): no floor (all items pass)
- *   formality 2   (Business/Dinner):           floor 40
- *   formality 3   (Formal):                    floor 50
+ * Derive the minimum formality tier an item needs to be acceptable for a trip.
+ * Returns a value in the same 0–3 tier space as getFormalityTier().
+ *   activity 0–1 (Casual/Sightseeing/Active): tier 0 (all items pass)
+ *   activity 2   (Business/Dinner):           tier 1
+ *   activity 3   (Formal):                    tier 2
  */
 function tripFormalityFloor(activities: TripActivity[]): number {
   const max = Math.max(...activities.map(a => getActivityProfile(a).formality));
-  return max >= 3 ? 50 : max >= 2 ? 40 : 0;
+  return max >= 3 ? 2 : max >= 2 ? 1 : 0;
 }
 
 /**
@@ -257,7 +257,7 @@ export function gateBackupPool(
   presentation: 'masculine' | 'feminine' | 'mixed',
   provenFitIds: ReadonlySet<string> = new Set(),
 ): TripWardrobeItem[] {
-  const minFormality = tripFormalityFloor(activities);
+  const requiredTier = tripFormalityFloor(activities);
   const tripLowF = Math.min(...weather.map(d => d.lowF));
   const tripHighF = Math.max(...weather.map(d => d.highF));
   const isMasculine = presentation === 'masculine';
@@ -265,7 +265,7 @@ export function gateBackupPool(
   return items.filter(item => {
     const flags = inferGarmentFlags(item);
     const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
-    const effectiveFormality = getNormalizedFormality(item);
+    const itemTier = getFormalityTier(item);
 
     // GATE 1 — Presentation (never relax)
     if (isMasculine && flags.isFeminineOnly) {
@@ -275,13 +275,13 @@ export function gateBackupPool(
       return false;
     }
 
-    /// GATE 2 — Trip-incompatible casual (metadata-driven)
+    /// GATE 2 — Trip-incompatible casual (tier-based)
     // Items that were used in anchor/support outfits already passed gatePool's
-    // per-outfit formality check — they are proven-fit. Only apply the metadata-
+    // per-outfit formality check — they are proven-fit. Only apply the tier-
     // based formality floor to unused items that haven't been validated yet.
-    if (!provenFitIds.has(item.id) && minFormality > 0 && effectiveFormality < minFormality) {
+    if (!provenFitIds.has(item.id) && requiredTier > 0 && itemTier < requiredTier) {
       if (__DEV__ && isShoe) {
-        console.log(`[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} effective=${effectiveFormality} minFormality=${minFormality}`);
+        console.log(`[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} itemTier=${itemTier} requiredTier=${requiredTier}`);
       }
       return false;
     }
@@ -299,7 +299,7 @@ export function gateBackupPool(
     }
 
     if (__DEV__ && isShoe) {
-      console.log(`[TripCapsule][GATE_BACKUP_SHOE] PASS ${item.name} (${item.id}) | formality=${effectiveFormality}/${minFormality} climate=${sweetMin ?? '?'}-${sweetMax ?? '?'}/${tripLowF}-${tripHighF}`);
+      console.log(`[TripCapsule][GATE_BACKUP_SHOE] PASS ${item.name} (${item.id}) | tier=${itemTier}/${requiredTier} climate=${sweetMin ?? '?'}-${sweetMax ?? '?'}/${tripLowF}-${tripHighF}`);
     }
 
     return true;
@@ -317,7 +317,7 @@ export function gateBackupPoolFallback(
   presentation: 'masculine' | 'feminine' | 'mixed',
   provenFitIds: ReadonlySet<string> = new Set(),
 ): TripWardrobeItem[] {
-  const minFormality = tripFormalityFloor(activities);
+  const requiredTier = tripFormalityFloor(activities);
   const tripLowF = Math.min(...weather.map(d => d.lowF));
   const tripHighF = Math.max(...weather.map(d => d.highF));
   const isMasculine = presentation === 'masculine';
@@ -325,7 +325,7 @@ export function gateBackupPoolFallback(
   return items.filter(item => {
     const flags = inferGarmentFlags(item);
     const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
-    const effectiveFormality = getNormalizedFormality(item);
+    const itemTier = getFormalityTier(item);
 
     // GATE 1 — Presentation (never relax)
     if (isMasculine && flags.isFeminineOnly) {
@@ -335,11 +335,11 @@ export function gateBackupPoolFallback(
       return false;
     }
 
-    // GATE 2 — Trip-incompatible casual (never relax for unproven items)
+    // GATE 2 — Trip-incompatible casual (tier-based, never relax for unproven items)
     // Proven-fit items (used in outfits) bypass — they passed gatePool already.
-    if (!provenFitIds.has(item.id) && minFormality > 0 && effectiveFormality < minFormality) {
+    if (!provenFitIds.has(item.id) && requiredTier > 0 && itemTier < requiredTier) {
       if (__DEV__ && isShoe) {
-        console.log(`[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} effective=${effectiveFormality} minFormality=${minFormality}`);
+        console.log(`[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} itemTier=${itemTier} requiredTier=${requiredTier}`);
       }
       return false;
     }
@@ -357,7 +357,7 @@ export function gateBackupPoolFallback(
     }
 
     if (__DEV__ && isShoe) {
-      console.log(`[TripCapsule][GATE_FALLBACK_SHOE] PASS ${item.name} (${item.id}) | formality=${effectiveFormality}/${minFormality}`);
+      console.log(`[TripCapsule][GATE_FALLBACK_SHOE] PASS ${item.name} (${item.id}) | tier=${itemTier}/${requiredTier}`);
     }
 
     return true;
@@ -1053,13 +1053,39 @@ export function aestheticBonus(
 // ── Outfit Coherence Guard ──
 
 /**
- * Post-assembly coherence guard: ensures outfit palette consistency.
- * Rules:
- *   1. Max 1 off-palette item per outfit
- *   2. Shoes must match palette OR be neutral
- *   3. Outerwear must match palette OR match baselineFormality
- * If violation: attempt deterministic swap from same category, never break safety.
- * If no swap possible: keep original (never fail packing).
+ * Returns true if the item would be rejected by hard gates for this day.
+ * Calls the same gatePool logic used by the builder — no threshold duplication.
+ * Also checks formality tier vs activity baseline (dress code violation).
+ */
+function isHardInvalidShoe(
+  item: TripWardrobeItem,
+  climateZone: ClimateZone,
+  activity: ActivityProfile,
+  presentation: Presentation,
+  baselineFormality: number,
+): boolean {
+  // Would gatePool reject this item?
+  if (gatePool([item], climateZone, activity, presentation).length === 0) return true;
+  // Formality tier below activity baseline? (dress code violation)
+  if (baselineFormality > 0 && getFormalityTier(item) < baselineFormality) return true;
+  return false;
+}
+
+function isLockedValidItem(
+  item: TripWardrobeItem,
+  climateZone: ClimateZone,
+  activity: ActivityProfile,
+  presentation: Presentation,
+  baselineFormality: number,
+): boolean {
+  return !isHardInvalidShoe(item, climateZone, activity, presentation, baselineFormality);
+}
+
+/**
+ * Post-assembly coherence guard: repairs only hard-invalid items.
+ * Swaps are allowed ONLY when the current item fails hard gates
+ * (weather, presentation, casual-only, formality tier).
+ * Valid items are never swapped for palette or aesthetic preference.
  */
 function applyCoherenceGuard(
   outfitItems: TripPackingItem[],
@@ -1070,108 +1096,90 @@ function applyCoherenceGuard(
   dayIndex: number,
   locationLabel: string,
   poolLookup: Map<string, TripWardrobeItem>,
+  climateZone: ClimateZone,
+  activityProfile: ActivityProfile,
+  presentation: Presentation,
 ): TripPackingItem[] {
-  if (capsuleIntent.paletteColors.length === 0) return outfitItems;
-
   const result = [...outfitItems];
-  const paletteOrNeutral = (full: TripWardrobeItem): boolean =>
-    matchesPalette(full, capsuleIntent.paletteColors) || isNeutralColor(full);
+  const originalItems = result.map(r => ({ id: r.wardrobeItemId, name: r.name }));
 
-  // Count off-palette items
-  const offPaletteIndices: number[] = [];
+  // Rule 1: Repair hard-invalid tops/bottoms/accessories (shoes & outerwear handled by Rules 2/3)
   for (let i = 0; i < result.length; i++) {
-    const full = poolLookup.get(result[i].wardrobeItemId);
-    if (full && !paletteOrNeutral(full)) {
-      offPaletteIndices.push(i);
-    }
-  }
+    const bucket = CATEGORY_MAP[result[i].mainCategory] as CategoryBucket;
+    if (bucket === 'shoes' || bucket === 'outerwear') continue;
+    const currentFull = poolLookup.get(result[i].wardrobeItemId);
+    if (!currentFull) continue;
+    if (isLockedValidItem(currentFull, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality)) continue;
+    if (!bucket || !gatedBuckets[bucket]) continue;
 
-  // Rule 1: Max 1 off-palette item — swap excess (keep the first, swap the rest)
-  if (offPaletteIndices.length > 1) {
-    for (let swapIdx = 1; swapIdx < offPaletteIndices.length; swapIdx++) {
-      const idx = offPaletteIndices[swapIdx];
-      const currentItem = result[idx];
-      const bucket = CATEGORY_MAP[currentItem.mainCategory] as CategoryBucket;
-      if (!bucket || !gatedBuckets[bucket]) continue;
+    const usedInOutfit = new Set(result.map(r => r.wardrobeItemId));
+    const swapCandidates = gatedBuckets[bucket]
+      .filter(c => !usedInOutfit.has(c.id) && isLockedValidItem(c, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality))
+      .sort((a, b) => {
+        const aUses = (usageTracker.get(a.id) || []).length;
+        const bUses = (usageTracker.get(b.id) || []).length;
+        return aUses - bUses || a.id.localeCompare(b.id);
+      });
 
-      const usedInOutfit = new Set(result.map(r => r.wardrobeItemId));
-      const swapCandidates = gatedBuckets[bucket]
-        .filter(c => !usedInOutfit.has(c.id) && paletteOrNeutral(c))
-        .sort((a, b) => {
-          const aUses = (usageTracker.get(a.id) || []).length;
-          const bUses = (usageTracker.get(b.id) || []).length;
-          return aUses - bUses || a.id.localeCompare(b.id);
-        });
-
-      if (swapCandidates.length > 0) {
-        if (TRIP_TRACE) trace('coherence_guard', `Rule1 swap: off-palette excess`, {
-          dayIndex, rule: 'max_1_off_palette',
-          swappedOut: currentItem.name, swappedIn: swapCandidates[0].name,
-          bucket, candidateCount: swapCandidates.length,
-        });
-        if (__DEV__) {
-          console.log(
-            `[TripCapsule][COHERENCE] day=${dayIndex} swapped ${currentItem.name} → ${swapCandidates[0].name} (palette fix)`,
-          );
-        }
-        result[idx] = toPackingItem(swapCandidates[0], locationLabel);
-      } else {
-        if (TRIP_TRACE) trace('coherence_guard', `Rule1 no swap: no on-palette candidate`, {
-          dayIndex, rule: 'max_1_off_palette', item: currentItem.name, bucket,
-        });
+    if (swapCandidates.length > 0) {
+      if (TRIP_TRACE) trace('coherence_guard', `Rule1 repair: hard-invalid item`, {
+        dayIndex, rule: 'hard_invalid_repair',
+        swappedOut: result[i].name, swappedIn: swapCandidates[0].name,
+        bucket, candidateCount: swapCandidates.length,
+      });
+      if (__DEV__) {
+        console.log(
+          `[TripCapsule][COHERENCE] day=${dayIndex} repair: ${result[i].name} → ${swapCandidates[0].name} (gate violation)`,
+        );
       }
+      result[i] = toPackingItem(swapCandidates[0], locationLabel);
     }
   }
 
-  // Rule 2: Shoes must match palette or neutral
+  // Rule 2: Repair hard-invalid shoes
   for (let i = 0; i < result.length; i++) {
     const slot = CATEGORY_MAP[result[i].mainCategory];
     if (slot !== 'shoes') continue;
     const full = poolLookup.get(result[i].wardrobeItemId);
-    if (!full || paletteOrNeutral(full)) continue;
+    if (!full) continue;
+    if (isLockedValidItem(full, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality)) continue;
 
     const usedInOutfit = new Set(result.map(r => r.wardrobeItemId));
     const shoeSwaps = finalShoes
-      .filter(c => !usedInOutfit.has(c.id) && paletteOrNeutral(c))
+      .filter(c => !usedInOutfit.has(c.id) && isLockedValidItem(c, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality))
       .sort((a, b) => {
         const aUses = (usageTracker.get(a.id) || []).length;
         const bUses = (usageTracker.get(b.id) || []).length;
         return aUses - bUses || a.id.localeCompare(b.id);
       });
     if (shoeSwaps.length > 0) {
-      if (TRIP_TRACE) trace('coherence_guard', `Rule2 shoe swap: off-palette shoe`, {
-        dayIndex, rule: 'shoe_palette',
+      if (TRIP_TRACE) trace('coherence_guard', `Rule2 shoe repair: hard-invalid shoe`, {
+        dayIndex, rule: 'shoe_hard_repair',
         swappedOut: full.name, swappedIn: shoeSwaps[0].name,
         candidateCount: shoeSwaps.length,
       });
       if (__DEV__) {
         console.log(
-          `[TripCapsule][COHERENCE] day=${dayIndex} shoe swap: ${full.name} → ${shoeSwaps[0].name}`,
+          `[TripCapsule][COHERENCE] day=${dayIndex} shoe repair: ${full.name} → ${shoeSwaps[0].name} (gate violation)`,
         );
       }
       result[i] = toPackingItem(shoeSwaps[0], locationLabel);
-    } else {
-      if (TRIP_TRACE) trace('coherence_guard', `Rule2 no swap: no palette shoe available`, {
-        dayIndex, rule: 'shoe_palette', shoe: full.name,
-      });
     }
   }
 
-  // Rule 3: Outerwear must match palette or baselineFormality
+  // Rule 3: Repair hard-invalid outerwear
   for (let i = 0; i < result.length; i++) {
     const slot = CATEGORY_MAP[result[i].mainCategory];
     if (slot !== 'outerwear') continue;
     const full = poolLookup.get(result[i].wardrobeItemId);
     if (!full) continue;
-    if (paletteOrNeutral(full)) continue;
-    // Accept if formality matches baseline
-    if (getNormalizedFormality(full) >= capsuleIntent.baselineFormality * 25) continue;
+    if (isLockedValidItem(full, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality)) continue;
 
     const usedInOutfit = new Set(result.map(r => r.wardrobeItemId));
     const outerSwaps = (gatedBuckets.outerwear || [])
       .filter(c =>
         !usedInOutfit.has(c.id) &&
-        (paletteOrNeutral(c) || getNormalizedFormality(c) >= capsuleIntent.baselineFormality * 25),
+        isLockedValidItem(c, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality),
       )
       .sort((a, b) => {
         const aUses = (usageTracker.get(a.id) || []).length;
@@ -1179,17 +1187,30 @@ function applyCoherenceGuard(
         return aUses - bUses || a.id.localeCompare(b.id);
       });
     if (outerSwaps.length > 0) {
-      if (TRIP_TRACE) trace('coherence_guard', `Rule3 outerwear swap`, {
-        dayIndex, rule: 'outerwear_palette_formality',
+      if (TRIP_TRACE) trace('coherence_guard', `Rule3 outerwear repair`, {
+        dayIndex, rule: 'outerwear_hard_repair',
         swappedOut: full.name, swappedIn: outerSwaps[0].name,
         candidateCount: outerSwaps.length,
       });
       if (__DEV__) {
         console.log(
-          `[TripCapsule][COHERENCE] day=${dayIndex} outerwear swap: ${full.name} → ${outerSwaps[0].name}`,
+          `[TripCapsule][COHERENCE] day=${dayIndex} outerwear repair: ${full.name} → ${outerSwaps[0].name} (gate violation)`,
         );
       }
       result[i] = toPackingItem(outerSwaps[0], locationLabel);
+    }
+  }
+
+  // Safety assert: no valid item should have been swapped
+  if (__DEV__) {
+    for (let i = 0; i < result.length; i++) {
+      const before = originalItems[i];
+      if (before && before.id !== result[i].wardrobeItemId) {
+        const beforeFull = poolLookup.get(before.id);
+        if (beforeFull && !isHardInvalidShoe(beforeFull, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality)) {
+          console.error('[COHERENCE VIOLATION] swapped valid item', before.name, '→', result[i].name);
+        }
+      }
     }
   }
 
@@ -2054,9 +2075,9 @@ function buildOutfitForActivity(
     }
   }
 
-  // Apply coherence guard: enforce palette consistency before normalization
+  // Apply coherence guard: repair only hard-invalid items before normalization
   const coherenceChecked = capsuleIntent
-    ? applyCoherenceGuard(items, capsuleIntent, gatedBuckets, finalShoes, usageTracker, dayIndex, locationLabel, poolLookup)
+    ? applyCoherenceGuard(items, capsuleIntent, gatedBuckets, finalShoes, usageTracker, dayIndex, locationLabel, poolLookup, climateZone, activityProfile, presentation)
     : items;
 
   // Enforce one-piece vs separates structure
