@@ -4284,6 +4284,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       dress: buildPool('dress'),
       activewear: buildPool('activewear'),
       swimwear: buildPool('swimwear'),
+      outerwear: buildPool('outerwear'),
     };
 
     // ── Formality scoring constants (hoisted for composition context) ──
@@ -4488,6 +4489,26 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
               fallback.image_url ||
               fallback.image,
             category: 'shoes',
+          });
+          existingIds.add(fallback.id);
+        }
+      }
+
+      // 🧥 COLD WEATHER OUTERWEAR MANDATE (HARD GATE)
+      // If tempF ≤ 55 and outfit has no outerwear, inject highest weatherScore outerwear
+      const hasOuterwear = outfit.items.some((item) => item?.category === 'outerwear');
+      if (!hasOuterwear && wxContext?.tempF != null && wxContext.tempF <= 55 && categoryPools.outerwear.length > 0) {
+        const fallback = pickCompositionFallback(categoryPools.outerwear, 'outerwear');
+        if (fallback) {
+          outfit.items.push({
+            id: fallback.id,
+            name: fallback.name || fallback.ai_title || 'Item',
+            imageUrl:
+              fallback.touched_up_image_url ||
+              fallback.processed_image_url ||
+              fallback.image_url ||
+              fallback.image,
+            category: 'outerwear',
           });
           existingIds.add(fallback.id);
         }
@@ -5101,6 +5122,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           name: (full?.name || '').toLowerCase(),
           color: (full?.color || '').toLowerCase(),
           weatherScore: full?.__weatherScore || 0,
+          material: (full?.material || '').toLowerCase(),
         };
       });
 
@@ -5148,6 +5170,37 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         NEUTRAL_COLORS.includes(word),
       );
       if (hasWarm && hasCool && !hasNeutralBase) return false;
+
+      // Rule 6 (HARD WEATHER GATE): open-toe footwear block in cold (≤ 55°F)
+      const _tempF = wxContext?.tempF;
+      if (_tempF != null && _tempF <= 55) {
+        const hasOpenToe = details.some(
+          (d) =>
+            d.category === 'shoes' &&
+            /sandal|slide|flip.?flop|open.?toe|thong/i.test(d.sub + ' ' + d.name),
+        );
+        if (hasOpenToe) return false;
+      }
+
+      // Rule 7 (HARD WEATHER GATE): heavy winter outerwear block in heat (≥ 80°F)
+      if (_tempF != null && _tempF >= 80) {
+        const hasHeavyWinter = details.some(
+          (d) =>
+            d.category === 'outerwear' &&
+            /parka|puffer|down|heavy|wool coat/i.test(d.sub + ' ' + d.name),
+        );
+        if (hasHeavyWinter) return false;
+      }
+
+      // Rule 8 (HARD WEATHER GATE): rain footwear block — no suede shoes in rain
+      if (wxContext?.precipitation === 'rain') {
+        const hasSuedeShoes = details.some(
+          (d) =>
+            d.category === 'shoes' &&
+            (d.material.includes('suede') || /suede/i.test(d.name)),
+        );
+        if (hasSuedeShoes) return false;
+      }
 
       return true;
     };
@@ -5234,6 +5287,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
     // Full post-processing pipeline (gate → silhouette → sort → canonicalize)
     const applyPostProcessing = (outfits: any[]): any[] => {
+      console.log(JSON.stringify({ _tag: 'STYLIST_WEATHER_HARD_GATE_ACTIVE', tempF: wxContext?.tempF, precipitation: wxContext?.precipitation }));
       // 1. Quality gate (fallback to originals if all rejected)
       let result = outfits.filter(qualityGateFilter);
       if (result.length === 0) result = [...outfits];
