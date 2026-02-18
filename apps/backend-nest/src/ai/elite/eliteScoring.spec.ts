@@ -1673,8 +1673,8 @@ describe('Contrast preference scoring', () => {
     };
     const result = scoreOutfit(outfit, ctx, { mode: 'studio', rerank: true });
     expect(result.flags).toContain('contrast');
-    // +3 contrast, +5 slot = 8
-    expect(result.score).toBe(8);
+    // +4 contrast, +5 slot = 9
+    expect(result.score).toBe(9);
   });
 
   it('skips when preference is "No preference"', () => {

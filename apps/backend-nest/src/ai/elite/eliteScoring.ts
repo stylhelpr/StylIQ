@@ -490,20 +490,20 @@ export function scoreOutfit(
         const fitLower = itemFit.toLowerCase();
         if (silPref === 'Structured') {
           if (structuredTokens.some((t) => fitLower.includes(t))) {
-            score += 2;
+            score += 3;
             silFired = true;
           }
           if (relaxedTokens.some((t) => fitLower.includes(t))) {
-            score -= 3;
+            score -= 4;
             silFired = true;
           }
         } else if (silPref === 'Relaxed') {
           if (relaxedTokens.some((t) => fitLower.includes(t))) {
-            score += 2;
+            score += 3;
             silFired = true;
           }
           if (structuredTokens.some((t) => fitLower.includes(t))) {
-            score -= 3;
+            score -= 4;
             silFired = true;
           }
         }
@@ -545,7 +545,7 @@ export function scoreOutfit(
         matched = true;
       if (contrastPref === 'Medium contrast') matched = true; // medium always matches
       if (matched) {
-        score += 3;
+        score += 4;
         signalsUsed++;
         flags.push('contrast');
       }

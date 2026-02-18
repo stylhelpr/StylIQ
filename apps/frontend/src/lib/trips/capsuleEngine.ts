@@ -37,7 +37,7 @@ import {
 } from '../elite/eliteScoring';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 17;
+export const CAPSULE_VERSION = 19;
 
 // ── Trip Trace Instrumentation ──
 const TRIP_TRACE = true;
@@ -230,6 +230,94 @@ export function getActivityPurposeClass(profile: ActivityProfile): ActivityPurpo
 export function isPurposeCompatible(itemPurpose: GarmentPurpose, activityPurpose: ActivityPurposeClass): boolean {
   if (itemPurpose === 'unknown') return true;
   return PURPOSE_COMPATIBILITY[activityPurpose].includes(itemPurpose);
+}
+
+// ── Lightweight fabric detection (metadata-driven, no brand/name heuristics) ──
+
+const LIGHTWEIGHT_FABRICS = /\b(linen|cotton|seersucker|chambray|rayon|viscose|modal|tencel|lyocell|bamboo|silk|mesh|poplin|voile|gauze|muslin|batiste|lawn)\b/;
+const HEAVY_FABRICS = /\b(wool|cashmere|merino|tweed|flannel|fleece|sherpa|corduroy|velvet|boucle|mohair|shearling|down|quilted|neoprene)\b/;
+
+function isLightweightFabric(material: string | undefined): boolean {
+  if (!material) return false;
+  return LIGHTWEIGHT_FABRICS.test(material.toLowerCase());
+}
+
+function isHeavyFabric(material: string | undefined): boolean {
+  if (!material) return false;
+  return HEAVY_FABRICS.test(material.toLowerCase());
+}
+
+/**
+ * Warm-leisure context detection: identifies warm/hot climate + water/rest activity
+ * combinations where lightweight/swim items should be strongly preferred.
+ */
+export function getWarmLeisureContext(
+  activityProfile: ActivityProfile,
+  climateZone: ClimateZone,
+): {isWarmLeisure: boolean; strength: number} {
+  if (activityProfile.formality >= 2) return {isWarmLeisure: false, strength: 0};
+
+  const activityPurpose = getActivityPurposeClass(activityProfile);
+  if (activityPurpose !== 'water' && activityPurpose !== 'rest') return {isWarmLeisure: false, strength: 0};
+
+  if (climateZone === 'hot') return {isWarmLeisure: true, strength: 1.3};
+  if (climateZone === 'warm') return {isWarmLeisure: true, strength: 1.0};
+  return {isWarmLeisure: false, strength: 0};
+}
+
+/**
+ * Activity-purpose scoring modifier for warm-climate leisure/water activities.
+ * Soft preference layer — does NOT gate items (that's isItemValidForActivity's job).
+ *
+ * Only activates when:
+ *   - activityPurpose is 'water' or 'rest' (beach/leisure activities)
+ *   - climate is warm or hot
+ *   - formality <= 1 (never influences business/formal)
+ *
+ * Base scoring:
+ *   +0.6 if purpose === 'swim'
+ *   +0.4 if purpose === 'leisure'
+ *   +0.2 if lightweight fabric
+ *   -0.4 if heavy fabric
+ *
+ * In warm-leisure context: bonus multiplied by 1.8 * strength, clamp widened to ±1.4.
+ * Otherwise: clamped to ±0.8.
+ */
+export function activityPurposeBonus(
+  item: TripWardrobeItem,
+  activityProfile: ActivityProfile,
+  climateZone: ClimateZone,
+): number {
+  // Guardrail: never influence business/formal activities
+  if (activityProfile.formality >= 2) return 0;
+
+  const ctx = getWarmLeisureContext(activityProfile, climateZone);
+
+  const activityPurpose = getActivityPurposeClass(activityProfile);
+  const isWarmClimate = climateZone === 'warm' || climateZone === 'hot';
+
+  // Only activate for water/rest activities in warm climates
+  if (!isWarmClimate || (activityPurpose !== 'water' && activityPurpose !== 'rest')) return 0;
+
+  const itemPurpose = getGarmentPurpose(item);
+  let bonus = 0;
+
+  // Purpose-based boost
+  if (itemPurpose === 'swim') bonus += 0.6;
+  else if (itemPurpose === 'leisure') bonus += 0.4;
+
+  // Fabric weight modifier
+  if (isLightweightFabric(item.material)) bonus += 0.2;
+  if (isHeavyFabric(item.material)) bonus -= 0.4;
+
+  // Context-scale: amplify in warm-leisure band
+  if (ctx.isWarmLeisure) {
+    bonus *= 1.8 * ctx.strength;
+    return Math.max(-1.4, Math.min(1.4, bonus));
+  }
+
+  // Normal clamp
+  return Math.max(-0.8, Math.min(0.8, bonus));
 }
 
 /**
@@ -959,7 +1047,7 @@ function weightedPick(
       daysSinceUse === 2 ? 12 :
       daysSinceUse === 3 ? 5 : 0;
     const quality = qualityFn ? qualityFn(item) : 0;
-    const penalty = -(quality * 10) + useCount * 14 + cooldownPenalty;
+    const penalty = -(quality * 10) + (useCount * 14 + cooldownPenalty) * WEIGHT_ROTATION;
     return { item, penalty, useCount, cooldownPenalty };
   });
 
@@ -1126,6 +1214,12 @@ const AESTHETIC_BOLDS = ['red','orange','yellow','purple'];
 const AESTHETIC_WARM = ['red','orange','yellow','coral','peach','gold','amber','rust'];
 const AESTHETIC_COOL = ['blue','teal','cyan','mint','lavender','periwinkle','ice','cobalt','slate'];
 
+// ── Elite scoring weight constants (selection-time emphasis) ──
+const WEIGHT_SILHOUETTE = 1.35;
+const WEIGHT_COLOR_HARMONY = 1.25;
+const WEIGHT_TEXTURE_CONTRAST = 1.2;
+const WEIGHT_ROTATION = 0.75;
+
 export function aestheticBonus(
   candidate: TripWardrobeItem,
   existingItems: TripPackingItem[],
@@ -1139,25 +1233,64 @@ export function aestheticBonus(
     return (full?.color || '').toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
   });
 
-  // +0.3: neutral color grounds outfit
-  if (words.some(w => AESTHETIC_NEUTRALS.includes(w))) bonus += 0.3;
+  // +0.15: neutral color grounds outfit (reduced to limit flat-neutral stacking)
+  if (words.some(w => AESTHETIC_NEUTRALS.includes(w))) bonus += 0.15;
 
-  // -0.5: bold-on-bold clash (>1 bold family across outfit + candidate)
+  // -0.25: penalize all-neutral outfit (no color interest)
+  if (outfitColors.length > 0 && words.length > 0 &&
+      outfitColors.every(w => AESTHETIC_NEUTRALS.includes(w)) &&
+      words.every(w => AESTHETIC_NEUTRALS.includes(w))) {
+    bonus -= 0.25 * WEIGHT_COLOR_HARMONY;
+  }
+
+  // bold-on-bold clash (>1 bold family across outfit + candidate)
   if (outfitColors.length > 0) {
     const existingBolds = new Set(outfitColors.filter(w => AESTHETIC_BOLDS.includes(w)));
     const candidateBolds = words.filter(w => AESTHETIC_BOLDS.includes(w));
     if (existingBolds.size >= 1 && candidateBolds.length > 0) {
       const combined = new Set([...existingBolds, ...candidateBolds]);
-      if (combined.size > 1) bonus -= 0.5;
+      if (combined.size > 1) bonus -= 0.5 * WEIGHT_COLOR_HARMONY;
     }
   }
 
-  // -0.3: warm+cool without neutral
+  // warm+cool without neutral
   const allWords = [...outfitColors, ...words];
   const hasWarm = allWords.some(w => AESTHETIC_WARM.includes(w));
   const hasCool = allWords.some(w => AESTHETIC_COOL.includes(w));
   const hasNeutral = allWords.some(w => AESTHETIC_NEUTRALS.includes(w));
-  if (hasWarm && hasCool && !hasNeutral) bonus -= 0.3;
+  if (hasWarm && hasCool && !hasNeutral) bonus -= 0.3 * WEIGHT_COLOR_HARMONY;
+
+  // silhouette coherence: reward fit-family alignment (slim with slim, relaxed with relaxed)
+  if (candidate.fit && existingItems.length > 0) {
+    const candidateFit = candidate.fit.toLowerCase();
+    const slimTokens = ['slim', 'skinny', 'tailored', 'fitted', 'structured'];
+    const relaxedTokens = ['relaxed', 'oversized', 'loose', 'wide', 'baggy'];
+    const candidateFamily = slimTokens.some(t => candidateFit.includes(t)) ? 'slim'
+      : relaxedTokens.some(t => candidateFit.includes(t)) ? 'relaxed' : null;
+    if (candidateFamily) {
+      const existingFits = existingItems.map(pi => {
+        const full = itemLookup.get(pi.wardrobeItemId);
+        return (full?.fit || '').toLowerCase();
+      }).filter(Boolean);
+      const matchCount = existingFits.filter(f => {
+        if (candidateFamily === 'slim') return slimTokens.some(t => f.includes(t));
+        return relaxedTokens.some(t => f.includes(t));
+      }).length;
+      if (matchCount > 0) bonus += 0.25 * WEIGHT_SILHOUETTE;
+    }
+  }
+
+  // texture contrast: reward material diversity (knit + denim + leather > flat cotton stack)
+  if (candidate.material && existingItems.length > 0) {
+    const candidateMat = candidate.material.toLowerCase();
+    const existingMats = existingItems.map(pi => {
+      const full = itemLookup.get(pi.wardrobeItemId);
+      return (full?.material || '').toLowerCase();
+    }).filter(Boolean);
+    if (existingMats.length > 0 && existingMats.every(m => m !== candidateMat)) {
+      bonus += 0.2 * WEIGHT_TEXTURE_CONTRAST;
+    }
+  }
 
   // -0.2: same subcategory already in outfit
   const sub = (candidate.subcategory || '').toLowerCase();
@@ -1169,8 +1302,8 @@ export function aestheticBonus(
     if (subs.includes(sub)) bonus -= 0.2;
   }
 
-  // Clamp to ±0.5
-  return Math.max(-0.5, Math.min(0.5, bonus));
+  // Clamp to ±1.0 (widened for richer aesthetic differentiation)
+  return Math.max(-1.0, Math.min(1.0, bonus));
 }
 
 // ── Outfit Coherence Guard ──
@@ -1915,7 +2048,28 @@ function fillFootwearRoles(
   const selected: TripWardrobeItem[] = [];
   const usedIds = new Set<string>();
   const emptyTracker = new Map<string, number[]>();
-  const qualityFn = (item: TripWardrobeItem) => activityScore(item, activities);
+
+  // Derive trip-wide warm-climate profile for activity-purpose bonus on shoes.
+  // Use warmest day + lowest-formality beach/casual activity to softly prefer
+  // lightweight/leisure shoes when the trip is primarily warm & casual.
+  const warmestDay = weather.length > 0
+    ? weather.reduce((w, d) => (d.highF > w.highF ? d : w), weather[0])
+    : undefined;
+  const warmestClimate = deriveClimateZone(warmestDay);
+  const lowestFormalityProfile = activities.reduce<ActivityProfile>((best, a) => {
+    const ap = getActivityProfile(a);
+    return ap.formality < best.formality ? ap : best;
+  }, getActivityProfile(activities[0] || 'Casual'));
+
+  const footwearWarmCtx = getWarmLeisureContext(lowestFormalityProfile, warmestClimate);
+  const footwearWarmOverride = (item: TripWardrobeItem): number => {
+    if (!footwearWarmCtx.isWarmLeisure) return 0;
+    if (isHeavyFabric(item.material)) return -0.25 * footwearWarmCtx.strength;
+    if (isLightweightFabric(item.material)) return 0.25 * footwearWarmCtx.strength;
+    return 0;
+  };
+  const qualityFn = (item: TripWardrobeItem) =>
+    activityScore(item, activities) + activityPurposeBonus(item, lowestFormalityProfile, warmestClimate) + footwearWarmOverride(item);
 
   // 1. anchor_shoe — most versatile palette-matching shoe
   const anchorResult = tieredPick(
@@ -2374,41 +2528,78 @@ function buildOutfitForActivity(
   ];
   const poolLookup = new Map(allPoolItems.map(i => [i.id, i]));
 
-  // Style hints bonus: tiebreaker scoring within tiered pools.
-  // Color preference is now handled by tiered candidate pools (Layer 2).
-  const styleBonus = (item: TripWardrobeItem): number => {
+  // ── Identity score: decisive user-preference ranking (Trips-only) ──
+  // Weights are tuned so identity signals materially influence selection
+  // among context-valid candidates without overriding legality gates.
+  // Effective penalty impact: favorite color 12pts, fabric 8pts, brand 6pts,
+  // fit 6pts, disliked -15pts. Comparable to cooldown (25) and activity (30).
+  const identityScore = (item: TripWardrobeItem): number => {
     if (!styleHints) return 0;
-    let bonus = 0;
-    // Fabric preference (tiebreaker within tier)
+    let score = 0;
+
+    // Favorite color match (+1.2): within-tier boost for user's stated favorites
+    if (item.color && styleHints.favorite_colors?.length) {
+      const words = item.color.toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+      const favSet = new Set(styleHints.favorite_colors.map(c => c.toLowerCase()));
+      if (words.some(w => [...favSet].some(f => colorMatches(w, f)))) score += 1.2;
+    }
+
+    // Preferred fabric match (+0.8)
     if (item.material && styleHints.fabric_preferences?.length) {
       const matLower = item.material.toLowerCase();
-      if (styleHints.fabric_preferences.some(f => matLower.includes(f.toLowerCase()) || f.toLowerCase().includes(matLower))) bonus += 0.1;
+      if (styleHints.fabric_preferences.some(f => matLower.includes(f.toLowerCase()) || f.toLowerCase().includes(matLower))) score += 0.8;
     }
-    // Brand preference (conservative)
+
+    // Preferred brand match (+0.6)
     if (item.brand && styleHints.preferred_brands?.length) {
       const brandLower = item.brand.toLowerCase();
-      if (styleHints.preferred_brands.some(b => brandLower.includes(b.toLowerCase()))) bonus += 0.05;
+      if (styleHints.preferred_brands.some(b => brandLower.includes(b.toLowerCase()))) score += 0.6;
     }
-    // Fit preference (conservative)
+
+    // Fit / silhouette match (+0.6)
     if (item.fit && styleHints.fit_preferences?.length) {
       const fitLower = item.fit.toLowerCase();
-      if (styleHints.fit_preferences.some(f => fitLower === f.toLowerCase())) bonus += 0.05;
+      if (styleHints.fit_preferences.some(f => fitLower === f.toLowerCase())) score += 0.6;
+    } else if (item.fit && capsuleIntent?.silhouetteBias) {
+      if (item.fit.toLowerCase() === capsuleIntent.silhouetteBias) score += 0.4;
     }
-    // Disliked styles penalty (soft-avoid tiebreaker — primary filtering in tiered pools)
+
+    // Disliked style penalty (-1.5): strong avoidance signal
     if (styleHints.disliked_styles?.length) {
       const subLower = (item.subcategory || '').toLowerCase();
       const nameLower = (item.name || '').toLowerCase();
       if (styleHints.disliked_styles.some(d => {
         const dl = d.toLowerCase();
         return (subLower && subLower.includes(dl)) || (nameLower && nameLower.includes(dl));
-      })) bonus -= 0.15;
+      })) score -= 1.5;
     }
-    return bonus;
+
+    return score;
   };
 
-  // Quality function: activity-specific scoring + aesthetic tie-breaker + style hints
+  // Identity saturation dampening: reduce identity influence for over-used items.
+  // Simulates editorial restraint — signature pieces reused, but not dominant.
+  const identityDampening = (item: TripWardrobeItem): number => {
+    const useCount = (usageTracker.get(item.id) || []).length;
+    if (useCount <= 2) return 1;
+    if (useCount === 3) return 0.85;
+    if (useCount === 4) return 0.7;
+    return 0.5; // useCount >= 5
+  };
+
+  // Quality function: activity scoring + activity-purpose warm-climate modifier
+  // + aesthetic tie-breaker + dampened identity biasing
+  // Warm-leisure context: dampen identity/aesthetic to let purpose bonus dominate
+  const warmLeisureCtx = getWarmLeisureContext(activityProfile, climateZone);
+  const styleDampen = warmLeisureCtx.isWarmLeisure ? 0.8 : 1;
+  const warmLeisureOverride = (item: TripWardrobeItem): number => {
+    if (!warmLeisureCtx.isWarmLeisure) return 0;
+    if (isHeavyFabric(item.material)) return -0.25 * warmLeisureCtx.strength;
+    if (isLightweightFabric(item.material)) return 0.25 * warmLeisureCtx.strength;
+    return 0;
+  };
   const qualityFn = (item: TripWardrobeItem) =>
-    activityScore(item, [activity]) + aestheticBonus(item, items, poolLookup) + styleBonus(item);
+    activityScore(item, [activity]) + activityPurposeBonus(item, activityProfile, climateZone) + aestheticBonus(item, items, poolLookup) * styleDampen + identityScore(item) * identityDampening(item) * styleDampen + warmLeisureOverride(item);
 
   const pickW = (bucket: TripWardrobeItem[], label?: string): WeightedPickResult | null => {
     const maxUses = maxUsesForBucket(bucket.length);
@@ -2827,10 +3018,28 @@ export function buildCapsule(
     if (bucket) buckets[bucket].push(item);
   }
 
-  // Step 2: Sort each bucket by activity relevance, with deterministic shuffle
+  // Step 2: Sort each bucket by activity relevance + warm-climate purpose bonus
+  const tripWarmestDay = weather.length > 0
+    ? weather.reduce((w, d) => (d.highF > w.highF ? d : w), weather[0])
+    : undefined;
+  const tripWarmestClimate = deriveClimateZone(tripWarmestDay);
+  const tripLowestFormalityProfile = activities.reduce<ActivityProfile>((best, a) => {
+    const ap = getActivityProfile(a);
+    return ap.formality < best.formality ? ap : best;
+  }, getActivityProfile(activities[0] || 'Casual'));
+
+  const bucketWarmCtx = getWarmLeisureContext(tripLowestFormalityProfile, tripWarmestClimate);
+  const bucketSortScore = (item: TripWardrobeItem): number => {
+    let score = activityScore(item, activities) + activityPurposeBonus(item, tripLowestFormalityProfile, tripWarmestClimate);
+    if (bucketWarmCtx.isWarmLeisure) {
+      if (isHeavyFabric(item.material)) score -= 0.25 * bucketWarmCtx.strength;
+      if (isLightweightFabric(item.material)) score += 0.25 * bucketWarmCtx.strength;
+    }
+    return score;
+  };
   for (const key of Object.keys(buckets) as CategoryBucket[]) {
     buckets[key] = shuffleWithSeed(buckets[key], rand).sort(
-      (a, b) => activityScore(b, activities) - activityScore(a, activities),
+      (a, b) => bucketSortScore(b) - bucketSortScore(a),
     );
   }
 

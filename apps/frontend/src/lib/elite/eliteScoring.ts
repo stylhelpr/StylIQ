@@ -283,7 +283,7 @@ export function scoreOutfit(
             f => itemFitLower.includes(f) || f.includes(itemFitLower),
           )
         ) {
-          score += 4;
+          score += 5;
           fitFired = true;
         }
       }
@@ -312,7 +312,7 @@ export function scoreOutfit(
             f => itemMatLower.includes(f) || f.includes(itemMatLower),
           )
         ) {
-          score += 3;
+          score += 4;
           fabricFired = true;
         }
       }
