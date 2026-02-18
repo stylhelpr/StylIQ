@@ -14,6 +14,8 @@ interface UserProfile {
   fit_preferences: string[];
   body_type: string | null;
   climate: string | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
 }
 
 interface BrowserSignals {
@@ -47,6 +49,29 @@ export interface DiscoverProduct {
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const TARGET_PRODUCTS = 10;
+const DEBUG_RECOMMENDED_BUYS = process.env.DEBUG_RECOMMENDED_BUYS === 'true';
+
+/** Strip non-alphanumeric (except spaces), lowercase, collapse whitespace */
+function normalize(str?: string | null): string {
+  return (str || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function inferMainCategory(title?: string): string | null {
+  if (!title) return null;
+  const t = normalize(title);
+
+  if (/(jacket|coat|parka|blazer|overshirt)/.test(t)) return 'Outerwear';
+  if (/(shirt|polo|tee|tshirt|sweater|jumper)/.test(t)) return 'Tops';
+  if (/(jeans|pants|trouser|shorts)/.test(t)) return 'Bottoms';
+  if (/(sneaker|boot|loafer|shoe)/.test(t)) return 'Shoes';
+  if (/(belt|tie|hat|cap|scarf)/.test(t)) return 'Accessories';
+
+  return null;
+}
 
 @Injectable()
 export class DiscoverService {
@@ -61,17 +86,25 @@ export class DiscoverService {
   // ==================== MAIN ENTRY POINT ====================
 
   async getRecommended(userId: string): Promise<DiscoverProduct[]> {
+    console.log('🔥🔥🔥 GET RECOMMENDED ENTERED 🔥🔥🔥');
+    console.log('DEBUG_RECOMMENDED_BUYS =', process.env.DEBUG_RECOMMENDED_BUYS);
     // this.log.log(`🛒 getRecommended called for userId: ${userId}`);
 
     // ALWAYS check cache first
     const cached = await this.getCachedProducts(userId);
-    const cacheValid = await this.isCacheValid(userId);
+    const debugMode = process.env.DEBUG_RECOMMENDED_BUYS === 'true';
+    const cacheValid = debugMode
+      ? false
+      : await this.isCacheValid(userId);
 
     // this.log.log(`🛒 Cache status: valid=${cacheValid}, cached count=${cached.length}`);
+
+    console.log('🔥 Cache validity evaluated 🔥', { cacheValid, cachedCount: cached.length });
 
     // HARDLOCK: If cache is valid (within 7 days) AND we have products, return them. NO API CALLS.
     // If cache is "valid" but empty, we should still try to fetch.
     if (cacheValid && cached.length > 0) {
+      console.log('🔥 Returning from CACHE PATH 🔥');
       // this.log.log(`🛒 Returning ${cached.length} cached products for user ${userId} (weekly lock active - NO API CALLS)`);
       return cached;
     }
@@ -96,18 +129,11 @@ export class DiscoverService {
       this.log.error(`fetchPersonalizedProducts failed: ${error?.message}`);
     }
 
-    // If personalized didn't get 10, try fallback
-    if (products.length < TARGET_PRODUCTS) {
+    // Only trigger fallback if candidate pool is completely empty
+    if (products.length === 0) {
+      console.log('🔥 No candidates available — invoking fallback 🔥');
       try {
-        const fallback = await this.getFallbackProducts(userId);
-        // Merge: keep what we got, add from fallback to reach 10
-        const existingIds = new Set(products.map((p) => p.product_id));
-        for (const p of fallback) {
-          if (products.length >= TARGET_PRODUCTS) break;
-          if (!existingIds.has(p.product_id)) {
-            products.push(p);
-          }
-        }
+        products = await this.getFallbackProducts(userId);
       } catch (fallbackError: any) {
         this.log.error(
           `getFallbackProducts also failed: ${fallbackError?.message}`,
@@ -187,6 +213,7 @@ export class DiscoverService {
   private async fetchPersonalizedProducts(
     userId: string,
   ): Promise<DiscoverProduct[]> {
+    console.log('🔥 ENTERED fetchPersonalizedProducts 🔥');
     this.log.log(`fetchPersonalizedProducts starting for ${userId}`);
 
     let profile: UserProfile;
@@ -221,8 +248,9 @@ export class DiscoverService {
 
     // Must have gender - hard requirement
     if (!profile.gender) {
-      this.log.warn(`User ${userId} has no gender set, using fallback`);
-      return this.getFallbackProducts(userId);
+      this.log.warn(`User ${userId} has no gender set, returning empty for fallback`);
+      console.log('🔥 RETURNING FROM fetchPersonalizedProducts (no gender → empty) 🔥');
+      return [];
     }
 
     // Build search queries based on profile
@@ -233,47 +261,40 @@ export class DiscoverService {
       ownedCategories,
     );
 
+    // --- Stage 1: Candidate Generation ---
+    // Collect a large pool (up to 75) to enable scoring and diversity filtering
+    const CANDIDATE_POOL_SIZE = 75;
     const allProducts: any[] = [];
     const usedProductIds = new Set(shownProductIds);
 
-    // Limit products per query to ensure diversity across brands/styles
-    const MAX_PER_QUERY = 3;
-
-    // Execute queries, taking limited products from each to ensure variety
     for (const query of queries) {
-      if (allProducts.length >= TARGET_PRODUCTS) break;
+      if (allProducts.length >= CANDIDATE_POOL_SIZE) break;
 
       try {
         const products = await this.searchSerpApi(query, profile.gender);
-        let addedFromQuery = 0;
 
         for (const p of products) {
-          if (allProducts.length >= TARGET_PRODUCTS) break;
-          if (addedFromQuery >= MAX_PER_QUERY) break;
+          if (allProducts.length >= CANDIDATE_POOL_SIZE) break;
 
-          // Skip duplicates and previously shown
           const productId = this.getProductId(p);
           if (usedProductIds.has(productId)) continue;
-
-          // Skip if matches disliked styles
           if (this.matchesDisliked(p, profile.disliked_styles)) continue;
 
           usedProductIds.add(productId);
           allProducts.push(p);
-          addedFromQuery++;
         }
       } catch (error) {
         this.log.warn(`Query failed: ${query} - ${error}`);
       }
     }
 
-    // If still not enough, broaden search
-    if (allProducts.length < TARGET_PRODUCTS) {
+    // Broaden search if candidate pool is thin
+    if (allProducts.length < CANDIDATE_POOL_SIZE) {
       const broadQuery = `${profile.gender === 'male' ? "men's" : "women's"} fashion clothing`;
       try {
         const products = await this.searchSerpApi(broadQuery, profile.gender);
         for (const p of products) {
-          if (allProducts.length >= TARGET_PRODUCTS) break;
+          if (allProducts.length >= CANDIDATE_POOL_SIZE) break;
           const productId = this.getProductId(p);
           if (usedProductIds.has(productId)) continue;
           usedProductIds.add(productId);
@@ -284,10 +305,188 @@ export class DiscoverService {
       }
     }
 
-    // Transform and save
-    const finalProducts = allProducts
+    if (DEBUG_RECOMMENDED_BUYS) {
+      this.log.debug(`[Discover] Candidate pool size: ${allProducts.length}`);
+    }
+
+    // If candidate pool is empty, return [] and let getRecommended() handle fallback
+    if (allProducts.length === 0) {
+      console.log('🔥 RETURNING FROM fetchPersonalizedProducts (empty candidate pool) 🔥');
+      return [];
+    }
+
+    console.log('🔥 ENTERING SCORING BLOCK 🔥', { candidateCount: allProducts.length });
+
+    // --- Stage 2: Scoring ---
+    // Transform raw products, then score each against profile signals
+    const transformed = allProducts.map((p, i) =>
+      this.transformProduct(p, i + 1),
+    );
+
+    const lowOwnedCategories = [...ownedCategories.entries()]
+      .filter(([, count]) => count < 3)
+      .map(([cat]) => cat);
+
+    const wardrobeStats = { lowOwnedCategories };
+    const behavior = { recentBrands: browserSignals.brands };
+
+    if (DEBUG_RECOMMENDED_BUYS) {
+      console.log('🧥 LOW OWNED CATEGORIES', wardrobeStats.lowOwnedCategories);
+    }
+
+    const scored = transformed.map((p) => {
+      const breakdown = {
+        brand: 0,
+        color: 0,
+        style: 0,
+        gap: 0,
+        budget: 0,
+        behavior: 0,
+      };
+
+      let score = 0;
+
+      // Brand match — normalized substring (e.g. "Zara USA" matches "Zara")
+      const normBrand = normalize(p.brand);
+      if (
+        normBrand &&
+        profile.preferred_brands?.some((b) => normBrand.includes(normalize(b)))
+      ) {
+        score += 30;
+        breakdown.brand = 30;
+      }
+
+      // Color match — normalized substring on title
+      const normTitle = normalize(p.title);
+      if (
+        normTitle &&
+        profile.favorite_colors?.some((c) => normTitle.includes(normalize(c)))
+      ) {
+        score += 20;
+        breakdown.color = 20;
+      }
+
+      // Style keyword match — normalized substring on title
+      if (
+        normTitle &&
+        profile.style_keywords?.some((k) => normTitle.includes(normalize(k)))
+      ) {
+        score += 15;
+        breakdown.style = 15;
+      }
+
+      const inferredCategory = p.category || inferMainCategory(p.title);
+      if (
+        inferredCategory &&
+        wardrobeStats.lowOwnedCategories?.includes(inferredCategory)
+      ) {
+        score += 15;
+        breakdown.gap = 15;
+      }
+
+      // Budget match — proper null guards (budget_min of 0 is valid)
+      if (
+        typeof p.price === 'number' &&
+        profile.budget_min != null &&
+        profile.budget_max != null &&
+        p.price >= profile.budget_min &&
+        p.price <= profile.budget_max
+      ) {
+        score += 10;
+        breakdown.budget = 10;
+      }
+
+      // Behavior brand match — normalized substring
+      if (
+        normBrand &&
+        behavior.recentBrands?.some((b) => normBrand.includes(normalize(b)))
+      ) {
+        score += 10;
+        breakdown.behavior = 10;
+      }
+
+      if (DEBUG_RECOMMENDED_BUYS) {
+        this.log.debug(
+          `[Discover][Score] ${JSON.stringify({ title: p.title, brand: p.brand, price: p.price, totalScore: score, breakdown })}`,
+        );
+      }
+
+      return { product: p, score, breakdown };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    if (DEBUG_RECOMMENDED_BUYS) {
+      const scores = scored.map(s => s.score);
+      const max = Math.max(...scores);
+      const min = Math.min(...scores);
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+      console.log('📊 SCORE SUMMARY', {
+        candidateCount: scored.length,
+        max,
+        min,
+        avg,
+      });
+
+      console.log('🏆 TOP 15 BEFORE DIVERSITY');
+      scored.slice(0, 15).forEach((s, i) => {
+        console.log(`#${i + 1}`, {
+          title: s.product.title,
+          brand: s.product.brand,
+          score: s.score,
+          breakdown: s.breakdown,
+        });
+      });
+    }
+
+    const rankedProducts = scored.map((s) => s.product);
+
+    // --- Stage 3: Diversity Mix ---
+    // Cap per-brand and per-category to ensure variety in final set
+    const diversified: DiscoverProduct[] = [];
+    const brandCount = new Map<string, number>();
+    const categoryCount = new Map<string, number>();
+
+    for (const p of rankedProducts) {
+      const brand = p.brand || '__unknown__';
+      const bc = brandCount.get(brand) || 0;
+
+      if (bc >= 3) continue; // Max 3 per brand
+
+      // Only enforce category cap when category is known
+      if (p.category) {
+        const cc = categoryCount.get(p.category) || 0;
+        if (cc >= 4) continue; // Max 4 per category
+      }
+
+      diversified.push(p);
+      brandCount.set(brand, bc + 1);
+      if (p.category) {
+        categoryCount.set(p.category, (categoryCount.get(p.category) || 0) + 1);
+      }
+    }
+
+    if (DEBUG_RECOMMENDED_BUYS) {
+      console.log('🧩 AFTER DIVERSITY', {
+        remaining: diversified.length,
+      });
+    }
+
+    // Final slice to target count, re-assign positions
+    const finalProducts = diversified
       .slice(0, TARGET_PRODUCTS)
-      .map((p, i) => this.transformProduct(p, i + 1));
+      .map((p, i) => ({ ...p, position: i + 1 }));
+
+    if (DEBUG_RECOMMENDED_BUYS) {
+      console.log('✅ FINAL SELECTED');
+      finalProducts.forEach((p, i) => {
+        console.log(`#${i + 1}`, {
+          title: p.title,
+          brand: p.brand,
+        });
+      });
+    }
 
     // Save to DB
     await this.saveProducts(userId, finalProducts);
@@ -301,9 +500,7 @@ export class DiscoverService {
       finalProducts.map((p) => p.product_id),
     );
 
-    this.log.log(
-      `Fetched ${finalProducts.length} personalized products for user ${userId}`,
-    );
+    console.log('🔥 FINAL PRODUCTS COUNT 🔥', finalProducts.length);
     return finalProducts;
   }
 
@@ -682,6 +879,7 @@ export class DiscoverService {
   private async getFallbackProducts(
     userId: string,
   ): Promise<DiscoverProduct[]> {
+    console.log('🔥 ENTERED getFallbackProducts 🔥');
     this.log.log(`getFallbackProducts called for ${userId}`);
 
     const apiKey = this.serpApiKey;
