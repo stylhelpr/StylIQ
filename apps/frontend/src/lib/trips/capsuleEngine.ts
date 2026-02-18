@@ -37,7 +37,7 @@ import {
 } from '../elite/eliteScoring';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 19;
+export const CAPSULE_VERSION = 20;
 
 // ── Trip Trace Instrumentation ──
 const TRIP_TRACE = true;
@@ -232,6 +232,335 @@ export function isPurposeCompatible(itemPurpose: GarmentPurpose, activityPurpose
   return PURPOSE_COMPATIBILITY[activityPurpose].includes(itemPurpose);
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  TRIP-LOCAL SEMANTIC SCORING (enums + derivation + multipliers)
+// ══════════════════════════════════════════════════════════════════════════════
+
+/** Trip-local garment purpose — derived from metadata only, not names. */
+export type TripGarmentPurpose =
+  | 'BUSINESS_CORE'
+  | 'SMART_CASUAL'
+  | 'LEISURE_DAY'
+  | 'RESORT_RELAXED'
+  | 'TRAINING'
+  | 'TRAVEL_COMFORT'
+  | 'WIND_LAYER'
+  | 'RAIN_SHELL'
+  | 'OPEN_FOOTWEAR'
+  | 'CLOSED_FOOTWEAR';
+
+/** Trip-local activity purpose — derived from TripActivity + weather. */
+export type TripActivityPurpose =
+  | 'WORK_CLIENT'
+  | 'EVENING_SOCIAL'
+  | 'TRAVEL_DAY'
+  | 'WARM_LEISURE_TRAVEL'
+  | 'ATHLETIC_TRAINING'
+  | 'SUN_FORWARD'
+  | 'RAIN_RISK'
+  | 'WIND_RISK';
+
+/** Thermal profile derived from material/thickness metadata. */
+export type TripThermalProfile =
+  | 'HOT_BREATHABLE'
+  | 'WARM_LIGHT'
+  | 'MILD_ALLDAY'
+  | 'COOL_LAYER'
+  | 'COLD_INSULATING';
+
+type TripGarmentProfile = {
+  garmentPurposes: Set<TripGarmentPurpose>;
+  thermal: TripThermalProfile;
+};
+
+// ── Material classification maps (metadata-driven) ──
+const HOT_BREATHABLE_MATERIALS = /\b(linen|seersucker|chambray|gauze|muslin|batiste|voile|lawn|mesh|poplin|rayon|viscose|modal|tencel|lyocell|bamboo)\b/i;
+const WARM_LIGHT_MATERIALS = /\b(cotton|silk|jersey|pique|chiffon|crepe)\b/i;
+const COOL_LAYER_MATERIALS = /\b(flannel|corduroy|denim|twill|canvas|ponte|neoprene)\b/i;
+const COLD_INSULATING_MATERIALS = /\b(wool|cashmere|merino|tweed|fleece|sherpa|shearling|down|quilted|boucle|mohair|velvet)\b/i;
+
+// ── Subcategory → purpose mappings (metadata-driven, no name checks) ──
+const BUSINESS_SUBCATEGORIES = /\b(blazer|sport coat|dress shirt|trousers|slacks|dress pant|suit|waistcoat|vest|tie|bow tie|cufflink|pocket square)\b/i;
+const TRAINING_SUBCATEGORIES = /\b(legging|jogger|sweatpant|track pant|compression|sports bra|athletic|running|yoga|workout|gym|jersey|tank top)\b/i;
+const LEISURE_SUBCATEGORIES = /\b(shorts|tank|crop|t-shirt|tee|polo|bermuda|capri|sundress|romper|jumpsuit|kaftan|caftan|sarong|muumuu)\b/i;
+const RESORT_SUBCATEGORIES = /\b(hawaiian|aloha|board short|swim|bikini|trunks|rash guard|cover-up|sandal|flip-flop|slide|espadrille)\b/i;
+const WIND_LAYER_SUBCATEGORIES = /\b(windbreaker|anorak|shell|bomber|harrington)\b/i;
+const RAIN_SHELL_SUBCATEGORIES = /\b(rain coat|rain jacket|trench|parka|poncho|slicker|mac)\b/i;
+const OPEN_FOOTWEAR_SUBCATEGORIES = /\b(sandal|flip-flop|slide|thong|espadrille|mule)\b/i;
+const SMART_CASUAL_SUBCATEGORIES = /\b(chino|loafer|chelsea|chukka|derby|brogue|oxford|button-down|cardigan|sweater|pullover|turtleneck|mock neck)\b/i;
+
+/**
+ * Derive garment profile (purposes + thermal) from metadata ONLY.
+ * Uses: category, subcategory, dress_code, occasion_tags, material, layering.
+ * NO name-based logic. NO brand checks. NO gender assumptions.
+ */
+export function deriveGarmentProfile(item: TripWardrobeItem): TripGarmentProfile {
+  const purposes = new Set<TripGarmentPurpose>();
+  const sub = (item.subcategory || '').toLowerCase();
+  const cat = (item.main_category || '').toLowerCase();
+  const dressCode = (item.dressCode || '').toLowerCase();
+  const mat = (item.material || '').toLowerCase();
+  const tags = (item.occasionTags || []).map(t => t.toLowerCase());
+  const layering = (item.layering || '').toLowerCase();
+
+  // ── Purpose derivation from metadata ──
+
+  // Business core: dress_code or high-formality subcategories
+  if (dressCode.includes('business') || dressCode.includes('formal') || dressCode.includes('black tie')) {
+    purposes.add('BUSINESS_CORE');
+  }
+  if (BUSINESS_SUBCATEGORIES.test(sub)) purposes.add('BUSINESS_CORE');
+
+  // Smart casual
+  if (dressCode.includes('smart casual') || dressCode.includes('smart-casual')) {
+    purposes.add('SMART_CASUAL');
+  }
+  if (SMART_CASUAL_SUBCATEGORIES.test(sub)) purposes.add('SMART_CASUAL');
+
+  // Training: occasion tags or athletic subcategories
+  if (tags.some(t => /\b(gym|sport|workout|running|training|athletic|yoga|exercise)\b/.test(t))) {
+    purposes.add('TRAINING');
+  }
+  if (cat === 'activewear' || TRAINING_SUBCATEGORIES.test(sub)) purposes.add('TRAINING');
+
+  // Leisure day: casual warm-weather subcategories
+  if (LEISURE_SUBCATEGORIES.test(sub) && !purposes.has('TRAINING')) {
+    purposes.add('LEISURE_DAY');
+  }
+
+  // Resort relaxed: swimwear, beach, resort subcategories
+  if (cat === 'swimwear' || RESORT_SUBCATEGORIES.test(sub)) {
+    purposes.add('RESORT_RELAXED');
+  }
+
+  // Travel comfort: layering=base/mid or dressCode casual + comfortable material
+  if (dressCode.includes('casual') && !purposes.has('BUSINESS_CORE')) {
+    purposes.add('TRAVEL_COMFORT');
+  }
+  if (layering === 'base' || layering === 'mid') {
+    purposes.add('TRAVEL_COMFORT');
+  }
+
+  // Wind layer
+  if (WIND_LAYER_SUBCATEGORIES.test(sub) || layering === 'shell') {
+    purposes.add('WIND_LAYER');
+  }
+
+  // Rain shell
+  if (RAIN_SHELL_SUBCATEGORIES.test(sub) || item.rainOk === true) {
+    purposes.add('RAIN_SHELL');
+  }
+
+  // Footwear detection (subcategory-driven)
+  if (cat === 'shoes' || cat === 'footwear') {
+    if (OPEN_FOOTWEAR_SUBCATEGORIES.test(sub)) {
+      purposes.add('OPEN_FOOTWEAR');
+    } else {
+      purposes.add('CLOSED_FOOTWEAR');
+    }
+  }
+
+  // ── Thermal profile derivation from material ──
+  let thermal: TripThermalProfile = 'MILD_ALLDAY';
+
+  if (COLD_INSULATING_MATERIALS.test(mat)) {
+    thermal = 'COLD_INSULATING';
+  } else if (COOL_LAYER_MATERIALS.test(mat)) {
+    thermal = 'COOL_LAYER';
+  } else if (HOT_BREATHABLE_MATERIALS.test(mat)) {
+    thermal = 'HOT_BREATHABLE';
+  } else if (WARM_LIGHT_MATERIALS.test(mat)) {
+    thermal = 'WARM_LIGHT';
+  }
+
+  // Override thermal if thermalRating metadata is available
+  if (item.thermalRating != null) {
+    if (item.thermalRating >= 80) thermal = 'COLD_INSULATING';
+    else if (item.thermalRating >= 60) thermal = 'COOL_LAYER';
+    else if (item.thermalRating <= 20) thermal = 'HOT_BREATHABLE';
+    else if (item.thermalRating <= 40) thermal = 'WARM_LIGHT';
+  }
+
+  return {garmentPurposes: purposes, thermal};
+}
+
+/**
+ * Expand a TripActivity + weather into a set of TripActivityPurpose values.
+ * No location logic. No user-specific logic.
+ */
+export function expandTripActivityPurposes(
+  activity: TripActivity,
+  dayWeather: DayWeather | undefined,
+): Set<TripActivityPurpose> {
+  const purposes = new Set<TripActivityPurpose>();
+
+  // ── Activity → base purpose mapping ──
+  switch (activity) {
+    case 'Business':
+      purposes.add('WORK_CLIENT');
+      break;
+    case 'Formal':
+      purposes.add('WORK_CLIENT');
+      purposes.add('EVENING_SOCIAL');
+      break;
+    case 'Dinner':
+      purposes.add('EVENING_SOCIAL');
+      break;
+    case 'Active':
+      purposes.add('ATHLETIC_TRAINING');
+      break;
+    case 'Sightseeing':
+      purposes.add('TRAVEL_DAY');
+      break;
+    case 'Casual':
+      purposes.add('TRAVEL_DAY');
+      break;
+    case 'Beach':
+      purposes.add('WARM_LEISURE_TRAVEL');
+      break;
+    case 'Cold Weather':
+      purposes.add('TRAVEL_DAY');
+      break;
+  }
+
+  // ── Weather-derived purpose expansion ──
+  if (dayWeather) {
+    // Warm leisure: highF >= 75 AND non-business/formal
+    if (dayWeather.highF >= 75 && activity !== 'Business' && activity !== 'Formal') {
+      purposes.add('WARM_LEISURE_TRAVEL');
+    }
+
+    // Sun forward: sunny/partly-cloudy + highF >= 70
+    if ((dayWeather.condition === 'sunny' || dayWeather.condition === 'partly-cloudy') && dayWeather.highF >= 70) {
+      purposes.add('SUN_FORWARD');
+    }
+
+    // Rain risk: rainChance > 40 or rainy condition
+    if (dayWeather.rainChance > 40 || dayWeather.condition === 'rainy') {
+      purposes.add('RAIN_RISK');
+    }
+
+    // Wind risk: windy condition
+    if (dayWeather.condition === 'windy') {
+      purposes.add('WIND_RISK');
+    }
+  }
+
+  return purposes;
+}
+
+/**
+ * Purpose compatibility multiplier: how well garment purposes align with activity purposes.
+ * Returns: strong match→1.4, light match→1.15, neutral→1, discourage→0.9
+ */
+export function tripPurposeMultiplier(
+  garmentPurposes: Set<TripGarmentPurpose>,
+  activityPurposes: Set<TripActivityPurpose>,
+): number {
+  // No purposes derived → neutral (no penalty for missing metadata)
+  if (garmentPurposes.size === 0) return 1;
+
+  let best = 1; // neutral baseline
+
+  // Strong matches (1.4)
+  if (activityPurposes.has('WORK_CLIENT') && garmentPurposes.has('BUSINESS_CORE')) best = Math.max(best, 1.4);
+  if (activityPurposes.has('WARM_LEISURE_TRAVEL') && garmentPurposes.has('LEISURE_DAY')) best = Math.max(best, 1.4);
+  if (activityPurposes.has('WARM_LEISURE_TRAVEL') && garmentPurposes.has('RESORT_RELAXED')) best = Math.max(best, 1.4);
+  if (activityPurposes.has('ATHLETIC_TRAINING') && garmentPurposes.has('TRAINING')) best = Math.max(best, 1.4);
+  if (activityPurposes.has('RAIN_RISK') && garmentPurposes.has('RAIN_SHELL')) best = Math.max(best, 1.4);
+  if (activityPurposes.has('WIND_RISK') && garmentPurposes.has('WIND_LAYER')) best = Math.max(best, 1.4);
+
+  // Light matches (1.15)
+  if (activityPurposes.has('WORK_CLIENT') && garmentPurposes.has('SMART_CASUAL')) best = Math.max(best, 1.15);
+  if (activityPurposes.has('EVENING_SOCIAL') && garmentPurposes.has('SMART_CASUAL')) best = Math.max(best, 1.15);
+  if (activityPurposes.has('EVENING_SOCIAL') && garmentPurposes.has('BUSINESS_CORE')) best = Math.max(best, 1.15);
+  if (activityPurposes.has('TRAVEL_DAY') && garmentPurposes.has('TRAVEL_COMFORT')) best = Math.max(best, 1.15);
+  if (activityPurposes.has('WARM_LEISURE_TRAVEL') && garmentPurposes.has('OPEN_FOOTWEAR')) best = Math.max(best, 1.15);
+  if (activityPurposes.has('SUN_FORWARD') && garmentPurposes.has('LEISURE_DAY')) best = Math.max(best, 1.15);
+
+  // Discouragements (0.9) — only apply if no strong/light match found
+  if (best === 1) {
+    if (activityPurposes.has('WORK_CLIENT') && (garmentPurposes.has('LEISURE_DAY') || garmentPurposes.has('RESORT_RELAXED') || garmentPurposes.has('TRAINING'))) best = 0.9;
+    if (activityPurposes.has('WARM_LEISURE_TRAVEL') && garmentPurposes.has('BUSINESS_CORE')) best = 0.9;
+    if (activityPurposes.has('ATHLETIC_TRAINING') && (garmentPurposes.has('BUSINESS_CORE') || garmentPurposes.has('SMART_CASUAL'))) best = 0.9;
+  }
+
+  return best;
+}
+
+/**
+ * Thermal compatibility multiplier: how well a garment's thermal profile
+ * matches the weather band. Does NOT replace legality gates — only multiplies score.
+ *
+ * Weather bands (°F):
+ *   HOT: highF >= 85
+ *   WARM: highF 75–84
+ *   MILD: highF 60–74
+ *   COOL: highF 45–59
+ *   COLD: highF < 45
+ */
+export function tripThermalMultiplier(
+  thermal: TripThermalProfile,
+  dayWeather: DayWeather | undefined,
+): number {
+  if (!dayWeather) return 1; // no weather data → neutral
+
+  const high = dayWeather.highF;
+
+  // HOT band: >= 85°F
+  if (high >= 85) {
+    switch (thermal) {
+      case 'HOT_BREATHABLE': return 1.4;
+      case 'WARM_LIGHT': return 1.25;
+      case 'MILD_ALLDAY': return 1;
+      case 'COOL_LAYER': return 0.75;
+      case 'COLD_INSULATING': return 0;
+    }
+  }
+
+  // WARM band: 75–84°F
+  if (high >= 75) {
+    switch (thermal) {
+      case 'HOT_BREATHABLE': return 1.35;
+      case 'WARM_LIGHT': return 1.25;
+      case 'MILD_ALLDAY': return 1;
+      case 'COOL_LAYER': return 0.85;
+      case 'COLD_INSULATING': return 0;
+    }
+  }
+
+  // MILD band: 60–74°F
+  if (high >= 60) {
+    switch (thermal) {
+      case 'HOT_BREATHABLE': return 1.1;
+      case 'WARM_LIGHT': return 1.15;
+      case 'MILD_ALLDAY': return 1.1;
+      case 'COOL_LAYER': return 1.1;
+      case 'COLD_INSULATING': return 0.85;
+    }
+  }
+
+  // COOL band: 45–59°F
+  if (high >= 45) {
+    switch (thermal) {
+      case 'HOT_BREATHABLE': return 0.85;
+      case 'WARM_LIGHT': return 1;
+      case 'MILD_ALLDAY': return 1.1;
+      case 'COOL_LAYER': return 1.3;
+      case 'COLD_INSULATING': return 1.25;
+    }
+  }
+
+  // COLD band: < 45°F
+  switch (thermal) {
+    case 'HOT_BREATHABLE': return 0;
+    case 'WARM_LIGHT': return 0.75;
+    case 'MILD_ALLDAY': return 0.9;
+    case 'COOL_LAYER': return 1.25;
+    case 'COLD_INSULATING': return 1.4;
+  }
+}
+
 // ── Lightweight fabric detection (metadata-driven, no brand/name heuristics) ──
 
 const LIGHTWEIGHT_FABRICS = /\b(linen|cotton|seersucker|chambray|rayon|viscose|modal|tencel|lyocell|bamboo|silk|mesh|poplin|voile|gauze|muslin|batiste|lawn)\b/;
@@ -245,6 +574,31 @@ function isLightweightFabric(material: string | undefined): boolean {
 function isHeavyFabric(material: string | undefined): boolean {
   if (!material) return false;
   return HEAVY_FABRICS.test(material.toLowerCase());
+}
+
+/**
+ * Context-primary candidate detection: identifies items that should be elevated
+ * to PRIMARY tier when in warm/hot climate + water/rest activity contexts.
+ *
+ * Metadata-driven only — no name heuristics, no brand checks, no gender assumptions.
+ */
+function isContextPrimaryCandidate(
+  item: TripWardrobeItem,
+  activityProfile: ActivityProfile,
+  climateZone: ClimateZone,
+): boolean {
+  if (climateZone !== 'warm' && climateZone !== 'hot') return false;
+  const purposeClass = getActivityPurposeClass(activityProfile);
+  if (purposeClass !== 'water' && purposeClass !== 'rest') return false;
+  if (activityProfile.formality >= 2) return false;
+
+  if (isHeavyFabric(item.material)) return false;
+
+  const purpose = getGarmentPurpose(item);
+  if (purpose === 'swim' || purpose === 'leisure') return true;
+  if (isLightweightFabric(item.material)) return true;
+
+  return false;
 }
 
 /**
@@ -1145,6 +1499,8 @@ function tieredPick(
   qualityFn?: (item: TripWardrobeItem) => number,
   debugLabel?: string,
   toleranceIds?: ReadonlySet<string>,
+  contextProfile?: ActivityProfile,
+  contextClimate?: ClimateZone,
 ): WeightedPickResult | null {
   if (candidates.length === 0) return null;
 
@@ -1170,6 +1526,27 @@ function tieredPick(
       secondary.push(item);
     } else {
       fallback.push(item);
+    }
+  }
+
+  // Context-primary override: in warm/hot + water/rest contexts, elevate
+  // purpose-aligned lightweight items to PRIMARY, demote others to SECONDARY.
+  // No items are removed — only tier membership changes.
+  if (contextProfile && contextClimate) {
+    const contextPrimaries = candidates.filter(item =>
+      isContextPrimaryCandidate(item, contextProfile, contextClimate),
+    );
+    if (contextPrimaries.length > 0) {
+      const ctxIds = new Set(contextPrimaries.map(i => i.id));
+      const demotedFromPrimary = primary.filter(p => !ctxIds.has(p.id));
+      const newSecondary = secondary.filter(s => !ctxIds.has(s.id));
+      const newFallback = fallback.filter(f => !ctxIds.has(f.id));
+      primary.length = 0;
+      primary.push(...contextPrimaries);
+      secondary.length = 0;
+      secondary.push(...demotedFromPrimary, ...newSecondary);
+      fallback.length = 0;
+      fallback.push(...newFallback);
     }
   }
 
@@ -2068,14 +2445,25 @@ function fillFootwearRoles(
     if (isLightweightFabric(item.material)) return 0.25 * footwearWarmCtx.strength;
     return 0;
   };
-  const qualityFn = (item: TripWardrobeItem) =>
-    activityScore(item, activities) + activityPurposeBonus(item, lowestFormalityProfile, warmestClimate) + footwearWarmOverride(item);
+  // Trip semantic multipliers: merge all activities' purposes for trip-wide shoe scoring
+  const shoeActivityPurposes = new Set<TripActivityPurpose>();
+  for (const act of activities) {
+    for (const p of expandTripActivityPurposes(act, warmestDay)) shoeActivityPurposes.add(p);
+  }
+  const qualityFn = (item: TripWardrobeItem) => {
+    const base = activityScore(item, activities) + activityPurposeBonus(item, lowestFormalityProfile, warmestClimate) + footwearWarmOverride(item);
+    const profile = deriveGarmentProfile(item);
+    const purposeMul = tripPurposeMultiplier(profile.garmentPurposes, shoeActivityPurposes);
+    const thermalMul = tripThermalMultiplier(profile.thermal, warmestDay);
+    return base * purposeMul * thermalMul;
+  };
 
   // 1. anchor_shoe — most versatile palette-matching shoe
   const anchorResult = tieredPick(
     effectivePool, capsuleIntent, styleHints,
     emptyTracker, 0, Infinity, qualityFn,
     __DEV__ ? 'role/anchor_shoe' : undefined,
+    undefined, lowestFormalityProfile, warmestClimate,
   );
   if (anchorResult) {
     roleRegistry.set('anchor_shoe', anchorResult.picked);
@@ -2122,6 +2510,7 @@ function fillFootwearRoles(
         pool, capsuleIntent, styleHints,
         emptyTracker, 0, Infinity, qualityFn,
         __DEV__ ? `role/contrast_shoe${contrastCandidates.length > 0 ? '' : '_fallback'}` : undefined,
+        undefined, lowestFormalityProfile, warmestClimate,
       );
       if (result) {
         roleRegistry.set('contrast_shoe', result.picked);
@@ -2164,6 +2553,7 @@ function fillFootwearRoles(
         pool, capsuleIntent, styleHints,
         emptyTracker, 0, Infinity, qualityFn,
         __DEV__ ? `role/condition_shoe${conditionCandidates.length > 0 ? '' : '_fallback'}` : undefined,
+        undefined, lowestFormalityProfile, warmestClimate,
       );
       if (result) {
         roleRegistry.set('condition_shoe', result.picked);
@@ -2598,14 +2988,21 @@ function buildOutfitForActivity(
     if (isLightweightFabric(item.material)) return 0.25 * warmLeisureCtx.strength;
     return 0;
   };
-  const qualityFn = (item: TripWardrobeItem) =>
-    activityScore(item, [activity]) + activityPurposeBonus(item, activityProfile, climateZone) + aestheticBonus(item, items, poolLookup) * styleDampen + identityScore(item) * identityDampening(item) * styleDampen + warmLeisureOverride(item);
+  // ── Trip semantic multipliers (purpose + thermal) ──
+  const dayActivityPurposes = expandTripActivityPurposes(activity, dayWeather);
+  const qualityFn = (item: TripWardrobeItem) => {
+    const base = activityScore(item, [activity]) + activityPurposeBonus(item, activityProfile, climateZone) + aestheticBonus(item, items, poolLookup) * styleDampen + identityScore(item) * identityDampening(item) * styleDampen + warmLeisureOverride(item);
+    const profile = deriveGarmentProfile(item);
+    const purposeMul = tripPurposeMultiplier(profile.garmentPurposes, dayActivityPurposes);
+    const thermalMul = tripThermalMultiplier(profile.thermal, dayWeather);
+    return base * purposeMul * thermalMul;
+  };
 
   const pickW = (bucket: TripWardrobeItem[], label?: string): WeightedPickResult | null => {
     const maxUses = maxUsesForBucket(bucket.length);
     const dbgLabel = __DEV__ ? `${activity}/${label}` : undefined;
     if (capsuleIntent) {
-      return tieredPick(bucket, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel);
+      return tieredPick(bucket, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel, undefined, activityProfile, climateZone);
     }
     return weightedPick(bucket, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel);
   };
@@ -2637,7 +3034,7 @@ function buildOutfitForActivity(
       ? (item: TripWardrobeItem) => qualityFn(item) + (toleranceShoeIds.has(item.id) ? -5 : 0)
       : qualityFn;
     const result = capsuleIntent
-      ? tieredPick(budgetedShoes, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, shoeQualityFn, dbgLabel, toleranceShoeIds)
+      ? tieredPick(budgetedShoes, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, shoeQualityFn, dbgLabel, toleranceShoeIds, activityProfile, climateZone)
       : weightedPick(budgetedShoes, usageTracker, dayIndex, maxUses, shoeQualityFn, dbgLabel);
     if (!result) return;
     // Consume anchor budget for the selected shoe
@@ -3029,18 +3426,43 @@ export function buildCapsule(
   }, getActivityProfile(activities[0] || 'Casual'));
 
   const bucketWarmCtx = getWarmLeisureContext(tripLowestFormalityProfile, tripWarmestClimate);
+  // Trip semantic multipliers for bucket pre-sort: merge all activities + warmest weather
+  const bucketActivityPurposes = new Set<TripActivityPurpose>();
+  for (const act of activities) {
+    for (const p of expandTripActivityPurposes(act, tripWarmestDay)) bucketActivityPurposes.add(p);
+  }
   const bucketSortScore = (item: TripWardrobeItem): number => {
     let score = activityScore(item, activities) + activityPurposeBonus(item, tripLowestFormalityProfile, tripWarmestClimate);
     if (bucketWarmCtx.isWarmLeisure) {
       if (isHeavyFabric(item.material)) score -= 0.25 * bucketWarmCtx.strength;
       if (isLightweightFabric(item.material)) score += 0.25 * bucketWarmCtx.strength;
     }
+    // Semantic multipliers: purpose + thermal compatibility
+    const profile = deriveGarmentProfile(item);
+    score *= tripPurposeMultiplier(profile.garmentPurposes, bucketActivityPurposes);
+    score *= tripThermalMultiplier(profile.thermal, tripWarmestDay);
     return score;
   };
   for (const key of Object.keys(buckets) as CategoryBucket[]) {
-    buckets[key] = shuffleWithSeed(buckets[key], rand).sort(
+    const sorted = shuffleWithSeed(buckets[key], rand).sort(
       (a, b) => bucketSortScore(b) - bucketSortScore(a),
     );
+    // Context-primary partitioning: in warm-leisure context, move purpose-aligned
+    // lightweight items to the front of each bucket (preserves all items)
+    if (bucketWarmCtx.isWarmLeisure) {
+      const ctxPrimary = sorted.filter(item =>
+        isContextPrimaryCandidate(item, tripLowestFormalityProfile, tripWarmestClimate),
+      );
+      if (ctxPrimary.length > 0) {
+        const ctxIds = new Set(ctxPrimary.map(i => i.id));
+        const rest = sorted.filter(item => !ctxIds.has(item.id));
+        buckets[key] = [...ctxPrimary, ...rest];
+      } else {
+        buckets[key] = sorted;
+      }
+    } else {
+      buckets[key] = sorted;
+    }
   }
 
   // Log bucket populations
