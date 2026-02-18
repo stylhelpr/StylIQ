@@ -45,6 +45,7 @@ export interface DiscoverProduct {
   saved_at?: string | null;
   batch_date?: string;
   is_current?: boolean;
+  enriched_color?: string | null;
 }
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -189,6 +190,11 @@ const COLOR_VOCAB: string[] = [
   'brown', 'beige', 'tan', 'cream', 'burgundy', 'olive',
 ];
 
+// Canonical color buckets for thumbnail-based enrichment
+const CANONICAL_COLORS = [
+  'black', 'white', 'gray', 'navy', 'blue', 'brown', 'beige', 'red', 'burgundy', 'green',
+] as const;
+
 /** Category adjacency map — normalized keys and values */
 const CATEGORY_ADJACENCY: Record<string, string[]> = {
   outerwear: ['tops'],
@@ -201,6 +207,39 @@ const CATEGORY_ADJACENCY: Record<string, string[]> = {
   bags: ['accessories'],
   jewelry: ['accessories'],
   swimwear: ['activewear'],
+};
+
+/** Category → style bridge: infers style affinity from product category keywords */
+const CATEGORY_STYLE_BRIDGE: Record<string, string[]> = {
+  blazer: ['formal', 'business casual', 'luxury', 'classic'],
+  suit: ['formal', 'luxury', 'elegant'],
+  loafer: ['classic', 'preppy', 'business casual'],
+  hoodie: ['sporty', 'casual'],
+  jogger: ['sporty', 'casual'],
+  bomber: ['trendy', 'sporty'],
+  overshirt: ['casual', 'classic'],
+  'dress shirt': ['formal', 'business casual'],
+  trouser: ['formal', 'classic'],
+  cardigan: ['classic', 'cozy', 'casual'],
+  sneaker: ['sporty', 'casual', 'streetwear'],
+  boot: ['rugged', 'classic', 'edgy'],
+  polo: ['preppy', 'classic', 'smart casual'],
+  chino: ['smart casual', 'preppy', 'classic'],
+  puffer: ['sporty', 'modern', 'casual'],
+  denim: ['casual', 'rugged', 'streetwear'],
+  sandal: ['casual', 'summer', 'relaxed'],
+  oxford: ['classic', 'formal', 'preppy'],
+};
+
+/** Body-type → category multiplier for gap bonus (0.8–1.2 range) */
+const BODY_TYPE_CATEGORY_BOOST: Record<string, Record<string, number>> = {
+  inverted_triangle: { bottoms: 1.2, tops: 0.9, shoes: 1.1 },
+  pear:              { tops: 1.2, bottoms: 0.9, accessories: 1.1 },
+  apple:             { tops: 0.9, dresses: 1.2, outerwear: 1.1 },
+  hourglass:         { dresses: 1.2, tops: 1.1, bottoms: 1.0 },
+  rectangle:         { outerwear: 1.2, dresses: 1.1, accessories: 1.1 },
+  petite:            { shoes: 1.1, tops: 1.1 },
+  athletic:          { activewear: 1.2, tops: 1.1, bottoms: 0.9 },
 };
 
 @Injectable()
@@ -317,7 +356,7 @@ export class DiscoverService {
            udp.image_url, udp.link, udp.source, udp.category, udp.position,
            (sr.id IS NOT NULL) as saved,
            sr.saved_at,
-           udp.batch_date, udp.is_current
+           udp.batch_date, udp.is_current, udp.enriched_color
          FROM user_discover_products udp
          LEFT JOIN saved_recommendations sr
            ON sr.user_id = udp.user_id AND sr.product_id = udp.product_id
@@ -445,6 +484,35 @@ export class DiscoverService {
       return [];
     }
 
+    // --- Stage 1b: Color Enrichment from thumbnails ---
+    const ENRICHMENT_CONCURRENCY = 5;
+    for (let i = 0; i < allProducts.length; i += ENRICHMENT_CONCURRENCY) {
+      const batch = allProducts.slice(i, i + ENRICHMENT_CONCURRENCY);
+      const colors = await Promise.all(
+        batch.map((p: any) =>
+          p.enriched_color
+            ? Promise.resolve(p.enriched_color as string)
+            : this.inferDominantColorFromImage(p.thumbnail),
+        ),
+      );
+      for (let j = 0; j < batch.length; j++) {
+        if (!batch[j].enriched_color) {
+          batch[j].enriched_color = colors[j];
+        }
+      }
+    }
+
+    if (DEBUG_RECOMMENDED_BUYS) {
+      console.log('COLOR ENRICHMENT DEBUG:');
+      allProducts.slice(0, 5).forEach((p: any) => {
+        console.log({
+          title: p.title,
+          thumbnail: p.thumbnail,
+          enriched_color: p.enriched_color,
+        });
+      });
+    }
+
     console.log('🔥 ENTERING SCORING BLOCK 🔥', { candidateCount: allProducts.length });
 
     // --- Stage 2: Scoring ---
@@ -515,7 +583,8 @@ export class DiscoverService {
     // --- Auto-infer budget defaults from candidate pool when profile lacks them ---
     let effectiveBudgetMin = profile.budget_min;
     let effectiveBudgetMax = profile.budget_max;
-    if (effectiveBudgetMin == null || effectiveBudgetMax == null) {
+    const userDefinedBudget = effectiveBudgetMin != null && effectiveBudgetMax != null;
+    if (!userDefinedBudget) {
       const prices = transformed
         .map(p => p.price)
         .filter((v): v is number => typeof v === 'number' && v > 0)
@@ -544,6 +613,8 @@ export class DiscoverService {
     const profileColors = tokenSet(effectiveFavoriteColors);
     const expandedStyles = expandStyleTokens(profile.style_keywords);
     const styleKeywordsNorm = new Set(profile.style_keywords.map(k => normalize(k)));
+    const fitTokens = tokenSet(profile.fit_preferences);
+    const negativeTokens = tokenSet(learnedPrefs.negative_features);
 
     if (DEBUG_RECOMMENDED_BUYS) {
       console.log('🎨 STYLE VOCABULARY EXPANSION', {
@@ -561,6 +632,25 @@ export class DiscoverService {
     }
     const totalCandidates = transformed.length;
 
+    // --- Pre-compute scoring helpers ---
+    // Median price (p50) for elevation boost
+    const candidatePricesForP50 = transformed
+      .map(p => p.price)
+      .filter((v): v is number => typeof v === 'number' && v > 0)
+      .sort((a, b) => a - b);
+    const p50Price = candidatePricesForP50.length > 0
+      ? candidatePricesForP50[Math.floor(candidatePricesForP50.length / 2)]
+      : 0;
+
+    // Prestige descriptors for elevation boost
+    const PRESTIGE_DESCRIPTORS = [
+      'silk', 'cashmere', 'wool', 'leather', 'suede', 'merino', 'linen', 'italian',
+      'premium', 'embroidered', 'textured', 'chenille', 'refined', 'quality', 'artisan',
+    ];
+
+    // Basic item regex for dampener (applied to normalized text)
+    const BASIC_ITEM_RE = /\b(basic|regular fit tshirt|crew neck|crewneck|plain tee|solid tee)\b/;
+
     const scored = transformed.map((p, idx) => {
       const breakdown = {
         brand: 0,
@@ -569,7 +659,13 @@ export class DiscoverService {
         gap: 0,
         budget: 0,
         behavior: 0,
+        fit: 0,
+        negativePenalty: 0,
+        bodyMult: 1,
         penalty: 0,
+        elevation: 0,
+        styleDepth: 0,
+        basicDamp: 0,
       };
 
       const normBrand = normalize(p.brand);
@@ -612,42 +708,71 @@ export class DiscoverService {
           matchedStyleTokens.push(token);
         }
       }
-      const style01 = expandedStyles.size > 0
+      let style01 = expandedStyles.size > 0
         ? clamp01(styleHits / STYLE_MATCH_CAP)
         : 0;
+
+      // --- CATEGORY → STYLE BRIDGE: boost style when product category implies user's style ---
+      let categoryBridgeApplied = false;
+      if (style01 < 1.0) {
+        for (const [categoryKeyword, impliedStyles] of Object.entries(CATEGORY_STYLE_BRIDGE)) {
+          if (normProductText.includes(categoryKeyword)) {
+            const userStylesNorm = profile.style_keywords.map(k => normalize(k));
+            if (impliedStyles.some(s => userStylesNorm.includes(normalize(s)))) {
+              style01 = clamp01(style01 + 0.4);
+              categoryBridgeApplied = true;
+              break;
+            }
+          }
+        }
+      }
 
       if (DEBUG_RECOMMENDED_BUYS && idx < 5) {
         console.log('🔍 STYLE DEBUG', {
           title: p.title,
           matches: styleHits,
+          categoryBridge: categoryBridgeApplied,
           cappedStyle01: +style01.toFixed(4),
           weightedStyleContribution: +(16 * style01).toFixed(2),
           matchedTokens: matchedStyleTokens,
         });
       }
 
-      // --- COLOR UPGRADE: structured fields + title + description fallback ---
-      // Extract color candidates from all available product fields
-      const colorParts: (string | null | undefined)[] = [p.title];
-      if (raw?.color) colorParts.push(raw.color);
-      if (raw?.extensions?.color) colorParts.push(raw.extensions.color);
-      if (raw?.variantColor) colorParts.push(raw.variantColor);
-      if (raw?.snippet) colorParts.push(raw.snippet);
-      if (raw?.description) colorParts.push(raw.description);
-      if (Array.isArray(raw?.extensions)) colorParts.push(...raw.extensions.map(String));
-      const productColorBlob = colorParts.filter(Boolean).join(' ');
-
-      // Capped color scaling: 2 matches = full score (1.0)
+      // --- COLOR UPGRADE: enriched color (thumbnail) → structured fields → title fallback ---
       const COLOR_MATCH_CAP = 2;
       let colorHits = 0;
       const matchedColors: string[] = [];
-      const normColorBlob = normalize(productColorBlob);
-      for (const colorToken of profileColors) {
-        if (normColorBlob.includes(colorToken)) {
-          colorHits++;
-          matchedColors.push(colorToken);
+
+      // Prefer enriched color from thumbnail analysis
+      const enrichedColor = p.enriched_color;
+      if (enrichedColor) {
+        for (const colorToken of profileColors) {
+          if (enrichedColor === colorToken) {
+            colorHits++;
+            matchedColors.push(colorToken + '(enriched)');
+          }
         }
       }
+
+      // Fallback to text-based color detection if enriched color didn't match
+      if (colorHits === 0) {
+        const colorParts: (string | null | undefined)[] = [p.title];
+        if (raw?.color) colorParts.push(raw.color);
+        if (raw?.extensions?.color) colorParts.push(raw.extensions.color);
+        if (raw?.variantColor) colorParts.push(raw.variantColor);
+        if (raw?.snippet) colorParts.push(raw.snippet);
+        if (raw?.description) colorParts.push(raw.description);
+        if (Array.isArray(raw?.extensions)) colorParts.push(...raw.extensions.map(String));
+        const productColorBlob = colorParts.filter(Boolean).join(' ');
+        const normColorBlob = normalize(productColorBlob);
+        for (const colorToken of profileColors) {
+          if (normColorBlob.includes(colorToken)) {
+            colorHits++;
+            matchedColors.push(colorToken);
+          }
+        }
+      }
+
       const color01 = profileColors.size > 0
         ? clamp01(colorHits / COLOR_MATCH_CAP)
         : 0;
@@ -683,28 +808,71 @@ export class DiscoverService {
         });
       }
 
-      // --- GAP UPGRADE: direct match + category adjacency ---
-      let gap01 = 0;
+      // --- GAP UPGRADE: soft-scaled wardrobe gap intelligence ---
+      let gapBonus = 0;
       if (inferredCategory) {
         const normInferred = normalize(inferredCategory);
-        const directMatch = wardrobeStats.lowOwnedCategories.some(c => normalize(c) === normInferred);
-        if (directMatch) {
-          const userOwnsCategory = ownedCategories.has(inferredCategory);
-          const styleIncludesCategory = styleKeywordsNorm.has(normInferred);
-          if (userOwnsCategory || styleIncludesCategory) {
-            gap01 = 1;
-          }
+        let catCount = 0;
+        for (const [cat, count] of ownedCategories.entries()) {
+          if (normalize(cat) === normInferred) { catCount = count; break; }
         }
-        if (gap01 === 0) {
-          for (const lowCat of wardrobeStats.lowOwnedCategories) {
-            const adjacents = CATEGORY_ADJACENCY[normalize(lowCat)];
-            if (adjacents && adjacents.includes(normInferred)) {
-              gap01 = 0.5;
-              break;
-            }
+        if (catCount === 0) gapBonus = 18;
+        else if (catCount === 1) gapBonus = 12;
+        else if (catCount === 2) gapBonus = 6;
+        // 3+ → gapBonus stays 0
+      }
+
+      // --- FIT PREFERENCE SIGNAL ---
+      const fit01 = overlap01(fitTokens, normProductText);
+
+      // --- LEARNED NEGATIVE PREFERENCES PENALTY ---
+      const negOverlap = overlap01(negativeTokens, normProductText);
+      const negativePenalty = negOverlap > 0 ? 4 : 0;
+
+      // --- SILHOUETTE / BODY-TYPE BIAS (multiplier on gap bonus only) ---
+      let bodyMultiplier = 1.0;
+      if (profile.body_type && inferredCategory) {
+        const normBodyType = normalize(profile.body_type).replace(/\s+/g, '_');
+        const boostMap = BODY_TYPE_CATEGORY_BOOST[normBodyType];
+        if (boostMap) {
+          const normCatKey = normalize(inferredCategory);
+          const mult = boostMap[normCatKey];
+          if (typeof mult === 'number') {
+            bodyMultiplier = Math.max(0.8, Math.min(1.2, mult));
           }
         }
       }
+      let adjustedGapBonus = gapBonus * bodyMultiplier;
+
+      // --- GAP CLAMP: gap must never dominate style contribution ---
+      const styleContribution = 16 * style01;
+      if (styleContribution > 0 && adjustedGapBonus > styleContribution * 1.2) {
+        adjustedGapBonus = styleContribution * 1.2;
+      }
+
+      // --- ELEVATION BOOST: float elevated pieces over basics ---
+      let elevationBonus = 0;
+      if (typeof p.price === 'number' && p.price > p50Price && styleHits > 0) {
+        let prestigeHits = 0;
+        for (const d of PRESTIGE_DESCRIPTORS) {
+          if (normProductText.includes(d)) prestigeHits++;
+        }
+        if (clamp01(prestigeHits / 2) > 0.7) elevationBonus = 3;
+      }
+
+      // --- BASIC ITEM DAMPENER: slight suppression of ultra-generic SKUs ---
+      const basicDampener = BASIC_ITEM_RE.test(normProductText) ? -2 : 0;
+
+      // --- STYLE DEPTH BONUS: reward products matching 2+ user style keywords ---
+      let styleKeywordsMatched = 0;
+      for (const keyword of profile.style_keywords) {
+        const normKw = normalize(keyword);
+        if (!normKw) continue;
+        const descriptors = STYLE_DESCRIPTOR_MAP[normKw];
+        const tokensToCheck = descriptors ? [normKw, ...descriptors.map(d => normalize(d))] : [normKw];
+        if (tokensToCheck.some(t => normProductText.includes(t))) styleKeywordsMatched++;
+      }
+      const styleDepthBonus = styleKeywordsMatched >= 2 ? 2 : 0;
 
       // Brand saturation penalty — only when brand matches
       let penalty = 0;
@@ -714,23 +882,36 @@ export class DiscoverService {
         penalty = brandSatPenalty(brandFreq01);
       }
 
-      // Weighted score: brand(12) + behavior(8) + gap(18) + style(16) + color(10) + budget(10) - penalty
+      // Weighted score: brand(12) + behavior(5) + gap(clamped) + style(16) + color(10) + budget(5|10)
+      //   + fit(6) - negativePenalty(4) - brandSatPenalty + elevation(3) + styleDepth(2) + basicDamp(-2)
+      const budgetWeight = userDefinedBudget ? 10 : 5;
       const score =
         (12 * brandMatch01) +
-        (8  * behavior01) +
-        (18 * gap01) +
+        (5  * behavior01) +
+        adjustedGapBonus +
         (16 * style01) +
         (10 * color01) +
-        (10 * budget01) -
-        penalty;
+        (budgetWeight * budget01) +
+        (6  * fit01) -
+        penalty -
+        negativePenalty +
+        elevationBonus +
+        styleDepthBonus +
+        basicDampener;
 
       breakdown.brand = +(12 * brandMatch01).toFixed(2);
-      breakdown.behavior = +(8 * behavior01).toFixed(2);
-      breakdown.gap = +(18 * gap01).toFixed(2);
+      breakdown.behavior = +(5 * behavior01).toFixed(2);
+      breakdown.gap = +adjustedGapBonus.toFixed(2);
       breakdown.style = +(16 * style01).toFixed(2);
       breakdown.color = +(10 * color01).toFixed(2);
-      breakdown.budget = +(10 * budget01).toFixed(2);
+      breakdown.budget = +(budgetWeight * budget01).toFixed(2);
+      breakdown.fit = +(6 * fit01).toFixed(2);
+      breakdown.negativePenalty = negativePenalty;
+      breakdown.bodyMult = +bodyMultiplier.toFixed(2);
       breakdown.penalty = +penalty.toFixed(2);
+      breakdown.elevation = elevationBonus;
+      breakdown.styleDepth = styleDepthBonus;
+      breakdown.basicDamp = basicDampener;
 
       if (DEBUG_RECOMMENDED_BUYS) {
         this.log.debug(
@@ -741,6 +922,32 @@ export class DiscoverService {
       return { product: p, score, breakdown };
     });
 
+    scored.sort((a, b) => b.score - a.score);
+
+    // --- Redundancy Penalty (pre-diversity): -2 for second item sharing brand+category+style token ---
+    const seenBrandCatStyle = new Set<string>();
+    for (const item of scored) {
+      const nb = normalize(item.product.brand);
+      const ic = item.product.category || inferMainCategory(item.product.title);
+      const nc = normalize(ic);
+      if (!nb || !nc) continue;
+      const normTitle = normalize(item.product.title);
+      for (const kw of profile.style_keywords) {
+        const normKw = normalize(kw);
+        if (!normKw) continue;
+        const descriptors = STYLE_DESCRIPTOR_MAP[normKw];
+        const tokens = descriptors ? [normKw, ...descriptors.map(d => normalize(d))] : [normKw];
+        if (tokens.some(t => normTitle.includes(t))) {
+          const key = `${nb}|${nc}|${normKw}`;
+          if (seenBrandCatStyle.has(key)) {
+            item.score -= 2;
+          } else {
+            seenBrandCatStyle.add(key);
+          }
+          break;
+        }
+      }
+    }
     scored.sort((a, b) => b.score - a.score);
 
     if (DEBUG_RECOMMENDED_BUYS) {
@@ -1140,6 +1347,7 @@ export class DiscoverService {
       source: raw.source || null,
       category: null,
       position,
+      enriched_color: raw.enriched_color || null,
     };
   }
 
@@ -1156,17 +1364,23 @@ export class DiscoverService {
         [userId],
       );
 
+      // Ensure enriched_color column exists (idempotent)
+      await pool.query(
+        `ALTER TABLE user_discover_products ADD COLUMN IF NOT EXISTS enriched_color TEXT`,
+      ).catch(() => {}); // Ignore if already exists or permissions issue
+
       // Insert new products as current batch
       const batchDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       for (const p of products) {
         await pool.query(
           `INSERT INTO user_discover_products
-           (user_id, product_id, title, brand, price, price_raw, image_url, link, source, category, position, batch_date, is_current, saved)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, TRUE, FALSE)
+           (user_id, product_id, title, brand, price, price_raw, image_url, link, source, category, position, batch_date, is_current, saved, enriched_color)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, TRUE, FALSE, $13)
            ON CONFLICT (user_id, product_id) DO UPDATE SET
              is_current = TRUE,
              position = EXCLUDED.position,
-             batch_date = EXCLUDED.batch_date`,
+             batch_date = EXCLUDED.batch_date,
+             enriched_color = EXCLUDED.enriched_color`,
           [
             userId,
             p.product_id,
@@ -1180,6 +1394,7 @@ export class DiscoverService {
             p.category,
             p.position,
             batchDate,
+            p.enriched_color || null,
           ],
         );
       }
@@ -1271,6 +1486,107 @@ export class DiscoverService {
       this.log.error(`getFallbackProducts error: ${error?.message}`);
       return [];
     }
+  }
+
+  // ==================== COLOR ENRICHMENT ====================
+
+  /**
+   * Infer dominant color from a product thumbnail URL.
+   * Downscales to 8x8 via sharp, averages non-background pixels,
+   * converts to HSL, maps to canonical color bucket.
+   */
+  private async inferDominantColorFromImage(url: string): Promise<string | null> {
+    if (!url) return null;
+    try {
+      const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (!resp.ok) return null;
+      const buffer = Buffer.from(await resp.arrayBuffer());
+
+      const sharpModule = await import('sharp');
+      const sharpFn = sharpModule.default || sharpModule;
+
+      const { data, info } = await (sharpFn as any)(buffer)
+        .resize(8, 8, { fit: 'cover' })
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      // Average pixels, skipping near-white (background)
+      let rSum = 0, gSum = 0, bSum = 0, count = 0;
+      for (let i = 0; i < data.length; i += 3) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        // Skip very light pixels (likely white background)
+        if (r > 240 && g > 240 && b > 240) continue;
+        rSum += r; gSum += g; bSum += b; count++;
+      }
+
+      // If all pixels were background, use overall average
+      if (count === 0) {
+        const pixelCount = info.width * info.height;
+        for (let i = 0; i < data.length; i += 3) {
+          rSum += data[i]; gSum += data[i + 1]; bSum += data[i + 2];
+        }
+        count = pixelCount;
+      }
+
+      return this.rgbToCanonicalColor(rSum / count, gSum / count, bSum / count);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Map an RGB color to one of the canonical color buckets via HSL conversion.
+   */
+  private rgbToCanonicalColor(r: number, g: number, b: number): (typeof CANONICAL_COLORS)[number] {
+    const r01 = r / 255;
+    const g01 = g / 255;
+    const b01 = b / 255;
+
+    const max = Math.max(r01, g01, b01);
+    const min = Math.min(r01, g01, b01);
+    const l = (max + min) / 2;
+    const d = max - min;
+
+    let h = 0;
+    let s = 0;
+
+    if (d > 0) {
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r01) h = ((g01 - b01) / d + (g01 < b01 ? 6 : 0)) * 60;
+      else if (max === g01) h = ((b01 - r01) / d + 2) * 60;
+      else h = ((r01 - g01) / d + 4) * 60;
+    }
+
+    const H = h;
+    const S = s * 100;
+    const L = l * 100;
+
+    // Achromatic
+    if (L < 15) return 'black';
+    if (L > 85 && S < 15) return 'white';
+    if (S < 12) return 'gray';
+
+    // Chromatic — map hue ranges to canonical buckets
+    if ((H >= 0 && H < 15) || H >= 345) {
+      return L < 35 ? 'burgundy' : 'red';
+    }
+    if (H >= 15 && H < 45) {
+      if (S < 40 && L > 65) return 'beige';
+      return 'brown';
+    }
+    if (H >= 45 && H < 70) return 'beige';
+    if (H >= 70 && H < 165) return 'green';
+    if (H >= 165 && H < 200) return 'blue';
+    if (H >= 200 && H < 260) {
+      return L < 30 ? 'navy' : 'blue';
+    }
+    if (H >= 260 && H < 290) return L < 35 ? 'navy' : 'blue';
+    if (H >= 290 && H < 345) {
+      return L < 35 ? 'burgundy' : 'red';
+    }
+
+    return 'gray';
   }
 
   // ==================== UTILITIES ====================
