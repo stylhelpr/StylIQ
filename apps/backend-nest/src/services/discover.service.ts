@@ -8,7 +8,7 @@ interface UserProfile {
   gender: string | null;
   preferred_brands: string[];
   style_keywords: string[];
-  favorite_colors: string[];
+  color_preferences: string[];
   disliked_styles: string[];
   style_preferences: string[];
   fit_preferences: string[];
@@ -64,14 +64,144 @@ function inferMainCategory(title?: string): string | null {
   if (!title) return null;
   const t = normalize(title);
 
-  if (/(jacket|coat|parka|blazer|overshirt)/.test(t)) return 'Outerwear';
-  if (/(shirt|polo|tee|tshirt|sweater|jumper)/.test(t)) return 'Tops';
-  if (/(jeans|pants|trouser|shorts)/.test(t)) return 'Bottoms';
-  if (/(sneaker|boot|loafer|shoe)/.test(t)) return 'Shoes';
-  if (/(belt|tie|hat|cap|scarf)/.test(t)) return 'Accessories';
+  if (/(jacket|coat|parka|blazer|overshirt|anorak|windbreaker|gilet|poncho|puffer)/.test(t)) return 'Outerwear';
+  if (/(dress|gown|romper|jumpsuit|kaftan)/.test(t)) return 'Dresses';
+  if (/(shirt|polo|\btee\b|tshirt|t shirt|sweater|jumper|hoodie|sweatshirt|cardigan|pullover|blouse|tunic|henley|camisole|crop top|tank top)/.test(t)) return 'Tops';
+  if (/(jeans|pants|trouser|shorts|legging|jogger|chino|skirt)/.test(t)) return 'Bottoms';
+  if (/(sneaker|boot|loafer|shoe|sandal|slipper|mule|oxford|clog)/.test(t)) return 'Shoes';
+  if (/(handbag|backpack|tote bag|clutch|purse|crossbody|duffel)/.test(t)) return 'Bags';
+  if (/(watch|bracelet|necklace|earring|pendant|anklet|brooch|cufflink)/.test(t)) return 'Jewelry';
+  if (/(belt|\btie\b|\bhat\b|\bcap\b|scarf|glove|sunglasses|beanie|headband)/.test(t)) return 'Accessories';
+  if (/(swimsuit|bikini|swim trunk|rash guard)/.test(t)) return 'Swimwear';
+  if (/(athletic|yoga|workout|activewear)/.test(t)) return 'Activewear';
 
   return null;
 }
+
+/** Clamp a number to the [0, 1] range */
+function clamp01(v: number): number {
+  return Math.max(0, Math.min(1, v));
+}
+
+/** Create a Set of normalized strings from an array */
+function tokenSet(items: string[]): Set<string> {
+  const s = new Set<string>();
+  for (const item of items) {
+    const n = normalize(item);
+    if (n) s.add(n);
+  }
+  return s;
+}
+
+/** Fraction of needles found (substring) in text, normalized to 0..1 */
+function overlap01(needles: Set<string>, text: string): number {
+  if (needles.size === 0) return 0;
+  const normText = normalize(text);
+  if (!normText) return 0;
+  let hits = 0;
+  for (const needle of needles) {
+    if (normText.includes(needle)) hits++;
+  }
+  return clamp01(hits / needles.size);
+}
+
+/** Deterministic brand saturation penalty: 8 * (brandFreq01 ^ 1.5) */
+function brandSatPenalty(brandFreq01: number): number {
+  return 8 * (brandFreq01 ** 1.5);
+}
+
+// ==================== STYLE VOCABULARY INTELLIGENCE ====================
+// Maps aesthetic concepts (user vocabulary) → retail descriptors (product vocabulary)
+// Enables scoring when users say "tailored" but products say "slim fit"
+const STYLE_DESCRIPTOR_MAP: Record<string, string[]> = {
+  // Fit & Structure
+  tailored: ['slim', 'slim fit', 'structured', 'pleated', 'tapered', 'fitted', 'darted', 'shaped'],
+  relaxed: ['relaxed', 'loose', 'comfort', 'flowy', 'oversized', 'easy fit', 'wide leg', 'baggy'],
+  fitted: ['slim fit', 'skinny', 'bodycon', 'form fitting', 'stretch', 'tapered', 'tight'],
+  oversized: ['oversized', 'boxy', 'relaxed fit', 'wide', 'loose fit', 'dropped shoulder'],
+
+  // Aesthetic Families
+  minimalist: ['basic', 'clean', 'solid', 'plain', 'simple', 'essential', 'classic fit', 'neutral'],
+  classic: ['straight fit', 'oxford', 'double breasted', 'button down', 'traditional', 'heritage', 'timeless', 'polo'],
+  modern: ['zip', 'zip up', 'puffer', 'bomber', 'tech', 'contemporary', 'sleek', 'asymmetric'],
+  vintage: ['retro', 'washed', 'faded', 'distressed', 'throwback', 'heritage', 'classic', 'old school'],
+  bohemian: ['boho', 'floral', 'embroidered', 'fringe', 'paisley', 'crochet', 'flowing', 'peasant'],
+  preppy: ['polo', 'button down', 'plaid', 'argyle', 'cable knit', 'oxford', 'khaki', 'chino', 'stripe'],
+  edgy: ['leather', 'moto', 'studded', 'distressed', 'ripped', 'chain', 'graphic', 'punk', 'zipper'],
+  romantic: ['lace', 'ruffle', 'floral', 'sheer', 'satin', 'delicate', 'soft', 'drape', 'feminine'],
+
+  // Performance & Sport
+  athletic: ['performance', 'stretch', 'sport', 'flex', 'moisture wicking', 'active', 'training', 'running', 'gym'],
+  sporty: ['athletic', 'jogger', 'track', 'sneaker', 'zip up', 'hoodie', 'sweatshirt', 'workout', 'active'],
+  activewear: ['legging', 'sports bra', 'tank', 'performance', 'stretch', 'moisture', 'yoga', 'running'],
+
+  // Luxury & Elevated
+  luxury: ['silk', 'cashmere', 'wool', 'leather', 'suede', 'merino', 'linen', 'italian', 'premium'],
+  elevated: ['embroidered', 'textured', 'chenille', 'blend', 'detailed', 'refined', 'quality', 'artisan'],
+  sophisticated: ['tailored', 'structured', 'wool', 'silk', 'elegant', 'polished', 'refined', 'classic'],
+  elegant: ['silk', 'satin', 'chiffon', 'drape', 'maxi', 'midi', 'formal', 'evening', 'gown'],
+
+  // Street & Casual
+  streetwear: ['oversized', 'graphic', 'hoodie', 'jogger', 'cargo', 'sneaker', 'logo', 'urban', 'crew neck'],
+  casual: ['tee', 't shirt', 'jeans', 'sneaker', 'hoodie', 'sweatshirt', 'relaxed', 'everyday', 'basic'],
+  urban: ['cargo', 'utility', 'bomber', 'sneaker', 'graphic', 'jogger', 'street', 'oversized'],
+
+  // Texture & Material
+  rugged: ['denim', 'canvas', 'leather', 'flannel', 'corduroy', 'work', 'utility', 'heavy duty', 'boot'],
+  cozy: ['fleece', 'sherpa', 'knit', 'sweater', 'cardigan', 'wool', 'soft', 'plush', 'warm'],
+  lightweight: ['linen', 'cotton', 'breathable', 'thin', 'sheer', 'mesh', 'light', 'airy'],
+
+  // Pattern & Detail
+  bold: ['print', 'pattern', 'graphic', 'bright', 'colorful', 'statement', 'vibrant', 'neon'],
+  neutral: ['black', 'white', 'grey', 'gray', 'beige', 'navy', 'cream', 'khaki', 'earth tone'],
+  patterned: ['stripe', 'plaid', 'check', 'floral', 'paisley', 'polka dot', 'geometric', 'print'],
+
+  // Season & Occasion
+  summer: ['linen', 'cotton', 'shorts', 'tank', 'sandal', 'light', 'breathable', 'floral'],
+  winter: ['wool', 'fleece', 'puffer', 'down', 'thermal', 'insulated', 'heavy', 'coat', 'boot'],
+  business: ['dress shirt', 'blazer', 'trouser', 'oxford', 'loafer', 'formal', 'professional', 'suit'],
+  'smart casual': ['chino', 'polo', 'loafer', 'blazer', 'button down', 'knit', 'leather'],
+};
+
+/** Expand style keywords using STYLE_DESCRIPTOR_MAP */
+function expandStyleTokens(styleKeywords: string[]): Set<string> {
+  const expanded = new Set<string>();
+  for (const keyword of styleKeywords) {
+    const norm = normalize(keyword);
+    if (!norm) continue;
+    // Always include the original keyword
+    expanded.add(norm);
+    // Check each map entry for matches
+    for (const [concept, descriptors] of Object.entries(STYLE_DESCRIPTOR_MAP)) {
+      if (norm === concept || norm.includes(concept) || concept.includes(norm)) {
+        for (const desc of descriptors) {
+          expanded.add(normalize(desc));
+        }
+      }
+    }
+  }
+  return expanded;
+}
+
+// ==================== COLOR VOCABULARY (for auto-inference) ====================
+const COLOR_VOCAB: string[] = [
+  'black', 'white', 'navy', 'blue', 'red', 'green', 'gray', 'grey',
+  'brown', 'beige', 'tan', 'cream', 'burgundy', 'olive',
+];
+
+/** Category adjacency map — normalized keys and values */
+const CATEGORY_ADJACENCY: Record<string, string[]> = {
+  outerwear: ['tops'],
+  tops: ['outerwear', 'activewear'],
+  bottoms: ['activewear'],
+  shoes: ['accessories'],
+  accessories: ['shoes', 'jewelry', 'bags'],
+  dresses: ['tops', 'bottoms'],
+  activewear: ['tops', 'bottoms', 'shoes'],
+  bags: ['accessories'],
+  jewelry: ['accessories'],
+  swimwear: ['activewear'],
+};
 
 @Injectable()
 export class DiscoverService {
@@ -334,7 +464,104 @@ export class DiscoverService {
       console.log('🧥 LOW OWNED CATEGORIES', wardrobeStats.lowOwnedCategories);
     }
 
-    const scored = transformed.map((p) => {
+    // --- Auto-infer color defaults from candidate pool when profile lacks them ---
+    if (DEBUG_RECOMMENDED_BUYS) {
+      console.log('🔬 RAW color_preferences FROM DB', {
+        raw: profile.color_preferences,
+        type: typeof profile.color_preferences,
+        length: profile.color_preferences?.length,
+      });
+    }
+    let effectiveFavoriteColors = profile.color_preferences.filter(c => {
+      const n = normalize(c);
+      return n.length > 0 && n !== 'null' && n !== 'undefined' && n !== 'none';
+    });
+    const hasUsableColors = effectiveFavoriteColors.length > 0;
+    if (DEBUG_RECOMMENDED_BUYS) {
+      console.log('🔬 COLOR FILTER RESULT', {
+        effectiveFavoriteColors,
+        hasUsableColors,
+        inferenceWillRun: !hasUsableColors,
+      });
+    }
+    if (!hasUsableColors) {
+      const colorFreq = new Map<string, number>();
+      for (const raw of allProducts) {
+        const parts: (string | null | undefined)[] = [
+          raw?.title, raw?.color, raw?.variantColor, raw?.snippet, raw?.description,
+        ];
+        if (raw?.extensions?.color) parts.push(raw.extensions.color);
+        if (Array.isArray(raw?.extensions)) parts.push(...raw.extensions.map(String));
+        const blob = normalize(parts.filter(Boolean).join(' '));
+        for (const color of COLOR_VOCAB) {
+          if (blob.includes(color)) {
+            colorFreq.set(color, (colorFreq.get(color) || 0) + 1);
+          }
+        }
+      }
+      effectiveFavoriteColors = [...colorFreq.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([c]) => c);
+
+      if (DEBUG_RECOMMENDED_BUYS) {
+        console.log('🎨 INFERRED COLOR DEFAULTS', {
+          inferredColors: effectiveFavoriteColors,
+          source: 'candidate-frequency',
+        });
+      }
+    }
+
+    // --- Auto-infer budget defaults from candidate pool when profile lacks them ---
+    let effectiveBudgetMin = profile.budget_min;
+    let effectiveBudgetMax = profile.budget_max;
+    if (effectiveBudgetMin == null || effectiveBudgetMax == null) {
+      const prices = transformed
+        .map(p => p.price)
+        .filter((v): v is number => typeof v === 'number' && v > 0)
+        .sort((a, b) => a - b);
+
+      if (prices.length >= 4) {
+        const p25Idx = Math.floor(prices.length * 0.25);
+        const p75Idx = Math.floor(prices.length * 0.75);
+        effectiveBudgetMin = prices[p25Idx];
+        effectiveBudgetMax = prices[p75Idx];
+      } else if (prices.length > 0) {
+        effectiveBudgetMin = prices[0];
+        effectiveBudgetMax = prices[prices.length - 1];
+      }
+
+      if (DEBUG_RECOMMENDED_BUYS) {
+        console.log('💰 INFERRED BUDGET DEFAULTS', {
+          p25: effectiveBudgetMin,
+          p75: effectiveBudgetMax,
+          candidatePriceCount: prices.length,
+        });
+      }
+    }
+
+    // Pre-compute normalized profile sets for overlap scoring
+    const profileColors = tokenSet(effectiveFavoriteColors);
+    const expandedStyles = expandStyleTokens(profile.style_keywords);
+    const styleKeywordsNorm = new Set(profile.style_keywords.map(k => normalize(k)));
+
+    if (DEBUG_RECOMMENDED_BUYS) {
+      console.log('🎨 STYLE VOCABULARY EXPANSION', {
+        rawKeywords: profile.style_keywords,
+        expandedCount: expandedStyles.size,
+        expandedTokens: [...expandedStyles],
+      });
+    }
+
+    // Build brand frequency map for saturation penalty
+    const brandFreqMap = new Map<string, number>();
+    for (const p of transformed) {
+      const b = normalize(p.brand);
+      if (b) brandFreqMap.set(b, (brandFreqMap.get(b) || 0) + 1);
+    }
+    const totalCandidates = transformed.length;
+
+    const scored = transformed.map((p, idx) => {
       const breakdown = {
         brand: 0,
         color: 0,
@@ -342,72 +569,172 @@ export class DiscoverService {
         gap: 0,
         budget: 0,
         behavior: 0,
+        penalty: 0,
       };
 
-      let score = 0;
-
-      // Brand match — normalized substring (e.g. "Zara USA" matches "Zara")
       const normBrand = normalize(p.brand);
-      if (
-        normBrand &&
-        profile.preferred_brands?.some((b) => normBrand.includes(normalize(b)))
-      ) {
-        score += 30;
-        breakdown.brand = 30;
-      }
 
-      // Color match — normalized substring on title
-      const normTitle = normalize(p.title);
-      if (
-        normTitle &&
-        profile.favorite_colors?.some((c) => normTitle.includes(normalize(c)))
-      ) {
-        score += 20;
-        breakdown.color = 20;
-      }
+      // Brand match — 0 or 1 (normalized substring)
+      const brandMatch01 = (normBrand && profile.preferred_brands?.some((b) => normBrand.includes(normalize(b)))) ? 1 : 0;
 
-      // Style keyword match — normalized substring on title
-      if (
-        normTitle &&
-        profile.style_keywords?.some((k) => normTitle.includes(normalize(k)))
-      ) {
-        score += 15;
-        breakdown.style = 15;
-      }
+      // Behavior brand match — 0 or 1 (normalized substring)
+      const behavior01 = (normBrand && behavior.recentBrands?.some((b) => normBrand.includes(normalize(b)))) ? 1 : 0;
 
+      // --- Infer category early (used by style blob + gap) ---
       const inferredCategory = p.category || inferMainCategory(p.title);
-      if (
-        inferredCategory &&
-        wardrobeStats.lowOwnedCategories?.includes(inferredCategory)
-      ) {
-        score += 15;
-        breakdown.gap = 15;
+
+      // --- STYLE UPGRADE: text blob from all available product fields ---
+      const raw = allProducts[idx];
+
+      // STEP 1 — Forensic: dump first raw product object
+      if (idx === 0 && process.env.DEBUG_RECOMMENDED_BUYS === 'true') {
+        console.log('🔬 RAW PRODUCT OBJECT [0]');
+        console.dir(raw, { depth: 5 });
+        console.log('🔬 PROFILE COLORS (effective)', [...profileColors]);
       }
 
-      // Budget match — proper null guards (budget_min of 0 is valid)
-      if (
-        typeof p.price === 'number' &&
-        profile.budget_min != null &&
-        profile.budget_max != null &&
-        p.price >= profile.budget_min &&
-        p.price <= profile.budget_max
-      ) {
-        score += 10;
-        breakdown.budget = 10;
+      const textParts: (string | null | undefined)[] = [
+        p.title, p.brand, p.source, p.category, inferredCategory,
+      ];
+      if (raw?.snippet) textParts.push(raw.snippet);
+      if (Array.isArray(raw?.extensions)) textParts.push(...raw.extensions.map(String));
+      const productTextBlob = textParts.filter(Boolean).join(' ');
+      const normProductText = normalize(productTextBlob);
+
+      // Style scoring uses expanded vocabulary (aesthetic → retail descriptors)
+      // Capped normalization: 3 matches = full score (1.0)
+      const STYLE_MATCH_CAP = 3;
+      let styleHits = 0;
+      const matchedStyleTokens: string[] = [];
+      for (const token of expandedStyles) {
+        if (normProductText.includes(token)) {
+          styleHits++;
+          matchedStyleTokens.push(token);
+        }
+      }
+      const style01 = expandedStyles.size > 0
+        ? clamp01(styleHits / STYLE_MATCH_CAP)
+        : 0;
+
+      if (DEBUG_RECOMMENDED_BUYS && idx < 5) {
+        console.log('🔍 STYLE DEBUG', {
+          title: p.title,
+          matches: styleHits,
+          cappedStyle01: +style01.toFixed(4),
+          weightedStyleContribution: +(16 * style01).toFixed(2),
+          matchedTokens: matchedStyleTokens,
+        });
       }
 
-      // Behavior brand match — normalized substring
-      if (
-        normBrand &&
-        behavior.recentBrands?.some((b) => normBrand.includes(normalize(b)))
-      ) {
-        score += 10;
-        breakdown.behavior = 10;
+      // --- COLOR UPGRADE: structured fields + title + description fallback ---
+      // Extract color candidates from all available product fields
+      const colorParts: (string | null | undefined)[] = [p.title];
+      if (raw?.color) colorParts.push(raw.color);
+      if (raw?.extensions?.color) colorParts.push(raw.extensions.color);
+      if (raw?.variantColor) colorParts.push(raw.variantColor);
+      if (raw?.snippet) colorParts.push(raw.snippet);
+      if (raw?.description) colorParts.push(raw.description);
+      if (Array.isArray(raw?.extensions)) colorParts.push(...raw.extensions.map(String));
+      const productColorBlob = colorParts.filter(Boolean).join(' ');
+
+      // Capped color scaling: 2 matches = full score (1.0)
+      const COLOR_MATCH_CAP = 2;
+      let colorHits = 0;
+      const matchedColors: string[] = [];
+      const normColorBlob = normalize(productColorBlob);
+      for (const colorToken of profileColors) {
+        if (normColorBlob.includes(colorToken)) {
+          colorHits++;
+          matchedColors.push(colorToken);
+        }
       }
+      const color01 = profileColors.size > 0
+        ? clamp01(colorHits / COLOR_MATCH_CAP)
+        : 0;
+
+      // --- BUDGET UPGRADE: soft decay scaling outside preferred range ---
+      let budget01 = 0;
+      if (typeof p.price === 'number' && effectiveBudgetMin != null && effectiveBudgetMax != null) {
+        if (p.price >= effectiveBudgetMin && p.price <= effectiveBudgetMax) {
+          budget01 = 1;
+        } else {
+          const nearestBound = p.price < effectiveBudgetMin ? effectiveBudgetMin : effectiveBudgetMax;
+          const distance = Math.abs(p.price - nearestBound);
+          const rangeSpan = effectiveBudgetMax - effectiveBudgetMin;
+          const denominator = rangeSpan > 0 ? rangeSpan * 2 : (effectiveBudgetMax > 0 ? effectiveBudgetMax : 1);
+          budget01 = clamp01(1 - (distance / denominator));
+        }
+      }
+
+      if (DEBUG_RECOMMENDED_BUYS && idx < 5) {
+        console.log('🎨 COLOR DEBUG', {
+          title: p.title,
+          matchedColors,
+          color01: +color01.toFixed(4),
+          weightedColorContribution: +(10 * color01).toFixed(2),
+        });
+        console.log('💰 BUDGET DEBUG', {
+          title: p.title,
+          price: p.price,
+          preferredMin: effectiveBudgetMin,
+          preferredMax: effectiveBudgetMax,
+          budget01: +budget01.toFixed(4),
+          weightedBudgetContribution: +(10 * budget01).toFixed(2),
+        });
+      }
+
+      // --- GAP UPGRADE: direct match + category adjacency ---
+      let gap01 = 0;
+      if (inferredCategory) {
+        const normInferred = normalize(inferredCategory);
+        const directMatch = wardrobeStats.lowOwnedCategories.some(c => normalize(c) === normInferred);
+        if (directMatch) {
+          const userOwnsCategory = ownedCategories.has(inferredCategory);
+          const styleIncludesCategory = styleKeywordsNorm.has(normInferred);
+          if (userOwnsCategory || styleIncludesCategory) {
+            gap01 = 1;
+          }
+        }
+        if (gap01 === 0) {
+          for (const lowCat of wardrobeStats.lowOwnedCategories) {
+            const adjacents = CATEGORY_ADJACENCY[normalize(lowCat)];
+            if (adjacents && adjacents.includes(normInferred)) {
+              gap01 = 0.5;
+              break;
+            }
+          }
+        }
+      }
+
+      // Brand saturation penalty — only when brand matches
+      let penalty = 0;
+      if (brandMatch01 === 1 && normBrand) {
+        const brandCount = brandFreqMap.get(normBrand) || 0;
+        const brandFreq01 = brandCount / totalCandidates;
+        penalty = brandSatPenalty(brandFreq01);
+      }
+
+      // Weighted score: brand(12) + behavior(8) + gap(18) + style(16) + color(10) + budget(10) - penalty
+      const score =
+        (12 * brandMatch01) +
+        (8  * behavior01) +
+        (18 * gap01) +
+        (16 * style01) +
+        (10 * color01) +
+        (10 * budget01) -
+        penalty;
+
+      breakdown.brand = +(12 * brandMatch01).toFixed(2);
+      breakdown.behavior = +(8 * behavior01).toFixed(2);
+      breakdown.gap = +(18 * gap01).toFixed(2);
+      breakdown.style = +(16 * style01).toFixed(2);
+      breakdown.color = +(10 * color01).toFixed(2);
+      breakdown.budget = +(10 * budget01).toFixed(2);
+      breakdown.penalty = +penalty.toFixed(2);
 
       if (DEBUG_RECOMMENDED_BUYS) {
         this.log.debug(
-          `[Discover][Score] ${JSON.stringify({ title: p.title, brand: p.brand, price: p.price, totalScore: score, breakdown })}`,
+          `[Discover][Score] ${JSON.stringify({ title: p.title, brand: p.brand, price: p.price, totalScore: +score.toFixed(2), breakdown })}`,
         );
       }
 
@@ -528,7 +855,7 @@ export class DiscoverService {
         gender: null,
         preferred_brands: [],
         style_keywords: [],
-        favorite_colors: [],
+        color_preferences: [],
         disliked_styles: [],
         style_preferences: [],
         fit_preferences: [],
@@ -542,7 +869,7 @@ export class DiscoverService {
       gender: this.normalizeGender(row.gender_presentation),
       preferred_brands: this.ensureArray(row.preferred_brands),
       style_keywords: this.ensureArray(row.style_preferences), // Use style_preferences as style_keywords
-      favorite_colors: this.ensureArray(row.color_preferences), // DB column is color_preferences
+      color_preferences: this.ensureArray(row.color_preferences), // DB column is color_preferences
       disliked_styles: this.ensureArray(row.disliked_styles),
       style_preferences: this.ensureArray(row.style_preferences),
       fit_preferences: this.ensureArray(row.fit_preferences),
@@ -705,7 +1032,7 @@ export class DiscoverService {
 
     // Priority 3: Style keywords + favorite colors
     for (const style of profile.style_keywords.slice(0, 2)) {
-      const color = profile.favorite_colors[0] || '';
+      const color = profile.color_preferences[0] || '';
       queries.push(`${genderPrefix} ${style} ${color} clothing`.trim());
     }
 
@@ -731,7 +1058,7 @@ export class DiscoverService {
     }
 
     // Priority 6: Favorite colors as fallback
-    for (const color of profile.favorite_colors.slice(0, 2)) {
+    for (const color of profile.color_preferences.slice(0, 2)) {
       queries.push(`${genderPrefix} ${color} outfit`);
     }
 
@@ -949,7 +1276,7 @@ export class DiscoverService {
   // ==================== UTILITIES ====================
 
   private ensureArray(val: unknown): string[] {
-    if (Array.isArray(val)) return val.map(String).filter(Boolean);
+    if (Array.isArray(val)) return val.filter(v => v != null).map(String).filter(Boolean);
     if (typeof val === 'string') {
       const s = val.trim();
       const inner = s.startsWith('{') && s.endsWith('}') ? s.slice(1, -1) : s;
