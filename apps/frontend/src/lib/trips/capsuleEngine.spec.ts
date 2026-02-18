@@ -14,6 +14,10 @@ import {
   gateBackupPoolFallback,
   getNormalizedFormality,
   aestheticBonus,
+  isHardInvalidShoe,
+  getFormalityTier,
+  isItemValidForActivity,
+  getRequiredFormalityTier,
 } from './capsuleEngine';
 import {TripPackingItem, TripCapsule, TripWardrobeItem, DayWeather, TripActivity, TripStyleHints} from '../../types/trips';
 
@@ -534,6 +538,7 @@ describe('Global Climate Gating', () => {
       name: 'Short Sleeve Button-Down',
       main_category: 'Tops',
       subcategory: 'Button-Down',
+      formalityScore: 70,
     });
 
     // Gate should NOT block "short sleeve" as if it were shorts
@@ -548,8 +553,8 @@ describe('Global Climate Gating', () => {
   });
 
   // Additional: CAPSULE_VERSION bumped for final validation gate
-  it('CAPSULE_VERSION is 14 (required role coverage)', () => {
-    expect(CAPSULE_VERSION).toBe(14);
+  it('CAPSULE_VERSION is 16 (context regression guard)', () => {
+    expect(CAPSULE_VERSION).toBe(16);
   });
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -997,11 +1002,11 @@ describe('Formality gating — gatePool blocks informal items for formal activit
   const casualProfile = {formality: 0, context: 'universal' as const};
 
   const sneaker: TripWardrobeItem = {id: 's1', name: 'Red Sneakers', main_category: 'Shoes', subcategory: 'Lifestyle Sneakers'};
-  const oxford: TripWardrobeItem = {id: 's2', name: 'Cap-Toe Oxfords', main_category: 'Shoes', subcategory: 'Oxfords'};
+  const oxford: TripWardrobeItem = {id: 's2', name: 'Cap-Toe Oxfords', main_category: 'Shoes', subcategory: 'Oxfords', formalityScore: 85};
   const workBoot: TripWardrobeItem = {id: 's3', name: 'Work Boots', main_category: 'Shoes', subcategory: 'Work Boots'};
-  const loafer: TripWardrobeItem = {id: 's4', name: 'Penny Loafers', main_category: 'Shoes', subcategory: 'Loafers'};
+  const loafer: TripWardrobeItem = {id: 's4', name: 'Penny Loafers', main_category: 'Shoes', subcategory: 'Loafers', formalityScore: 75};
   const hoodie: TripWardrobeItem = {id: 't1', name: 'Grey Hoodie', main_category: 'Tops', subcategory: 'Hoodies'};
-  const dressShirt: TripWardrobeItem = {id: 't2', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirts'};
+  const dressShirt: TripWardrobeItem = {id: 't2', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirts', formalityScore: 80};
   const tee: TripWardrobeItem = {id: 't3', name: 'Graphic Tee', main_category: 'Tops', subcategory: 'T-Shirts'};
   const jogger: TripWardrobeItem = {id: 'b1', name: 'Joggers', main_category: 'Bottoms', subcategory: 'Joggers'};
 
@@ -2003,29 +2008,31 @@ describe('Backup kit — two-tier fallback', () => {
     }
   });
 
-  it('fallback blocks items below trip formality floor', () => {
-    // Items with formalityScore < 40 should be blocked on Business trips (formality 2 → floor 40)
+  it('fallback blocks items below trip formality tier', () => {
+    // Business formality 2 → requiredTier 1 (via getRequiredFormalityTier)
+    // Items with formalityScore < 30 → tier 0 → blocked; score >= 30 → tier 1+ → passes
     const lowFormalityItems: TripWardrobeItem[] = [
-      makeWardrobeItem({id: 'x1', name: 'Item A', main_category: 'Tops', formalityScore: 20}),
-      makeWardrobeItem({id: 'x2', name: 'Item B', main_category: 'Shoes', formalityScore: 15}),
-      makeWardrobeItem({id: 'x3', name: 'Item C', main_category: 'Shoes', formalityScore: 10}),
-      makeWardrobeItem({id: 'x4', name: 'Item D', main_category: 'Tops', formalityScore: 60}),
-      // No formalityScore → defaults to 30, blocked on Business (floor 40)
+      makeWardrobeItem({id: 'x1', name: 'Item A', main_category: 'Tops', formalityScore: 20}),  // tier 0 → blocked
+      makeWardrobeItem({id: 'x2', name: 'Item B', main_category: 'Shoes', formalityScore: 15}), // tier 0 → blocked
+      makeWardrobeItem({id: 'x3', name: 'Item C', main_category: 'Shoes', formalityScore: 10}), // tier 0 → blocked
+      makeWardrobeItem({id: 'x4', name: 'Item D', main_category: 'Tops', formalityScore: 60}),  // tier 2 → passes
+      // No formalityScore → defaults to 30 → tier 1 → passes Business requiredTier 1
       makeWardrobeItem({id: 'x5', name: 'Unclassified Item', main_category: 'Tops'}),
     ];
     const gated = gateBackupPoolFallback(lowFormalityItems, ['Business'], threeDayWeather, 'masculine');
-    // Only x4 (formalityScore 60) should survive; x5 (default 30) is blocked
-    expect(gated.map(i => i.id)).toEqual(['x4']);
+    // x4 (tier 2) and x5 (default 30 → tier 1) both pass Business requiredTier 1
+    expect(gated.map(i => i.id)).toEqual(['x4', 'x5']);
   });
 
-  it('unclassified items pass on casual trips but fail on formal trips', () => {
+  it('unclassified items pass on casual trips and Business but fail on Formal', () => {
     const unclassified = [makeWardrobeItem({id: 'u1', name: 'Mystery Item', main_category: 'Tops'})];
-    // Casual trip (formality 0 → floor 0): passes
+    // Casual trip (formality 0 → requiredTier 0): passes
     expect(gateBackupPool(unclassified, ['Casual'], threeDayWeather, 'masculine').length).toBe(1);
-    // Business trip (formality 2 → floor 40): blocked (default 30 < 40)
-    expect(gateBackupPool(unclassified, ['Business'], threeDayWeather, 'masculine').length).toBe(0);
-    // Same for fallback
-    expect(gateBackupPoolFallback(unclassified, ['Business'], threeDayWeather, 'masculine').length).toBe(0);
+    // Business trip (formality 2 → requiredTier 1): default 30 → tier 1 → passes (tier 1 >= 1)
+    expect(gateBackupPool(unclassified, ['Business'], threeDayWeather, 'masculine').length).toBe(1);
+    // Formal trip (formality 3 → requiredTier 2): default 30 → tier 1 → blocked (tier 1 < 2)
+    expect(gateBackupPool(unclassified, ['Formal'], threeDayWeather, 'masculine').length).toBe(0);
+    expect(gateBackupPoolFallback(unclassified, ['Formal'], threeDayWeather, 'masculine').length).toBe(0);
   });
 
   it('fallback respects presentation gate', () => {
@@ -3368,3 +3375,283 @@ describe('adaptWardrobeItem brand/fit', () => {
     expect(adapted.fit).toBeUndefined();
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  CONSISTENCY FIX REGRESSION TESTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Fix #1: Coherence guard uses per-day formality, not trip-wide baseline ──
+
+describe('Fix #1: isHardInvalidShoe uses per-day formality', () => {
+  it('tier-0 item is NOT hard-invalid on a Casual day even if trip-wide baseline is 3', () => {
+    const casualTop: TripWardrobeItem = {
+      id: 'tee1',
+      name: 'Graphic Tee',
+      main_category: 'Tops',
+      subcategory: 'T-Shirt',
+      formalityScore: 20, // tier 0
+    };
+    const casualActivity = getActivityProfile('Casual'); // formality 0
+    const tripWideBaseline = 3; // from a Formal activity in the same trip
+
+    // Should NOT be hard-invalid: gatePool passes (formality 0), and per-day floor is 0
+    const result = isHardInvalidShoe(casualTop, 'mild', casualActivity, 'masculine', tripWideBaseline);
+    expect(result).toBe(false);
+  });
+
+  it('tier-0 item IS hard-invalid on a Formal day (formality 3 → dayFloor 2)', () => {
+    const casualTop: TripWardrobeItem = {
+      id: 'tee2',
+      name: 'Graphic Tee',
+      main_category: 'Tops',
+      subcategory: 'T-Shirt',
+      formalityScore: 20, // tier 0
+    };
+    const formalActivity = getActivityProfile('Formal'); // formality 3
+
+    // Should be hard-invalid: dayFloor=2, tier 0 < 2
+    const result = isHardInvalidShoe(casualTop, 'mild', formalActivity, 'masculine', 3);
+    expect(result).toBe(true);
+  });
+
+  it('tier-1 item is NOT hard-invalid on a Business day (formality 2 → dayFloor 1)', () => {
+    const smartCasual: TripWardrobeItem = {
+      id: 'polo1',
+      name: 'Polo Shirt',
+      main_category: 'Tops',
+      subcategory: 'Polo',
+      formalityScore: 45, // tier 1
+    };
+    const businessActivity = getActivityProfile('Business'); // formality 2
+
+    // tier 1 >= dayFloor 1 → not hard-invalid
+    const result = isHardInvalidShoe(smartCasual, 'mild', businessActivity, 'masculine', 3);
+    expect(result).toBe(false);
+  });
+});
+
+// ── Fix #2: gatePool blocks slides/thongs in cold/freezing weather ──
+
+describe('Fix #2: gatePool blocks open footwear in cold weather', () => {
+  it('rejects slides in cold weather', () => {
+    const slides: TripWardrobeItem = {
+      id: 'slide1',
+      name: 'Comfort Slides',
+      main_category: 'Shoes',
+      subcategory: 'Slides',
+    };
+    // Verify isOpenFootwear catches this item
+    expect(isOpenFootwear(slides)).toBe(true);
+
+    // gatePool must reject it in cold weather
+    const coldResult = gatePool([slides], 'cold', {formality: 0, context: 'universal'}, 'masculine');
+    expect(coldResult).toHaveLength(0);
+
+    const freezingResult = gatePool([slides], 'freezing', {formality: 0, context: 'universal'}, 'masculine');
+    expect(freezingResult).toHaveLength(0);
+  });
+
+  it('rejects thong sandals in freezing weather', () => {
+    const thongs: TripWardrobeItem = {
+      id: 'thong1',
+      name: 'Leather Thongs',
+      main_category: 'Shoes',
+      subcategory: 'Thongs',
+    };
+    expect(isOpenFootwear(thongs)).toBe(true);
+
+    const result = gatePool([thongs], 'freezing', {formality: 0, context: 'universal'}, 'masculine');
+    expect(result).toHaveLength(0);
+  });
+
+  it('allows slides in warm weather', () => {
+    const slides: TripWardrobeItem = {
+      id: 'slide2',
+      name: 'Pool Slides',
+      main_category: 'Shoes',
+      subcategory: 'Slides',
+    };
+    const warmResult = gatePool([slides], 'warm', {formality: 0, context: 'universal'}, 'masculine');
+    expect(warmResult).toHaveLength(1);
+  });
+
+  it('does not affect non-shoe items with "slide" in name', () => {
+    const slideshow: TripWardrobeItem = {
+      id: 'acc1',
+      name: 'Slideshow Remote',
+      main_category: 'Accessories',
+      subcategory: 'Tech',
+    };
+    // Non-shoe: Rule 1b scoped to isShoe, should pass
+    const result = gatePool([slideshow], 'cold', {formality: 0, context: 'universal'}, 'masculine');
+    expect(result).toHaveLength(1);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  CANONICAL GATE CONVERGENCE TESTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Canonical gate convergence', () => {
+  // Test A: A shoe repaired by coherence is never replaced by its original candidate later
+  it('A: repaired shoe is never re-selected — original gets penalized', () => {
+    // Wardrobe with one low-formality shoe and one high-formality shoe.
+    // On a Business trip, the low-formality shoe should be gated out by the
+    // canonical gate (tier 0 < requiredTier 1). If it somehow got in, coherence
+    // would repair it and the original must not reappear on subsequent days.
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Dress Shirt A', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, color: 'white'}),
+      makeWardrobeItem({id: 't2', name: 'Dress Shirt B', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, color: 'blue'}),
+      makeWardrobeItem({id: 'b1', name: 'Trousers A', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 80, color: 'navy'}),
+      makeWardrobeItem({id: 'b2', name: 'Trousers B', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 75, color: 'grey'}),
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90, color: 'black'}),
+      // Low-formality shoe: tier 0. Business requires tier 1. Gate rejects it.
+      makeWardrobeItem({id: 's2', name: 'Canvas Sneakers', main_category: 'Shoes', subcategory: 'Sneakers', formalityScore: 15, color: 'white'}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-04', dayLabel: 'Wed', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
+    ];
+    const capsule = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+
+    // Canvas Sneakers must never appear in any Business outfit
+    for (const outfit of capsule.outfits) {
+      const shoeIds = outfit.items.filter(i => i.mainCategory === 'Shoes').map(i => i.wardrobeItemId);
+      expect(shoeIds).not.toContain('s2');
+    }
+  });
+
+  // Test B: Backup shoe selection never accepts something primary gate rejects
+  it('B: backup pool never accepts items rejected by primary gate', () => {
+    const sneaker: TripWardrobeItem = {
+      id: 'snk1', name: 'Running Sneakers', main_category: 'Shoes',
+      subcategory: 'Sneakers', formalityScore: 10,
+    };
+    const oxford: TripWardrobeItem = {
+      id: 'ox1', name: 'Oxford Shoes', main_category: 'Shoes',
+      subcategory: 'Oxford', formalityScore: 90,
+    };
+    const businessActivity = getActivityProfile('Business');
+
+    // Primary gate rejects sneaker for Business
+    const primaryResult = gatePool([sneaker, oxford], 'mild', businessActivity, 'masculine');
+    expect(primaryResult.map(i => i.id)).not.toContain('snk1');
+
+    // Backup pool must also reject it
+    const backupResult = gateBackupPool(
+      [sneaker, oxford], ['Business'],
+      [{date: '2026-03-01', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10}],
+      'masculine',
+    );
+    expect(backupResult.map(i => i.id)).not.toContain('snk1');
+
+    // Fallback pool must also reject it
+    const fallbackResult = gateBackupPoolFallback(
+      [sneaker, oxford], ['Business'],
+      [{date: '2026-03-01', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10}],
+      'masculine',
+    );
+    expect(fallbackResult.map(i => i.id)).not.toContain('snk1');
+  });
+
+  // Test C: Cold weather never allows open footwear if closed footwear exists
+  it('C: cold weather never allows open footwear when closed exists', () => {
+    const sandals: TripWardrobeItem = {
+      id: 'sand1', name: 'Leather Sandals', main_category: 'Shoes',
+      subcategory: 'Sandals', formalityScore: 40,
+    };
+    const boots: TripWardrobeItem = {
+      id: 'boot1', name: 'Chelsea Boots', main_category: 'Shoes',
+      subcategory: 'Chelsea Boots', formalityScore: 70,
+    };
+
+    // Build a cold weather casual trip with both sandals and boots
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Sweater', main_category: 'Tops', color: 'grey'}),
+      makeWardrobeItem({id: 'b1', name: 'Jeans', main_category: 'Bottoms', color: 'blue'}),
+      sandals, boots,
+    ];
+    const coldWeather: DayWeather[] = [
+      {date: '2026-01-15', dayLabel: 'Thu', highF: 40, lowF: 28, condition: 'cloudy', rainChance: 20},
+      {date: '2026-01-16', dayLabel: 'Fri', highF: 38, lowF: 25, condition: 'snowy', rainChance: 30},
+    ];
+    const capsule = buildCapsule(wardrobe, coldWeather, ['Casual'], 'Home', 'masculine');
+
+    // Sandals must never appear in cold weather outfits when boots exist
+    for (const outfit of capsule.outfits) {
+      const shoeIds = outfit.items.filter(i => i.mainCategory === 'Shoes').map(i => i.wardrobeItemId);
+      expect(shoeIds).not.toContain('sand1');
+    }
+  });
+
+  // Test D: Same inputs produce identical outputs twice (determinism)
+  it('D: deterministic — identical inputs produce identical outputs', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Shirt', main_category: 'Tops', formalityScore: 70, color: 'white'}),
+      makeWardrobeItem({id: 't2', name: 'Polo', main_category: 'Tops', formalityScore: 60, color: 'blue'}),
+      makeWardrobeItem({id: 'b1', name: 'Chinos', main_category: 'Bottoms', formalityScore: 65, color: 'khaki'}),
+      makeWardrobeItem({id: 'b2', name: 'Trousers', main_category: 'Bottoms', formalityScore: 75, color: 'navy'}),
+      makeWardrobeItem({id: 's1', name: 'Loafers', main_category: 'Shoes', formalityScore: 75, color: 'brown'}),
+      makeWardrobeItem({id: 's2', name: 'Oxfords', main_category: 'Shoes', formalityScore: 85, color: 'black'}),
+      makeWardrobeItem({id: 'o1', name: 'Blazer', main_category: 'Outerwear', formalityScore: 80, color: 'navy'}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-04-01', dayLabel: 'Wed', highF: 68, lowF: 52, condition: 'sunny', rainChance: 10},
+      {date: '2026-04-02', dayLabel: 'Thu', highF: 70, lowF: 54, condition: 'sunny', rainChance: 5},
+      {date: '2026-04-03', dayLabel: 'Fri', highF: 72, lowF: 56, condition: 'partly-cloudy', rainChance: 15},
+    ];
+    const activities: TripActivity[] = ['Business', 'Dinner'];
+
+    const run1 = buildCapsule(wardrobe, weather, activities, 'Hotel', 'masculine');
+    const run2 = buildCapsule(wardrobe, weather, activities, 'Hotel', 'masculine');
+
+    // Same outfit count
+    expect(run1.outfits.length).toBe(run2.outfits.length);
+
+    // Same items in each outfit (by wardrobeItemId)
+    for (let i = 0; i < run1.outfits.length; i++) {
+      const ids1 = run1.outfits[i].items.map(it => it.wardrobeItemId).sort();
+      const ids2 = run2.outfits[i].items.map(it => it.wardrobeItemId).sort();
+      expect(ids1).toEqual(ids2);
+    }
+  });
+
+  // Test E: isItemValidForActivity and gatePool always agree
+  it('E: isItemValidForActivity and gatePool produce identical results', () => {
+    const items: TripWardrobeItem[] = [
+      {id: '1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers', formalityScore: 15},
+      {id: '2', name: 'Oxfords', main_category: 'Shoes', subcategory: 'Oxfords', formalityScore: 85},
+      {id: '3', name: 'Sandals', main_category: 'Shoes', subcategory: 'Sandals', formalityScore: 20},
+      {id: '4', name: 'Loafers', main_category: 'Shoes', subcategory: 'Loafers', formalityScore: 75},
+      {id: '5', name: 'Hoodie', main_category: 'Tops', subcategory: 'Hoodies', formalityScore: 10},
+      {id: '6', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirts', formalityScore: 80},
+    ];
+    const zones: Array<'freezing' | 'cold' | 'cool' | 'mild' | 'warm' | 'hot'> = ['freezing', 'cold', 'cool', 'mild', 'warm', 'hot'];
+    const activities: TripActivity[] = ['Casual', 'Business', 'Formal', 'Dinner', 'Beach', 'Active'];
+    const presentations: Array<'masculine' | 'feminine' | 'mixed'> = ['masculine', 'feminine', 'mixed'];
+
+    for (const zone of zones) {
+      for (const act of activities) {
+        const profile = getActivityProfile(act);
+        for (const pres of presentations) {
+          const gateResult = gatePool(items, zone, profile, pres);
+          const gateIds = new Set(gateResult.map(i => i.id));
+          for (const item of items) {
+            const valid = isItemValidForActivity(item, zone, profile, pres);
+            expect(gateIds.has(item.id)).toBe(valid);
+          }
+        }
+      }
+    }
+  });
+
+  // Test F: getRequiredFormalityTier matches expected tier mapping
+  it('F: getRequiredFormalityTier produces correct tiers', () => {
+    expect(getRequiredFormalityTier(0)).toBe(0); // Casual
+    expect(getRequiredFormalityTier(1)).toBe(0); // Sightseeing
+    expect(getRequiredFormalityTier(2)).toBe(1); // Business/Dinner
+    expect(getRequiredFormalityTier(3)).toBe(2); // Formal
+  });
+});
+

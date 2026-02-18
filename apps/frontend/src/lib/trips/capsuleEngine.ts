@@ -37,7 +37,7 @@ import {
 } from '../elite/eliteScoring';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 14;
+export const CAPSULE_VERSION = 17;
 
 // ── Trip Trace Instrumentation ──
 const TRIP_TRACE = true;
@@ -162,59 +162,130 @@ export function isOpenFootwear(item: {name?: string; subcategory?: string}): boo
   return /\b(sandals?|flip[- ]?flops?|slides?|thongs?)\b/.test(text);
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  UNIVERSAL PURPOSE COMPATIBILITY
+// ══════════════════════════════════════════════════════════════════════════════
+
+export type GarmentPurpose = 'athletic' | 'leisure' | 'casual' | 'smart' | 'formal' | 'outdoor' | 'swim' | 'sleep' | 'unknown';
+export type ActivityPurposeClass = 'formal_event' | 'business' | 'daily' | 'sport' | 'outdoor' | 'water' | 'rest';
+
+const PURPOSE_COMPATIBILITY: Record<ActivityPurposeClass, readonly GarmentPurpose[]> = {
+  formal_event: ['formal', 'smart'],
+  business: ['smart', 'casual', 'formal'],
+  daily: ['casual', 'smart', 'leisure'],
+  sport: ['athletic'],
+  outdoor: ['outdoor', 'athletic', 'casual'],
+  water: ['swim', 'leisure', 'casual'],
+  rest: ['leisure', 'sleep', 'casual'],
+};
+
+export function getGarmentPurpose(item: TripWardrobeItem): GarmentPurpose {
+  const sub = (item.subcategory || '').toLowerCase();
+  const name = (item.name || '').toLowerCase();
+  const mat = (item.material || '').toLowerCase();
+  const tags = (item.occasionTags || []).map(t => t.toLowerCase());
+  const text = `${sub} ${name}`;
+
+  // swim — check first, very specific
+  if ((item.main_category || '') === 'Swimwear') return 'swim';
+  if (/\b(swim|bikini|trunks|board ?shorts?|rash ?guard|cover[- ]?up)\b/.test(text)) return 'swim';
+
+  // sleep
+  if (/\b(pajama|pyjama|nightgown|sleep|robe|bathrobe|lounge ?set)\b/.test(text)) return 'sleep';
+
+  // athletic — performance / sport
+  if (/\b(running|athletic|trainer|performance|gym|sport|yoga|compression|track ?pant|track ?suit|workout|jersey|cleat|spikes?)\b/.test(text)) return 'athletic';
+  if (/\b(neoprene|spandex|lycra|dri[- ]?fit|moisture[- ]?wicking)\b/.test(mat)) return 'athletic';
+  if (tags.some(t => /\b(gym|sport|workout|running|training|athletic)\b/.test(t))) return 'athletic';
+
+  // outdoor — rugged / trail
+  if (/\b(hiking|trail|climbing|waterproof boot|rain boot|snow boot|work boot|combat boot|utility|cargo|parka|anorak|windbreaker|gore[- ]?tex)\b/.test(text)) return 'outdoor';
+  if (/\b(gore[- ]?tex|ripstop|cordura|waxed cotton)\b/.test(mat)) return 'outdoor';
+
+  // formal — structured dress
+  if (/\b(tuxedo|tux|patent leather|oxford|wholecut|cap[- ]?toe|monk[- ]?strap|dress shoe|dress shoes|gown|ball ?gown|bow ?tie|cummerbund|cufflink)\b/.test(text)) return 'formal';
+  if (getFormalityTier(item) >= 3) return 'formal';
+
+  // smart — polished but not black-tie
+  if (/\b(loafer|penny loafer|tassel loafer|moccasin|chelsea boot|chukka|blazer|sport ?coat|dress shirt|trousers?|slacks|dress pant|brogue|derby|wingtip)\b/.test(text)) return 'smart';
+  if (getFormalityTier(item) >= 2) return 'smart';
+
+  // leisure — relaxed, non-performance
+  if (/\b(slides?|flip[- ]?flops?|slippers?|kaftan|caftan|sarong|muumuu)\b/.test(text)) return 'leisure';
+
+  // casual — everything else that has recognizable casual markers
+  if (/\b(sneaker|canvas|t[- ]?shirt|tee|jeans?|denim|hoodie|sweatshirt|jogger|shorts|polo|chino|espadrille|boat ?shoe|sandal)\b/.test(text)) return 'casual';
+
+  return 'unknown';
+}
+
+export function getActivityPurposeClass(profile: ActivityProfile): ActivityPurposeClass {
+  if (profile.formality >= 3) return 'formal_event';
+  if (profile.formality >= 2) return 'business';
+  if (profile.context === 'sport') return 'sport';
+  if (profile.context === 'beach') return 'water';
+  return 'daily';
+}
+
+export function isPurposeCompatible(itemPurpose: GarmentPurpose, activityPurpose: ActivityPurposeClass): boolean {
+  if (itemPurpose === 'unknown') return true;
+  return PURPOSE_COMPATIBILITY[activityPurpose].includes(itemPurpose);
+}
+
+/**
+ * Canonical gate: single source of truth for item validity in a given activity context.
+ * Every place that decides if an item is valid MUST call this — no alternate checks.
+ * Combines climate, presentation, formality keyword, formality tier, AND purpose compatibility checks.
+ */
+export function isItemValidForActivity(
+  item: TripWardrobeItem,
+  climateZone: ClimateZone,
+  activityProfile: ActivityProfile,
+  presentation: 'masculine' | 'feminine' | 'mixed' = 'mixed',
+): boolean {
+  const flags = inferGarmentFlags(item);
+  const isColdOrFreezing = climateZone === 'cold' || climateZone === 'freezing';
+  const isFormalActivity = activityProfile.formality >= 2;
+  const isCityContext = activityProfile.context === 'city';
+  const isMasculine = presentation === 'masculine';
+  const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
+
+  // RULE 0: Block feminine-only items for masculine users
+  if (isMasculine && flags.isFeminineOnly) return false;
+  // Rule 1: Block minimal coverage in cold/freezing
+  if (isColdOrFreezing && flags.isMinimalCoverage) return false;
+  // Rule 1b: Block open-toed footwear in cold/freezing (shoes only)
+  if (isColdOrFreezing && isShoe && isOpenFootwear(item)) return false;
+  // Rule 2: Block beach-context items for formal city activities
+  if (isFormalActivity && isCityContext && flags.isBeachContext) return false;
+  // Rule 3: Block casual-only items for formal activities
+  if (isFormalActivity && flags.isCasualOnly) return false;
+  // Rule 4: Formality tier floor (unified with coherence check)
+  const requiredTier = getRequiredFormalityTier(activityProfile.formality);
+  if (requiredTier > 0 && getFormalityTier(item) < requiredTier) return false;
+  // Rule 5: Purpose compatibility — block logically incompatible garment categories
+  const itemPurpose = getGarmentPurpose(item);
+  const activityPurpose = getActivityPurposeClass(activityProfile);
+  if (!isPurposeCompatible(itemPurpose, activityPurpose)) return false;
+
+  return true;
+}
+
 export function gatePool(
   items: TripWardrobeItem[],
   climateZone: ClimateZone,
   activity: ActivityProfile,
   presentation: 'masculine' | 'feminine' | 'mixed' = 'mixed',
 ): TripWardrobeItem[] {
-  const isColdOrFreezing = climateZone === 'cold' || climateZone === 'freezing';
-  const isFormalActivity = activity.formality >= 2;
-  const isCityContext = activity.context === 'city';
-  const isMasculine = presentation === 'masculine';
-
   return items.filter(item => {
-    const flags = inferGarmentFlags(item);
-
-    const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
-
-    // RULE 0 (FIRST CHECK): Block feminine-only items for masculine users — NO EXCEPTIONS
-    if (isMasculine && flags.isFeminineOnly) {
-      if (__DEV__ && isShoe) {
-        console.log(`[TripCapsule][GATE_SHOE] REJECT ${item.name} (${item.id}) | gate=presentation | isFeminineOnly=true`);
+    const valid = isItemValidForActivity(item, climateZone, activity, presentation);
+    if (__DEV__) {
+      const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
+      if (isShoe) {
+        console.log(`[TripCapsule][GATE_SHOE] ${valid ? 'PASS' : 'REJECT'} ${item.name} (${item.id}) | zone=${climateZone} formality=${activity.formality} presentation=${presentation}`);
       }
-      return false;
     }
-
-    // Rule 1: Block minimal coverage in cold/freezing
-    if (isColdOrFreezing && flags.isMinimalCoverage) {
-      if (__DEV__ && isShoe) {
-        console.log(`[TripCapsule][GATE_SHOE] REJECT ${item.name} (${item.id}) | gate=climate_minimal | zone=${climateZone} isMinimalCoverage=true`);
-      }
-      return false;
-    }
-
-    // Rule 2: Block beach-context items for business/formal/dinner (city context + formal)
-    if (isFormalActivity && isCityContext && flags.isBeachContext) {
-      if (__DEV__ && isShoe) {
-        console.log(`[TripCapsule][GATE_SHOE] REJECT ${item.name} (${item.id}) | gate=beach_context | formality=${activity.formality}`);
-      }
-      return false;
-    }
-
-    // Rule 3: Block casual-only items for formal activities
-    if (isFormalActivity && flags.isCasualOnly) {
-      if (__DEV__ && isShoe) {
-        console.log(`[TripCapsule][GATE_SHOE] REJECT ${item.name} (${item.id}) | gate=casual_only | formality=${activity.formality} isCasualOnly=true sub=${item.subcategory}`);
-      }
-      return false;
-    }
-
-    if (__DEV__ && isShoe) {
-      console.log(`[TripCapsule][GATE_SHOE] PASS ${item.name} (${item.id}) | zone=${climateZone} formality=${activity.formality} presentation=${presentation}`);
-    }
-
-    return true;
+    return valid;
   });
 }
 
@@ -226,12 +297,42 @@ export function gatePool(
 const DEFAULT_UNKNOWN_FORMALITY = 30;
 
 /**
+ * Infer a formality score from name/subcategory keywords when formalityScore is null.
+ * Returns null if no keyword match — caller falls back to DEFAULT_UNKNOWN_FORMALITY.
+ */
+function inferFormalityFromKeywords(item: TripWardrobeItem): number | null {
+  const sub = (item.subcategory || '').toLowerCase();
+  const name = (item.name || '').toLowerCase();
+  const text = `${sub} ${name}`;
+
+  // Tier 3 — formal dress shoes (score 80)
+  if (/\b(oxford|wholecut|cap[- ]?toe|derby|monk[- ]?strap|dress shoe|dress shoes|brogue)\b/.test(text)) return 80;
+  // Tier 2 — smart shoes (score 60)
+  if (/\b(loafer|penny loafer|tassel loafer|moccasin|chelsea boot|chukka)\b/.test(text)) return 60;
+  // Tier 1 — smart-casual (score 40)
+  if (/\b(boot|boots|ankle boot|desert boot|lace[- ]?up)\b/.test(text) && !/\b(rain|hiking|work|combat|snow|rubber)\b/.test(text)) return 40;
+  // Tier 0 — casual (score 20)
+  if (/\b(sneaker|trainer|running|athletic|canvas|slip[- ]?on|espadrille|sandal|flip[- ]?flop|slide)\b/.test(text)) return 20;
+
+  return null;
+}
+
+/**
  * Single source of truth for an item's effective formality score (0–100).
- * Replaces all scattered `item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY`
- * and `item.formalityScore ?? 50` patterns.
+ * Priority: explicit formalityScore → keyword inference → conservative default.
  */
 export function getNormalizedFormality(item: TripWardrobeItem): number {
-  return item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY;
+  if (item.formalityScore != null) return item.formalityScore;
+  const inferred = inferFormalityFromKeywords(item);
+  if (inferred != null) return inferred;
+  return DEFAULT_UNKNOWN_FORMALITY;
+}
+
+/** Single source of truth: activity formality level → minimum item tier.
+ *  Used by gatePool, isHardInvalidShoe, backup gates, and all fallback paths.
+ */
+export function getRequiredFormalityTier(formality: number): number {
+  return formality >= 3 ? 2 : formality >= 2 ? 1 : 0;
 }
 
 /**
@@ -243,7 +344,7 @@ export function getNormalizedFormality(item: TripWardrobeItem): number {
  */
 function tripFormalityFloor(activities: TripActivity[]): number {
   const max = Math.max(...activities.map(a => getActivityProfile(a).formality));
-  return max >= 3 ? 2 : max >= 2 ? 1 : 0;
+  return getRequiredFormalityTier(max);
 }
 
 /**
@@ -1079,18 +1180,15 @@ export function aestheticBonus(
  * Calls the same gatePool logic used by the builder — no threshold duplication.
  * Also checks formality tier vs activity baseline (dress code violation).
  */
-function isHardInvalidShoe(
+export function isHardInvalidShoe(
   item: TripWardrobeItem,
   climateZone: ClimateZone,
   activity: ActivityProfile,
   presentation: Presentation,
-  baselineFormality: number,
+  _baselineFormality: number,
 ): boolean {
-  // Would gatePool reject this item?
-  if (gatePool([item], climateZone, activity, presentation).length === 0) return true;
-  // Formality tier below activity baseline? (dress code violation)
-  if (baselineFormality > 0 && getFormalityTier(item) < baselineFormality) return true;
-  return false;
+  // Canonical gate: single source of truth — no separate tier comparison
+  return !isItemValidForActivity(item, climateZone, activity, presentation);
 }
 
 function isLockedValidItem(
@@ -1338,10 +1436,36 @@ function validateOutfitComposition(
   poolLookup: Map<string, TripWardrobeItem>,
   activityProfile: ActivityProfile,
   locationLabel: string,
+  climateZone: ClimateZone,
+  presentation: 'masculine' | 'feminine' | 'mixed',
 ): TripPackingItem[] {
   const result = [...items];
   const getFullItem = (pi: TripPackingItem) => poolLookup.get(pi.wardrobeItemId);
   const currentIds = () => new Set(result.map(r => r.wardrobeItemId));
+  const isFormalContext = activityProfile.formality >= 2;
+  const requiredTier = getRequiredFormalityTier(activityProfile.formality);
+
+  // Guarded swap: for formal activities, replacement must meet or exceed the
+  // original item's formality tier so composition swaps never downgrade intent.
+  const guardedSwap = (
+    pi: TripPackingItem,
+    isValid: (c: TripWardrobeItem) => boolean,
+  ): TripPackingItem | null => {
+    const originalFull = getFullItem(pi);
+    const originalTier = originalFull ? getFormalityTier(originalFull) : 0;
+    const originalContextValid = originalFull
+      ? isItemValidForActivity(originalFull, climateZone, activityProfile, presentation)
+      : false;
+    return tryCompositionSwap(
+      pi, poolLookup, locationLabel, currentIds(),
+      candidate => {
+        // Context Regression Guard: never swap a context-valid item for a context-invalid one
+        if (originalContextValid && !isItemValidForActivity(candidate, climateZone, activityProfile, presentation)) return false;
+        if (isFormalContext && getFormalityTier(candidate) < Math.min(originalTier, requiredTier)) return false;
+        return isValid(candidate);
+      },
+    );
+  };
 
   // ── RULE 1: Focal Point Limit ──
   // Max one "statement" item (patterned, bold color, non-neutral accessory).
@@ -1354,8 +1478,8 @@ function validateOutfitComposition(
   if (statementIndices.length > 1) {
     for (let s = 1; s < statementIndices.length; s++) {
       const idx = statementIndices[s];
-      const swap = tryCompositionSwap(
-        result[idx], poolLookup, locationLabel, currentIds(),
+      const swap = guardedSwap(
+        result[idx],
         candidate => !isStatementItem(candidate),
       );
       if (swap) {
@@ -1380,8 +1504,8 @@ function validateOutfitComposition(
     if (maxTier >= 3 && minTier <= 0) {
       for (let i = 0; i < result.length; i++) {
         if (tiers[i] !== 0) continue;
-        const swap = tryCompositionSwap(
-          result[i], poolLookup, locationLabel, currentIds(),
+        const swap = guardedSwap(
+          result[i],
           candidate => getFormalityTier(candidate) >= 1,
         );
         if (swap) {
@@ -1414,8 +1538,8 @@ function validateOutfitComposition(
         : null;
 
     if (swapTarget) {
-      const swap = tryCompositionSwap(
-        result[swapTarget.idx], poolLookup, locationLabel, currentIds(),
+      const swap = guardedSwap(
+        result[swapTarget.idx],
         candidate => !isHeavyGarment(candidate),
       );
       if (swap) {
@@ -1448,8 +1572,8 @@ function validateOutfitComposition(
     );
 
     if (!connected) {
-      const swap = tryCompositionSwap(
-        result[entry.idx], poolLookup, locationLabel, currentIds(),
+      const swap = guardedSwap(
+        result[entry.idx],
         candidate => {
           const candWords = getItemColorWords(candidate).filter(w => !neutralTokens.has(w));
           if (candWords.length === 0) return true; // neutral always safe
@@ -1482,8 +1606,8 @@ function validateOutfitComposition(
         if (TEXTURE_CONFLICT_PAIRS.has(pairKey)) {
           const swapIdx = texturedItems[b].idx;
           const anchorTex = texturedItems[a].texture;
-          const swap = tryCompositionSwap(
-            result[swapIdx], poolLookup, locationLabel, currentIds(),
+          const swap = guardedSwap(
+            result[swapIdx],
             candidate => {
               const ct = getDominantTexture(candidate);
               return !ct || !TEXTURE_CONFLICT_PAIRS.has(`${anchorTex}:${ct}`);
@@ -1509,8 +1633,8 @@ function validateOutfitComposition(
   if (patternedIndices.length >= 2) {
     for (let p = 1; p < patternedIndices.length; p++) {
       const idx = patternedIndices[p];
-      const swap = tryCompositionSwap(
-        result[idx], poolLookup, locationLabel, currentIds(),
+      const swap = guardedSwap(
+        result[idx],
         candidate => !isPatterned(candidate),
       );
       if (swap) {
@@ -1646,9 +1770,14 @@ type RoleRequirement = {
 
 type RoleRegistry = Map<ItemRole, TripWardrobeItem>;
 
-/** Coarse formality tier for shoe contrast comparison. */
-function getFormalityTier(item: TripWardrobeItem): number {
-  const f = getNormalizedFormality(item);
+/** Coarse formality tier for shoe contrast comparison.
+ *  Handles both 0-10 and 0-100 formality scales:
+ *  scores <= 10 are treated as 0-10 scale and normalized to 0-100.
+ */
+export function getFormalityTier(item: TripWardrobeItem): number {
+  let f = getNormalizedFormality(item);
+  // Normalize 0-10 scale → 0-100 (catches AI scores like formalityScore=8)
+  if (f > 0 && f <= 10) f = f * 10;
   if (f >= 70) return 3;
   if (f >= 50) return 2;
   if (f >= 30) return 1;
@@ -1731,6 +1860,7 @@ function fillFootwearRoles(
   weather: DayWeather[],
   maxShoes: number,
   roleRegistry: RoleRegistry,
+  presentation: Presentation = 'mixed',
 ): TripWardrobeItem[] {
   if (shoeBucket.length === 0) return [];
 
@@ -1738,12 +1868,23 @@ function fillFootwearRoles(
     r.role === 'anchor_shoe' || r.role === 'contrast_shoe' || r.role === 'condition_shoe',
   );
 
-  // Pre-filter: exclude casual-only shoes when trip has formal activities.
-  // Mirrors per-day gating so role selection doesn't pick shoes that will be gated out.
-  const tripFormality = capsuleIntent.baselineFormality;
-  const usableShoes = tripFormality >= 2
-    ? shoeBucket.filter(s => !inferGarmentFlags(s).isCasualOnly)
-    : shoeBucket;
+  // Pre-filter: use canonical isItemValidForActivity for the HIGHEST-formality
+  // activity + worst-case climate zone. This ensures no shoe enters role selection
+  // that would later be rejected by per-day assembly gating.
+  const highestFormalityActivity = activities.reduce((best, a) => {
+    const ap = getActivityProfile(a);
+    return ap.formality > getActivityProfile(best).formality ? a : best;
+  }, activities[0] || 'Casual');
+  const worstProfile = getActivityProfile(highestFormalityActivity);
+  // Use coldest day's climate zone for strictest climate gate
+  const coldestDay = weather.length > 0
+    ? weather.reduce((c, d) => (d.lowF < c.lowF ? d : c), weather[0])
+    : undefined;
+  const worstZone = deriveClimateZone(coldestDay);
+
+  const usableShoes = shoeBucket.filter(s =>
+    isItemValidForActivity(s, worstZone, worstProfile, presentation),
+  );
   const effectivePool = usableShoes.length > 0 ? usableShoes : shoeBucket; // fail-open
 
   // Trace point 3: Candidate buckets (shoes only)
@@ -1760,7 +1901,7 @@ function fillFootwearRoles(
         paletteMatch: matchesPalette(shoe, capsuleIntent.paletteColors),
         isNeutral: isNeutralColor(shoe),
         isCasualOnly: flags.isCasualOnly,
-        rejectedReason: !inEffective ? `casual-only filtered (tripFormality=${tripFormality})` : null,
+        rejectedReason: !inEffective ? `gate-filtered (formality=${worstProfile.formality} zone=${worstZone})` : null,
       });
     }
   }
@@ -2118,45 +2259,87 @@ function buildOutfitForActivity(
   const gatedBuckets = {} as Record<CategoryBucket, TripWardrobeItem[]>;
   for (const key of Object.keys(buckets) as CategoryBucket[]) {
     gatedBuckets[key] = gatePool(buckets[key], climateZone, activityProfile, presentation);
-    // Fallback: if gating empties the bucket — NEVER bypass formality or gender rules
+    // Fallback: if gating empties the bucket — relax climate, KEEP formality + presentation + tier
     if (gatedBuckets[key].length === 0 && buckets[key].length > 0) {
-      if (isMasculine) {
-        gatedBuckets[key] = buckets[key].filter(item => {
-          const flags = inferGarmentFlags(item);
-          if (flags.isFeminineOnly) return false;
-          if (isFormalActivity && flags.isCasualOnly) return false;
-          return true;
-        });
-      } else if (isFormalActivity) {
-        // Non-masculine fallback: still respect formality rules
-        gatedBuckets[key] = buckets[key].filter(item => !inferGarmentFlags(item).isCasualOnly);
-      } else {
-        gatedBuckets[key] = buckets[key];
-      }
+      gatedBuckets[key] = buckets[key].filter(item => {
+        const flags = inferGarmentFlags(item);
+        if (isMasculine && flags.isFeminineOnly) return false;
+        if (isFormalActivity && flags.isCasualOnly) return false;
+        const requiredTier = getRequiredFormalityTier(activityProfile.formality);
+        if (requiredTier > 0 && getFormalityTier(item) < requiredTier) return false;
+        return true;
+      });
     }
     // Taste gate: filter user-avoided colors (emergency fallback preserves pool if all vetoed)
     gatedBuckets[key] = applyTasteGate(gatedBuckets[key], capsuleIntent?.avoidColors);
   }
   const gatedShoes = gatePool(selectedShoes, climateZone, activityProfile, presentation);
-  // Shoe fallback: NEVER bypass formality or gender rules
+  // Shoe fallback: relax climate, KEEP formality + presentation + tier
   let finalShoes: TripWardrobeItem[];
   if (gatedShoes.length > 0) {
     finalShoes = gatedShoes;
-  } else if (isMasculine) {
-    finalShoes = selectedShoes.filter(s => {
-      const f = inferGarmentFlags(s);
-      return !f.isFeminineOnly && !(isFormalActivity && f.isCasualOnly);
-    });
-  } else if (isFormalActivity) {
-    finalShoes = selectedShoes.filter(s => !inferGarmentFlags(s).isCasualOnly);
   } else {
-    finalShoes = selectedShoes;
+    finalShoes = selectedShoes.filter(s => {
+      const flags = inferGarmentFlags(s);
+      if (isMasculine && flags.isFeminineOnly) return false;
+      if (isFormalActivity && flags.isCasualOnly) return false;
+      const requiredTier = getRequiredFormalityTier(activityProfile.formality);
+      if (requiredTier > 0 && getFormalityTier(s) < requiredTier) return false;
+      return true;
+    });
   }
   // Cold/freezing safety net: filter open footwear from ANY fallback path (fail-open)
   if (climateZone === 'freezing' || climateZone === 'cold') {
     const closedToe = finalShoes.filter(s => !isOpenFootwear(s));
     if (closedToe.length > 0) {
       finalShoes = closedToe;
+    }
+  }
+
+  // ── NON-EMPTY SHOE FALLBACK (hard requirement: never return empty shoes) ──
+  if (finalShoes.length === 0 && selectedShoes.length > 0) {
+    const requiredTier = getRequiredFormalityTier(activityProfile.formality);
+    const isColdOrFreezing = climateZone === 'cold' || climateZone === 'freezing';
+
+    // Step 1: Relax formality tier by ONE step, keep climate + presentation
+    if (requiredTier > 0) {
+      const relaxedTier = requiredTier - 1;
+      finalShoes = selectedShoes.filter(s => {
+        const flags = inferGarmentFlags(s);
+        if (isMasculine && flags.isFeminineOnly) return false;
+        if (isColdOrFreezing && isOpenFootwear(s)) return false;
+        if (isColdOrFreezing && flags.isMinimalCoverage) return false;
+        if (relaxedTier > 0 && getFormalityTier(s) < relaxedTier) return false;
+        return true;
+      });
+      if (__DEV__ && finalShoes.length > 0) {
+        console.log(`[TripCapsule][SHOE_FALLBACK] Relaxed tier ${requiredTier}→${relaxedTier} | ${finalShoes.length} shoes recovered for ${activity}`);
+      }
+    }
+
+    // Step 2: Pick best closed-toe shoe matching presentation + climate (ignore formality)
+    if (finalShoes.length === 0) {
+      finalShoes = selectedShoes.filter(s => {
+        const flags = inferGarmentFlags(s);
+        if (isMasculine && flags.isFeminineOnly) return false;
+        if (isColdOrFreezing && isOpenFootwear(s)) return false;
+        if (isColdOrFreezing && flags.isMinimalCoverage) return false;
+        return true;
+      });
+      if (__DEV__ && finalShoes.length > 0) {
+        console.log(`[TripCapsule][SHOE_FALLBACK] Full formality relaxation | ${finalShoes.length} shoes recovered for ${activity}`);
+      }
+    }
+
+    // Step 3: Last resort — any non-feminine shoe (absolute emergency)
+    if (finalShoes.length === 0) {
+      finalShoes = selectedShoes.filter(s => {
+        if (isMasculine && inferGarmentFlags(s).isFeminineOnly) return false;
+        return true;
+      });
+      if (__DEV__ && finalShoes.length > 0) {
+        console.log(`[TripCapsule][SHOE_FALLBACK] Emergency fallback | ${finalShoes.length} shoes for ${activity}`);
+      }
     }
   }
 
@@ -2400,6 +2583,17 @@ function buildOutfitForActivity(
     ? applyCoherenceGuard(items, capsuleIntent, gatedBuckets, finalShoes, usageTracker, dayIndex, locationLabel, poolLookup, climateZone, activityProfile, presentation)
     : items;
 
+  // Commit repairs: penalize replaced items so they cannot be re-selected on future days.
+  // This prevents oscillation where a repaired item gets picked again the next day.
+  for (let ci = 0; ci < items.length && ci < coherenceChecked.length; ci++) {
+    if (items[ci].wardrobeItemId !== coherenceChecked[ci].wardrobeItemId) {
+      const originalId = items[ci].wardrobeItemId;
+      const days = usageTracker.get(originalId) || [];
+      for (let d = dayIndex; d < numDays; d++) days.push(d);
+      usageTracker.set(originalId, days);
+    }
+  }
+
   // Enforce one-piece vs separates structure
   let normalized = normalizeOutfitStructure(coherenceChecked);
 
@@ -2412,7 +2606,7 @@ function buildOutfitForActivity(
   }
 
   // Apply composition validator: repair visually incoherent outfits using alternates
-  normalized = validateOutfitComposition(normalized, poolLookup, activityProfile, locationLabel);
+  normalized = validateOutfitComposition(normalized, poolLookup, activityProfile, locationLabel, climateZone, presentation);
 
   if (__DEV__) {
     console.log('[TripCapsule][OUTFIT_PICK]', {
@@ -2816,7 +3010,7 @@ export function buildCapsule(
   const maxShoes = numDays <= 5 ? 2 : 3;
   const selectedShoes = fillFootwearRoles(
     buckets.shoes, requiredRoles, capsuleIntent, styleHints,
-    activities, weather, maxShoes, roleRegistry,
+    activities, weather, maxShoes, roleRegistry, presentation,
   );
 
   logSlotDecision(requestId, {
