@@ -52,6 +52,57 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const TARGET_PRODUCTS = 10;
 const DEBUG_RECOMMENDED_BUYS = process.env.DEBUG_RECOMMENDED_BUYS === 'true';
 
+/** Brand tier multiplier: prestige-aware boost applied when brand matches. */
+const BRAND_TIER_MAP: Record<string, number> = {
+  // Luxury / Designer
+  'gucci': 1.35,
+  'prada': 1.35,
+  'saint laurent': 1.35,
+  'valentino': 1.35,
+  'versace': 1.3,
+  'balmain': 1.3,
+  'roberto cavalli': 1.3,
+  'dolce gabbana': 1.3,
+  'bottega veneta': 1.3,
+  'balenciaga': 1.3,
+  'givenchy': 1.25,
+  'fendi': 1.25,
+  'burberry': 1.25,
+  'tom ford': 1.3,
+  'dior': 1.35,
+  'chanel': 1.35,
+  'louis vuitton': 1.35,
+  'hermes': 1.35,
+
+  // Premium Heritage
+  'brioni': 1.3,
+  'zegna': 1.25,
+  'canali': 1.25,
+  'polo ralph lauren': 1.2,
+  'ralph lauren': 1.2,
+  'hugo boss': 1.15,
+  'brooks brothers': 1.15,
+
+  // Contemporary
+  'theory': 1.15,
+  'reiss': 1.15,
+  'allsaints': 1.1,
+  'cos': 1.1,
+  'ted baker': 1.1,
+  'club monaco': 1.1,
+
+  // Mass / Fast Fashion
+  'zara': 0.95,
+  'hm': 0.9,
+  'uniqlo': 1.0,
+  'gap': 0.95,
+  'old navy': 0.85,
+  'boohooman': 0.85,
+  'fashion nova': 0.85,
+  'shein': 0.8,
+  'walmart': 0.75,
+};
+
 /** Strip non-alphanumeric (except spaces), lowercase, collapse whitespace */
 function normalize(str?: string | null): string {
   return (str || '')
@@ -673,6 +724,16 @@ export class DiscoverService {
       // Brand match — 0 or 1 (normalized substring)
       const brandMatch01 = (normBrand && profile.preferred_brands?.some((b) => normBrand.includes(normalize(b)))) ? 1 : 0;
 
+      // Brand tier: prestige-aware multiplier (only when brand matches)
+      const brandNorm = (p.brand || '').toLowerCase().replace(/[^a-z\s]/g, '').trim();
+      const brandBase = 12 * brandMatch01;
+      let brandContribution = brandBase;
+      if (brandMatch01 === 1) {
+        const tierMult = BRAND_TIER_MAP[brandNorm] ?? 1.0;
+        brandContribution = brandBase * tierMult;
+      }
+      brandContribution = Math.min(brandContribution, 16);
+
       // Behavior brand match — 0 or 1 (normalized substring)
       const behavior01 = (normBrand && behavior.recentBrands?.some((b) => normBrand.includes(normalize(b)))) ? 1 : 0;
 
@@ -882,11 +943,11 @@ export class DiscoverService {
         penalty = brandSatPenalty(brandFreq01);
       }
 
-      // Weighted score: brand(12) + behavior(5) + gap(clamped) + style(16) + color(10) + budget(5|10)
+      // Weighted score: brand(tier-adjusted, max 16) + behavior(5) + gap(clamped) + style(16) + color(10) + budget(5|10)
       //   + fit(6) - negativePenalty(4) - brandSatPenalty + elevation(3) + styleDepth(2) + basicDamp(-2)
       const budgetWeight = userDefinedBudget ? 10 : 5;
       const score =
-        (12 * brandMatch01) +
+        brandContribution +
         (5  * behavior01) +
         adjustedGapBonus +
         (16 * style01) +
@@ -899,7 +960,7 @@ export class DiscoverService {
         styleDepthBonus +
         basicDampener;
 
-      breakdown.brand = +(12 * brandMatch01).toFixed(2);
+      breakdown.brand = +brandContribution.toFixed(2);
       breakdown.behavior = +(5 * behavior01).toFixed(2);
       breakdown.gap = +adjustedGapBonus.toFixed(2);
       breakdown.style = +(16 * style01).toFixed(2);
