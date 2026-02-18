@@ -36,6 +36,14 @@ export class StyleProfileService {
     return profileRes.rows[0];
   }
 
+  // Columns that affect discover recommendations — changes trigger cache invalidation
+  private static readonly DISCOVER_RELEVANT_COLUMNS = new Set([
+    'preferred_brands', 'color_preferences', 'disliked_styles', 'style_preferences',
+    'fit_preferences', 'avoid_colors', 'avoid_materials', 'avoid_patterns',
+    'budget_min', 'budget_max', 'body_type', 'silhouette_preference', 'formality_floor',
+    'coverage_no_go', 'walkability_requirement',
+  ]);
+
   async updateProfile(userId: string, dto: UpdateStyleProfileDto) {
     const filteredEntries = Object.entries(dto).filter(
       ([key, val]) =>
@@ -77,6 +85,20 @@ export class StyleProfileService {
     `;
 
     const result = await pool.query(query, [userId, ...values]);
+
+    // Invalidate discover cache if any recommendation-relevant column changed
+    const touchesDiscover = keys.some(k =>
+      StyleProfileService.DISCOVER_RELEVANT_COLUMNS.has(k),
+    );
+    if (touchesDiscover) {
+      await pool
+        .query(
+          'UPDATE users SET last_discover_refresh = NULL WHERE id = $1',
+          [userId],
+        )
+        .catch(() => {}); // non-critical
+    }
+
     return result.rows[0];
   }
 

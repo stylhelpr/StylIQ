@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { pool } from '../db/pool';
 import { getSecret, secretExists } from '../config/secrets';
 import { LearningEventsService } from '../learning/learning-events.service';
@@ -14,8 +15,14 @@ interface UserProfile {
   fit_preferences: string[];
   body_type: string | null;
   climate: string | null;
-  budget_min?: number | null;
-  budget_max?: number | null;
+  // Hard-veto constraint fields
+  avoid_colors: string[];
+  avoid_materials: string[];
+  avoid_patterns: string[];
+  coverage_no_go: string[];
+  walkability_requirement: string | null;
+  silhouette_preference: string | null;
+  formality_floor: string | null;
 }
 
 interface BrowserSignals {
@@ -46,6 +53,10 @@ export interface DiscoverProduct {
   batch_date?: string;
   is_current?: boolean;
   enriched_color?: string | null;
+  // Explanation layer (optional — won't break existing consumers)
+  score_total?: number;
+  score_breakdown?: Record<string, number>;
+  match_reasons?: string[];
 }
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -103,6 +114,55 @@ const BRAND_TIER_MAP: Record<string, number> = {
   'walmart': 0.75,
 };
 
+/** Brand authority tiers: quality intelligence independent of user preference.
+ *  Tier 1 = luxury, Tier 5 = unknown/low authority. Default = Tier 4. */
+const BRAND_AUTHORITY_TIERS: Record<string, number> = {
+  // Tier 1 – Luxury / Designer
+  'chanel': 1, 'roberto cavalli': 1, 'vera wang': 1, 'gucci': 1, 'prada': 1,
+  'saint laurent': 1, 'valentino': 1, 'versace': 1, 'balmain': 1, 'dior': 1,
+  'louis vuitton': 1, 'hermes': 1, 'bottega veneta': 1, 'balenciaga': 1,
+  'tom ford': 1, 'dolce gabbana': 1, 'givenchy': 1, 'fendi': 1, 'burberry': 1,
+  'brioni': 1, 'brunello cucinelli': 1,
+
+  // Tier 2 – Premium Contemporary
+  'tommy hilfiger': 2, 'madewell': 2, 'nordstrom': 2, 'ralph lauren': 2,
+  'polo ralph lauren': 2, 'hugo boss': 2, 'brooks brothers': 2, 'theory': 2,
+  'reiss': 2, 'ted baker': 2, 'club monaco': 2, 'allsaints': 2, 'cos': 2,
+  'zegna': 2, 'canali': 2, 'jcrew': 2, 'j crew': 2, 'banana republic': 2,
+  'cole haan': 2, 'coach': 2, 'kate spade': 2, 'michael kors': 2,
+
+  // Tier 3 – Mall / Mid-tier
+  'zara': 3, 'zara usa': 3, 'hollister': 3, 'hollister co official': 3,
+  'mens wearhouse': 3, 'uniqlo': 3, 'gap': 3, 'express': 3, 'hm': 3,
+  'h m': 3, 'abercrombie': 3, 'american eagle': 3, 'asos': 3, 'topshop': 3,
+  'mango': 3, 'forever 21': 3, 'urban outfitters': 3, 'loft': 3,
+
+  // Tier 4 – Fast Fashion / Value
+  'boohoo': 4, 'boohoo usa': 4, 'boohooman': 4, 'old navy': 4, 'target': 4,
+  'fashion nova': 4, 'shein': 4, 'primark': 4, 'romwe': 4,
+
+  // Tier 5 – Unknown marketplace / low authority
+  'mondressy': 5, 'vardo': 5, 'suits outlets': 5,
+  'walmart': 5, 'walmart gpaecead kids baby clothes': 5,
+  'temu': 5, 'dhgate': 5, 'aliexpress': 5, 'wish': 5,
+};
+
+/** Map brand authority tier (1–5) to a linear score adjustment (-2 to +3) */
+function getBrandAuthorityScore(brand?: string | null): number {
+  if (!brand) return -1;
+  const key = normalize(brand);
+  if (!key) return -1;
+  const tier = BRAND_AUTHORITY_TIERS[key] ?? 4;
+  switch (tier) {
+    case 1: return 4;
+    case 2: return 3;
+    case 3: return 1;
+    case 4: return 0;
+    case 5: return -3;
+    default: return 0;
+  }
+}
+
 /** Strip non-alphanumeric (except spaces), lowercase, collapse whitespace */
 function normalize(str?: string | null): string {
   return (str || '')
@@ -110,6 +170,13 @@ function normalize(str?: string | null): string {
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** Normalize a color key, collapsing "grey" → "gray" */
+function normalizeColorKey(raw: string | null | undefined): string {
+  if (!raw) return '';
+  const n = normalize(raw);
+  return n === 'grey' ? 'gray' : n;
 }
 
 function inferMainCategory(title?: string): string | null {
@@ -162,18 +229,101 @@ function brandSatPenalty(brandFreq01: number): number {
   return 8 * (brandFreq01 ** 1.5);
 }
 
+// ==================== SEMANTIC CLUSTER SUPPRESSION ====================
+// Pure-function classification + deterministic caps to prevent silhouette spam
+// (e.g., 5 suits in top 10 when style tokens expand to formal/business/suit)
+
+/** Strict-phase caps per cluster. Unlisted clusters use CLUSTER_DEFAULT_CAP. */
+const CLUSTER_STRICT_CAPS: Record<string, number> = {
+  suit_cluster: 2,
+  athleisure_cluster: 2,
+  outerwear_cluster: 2,
+};
+const CLUSTER_DEFAULT_CAP = 3;
+
+/** Classify a product into exactly one semantic cluster key. Pure function. */
+function getSemanticCluster(title: string, category?: string | null): string {
+  const text = normalize((title || '') + ' ' + (category || ''));
+
+  // Suit cluster — check first (most specific problem)
+  if (
+    (/\bsuit\b/i.test(text) && !/\bsweatsuit\b/i.test(text)) ||
+    /\btux\b/.test(text) ||
+    /\btuxedo\b/.test(text) ||
+    text.includes('3 piece') ||
+    text.includes('three piece') ||
+    text.includes('two piece') ||
+    text.includes('2 piece') ||
+    /\bvest\b/.test(text) ||
+    /\bwaistcoat\b/.test(text) ||
+    (text.includes('blazer') && (/\bmatching\b/.test(text) || /\bset\b/.test(text)))
+  ) return 'suit_cluster';
+
+  // Athleisure cluster
+  if (
+    text.includes('tracksuit') ||
+    text.includes('jogger set') ||
+    text.includes('warm up') ||
+    text.includes('warmup') ||
+    (text.includes('track') && /\bpants\b/.test(text)) ||
+    text.includes('hoodie set') ||
+    text.includes('sweat set') ||
+    text.includes('sweatsuit')
+  ) return 'athleisure_cluster';
+
+  // Outerwear cluster
+  if (
+    /\bcoat\b/.test(text) ||
+    text.includes('overcoat') ||
+    /\bparka\b/.test(text) ||
+    /\bpuffer\b/.test(text) ||
+    /\bjacket\b/.test(text)
+  ) return 'outerwear_cluster';
+
+  // Top cluster
+  if (
+    /\bshirt\b/.test(text) ||
+    /\btee\b/.test(text) ||
+    text.includes('t shirt') ||
+    text.includes('tshirt') ||
+    /\bpolo\b/.test(text) ||
+    /\bsweater\b/.test(text) ||
+    /\bjumper\b/.test(text)
+  ) return 'top_cluster';
+
+  // Bottom cluster
+  if (
+    /\bpants\b/.test(text) ||
+    /\btrousers?\b/.test(text) ||
+    /\bjeans\b/.test(text) ||
+    /\bchinos?\b/.test(text)
+  ) return 'bottom_cluster';
+
+  // Accessory cluster
+  if (
+    /\btie\b/.test(text) ||
+    /\bbelt\b/.test(text) ||
+    /\bscarf\b/.test(text) ||
+    /\bhat\b/.test(text)
+  ) return 'accessory_cluster';
+
+  return 'unknown_cluster';
+}
+
+/** Get cluster cap for a given relaxation level. Cluster caps partially relax (max +1). */
+function getClusterCap(cluster: string, relaxation: number): number {
+  const strict = CLUSTER_STRICT_CAPS[cluster] ?? CLUSTER_DEFAULT_CAP;
+  return strict + Math.min(relaxation, 1);
+}
+
 // ==================== STYLE VOCABULARY INTELLIGENCE ====================
 // Maps aesthetic concepts (user vocabulary) → retail descriptors (product vocabulary)
 // Enables scoring when users say "tailored" but products say "slim fit"
-const STYLE_DESCRIPTOR_MAP: Record<string, string[]> = {
-  // Fit & Structure
-  tailored: ['slim', 'slim fit', 'structured', 'pleated', 'tapered', 'fitted', 'darted', 'shaped'],
-  relaxed: ['relaxed', 'loose', 'comfort', 'flowy', 'oversized', 'easy fit', 'wide leg', 'baggy'],
-  fitted: ['slim fit', 'skinny', 'bodycon', 'form fitting', 'stretch', 'tapered', 'tight'],
-  oversized: ['oversized', 'boxy', 'relaxed fit', 'wide', 'loose fit', 'dropped shoulder'],
-
+// ── AESTHETIC descriptors (vibe/style words — NO fit/silhouette terms) ──
+const AESTHETIC_DESCRIPTOR_MAP: Record<string, string[]> = {
   // Aesthetic Families
-  minimalist: ['basic', 'clean', 'solid', 'plain', 'simple', 'essential', 'classic fit', 'neutral'],
+  relaxed: ['relaxed', 'comfort', 'flowy', 'easy fit', 'laid back'],
+  minimalist: ['basic', 'clean', 'solid', 'plain', 'simple', 'essential', 'neutral'],
   classic: ['straight fit', 'oxford', 'double breasted', 'button down', 'traditional', 'heritage', 'timeless', 'polo'],
   modern: ['zip', 'zip up', 'puffer', 'bomber', 'tech', 'contemporary', 'sleek', 'asymmetric'],
   vintage: ['retro', 'washed', 'faded', 'distressed', 'throwback', 'heritage', 'classic', 'old school'],
@@ -190,13 +340,13 @@ const STYLE_DESCRIPTOR_MAP: Record<string, string[]> = {
   // Luxury & Elevated
   luxury: ['silk', 'cashmere', 'wool', 'leather', 'suede', 'merino', 'linen', 'italian', 'premium'],
   elevated: ['embroidered', 'textured', 'chenille', 'blend', 'detailed', 'refined', 'quality', 'artisan'],
-  sophisticated: ['tailored', 'structured', 'wool', 'silk', 'elegant', 'polished', 'refined', 'classic'],
+  sophisticated: ['structured', 'wool', 'silk', 'elegant', 'polished', 'refined', 'classic'],
   elegant: ['silk', 'satin', 'chiffon', 'drape', 'maxi', 'midi', 'formal', 'evening', 'gown'],
 
   // Street & Casual
-  streetwear: ['oversized', 'graphic', 'hoodie', 'jogger', 'cargo', 'sneaker', 'logo', 'urban', 'crew neck'],
-  casual: ['tee', 't shirt', 'jeans', 'sneaker', 'hoodie', 'sweatshirt', 'relaxed', 'everyday', 'basic'],
-  urban: ['cargo', 'utility', 'bomber', 'sneaker', 'graphic', 'jogger', 'street', 'oversized'],
+  streetwear: ['graphic', 'hoodie', 'jogger', 'cargo', 'sneaker', 'logo', 'urban', 'crew neck'],
+  casual: ['tee', 't shirt', 'jeans', 'sneaker', 'hoodie', 'sweatshirt', 'everyday', 'basic'],
+  urban: ['cargo', 'utility', 'bomber', 'sneaker', 'graphic', 'jogger', 'street'],
 
   // Texture & Material
   rugged: ['denim', 'canvas', 'leather', 'flannel', 'corduroy', 'work', 'utility', 'heavy duty', 'boot'],
@@ -213,6 +363,20 @@ const STYLE_DESCRIPTOR_MAP: Record<string, string[]> = {
   winter: ['wool', 'fleece', 'puffer', 'down', 'thermal', 'insulated', 'heavy', 'coat', 'boot'],
   business: ['dress shirt', 'blazer', 'trouser', 'oxford', 'loafer', 'formal', 'professional', 'suit'],
   'smart casual': ['chino', 'polo', 'loafer', 'blazer', 'button down', 'knit', 'leather'],
+};
+
+// ── FIT descriptors (silhouette/cut terms only) ──
+const FIT_DESCRIPTOR_MAP: Record<string, string[]> = {
+  tailored: ['slim', 'slim fit', 'structured', 'pleated', 'tapered', 'fitted', 'darted', 'shaped'],
+  fitted: ['slim fit', 'skinny', 'bodycon', 'form fitting', 'stretch', 'tapered', 'tight'],
+  oversized: ['oversized', 'boxy', 'relaxed fit', 'wide', 'loose fit', 'dropped shoulder', 'baggy'],
+  loose: ['loose', 'wide leg', 'baggy', 'oversized', 'boxy', 'dropped shoulder'],
+};
+
+// Combined map for backward-compatible expandStyleTokens (aesthetic + fit)
+const STYLE_DESCRIPTOR_MAP: Record<string, string[]> = {
+  ...AESTHETIC_DESCRIPTOR_MAP,
+  ...FIT_DESCRIPTOR_MAP,
 };
 
 /** Expand style keywords using STYLE_DESCRIPTOR_MAP */
@@ -292,6 +456,214 @@ const BODY_TYPE_CATEGORY_BOOST: Record<string, Record<string, number>> = {
   petite:            { shoes: 1.1, tops: 1.1 },
   athletic:          { activewear: 1.2, tops: 1.1, bottoms: 0.9 },
 };
+
+// Fit tokens that signal loose/oversized silhouette
+const LOOSE_FIT_TOKENS = new Set(['oversized', 'boxy', 'baggy', 'wide', 'loose fit', 'dropped shoulder']);
+
+/** Build normalized veto sets from profile constraints */
+function buildVetoCtx(profile: UserProfile) {
+  return {
+    avoidColorsSet: tokenSet(profile.avoid_colors),
+    avoidMaterialsSet: tokenSet(profile.avoid_materials),
+    avoidPatternsSet: tokenSet(profile.avoid_patterns),
+    dislikedStylesSet: tokenSet(profile.disliked_styles),
+  };
+}
+
+/** Compute a stable fingerprint of profile fields that affect recommendations */
+function computeProfileFingerprint(profile: UserProfile): string {
+  const key = JSON.stringify({
+    brands: profile.preferred_brands.slice().sort(),
+    styles: profile.style_keywords.slice().sort(),
+    colors: profile.color_preferences.slice().sort(),
+    disliked: profile.disliked_styles.slice().sort(),
+    fit: profile.fit_preferences.slice().sort(),
+    avoidColors: profile.avoid_colors.slice().sort(),
+    avoidMaterials: profile.avoid_materials.slice().sort(),
+    avoidPatterns: profile.avoid_patterns.slice().sort(),
+    bodyType: profile.body_type,
+    silhouette: profile.silhouette_preference,
+    formality: profile.formality_floor,
+  });
+  return createHash('sha256').update(key).digest('hex').slice(0, 16);
+}
+
+/** Jaccard similarity of two token sets (0..1) */
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 1;
+  let inter = 0;
+  for (const t of a) { if (b.has(t)) inter++; }
+  return inter / (a.size + b.size - inter);
+}
+
+/** Infer color key from product title using COLOR_VOCAB */
+function inferColorFromTitle(title: string): string {
+  const normTitle = normalize(title);
+  for (const c of COLOR_VOCAB) {
+    if (normTitle.includes(c)) return c === 'grey' ? 'gray' : c;
+  }
+  return '';
+}
+
+/**
+ * Coherence validator: forward-only admission gating.
+ * Input MUST be pre-sorted by score desc. Output preserves that order.
+ * Hard filters (dupes, fit) reject permanently. Caps (brand, color, semantic cluster)
+ * gate admission with staged relaxation to guarantee TARGET_PRODUCTS when supply allows.
+ */
+function validateSetCoherence(
+  products: DiscoverProduct[],
+  profile: UserProfile,
+): DiscoverProduct[] {
+  const TARGET = TARGET_PRODUCTS;
+  const MAX_PER_BRAND = 2;
+  const MAX_PER_COLOR = 3;
+  const RELAXED_BRAND = 3;
+  const RELAXED_COLOR = 4;
+
+  // --- Phase 0: Hard-reject dupes & fit conflicts (permanent removal) ---
+  const seenSigs = new Map<string, Set<string>>();
+  const userWantsSlim = profile.fit_preferences.some(f => {
+    const n = normalize(f);
+    return n === 'slim' || n === 'tailored' || n === 'fitted';
+  });
+  let looseFitCount = 0;
+  const LOOSE_FIT_CAP = userWantsSlim ? 0 : 3;
+
+  const eligible: DiscoverProduct[] = [];
+
+  for (const p of products) {
+    const cat = p.category || inferMainCategory(p.title) || '__unknown__';
+    const titleTokens = new Set(normalize(p.title).split(' ').filter(Boolean));
+
+    // Near-duplicate check: same category + Jaccard >= 0.6
+    const existingSigs = seenSigs.get(cat);
+    if (existingSigs) {
+      let isDupe = false;
+      for (const existing of existingSigs) {
+        const existingSet = new Set(existing.split(' '));
+        if (jaccard(titleTokens, existingSet) >= 0.6) { isDupe = true; break; }
+      }
+      if (isDupe) continue;
+    }
+
+    // Fit coherence: cap loose/oversized items when user prefers slim
+    const normTitle = normalize(p.title);
+    const isLooseFit = [...LOOSE_FIT_TOKENS].some(t => normTitle.includes(t));
+    if (isLooseFit) {
+      if (looseFitCount >= LOOSE_FIT_CAP) continue;
+      looseFitCount++;
+    }
+
+    eligible.push(p);
+    if (!seenSigs.has(cat)) seenSigs.set(cat, new Set());
+    seenSigs.get(cat)!.add([...titleTokens].join(' '));
+  }
+
+  // Pre-compute cluster keys for all eligible products (deterministic, pure)
+  const eligibleClusters: string[] = eligible.map(p =>
+    getSemanticCluster(p.title, p.category),
+  );
+
+  // --- Phase 1: Strict admission (brand ≤ 2, color ≤ 3, cluster ≤ strict cap) ---
+  const admitted: DiscoverProduct[] = [];
+  const admittedSet = new Set<number>(); // indices into eligible
+  const brandCounts: Record<string, number> = {};
+  const colorCounts: Record<string, number> = {};
+  const clusterCounts: Record<string, number> = {};
+
+  for (let i = 0; i < eligible.length; i++) {
+    if (admitted.length >= TARGET) break;
+    const p = eligible[i];
+    const brandKey = normalize(p.source || p.brand || '');
+    const colorKey = normalizeColorKey(p.enriched_color) || inferColorFromTitle(p.title);
+    const cluster = eligibleClusters[i];
+
+    if (brandKey && (brandCounts[brandKey] ?? 0) >= MAX_PER_BRAND) continue;
+    if (colorKey && (colorCounts[colorKey] ?? 0) >= MAX_PER_COLOR) continue;
+    if ((clusterCounts[cluster] ?? 0) >= getClusterCap(cluster, 0)) continue;
+
+    admitted.push(p);
+    admittedSet.add(i);
+    if (brandKey) brandCounts[brandKey] = (brandCounts[brandKey] ?? 0) + 1;
+    if (colorKey) colorCounts[colorKey] = (colorCounts[colorKey] ?? 0) + 1;
+    clusterCounts[cluster] = (clusterCounts[cluster] ?? 0) + 1;
+  }
+
+  // --- Phase 2: Relax brand cap (≤ 3), color stays strict (≤ 3), cluster +1 ---
+  if (admitted.length < TARGET) {
+    for (let i = 0; i < eligible.length; i++) {
+      if (admitted.length >= TARGET) break;
+      if (admittedSet.has(i)) continue;
+      const p = eligible[i];
+      const brandKey = normalize(p.source || p.brand || '');
+      const colorKey = normalizeColorKey(p.enriched_color) || inferColorFromTitle(p.title);
+      const cluster = eligibleClusters[i];
+
+      if (brandKey && (brandCounts[brandKey] ?? 0) >= RELAXED_BRAND) continue;
+      if (colorKey && (colorCounts[colorKey] ?? 0) >= MAX_PER_COLOR) continue;
+      if ((clusterCounts[cluster] ?? 0) >= getClusterCap(cluster, 1)) continue;
+
+      admitted.push(p);
+      admittedSet.add(i);
+      if (brandKey) brandCounts[brandKey] = (brandCounts[brandKey] ?? 0) + 1;
+      if (colorKey) colorCounts[colorKey] = (colorCounts[colorKey] ?? 0) + 1;
+      clusterCounts[cluster] = (clusterCounts[cluster] ?? 0) + 1;
+    }
+  }
+
+  // --- Phase 3: Relax color cap (≤ 4), brand stays relaxed (≤ 3), cluster +2 ---
+  if (admitted.length < TARGET) {
+    for (let i = 0; i < eligible.length; i++) {
+      if (admitted.length >= TARGET) break;
+      if (admittedSet.has(i)) continue;
+      const p = eligible[i];
+      const brandKey = normalize(p.source || p.brand || '');
+      const colorKey = normalizeColorKey(p.enriched_color) || inferColorFromTitle(p.title);
+      const cluster = eligibleClusters[i];
+
+      if (brandKey && (brandCounts[brandKey] ?? 0) >= RELAXED_BRAND) continue;
+      if (colorKey && (colorCounts[colorKey] ?? 0) >= RELAXED_COLOR) continue;
+      if ((clusterCounts[cluster] ?? 0) >= getClusterCap(cluster, 2)) continue;
+
+      admitted.push(p);
+      admittedSet.add(i);
+      if (brandKey) brandCounts[brandKey] = (brandCounts[brandKey] ?? 0) + 1;
+      if (colorKey) colorCounts[colorKey] = (colorCounts[colorKey] ?? 0) + 1;
+      clusterCounts[cluster] = (clusterCounts[cluster] ?? 0) + 1;
+    }
+  }
+
+  // --- Phase 4: Final fallback — drop brand/color caps, cluster caps stay (relaxation=1), quality floor ---
+  const MIN_ACCEPTABLE_SCORE = 6;
+  if (admitted.length < TARGET) {
+    for (let i = 0; i < eligible.length; i++) {
+      if (admitted.length >= TARGET) break;
+      if (admittedSet.has(i)) continue;
+      if ((eligible[i].score_total ?? 0) < MIN_ACCEPTABLE_SCORE) continue;
+      const cluster = eligibleClusters[i];
+      const clusterCap = getClusterCap(cluster, 1);
+      if ((clusterCounts[cluster] ?? 0) >= clusterCap) continue;
+      admitted.push(eligible[i]);
+      admittedSet.add(i);
+      clusterCounts[cluster] = (clusterCounts[cluster] ?? 0) + 1;
+    }
+  }
+
+  // --- Single summary log ---
+  if (DEBUG_RECOMMENDED_BUYS) {
+    console.log('COHERENCE_ADMISSION_COUNTS', {
+      eligible: eligible.length,
+      admitted: admitted.length,
+      brandCounts,
+      colorCounts,
+      clusterCounts,
+      qualityFloorApplied: MIN_ACCEPTABLE_SCORE,
+    });
+  }
+
+  return admitted;
+}
 
 @Injectable()
 export class DiscoverService {
@@ -373,7 +745,7 @@ export class DiscoverService {
     return products;
   }
 
-  // Returns true if cache is still valid (within 7 days), false if expired or never set
+  // Returns true if cache is still valid (within 7 days AND profile unchanged), false otherwise
   private async isCacheValid(userId: string): Promise<boolean> {
     try {
       const result = await pool.query(
@@ -389,8 +761,24 @@ export class DiscoverService {
       const lastRefreshTime = new Date(lastRefresh).getTime();
       const age = Date.now() - lastRefreshTime;
 
-      // Cache is valid if less than 7 days old
-      return age < SEVEN_DAYS_MS;
+      if (age >= SEVEN_DAYS_MS) return false; // TTL expired
+
+      // Profile fingerprint check: invalidate if profile changed since last refresh
+      const profile = await this.getUserProfile(userId);
+      const currentFp = computeProfileFingerprint(profile);
+      const storedFpResult = await pool.query(
+        `SELECT prefs_jsonb->'discover_profile_fp' as fp FROM style_profiles WHERE user_id = $1`,
+        [userId],
+      );
+      const storedFp = storedFpResult.rows[0]?.fp;
+      if (storedFp && storedFp !== currentFp) {
+        if (DEBUG_RECOMMENDED_BUYS) {
+          console.log('DISCOVER_CACHE_INVALID_PROFILE_CHANGED', { storedFp, currentFp });
+        }
+        return false;
+      }
+
+      return true;
     } catch {
       return false;
     }
@@ -566,9 +954,46 @@ export class DiscoverService {
 
     console.log('🔥 ENTERING SCORING BLOCK 🔥', { candidateCount: allProducts.length });
 
+    // --- Stage 1c: Hard Veto Filter (constraint-first enforcement) ---
+    const vetoCtx = buildVetoCtx(profile);
+    const vetoStats = { avoidColor: 0, avoidMaterial: 0, avoidPattern: 0, disliked: 0 };
+    const vetoPassed: any[] = [];
+
+    for (const raw of allProducts) {
+      const textParts: string[] = [
+        raw.title, raw.snippet, raw.source, raw.description,
+        ...(Array.isArray(raw.extensions) ? raw.extensions.map(String) : []),
+      ].filter(Boolean);
+      const blob = normalize(textParts.join(' '));
+      const enrichedColor = raw.enriched_color ? normalize(raw.enriched_color) : '';
+
+      let vetoed = false;
+      for (const c of vetoCtx.avoidColorsSet) {
+        if (enrichedColor === c || blob.includes(c)) { vetoStats.avoidColor++; vetoed = true; break; }
+      }
+      if (!vetoed) for (const m of vetoCtx.avoidMaterialsSet) {
+        if (blob.includes(m)) { vetoStats.avoidMaterial++; vetoed = true; break; }
+      }
+      if (!vetoed) for (const p of vetoCtx.avoidPatternsSet) {
+        if (blob.includes(p)) { vetoStats.avoidPattern++; vetoed = true; break; }
+      }
+      if (!vetoed) for (const s of vetoCtx.dislikedStylesSet) {
+        if (blob.includes(s)) { vetoStats.disliked++; vetoed = true; break; }
+      }
+      if (!vetoed) vetoPassed.push(raw);
+    }
+
+    if (DEBUG_RECOMMENDED_BUYS) {
+      console.log('🚫 VETO FILTER RESULTS', {
+        before: allProducts.length,
+        after: vetoPassed.length,
+        dropped: vetoStats,
+      });
+    }
+
     // --- Stage 2: Scoring ---
     // Transform raw products, then score each against profile signals
-    const transformed = allProducts.map((p, i) =>
+    const transformed = vetoPassed.map((p, i) =>
       this.transformProduct(p, i + 1),
     );
 
@@ -631,41 +1056,18 @@ export class DiscoverService {
       }
     }
 
-    // --- Auto-infer budget defaults from candidate pool when profile lacks them ---
-    let effectiveBudgetMin = profile.budget_min;
-    let effectiveBudgetMax = profile.budget_max;
-    const userDefinedBudget = effectiveBudgetMin != null && effectiveBudgetMax != null;
-    if (!userDefinedBudget) {
-      const prices = transformed
-        .map(p => p.price)
-        .filter((v): v is number => typeof v === 'number' && v > 0)
-        .sort((a, b) => a - b);
-
-      if (prices.length >= 4) {
-        const p25Idx = Math.floor(prices.length * 0.25);
-        const p75Idx = Math.floor(prices.length * 0.75);
-        effectiveBudgetMin = prices[p25Idx];
-        effectiveBudgetMax = prices[p75Idx];
-      } else if (prices.length > 0) {
-        effectiveBudgetMin = prices[0];
-        effectiveBudgetMax = prices[prices.length - 1];
-      }
-
-      if (DEBUG_RECOMMENDED_BUYS) {
-        console.log('💰 INFERRED BUDGET DEFAULTS', {
-          p25: effectiveBudgetMin,
-          p75: effectiveBudgetMax,
-          candidatePriceCount: prices.length,
-        });
-      }
-    }
-
     // Pre-compute normalized profile sets for overlap scoring
     const profileColors = tokenSet(effectiveFavoriteColors);
     const expandedStyles = expandStyleTokens(profile.style_keywords);
-    const styleKeywordsNorm = new Set(profile.style_keywords.map(k => normalize(k)));
+    const literalStyleSet = tokenSet(profile.style_keywords);
     const fitTokens = tokenSet(profile.fit_preferences);
     const negativeTokens = tokenSet(learnedPrefs.negative_features);
+
+    // Pre-compute fit conflict: does the user prefer slim/tailored?
+    const userPrefersSlim = profile.fit_preferences.some(f => {
+      const n = normalize(f);
+      return n === 'slim' || n === 'tailored' || n === 'fitted';
+    });
 
     if (DEBUG_RECOMMENDED_BUYS) {
       console.log('🎨 STYLE VOCABULARY EXPANSION', {
@@ -708,7 +1110,6 @@ export class DiscoverService {
         color: 0,
         style: 0,
         gap: 0,
-        budget: 0,
         behavior: 0,
         fit: 0,
         negativePenalty: 0,
@@ -717,6 +1118,7 @@ export class DiscoverService {
         elevation: 0,
         styleDepth: 0,
         basicDamp: 0,
+        authority: 0,
       };
 
       const normBrand = normalize(p.brand);
@@ -726,13 +1128,13 @@ export class DiscoverService {
 
       // Brand tier: prestige-aware multiplier (only when brand matches)
       const brandNorm = (p.brand || '').toLowerCase().replace(/[^a-z\s]/g, '').trim();
-      const brandBase = 12 * brandMatch01;
+      const brandBase = 7 * brandMatch01;
       let brandContribution = brandBase;
       if (brandMatch01 === 1) {
         const tierMult = BRAND_TIER_MAP[brandNorm] ?? 1.0;
         brandContribution = brandBase * tierMult;
       }
-      brandContribution = Math.min(brandContribution, 16);
+      brandContribution = Math.min(brandContribution, 10);
 
       // Behavior brand match — 0 or 1 (normalized substring)
       const behavior01 = (normBrand && behavior.recentBrands?.some((b) => normBrand.includes(normalize(b)))) ? 1 : 0;
@@ -741,7 +1143,7 @@ export class DiscoverService {
       const inferredCategory = p.category || inferMainCategory(p.title);
 
       // --- STYLE UPGRADE: text blob from all available product fields ---
-      const raw = allProducts[idx];
+      const raw = vetoPassed[idx];
 
       // STEP 1 — Forensic: dump first raw product object
       if (idx === 0 && process.env.DEBUG_RECOMMENDED_BUYS === 'true') {
@@ -762,11 +1164,16 @@ export class DiscoverService {
       // Capped normalization: 3 matches = full score (1.0)
       const STYLE_MATCH_CAP = 3;
       let styleHits = 0;
-      const matchedStyleTokens: string[] = [];
+      const matchedLiteralTokens: string[] = [];
+      const matchedExpandedTokens: string[] = [];
       for (const token of expandedStyles) {
         if (normProductText.includes(token)) {
           styleHits++;
-          matchedStyleTokens.push(token);
+          if (literalStyleSet.has(token)) {
+            matchedLiteralTokens.push(token);
+          } else {
+            matchedExpandedTokens.push(token);
+          }
         }
       }
       let style01 = expandedStyles.size > 0
@@ -795,7 +1202,8 @@ export class DiscoverService {
           categoryBridge: categoryBridgeApplied,
           cappedStyle01: +style01.toFixed(4),
           weightedStyleContribution: +(16 * style01).toFixed(2),
-          matchedTokens: matchedStyleTokens,
+          literalTokens: matchedLiteralTokens,
+          expandedTokens: matchedExpandedTokens,
         });
       }
 
@@ -838,34 +1246,12 @@ export class DiscoverService {
         ? clamp01(colorHits / COLOR_MATCH_CAP)
         : 0;
 
-      // --- BUDGET UPGRADE: soft decay scaling outside preferred range ---
-      let budget01 = 0;
-      if (typeof p.price === 'number' && effectiveBudgetMin != null && effectiveBudgetMax != null) {
-        if (p.price >= effectiveBudgetMin && p.price <= effectiveBudgetMax) {
-          budget01 = 1;
-        } else {
-          const nearestBound = p.price < effectiveBudgetMin ? effectiveBudgetMin : effectiveBudgetMax;
-          const distance = Math.abs(p.price - nearestBound);
-          const rangeSpan = effectiveBudgetMax - effectiveBudgetMin;
-          const denominator = rangeSpan > 0 ? rangeSpan * 2 : (effectiveBudgetMax > 0 ? effectiveBudgetMax : 1);
-          budget01 = clamp01(1 - (distance / denominator));
-        }
-      }
-
       if (DEBUG_RECOMMENDED_BUYS && idx < 5) {
         console.log('🎨 COLOR DEBUG', {
           title: p.title,
           matchedColors,
           color01: +color01.toFixed(4),
           weightedColorContribution: +(10 * color01).toFixed(2),
-        });
-        console.log('💰 BUDGET DEBUG', {
-          title: p.title,
-          price: p.price,
-          preferredMin: effectiveBudgetMin,
-          preferredMax: effectiveBudgetMax,
-          budget01: +budget01.toFixed(4),
-          weightedBudgetContribution: +(10 * budget01).toFixed(2),
         });
       }
 
@@ -911,20 +1297,27 @@ export class DiscoverService {
         adjustedGapBonus = styleContribution * 1.2;
       }
 
-      // --- ELEVATION BOOST: float elevated pieces over basics ---
-      let elevationBonus = 0;
+      // --- ELEVATION SIGNAL: reward elevated pieces with prestige materials ---
+      let elevation01 = 0;
       if (typeof p.price === 'number' && p.price > p50Price && styleHits > 0) {
         let prestigeHits = 0;
         for (const d of PRESTIGE_DESCRIPTORS) {
           if (normProductText.includes(d)) prestigeHits++;
         }
-        if (clamp01(prestigeHits / 2) > 0.7) elevationBonus = 3;
+        elevation01 = clamp01(prestigeHits / 2);
       }
 
       // --- BASIC ITEM DAMPENER: slight suppression of ultra-generic SKUs ---
       const basicDampener = BASIC_ITEM_RE.test(normProductText) ? -2 : 0;
 
-      // --- STYLE DEPTH BONUS: reward products matching 2+ user style keywords ---
+      // --- FIT CONFLICT PENALTY: penalize oversized/boxy when user prefers slim ---
+      let fitConflictPenalty = 0;
+      if (userPrefersSlim) {
+        const hasLooseFitToken = [...LOOSE_FIT_TOKENS].some(t => normProductText.includes(t));
+        if (hasLooseFitToken) fitConflictPenalty = -12; // strong penalty (~20% of max possible score)
+      }
+
+      // --- STYLE DEPTH SIGNAL: reward products matching multiple user style keywords ---
       let styleKeywordsMatched = 0;
       for (const keyword of profile.style_keywords) {
         const normKw = normalize(keyword);
@@ -933,7 +1326,10 @@ export class DiscoverService {
         const tokensToCheck = descriptors ? [normKw, ...descriptors.map(d => normalize(d))] : [normKw];
         if (tokensToCheck.some(t => normProductText.includes(t))) styleKeywordsMatched++;
       }
-      const styleDepthBonus = styleKeywordsMatched >= 2 ? 2 : 0;
+      const styleDepth01 = clamp01(styleKeywordsMatched / 3);
+
+      // --- BRAND AUTHORITY: quality intelligence (independent of user preference) ---
+      const brandAuthority = getBrandAuthorityScore(p.brand || p.source);
 
       // Brand saturation penalty — only when brand matches
       let penalty = 0;
@@ -943,36 +1339,52 @@ export class DiscoverService {
         penalty = brandSatPenalty(brandFreq01);
       }
 
-      // Weighted score: brand(tier-adjusted, max 16) + behavior(5) + gap(clamped) + style(16) + color(10) + budget(5|10)
-      //   + fit(6) - negativePenalty(4) - brandSatPenalty + elevation(3) + styleDepth(2) + basicDamp(-2)
-      const budgetWeight = userDefinedBudget ? 10 : 5;
+      // Weighted score: brand(7, tier-adjusted, max 10) + behavior(3) + gap(clamped) + style(16) + color(10)
+      //   + fit(4) + elevation(5) + styleDepth(3) + authority(-2..+3) - negativePenalty(4) - brandSatPenalty + basicDamp(-2) + fitConflict(-12)
       const score =
         brandContribution +
-        (5  * behavior01) +
+        (3  * behavior01) +
         adjustedGapBonus +
         (16 * style01) +
         (10 * color01) +
-        (budgetWeight * budget01) +
-        (6  * fit01) -
+        (4  * fit01) +
+        (5  * elevation01) +
+        (3  * styleDepth01) +
+        brandAuthority -
         penalty -
         negativePenalty +
-        elevationBonus +
-        styleDepthBonus +
-        basicDampener;
+        basicDampener +
+        fitConflictPenalty;
 
       breakdown.brand = +brandContribution.toFixed(2);
-      breakdown.behavior = +(5 * behavior01).toFixed(2);
+      breakdown.behavior = +(3 * behavior01).toFixed(2);
       breakdown.gap = +adjustedGapBonus.toFixed(2);
       breakdown.style = +(16 * style01).toFixed(2);
       breakdown.color = +(10 * color01).toFixed(2);
-      breakdown.budget = +(budgetWeight * budget01).toFixed(2);
-      breakdown.fit = +(6 * fit01).toFixed(2);
+      breakdown.fit = +(4 * fit01).toFixed(2);
       breakdown.negativePenalty = negativePenalty;
       breakdown.bodyMult = +bodyMultiplier.toFixed(2);
       breakdown.penalty = +penalty.toFixed(2);
-      breakdown.elevation = elevationBonus;
-      breakdown.styleDepth = styleDepthBonus;
+      breakdown.elevation = +(5 * elevation01).toFixed(2);
+      breakdown.styleDepth = +(3 * styleDepth01).toFixed(2);
       breakdown.basicDamp = basicDampener;
+      breakdown.authority = brandAuthority;
+      (breakdown as any).fitConflict = fitConflictPenalty;
+
+      // --- EXPLANATION LAYER: build match reasons (literal tokens only) ---
+      const reasons: string[] = [];
+      if (brandContribution > 0) reasons.push(`Matches preferred brand: ${p.brand}`);
+      if (color01 > 0 && matchedColors.length > 0) reasons.push(`Aligns with color palette: ${matchedColors.join(', ')}`);
+      if (matchedLiteralTokens.length > 0) {
+        reasons.push(`Style match: ${matchedLiteralTokens.slice(0, 3).join(', ')}`);
+      }
+      if (matchedExpandedTokens.length > 0 && categoryBridgeApplied) {
+        reasons.push(`Style affinity (expanded): ${matchedExpandedTokens.slice(0, 2).join(', ')}`);
+      }
+      if (adjustedGapBonus > 0) reasons.push(`Fills wardrobe gap: ${inferredCategory}`);
+      if (fitConflictPenalty < 0) reasons.push('Fit conflict: oversized/boxy vs slim preference');
+      if (elevation01 > 0) reasons.push('Elevated piece: premium materials');
+      if (reasons.length === 0) reasons.push('General style match');
 
       if (DEBUG_RECOMMENDED_BUYS) {
         this.log.debug(
@@ -980,7 +1392,7 @@ export class DiscoverService {
         );
       }
 
-      return { product: p, score, breakdown };
+      return { product: { ...p, score_total: +score.toFixed(2), score_breakdown: breakdown, match_reasons: reasons }, score, breakdown };
     });
 
     scored.sort((a, b) => b.score - a.score);
@@ -1068,8 +1480,18 @@ export class DiscoverService {
       });
     }
 
+    // --- Stage 4: Coherence Validator ---
+    const coherent = validateSetCoherence(diversified, profile);
+
+    if (DEBUG_RECOMMENDED_BUYS) {
+      console.log('🧪 AFTER COHERENCE', {
+        beforeCoherence: diversified.length,
+        afterCoherence: coherent.length,
+      });
+    }
+
     // Final slice to target count, re-assign positions
-    const finalProducts = diversified
+    const finalProducts = coherent
       .slice(0, TARGET_PRODUCTS)
       .map((p, i) => ({ ...p, position: i + 1 }));
 
@@ -1079,17 +1501,13 @@ export class DiscoverService {
         console.log(`#${i + 1}`, {
           title: p.title,
           brand: p.brand,
+          score_total: p.score_total,
+          match_reasons: p.match_reasons,
         });
       });
     }
 
-    // Save to DB
-    await this.saveProducts(userId, finalProducts);
-
-    // Update refresh timestamp
-    await this.updateRefreshTimestamp(userId);
-
-    // Track shown products
+    // Track shown products (P0-A: save/timestamp handled ONLY by getRecommended caller)
     await this.trackShownProducts(
       userId,
       finalProducts.map((p) => p.product_id),
@@ -1111,7 +1529,14 @@ export class DiscoverService {
         sp.style_preferences,
         sp.fit_preferences,
         sp.body_type,
-        sp.climate
+        sp.climate,
+        sp.avoid_colors,
+        sp.avoid_materials,
+        sp.avoid_patterns,
+        sp.coverage_no_go,
+        sp.walkability_requirement,
+        sp.silhouette_preference,
+        sp.formality_floor
        FROM users u
        LEFT JOIN style_profiles sp ON sp.user_id = u.id
        WHERE u.id = $1`,
@@ -1129,6 +1554,13 @@ export class DiscoverService {
         fit_preferences: [],
         body_type: null,
         climate: null,
+        avoid_colors: [],
+        avoid_materials: [],
+        avoid_patterns: [],
+        coverage_no_go: [],
+        walkability_requirement: null,
+        silhouette_preference: null,
+        formality_floor: null,
       };
     }
 
@@ -1136,13 +1568,20 @@ export class DiscoverService {
     return {
       gender: this.normalizeGender(row.gender_presentation),
       preferred_brands: this.ensureArray(row.preferred_brands),
-      style_keywords: this.ensureArray(row.style_preferences), // Use style_preferences as style_keywords
-      color_preferences: this.ensureArray(row.color_preferences), // DB column is color_preferences
+      style_keywords: this.ensureArray(row.style_preferences),
+      color_preferences: this.ensureArray(row.color_preferences),
       disliked_styles: this.ensureArray(row.disliked_styles),
       style_preferences: this.ensureArray(row.style_preferences),
       fit_preferences: this.ensureArray(row.fit_preferences),
       body_type: row.body_type,
       climate: row.climate,
+      avoid_colors: this.ensureArray(row.avoid_colors),
+      avoid_materials: this.ensureArray(row.avoid_materials),
+      avoid_patterns: this.ensureArray(row.avoid_patterns),
+      coverage_no_go: this.ensureArray(row.coverage_no_go),
+      walkability_requirement: row.walkability_requirement || null,
+      silhouette_preference: row.silhouette_preference || null,
+      formality_floor: row.formality_floor || null,
     };
   }
 
@@ -1406,7 +1845,7 @@ export class DiscoverService {
       image_url: raw.thumbnail || '',
       link: raw.product_link || '',
       source: raw.source || null,
-      category: null,
+      category: inferMainCategory(raw.title) || null,
       position,
       enriched_color: raw.enriched_color || null,
     };
@@ -1470,6 +1909,13 @@ export class DiscoverService {
       await pool.query(
         'UPDATE users SET last_discover_refresh = now() WHERE id = $1',
         [userId],
+      );
+      // Store profile fingerprint for cache invalidation
+      const profile = await this.getUserProfile(userId);
+      const fp = computeProfileFingerprint(profile);
+      await pool.query(
+        `UPDATE style_profiles SET prefs_jsonb = COALESCE(prefs_jsonb, '{}'::jsonb) || $2::jsonb WHERE user_id = $1`,
+        [userId, JSON.stringify({ discover_profile_fp: fp })],
       );
     } catch (error) {
       this.log.error(`updateRefreshTimestamp failed: ${error?.message}`);
