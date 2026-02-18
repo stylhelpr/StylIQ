@@ -3949,6 +3949,7 @@ Output valid JSON only:
     {
       "id": "outfit-1",
       "rank": 1,
+      "title": "Short creative outfit name (3-6 words, e.g. 'Relaxed Weekend Layers')",
       "summary": "Short, confident vibe (max 80 chars)",
       "reasoning": "WHY this works — 1-2 sentences, reference weather/context",
       "itemIds": ["item-id-1", "item-id-2", "item-id-3"]
@@ -3956,6 +3957,7 @@ Output valid JSON only:
     {
       "id": "outfit-2",
       "rank": 2,
+      "title": "...",
       "summary": "...",
       "reasoning": "...",
       "itemIds": ["..."]
@@ -4153,6 +4155,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       outfits: Array<{
         id: string;
         rank: number;
+        title?: string;
         summary: string;
         reasoning?: string;
         itemIds: string[];
@@ -4204,6 +4207,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     const outfitsWithItems = parsed.outfits.map((outfit) => ({
       id: outfit.id,
       rank: outfit.rank,
+      title: outfit.title,
       summary: outfit.summary,
       reasoning: outfit.reasoning,
       items: outfit.itemIds
@@ -4798,6 +4802,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         candidateOutfits.push({
           id: `syn-${_synId++}`,
           rank: 3 as any,
+          title: undefined,
           summary: 'Synthetic candidate (composition-guided)',
           reasoning: '',
           items,
@@ -4823,6 +4828,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           candidateOutfits.push({
             id: `syn-${_synId++}`,
             rank: 3 as any,
+            title: undefined,
             summary: 'Synthetic candidate (composition-guided)',
             reasoning: '',
             items,
@@ -6426,6 +6432,105 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         ),
       }),
     );
+
+    // ── EXPLANATION BACKFILL: ensure every returned outfit has a stylist explanation ──
+    {
+      const _needsExplanation = eliteOutfits.filter(
+        (o: any) =>
+          !o.summary ||
+          o.summary.includes('Synthetic candidate') ||
+          o.summary.length < 20,
+      );
+      let _synExplainCount = 0;
+      if (_needsExplanation.length > 0) {
+        const _explainItems = (o: any) =>
+          (o.items || [])
+            .filter(Boolean)
+            .map((i: any) => {
+              const full = fullItemMap.get(i.id);
+              return `${full?.name || i.name} (${i.category})`;
+            })
+            .join(', ');
+
+        const _buildFallback = (o: any) => {
+          const items = (o.items || []).filter(Boolean);
+          const topItem = items.find((i: any) => i.category === 'top' || i.category === 'dress');
+          const bottomItem = items.find((i: any) => i.category === 'bottom');
+          const outerwearItem = items.find((i: any) => i.category === 'outerwear');
+          const shoesItem = items.find((i: any) => i.category === 'shoes');
+          const topName = topItem ? (fullItemMap.get(topItem.id)?.name || topItem.name) : 'The top';
+          const bottomName = bottomItem ? (fullItemMap.get(bottomItem.id)?.name || bottomItem.name) : null;
+          const outerwearName = outerwearItem ? (fullItemMap.get(outerwearItem.id)?.name || outerwearItem.name) : null;
+
+          let text = bottomName
+            ? `${topName} pairs with ${bottomName} to create a balanced silhouette.`
+            : `${topName} anchors the look with a clean silhouette.`;
+          if (outerwearName && temp != null) {
+            text += ` The ${outerwearName} provides appropriate layering for ${Math.round(temp)}°F weather.`;
+          } else if (temp != null) {
+            text += ` Well-suited for ${Math.round(temp)}°F conditions.`;
+          }
+          if (shoesItem) {
+            text += ' The footwear grounds the look while maintaining stylistic cohesion.';
+          }
+          return text;
+        };
+
+        await Promise.all(
+          _needsExplanation.map(async (outfit: any) => {
+            try {
+              const itemList = _explainItems(outfit);
+              const completion = await this.openai.chat.completions.create({
+                model: 'gpt-4o-mini',
+                temperature: 0.4,
+                max_tokens: 150,
+                messages: [
+                  {
+                    role: 'system',
+                    content:
+                      'You are a professional fashion stylist writing a brief outfit explanation. Write 2-4 sentences explaining why this outfit works. Mention weather appropriateness and color harmony or silhouette. No emojis. No markdown. No bullet points. Professional tone.',
+                  },
+                  {
+                    role: 'user',
+                    content: `Weather: ${temp != null ? `${Math.round(temp)}°F` : 'unknown'}${wxContext?.precipitation !== 'none' ? `, ${wxContext?.precipitation}` : ''}. Client: ${user || 'The user'}. Style: ${preferences ? JSON.stringify(preferences) : 'general'}. Outfit items: ${itemList}.`,
+                  },
+                ],
+              });
+              const text = completion.choices[0]?.message?.content?.trim();
+              if (text && text.length > 10) {
+                outfit.summary = text;
+                _synExplainCount++;
+              } else {
+                outfit.summary = _buildFallback(outfit);
+                _synExplainCount++;
+              }
+            } catch {
+              outfit.summary = _buildFallback(outfit);
+              _synExplainCount++;
+            }
+          }),
+        );
+      }
+      console.log(
+        JSON.stringify({
+          _tag: 'STYLIST_EXPLANATION_GENERATED',
+          syntheticCount: _synExplainCount,
+          totalReturned: eliteOutfits.length,
+        }),
+      );
+    }
+
+    // ── TITLE NORMALIZATION: ensure every outfit has a title for frontend ──
+    for (const outfit of eliteOutfits) {
+      if (!outfit.title) {
+        outfit.title = outfit.summary?.slice(0, 80) || 'Styled for You';
+      }
+    }
+
+    console.log(JSON.stringify({
+      _tag: 'STYLIST_TITLE_FIELD_PROOF',
+      titles: eliteOutfits.map((o: any) => o.title),
+    }));
 
     return { weatherSummary, outfits: eliteOutfits };
   }

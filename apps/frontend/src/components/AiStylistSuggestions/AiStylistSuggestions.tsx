@@ -1416,26 +1416,27 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   </Text>
                 )}
 
-                {/* Rank Badge */}
-                {getCurrentOutfit() && (
-                  <RankBadge rank={getCurrentOutfit()!.rank} />
+                {/* Rank Badge — deterministic from array position */}
+                {getCurrentOutfit() && activeOutfitIndex < 3 && (
+                  <RankBadge rank={(activeOutfitIndex + 1) as 1 | 2 | 3} />
                 )}
 
                 {/* Visual Outfit Strip - IMAGES FIRST */}
                 <OutfitStrip items={getCurrentOutfit()?.items || []} outfitIndex={activeOutfitIndex} />
 
-                {/* One-line summary */}
+                {/* Outfit Title — under the image */}
                 <Text
                   style={{
                     fontSize: fontScale(tokens.fontSize.md),
                     fontWeight: tokens.fontWeight.semiBold,
                     color: theme.colors.foreground,
                     lineHeight: 22,
-                    marginTop: moderateScale(tokens.spacing.sm),
+                    marginTop: moderateScale(tokens.spacing.xs),
                     marginBottom: moderateScale(tokens.spacing.xs),
                     paddingHorizontal: moderateScale(tokens.spacing.xxs),
-                  }}>
-                  {getCurrentOutfit()?.summary || 'Perfect for today'}
+                  }}
+                  numberOfLines={1}>
+                  {(getCurrentOutfit() as any)?.title ?? (getCurrentOutfit() as any)?.name ?? 'Outfit'}
                 </Text>
 
                 {/* Action Buttons */}
@@ -1722,6 +1723,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             const outfits = isVisualFormat(aiData) ? aiData.outfits : [];
             const totalOutfits = outfits.length;
             const currentOutfit = outfits[fullScreenOutfitIndex ?? 0];
+            const __fsRank = ((fullScreenOutfitIndex ?? 0) + 1) as 1 | 2 | 3;
             const items = currentOutfit?.items || [];
             const topItem = items.find(i => i.category === 'top');
             const outerwearItem = items.find(i => i.category === 'outerwear');
@@ -1755,23 +1757,25 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
             return (
               <View style={{alignItems: 'center', justifyContent: 'center', width: '100%'}}>
-                {/* Rank Badge */}
+                {/* Rank Badge — deterministic from array position */}
+                {(fullScreenOutfitIndex ?? 0) < 3 && (
                 <View
                   style={{
-                    backgroundColor: currentOutfit?.rank === 1 ? theme.colors.button1 : currentOutfit?.rank === 2 ? theme.colors.foreground2 : theme.colors.muted,
+                    backgroundColor: __fsRank === 1 ? theme.colors.button1 : __fsRank === 2 ? theme.colors.foreground2 : theme.colors.muted,
                     paddingHorizontal: 16,
                     paddingVertical: 6,
                     borderRadius: 20,
                     marginBottom: 12,
                   }}>
-                  <Text style={{color: currentOutfit?.rank === 1 ? '#fff' : theme.colors.foreground, fontSize: 16, fontWeight: '600'}}>
-                    {rankLabels[currentOutfit?.rank || 1]}
+                  <Text style={{color: __fsRank === 1 ? '#fff' : theme.colors.foreground, fontSize: 16, fontWeight: '600'}}>
+                    {rankLabels[__fsRank]}
                   </Text>
                 </View>
+                )}
 
-                {/* Summary Caption */}
-                <Text style={{color: '#fff', fontSize: 15, fontWeight: '500', textAlign: 'center', marginBottom: 20, paddingHorizontal: 32, opacity: 0.9}}>
-                  {currentOutfit?.summary || 'Perfect for today'}
+                {/* Outfit Title */}
+                <Text style={{color: '#fff', fontSize: 16, fontWeight: '600', textAlign: 'center', marginBottom: 16, paddingHorizontal: 32}} numberOfLines={1}>
+                  {(currentOutfit as any)?.title ?? (currentOutfit as any)?.name ?? 'Outfit'}
                 </Text>
 
                 {/* Outfit Card with arrows inside */}
@@ -1847,8 +1851,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   </TouchableOpacity>
                 </View>
 
-                {/* Reasoning Description */}
-                {currentOutfit?.reasoning && (
+                {/* Outfit Description — always render under images */}
+                {currentOutfit?.summary && (
                   <Text
                     style={{
                       color: '#fff',
@@ -1860,7 +1864,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                       opacity: 0.85,
                       lineHeight: 20,
                     }}>
-                    {currentOutfit.reasoning}
+                    {currentOutfit.summary}
                   </Text>
                 )}
               </View>
