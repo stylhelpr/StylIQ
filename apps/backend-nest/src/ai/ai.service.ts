@@ -21,7 +21,7 @@ import {
   buildEliteExposureEvent,
 } from './elite/eliteScoring';
 import type { StyleContext } from './elite/eliteScoring';
-import { loadStylistBrainContext, parseStyleProfileRow, resolvePresentation } from './elite/stylistBrain';
+import { loadStylistBrainContext, parseStyleProfileRow, resolvePresentation, STYLE_PROFILE_COLUMNS } from './elite/stylistBrain';
 import {
   validateOutfits as tasteValidateOutfits,
   validateOutfit as tasteValidateOutfit,
@@ -2468,13 +2468,7 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
     if (contextNeeds.styleProfile)
       try {
         const { rows: styleRows } = await pool.query(
-          `SELECT body_type, skin_tone, undertone, climate,
-                favorite_colors, fit_preferences, preferred_brands,
-                disliked_styles, style_keywords, style_preferences,
-                hair_color, eye_color, height, waist, goals,
-                coverage_no_go, avoid_colors, avoid_materials,
-                formality_floor, walkability_requirement,
-                fashion_boldness, budget_min, budget_max, style_icons
+          `SELECT ${STYLE_PROFILE_COLUMNS}, style_keywords, goals
          FROM style_profiles
          WHERE user_id = $1
          LIMIT 1`,
@@ -2482,6 +2476,7 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
         );
         if (styleRows.length > 0) {
           const sp = styleRows[0];
+          const arr = (v: any) => Array.isArray(v) ? v.join(', ') : v;
           const parts: string[] = [];
           if (sp.body_type) parts.push(`Body type: ${sp.body_type}`);
           if (sp.skin_tone) parts.push(`Skin tone: ${sp.skin_tone}`);
@@ -2491,30 +2486,18 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
           if (sp.height) parts.push(`Height: ${sp.height}`);
           if (sp.climate) parts.push(`Climate: ${sp.climate}`);
           if (sp.favorite_colors?.length)
-            parts.push(
-              `Favorite colors: ${Array.isArray(sp.favorite_colors) ? sp.favorite_colors.join(', ') : sp.favorite_colors}`,
-            );
+            parts.push(`Favorite colors: ${arr(sp.favorite_colors)}`);
           if (sp.fit_preferences?.length)
-            parts.push(
-              `Fit preferences: ${Array.isArray(sp.fit_preferences) ? sp.fit_preferences.join(', ') : sp.fit_preferences}`,
-            );
+            parts.push(`Fit preferences: ${arr(sp.fit_preferences)}`);
           if (sp.preferred_brands?.length)
-            parts.push(
-              `Preferred brands: ${Array.isArray(sp.preferred_brands) ? sp.preferred_brands.join(', ') : sp.preferred_brands}`,
-            );
+            parts.push(`Preferred brands: ${arr(sp.preferred_brands)}`);
           if (sp.disliked_styles?.length)
-            parts.push(
-              `Dislikes: ${Array.isArray(sp.disliked_styles) ? sp.disliked_styles.join(', ') : sp.disliked_styles}`,
-            );
+            parts.push(`Dislikes: ${arr(sp.disliked_styles)}`);
           if (sp.style_keywords?.length)
-            parts.push(
-              `Style keywords: ${Array.isArray(sp.style_keywords) ? sp.style_keywords.join(', ') : sp.style_keywords}`,
-            );
+            parts.push(`Style keywords: ${arr(sp.style_keywords)}`);
           if (sp.goals) parts.push(`Goals: ${sp.goals}`);
           if (sp.style_preferences?.length)
-            parts.push(
-              `Style preferences: ${Array.isArray(sp.style_preferences) ? sp.style_preferences.join(', ') : sp.style_preferences}`,
-            );
+            parts.push(`Style preferences: ${arr(sp.style_preferences)}`);
           if (sp.waist) parts.push(`Waist: ${sp.waist}`);
           // P0 hard vetoes
           const coverageNoGo = Array.isArray(sp.coverage_no_go)
@@ -2559,6 +2542,50 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
             : [];
           if (styleIcons.length > 0)
             parts.push(`Style icons: ${styleIcons.join(', ')}`);
+          // Canonical fields previously missing from chat context
+          if (sp.fabric_preferences?.length)
+            parts.push(`Fabric preferences: ${arr(sp.fabric_preferences)}`);
+          if (sp.occasions?.length)
+            parts.push(`Occasions: ${arr(sp.occasions)}`);
+          if (sp.pattern_preferences?.length)
+            parts.push(`Pattern preferences: ${arr(sp.pattern_preferences)}`);
+          if (sp.avoid_patterns?.length)
+            parts.push(`HARD RULE — Avoid patterns: ${arr(sp.avoid_patterns)}`);
+          if (sp.trend_appetite)
+            parts.push(`Trend appetite: ${sp.trend_appetite}`);
+          if (sp.fashion_confidence)
+            parts.push(`Fashion confidence: ${sp.fashion_confidence}`);
+          if (sp.silhouette_preference)
+            parts.push(`Silhouette preference: ${sp.silhouette_preference}`);
+          if (sp.care_tolerance)
+            parts.push(`Care tolerance: ${sp.care_tolerance}`);
+          if (sp.metal_preference)
+            parts.push(`Metal preference: ${sp.metal_preference}`);
+          if (sp.contrast_preference)
+            parts.push(`Contrast preference: ${sp.contrast_preference}`);
+          if (sp.footwear_comfort)
+            parts.push(`Footwear comfort: ${sp.footwear_comfort}`);
+          if (sp.foot_width)
+            parts.push(`Foot width: ${sp.foot_width}`);
+          if (sp.proportions)
+            parts.push(`Proportions: ${sp.proportions}`);
+          if (sp.weight) parts.push(`Weight: ${sp.weight}`);
+          if (sp.chest) parts.push(`Chest: ${sp.chest}`);
+          if (sp.hip) parts.push(`Hip: ${sp.hip}`);
+          if (sp.shoulder_width)
+            parts.push(`Shoulder width: ${sp.shoulder_width}`);
+          if (sp.inseam) parts.push(`Inseam: ${sp.inseam}`);
+          if (sp.shoe_size) parts.push(`Shoe size: ${sp.shoe_size}`);
+          if (sp.color_preferences?.length)
+            parts.push(`Color preferences: ${arr(sp.color_preferences)}`);
+          if (sp.daily_activities?.length)
+            parts.push(`Daily activities: ${arr(sp.daily_activities)}`);
+          if (sp.personality_traits?.length)
+            parts.push(`Personality: ${arr(sp.personality_traits)}`);
+          if (sp.lifestyle_notes)
+            parts.push(`Lifestyle: ${String(sp.lifestyle_notes).slice(0, 500)}`);
+          if (sp.unit_preference)
+            parts.push(`Unit preference: ${sp.unit_preference}`);
           if (parts.length > 0) {
             styleProfileContext = '\n\n👗 STYLE PROFILE:\n' + parts.join('\n');
             console.log(
@@ -2575,7 +2602,10 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
     if (contextNeeds.wardrobe)
       try {
         const { rows: wardrobeRows } = await pool.query(
-          `SELECT name, main_category, subcategory, color, material, brand, fit
+          `SELECT name, main_category, subcategory, color, material, brand, fit,
+                 pattern, occasion_tags, dress_code, formality_score,
+                 seasonality, layering, color_family,
+                 ai_title, ai_description
          FROM wardrobe_items
          WHERE user_id = $1
          ORDER BY created_at DESC
@@ -2588,12 +2618,20 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
             const cat = item.main_category || 'Other';
             if (!grouped[cat]) grouped[cat] = [];
             grouped[cat].push({
-              name: item.name,
+              name: item.ai_title || item.name,
               color: item.color,
               material: item.material,
               brand: item.brand,
               fit: item.fit,
               subcategory: item.subcategory,
+              pattern: item.pattern,
+              occasion: item.occasion_tags,
+              dressCode: item.dress_code,
+              formality: item.formality_score,
+              season: item.seasonality,
+              layering: item.layering,
+              colorFamily: item.color_family,
+              aiDesc: item.ai_description,
             });
           }
 
@@ -2603,7 +2641,7 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
               const itemDescriptions = items
                 .slice(0, 12)
                 .map((i) => {
-                  const parts = [
+                  const mainParts = [
                     i.color,
                     i.name || i.subcategory,
                     i.brand,
@@ -2612,7 +2650,17 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
                   ]
                     .filter(Boolean)
                     .join(' • ');
-                  return `  • ${parts}`;
+                  const extras = [
+                    i.pattern && `pattern:${i.pattern}`,
+                    i.season && `season:${i.season}`,
+                    i.layering && `layer:${i.layering}`,
+                    i.occasion && `occasion:${Array.isArray(i.occasion) ? i.occasion.join('/') : i.occasion}`,
+                    i.dressCode && `dress-code:${i.dressCode}`,
+                    i.formality != null && `formality:${i.formality}`,
+                    i.colorFamily && `color-family:${i.colorFamily}`,
+                  ].filter(Boolean).join(' | ');
+                  const desc = i.aiDesc ? `\n      ${String(i.aiDesc).slice(0, 200)}` : '';
+                  return `  • ${mainParts}${extras ? `\n      [${extras}]` : ''}${desc}`;
                 })
                 .join('\n');
               return `${cat}:\n${itemDescriptions}`;
@@ -3020,20 +3068,12 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
       notificationsContext +
       weatherContext;
 
-    // console.log(`📊 Chat: Full context length: ${fullContext.length} chars`);
-    // console.log(
-    //   `📊 Chat: Calendar context included: ${calendarContext.length > 0}`,
-    // );
-    // console.log(
-    //   `📊 Chat: Calendar context length: ${calendarContext.length} chars`,
-    // );
-    // console.log(`📊 Chat: Calendar data: ${calendarContext.substring(0, 200)}`);
-    // console.log(
-    //   `📊 Chat: Wardrobe context included: ${wardrobeContext.length > 0}`,
-    // );
-    // console.log(
-    //   `📊 Chat: Style profile context included: ${styleProfileContext.length > 0}`,
-    // );
+    console.log(
+      `🔍 [Ask Styla] context: styleProfile=${styleProfileContext ? 'YES' : 'NO'} | ` +
+      `wardrobe=${wardrobeContext ? 'YES' : 'NO'} | ` +
+      `calendar=${calendarContext ? 'YES' : 'NO'} | ` +
+      `memory=${longTermSummary ? 'YES' : 'NO'}`
+    );
 
     // 1️⃣ Generate base text with OpenAI
     const completion = await this.openai.chat.completions.create({

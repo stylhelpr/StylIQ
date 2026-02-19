@@ -1584,6 +1584,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       setOutfitPrompt('');
                       setSessionId(null);
                       setHasRefined(false);
+                      setLastSpeech('');
+                      setBuildAroundPrompt('');
+                      setOccasion('Any');
+                      setStyle('Any');
+                      didAutoRunRef.current = false;
                       // Reset voice target to outfit prompt input
                       VoiceTarget.set(setOutfitPrompt, 'outfitPrompt');
                     }}>
@@ -1797,6 +1802,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         setOutfitPrompt('');
                         setSessionId(null);
                         setHasRefined(false);
+                        setLastSpeech('');
+                        setBuildAroundPrompt('');
+                        setOccasion('Any');
+                        setStyle('Any');
+                        didAutoRunRef.current = false;
                       }}>
                       <Text style={globalStyles.buttonSecondaryText}>
                         All Done

@@ -14,6 +14,25 @@ import { pool } from '../../db/pool';
 import type { FashionStateSummary } from '../../learning/dto/fashion-state.dto';
 import type { FashionStateService } from '../../learning/fashion-state.service';
 
+// ── Canonical Column List ────────────────────────────────────────────────────
+
+/** All style_profiles columns needed for full AI context. Shared by chat() and loadStylistBrainContext(). */
+export const STYLE_PROFILE_COLUMNS = `fit_preferences, fabric_preferences, favorite_colors,
+  disliked_styles, style_preferences, preferred_brands,
+  occasions, body_type, climate,
+  coverage_no_go, avoid_colors, avoid_materials,
+  formality_floor, walkability_requirement,
+  pattern_preferences, avoid_patterns, silhouette_preference,
+  care_tolerance, metal_preference, contrast_preference,
+  footwear_comfort, foot_width,
+  skin_tone, undertone, hair_color, eye_color,
+  proportions, height, weight, chest, waist, hip,
+  shoulder_width, inseam, shoe_size,
+  color_preferences, unit_preference, prefs_jsonb,
+  fashion_boldness, trend_appetite, fashion_confidence,
+  budget_min, budget_max, style_icons, daily_activities,
+  personality_traits, lifestyle_notes`;
+
 // ── Types ───────────────────────────────────────────────────────────────────
 
 export interface StyleProfileFields {
