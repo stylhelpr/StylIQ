@@ -2307,9 +2307,10 @@ ${climateNote}
           {
             role: 'system',
             content: `Classify what data is needed to answer this fashion/style question. Return JSON only.
-Categories: styleProfile (body type, colors, preferences), wardrobe (clothes owned, inventory, items count), calendar (events), savedLooks, feedback (outfit ratings), wearHistory (recently worn), scheduledOutfits, favorites, customOutfits, itemPrefs (liked/disliked items), lookMemories (style exploration), notifications, weather.
+Categories: styleProfile (body type, colors, preferences, fabrics, materials, patterns, avoid colors, avoid patterns, avoid materials, fit, brands, style icons, occasions, budget, boldness, comfort, measurements, skin tone, proportions), wardrobe (clothes owned, inventory, items count), calendar (events), savedLooks, feedback (outfit ratings), wearHistory (recently worn), scheduledOutfits, favorites, customOutfits, itemPrefs (liked/disliked items), lookMemories (style exploration), notifications, weather.
 For general chat/greetings, return empty needs. For outfit suggestions, include styleProfile+wardrobe+weather.
-IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my wardrobe", "closet", "inventory", or item counts MUST include wardrobe.`,
+IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my wardrobe", "closet", "inventory", or item counts MUST include wardrobe.
+IMPORTANT: Any question about the user's preferences, style, body, measurements, fabrics, materials, patterns, colors they like/avoid, fit, brands, budget, or personal details MUST include styleProfile.`,
           },
           {
             role: 'user',
@@ -2327,9 +2328,7 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
         if (key in contextNeeds) (contextNeeds as any)[key] = true;
       });
 
-      // console.log(
-      //     `🎯 Smart context: ${needs.length ? needs.join(', ') : 'minimal (chat only)'}`,
-      //   );
+      console.log(`[AskStyla Debug] classifier needs: ${JSON.stringify(needs)}, styleProfile=${contextNeeds.styleProfile}`);
       // ✅ Force-enable weather context if location or weather was passed
       if (dto.lat || dto.lon || dto.weather) {
         contextNeeds.weather = true;
@@ -2476,7 +2475,24 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
         );
         if (styleRows.length > 0) {
           const sp = styleRows[0];
-          const arr = (v: any) => Array.isArray(v) ? v.join(', ') : v;
+          // [AskStyla Debug] — raw data shape verification
+          console.log('[AskStyla Debug] raw fabric_preferences:', sp.fabric_preferences);
+          console.log('[AskStyla Debug] typeof fabric_preferences:', typeof sp.fabric_preferences);
+          console.log('[AskStyla Debug] raw avoid_patterns:', sp.avoid_patterns);
+          console.log('[AskStyla Debug] raw avoid_colors:', sp.avoid_colors);
+          /** Safe Postgres TEXT[] parser — handles real arrays, pg string format, null */
+          const pgArr = (v: any): string[] => {
+            if (!v) return [];
+            if (Array.isArray(v)) return v;
+            if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
+              return v.slice(1, -1).split(',').map(s => s.trim()).filter(Boolean);
+            }
+            return [];
+          };
+          const arr = (v: any) => pgArr(v).join(', ');
+          console.log('[AskStyla Debug] parsed fabric_preferences:', pgArr(sp.fabric_preferences));
+          console.log('[AskStyla Debug] parsed avoid_patterns:', pgArr(sp.avoid_patterns));
+          console.log('[AskStyla Debug] parsed avoid_colors:', pgArr(sp.avoid_colors));
           const parts: string[] = [];
           if (sp.body_type) parts.push(`Body type: ${sp.body_type}`);
           if (sp.skin_tone) parts.push(`Skin tone: ${sp.skin_tone}`);
@@ -2500,15 +2516,9 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
             parts.push(`Style preferences: ${arr(sp.style_preferences)}`);
           if (sp.waist) parts.push(`Waist: ${sp.waist}`);
           // P0 hard vetoes
-          const coverageNoGo = Array.isArray(sp.coverage_no_go)
-            ? sp.coverage_no_go
-            : [];
-          const avoidColors = Array.isArray(sp.avoid_colors)
-            ? sp.avoid_colors
-            : [];
-          const avoidMaterials = Array.isArray(sp.avoid_materials)
-            ? sp.avoid_materials
-            : [];
+          const coverageNoGo = pgArr(sp.coverage_no_go);
+          const avoidColors = pgArr(sp.avoid_colors);
+          const avoidMaterials = pgArr(sp.avoid_materials);
           if (coverageNoGo.length > 0)
             parts.push(
               `HARD RULE — Coverage restrictions: ${coverageNoGo.join(', ')}`,
@@ -2537,9 +2547,7 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
             parts.push(
               `Budget range: ${sp.budget_min ?? '?'}–${sp.budget_max ?? '?'}`,
             );
-          const styleIcons = Array.isArray(sp.style_icons)
-            ? sp.style_icons
-            : [];
+          const styleIcons = pgArr(sp.style_icons);
           if (styleIcons.length > 0)
             parts.push(`Style icons: ${styleIcons.join(', ')}`);
           // Canonical fields previously missing from chat context
@@ -2591,6 +2599,7 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
             console.log(
               `👗 Chat: Loaded style profile with ${parts.length} attributes`,
             );
+            console.log('[AskStyla Debug] styleProfileContext preview:', styleProfileContext.slice(0, 500));
           }
         }
       } catch (err: any) {
