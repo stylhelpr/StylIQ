@@ -4953,15 +4953,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         fScores.length >= 2 ? Math.max(...fScores) - Math.min(...fScores) : 0;
       const diversityBonus = outfit.__uniqueAnchor ? 1 : 0;
 
-      let finalScore =
-        0.4 * avgWeather +
-        0.3 * avgFeedback -
-        0.2 * formalitySpread +
-        0.1 * diversityBonus;
-
-      // Composition coherence tie-breaker — max ±0.15 impact, never overrides core signals.
-      // Replaces old colorHarmony + silhouetteBalance + redundancyPenalty block with
-      // anchor-derived palette/silhouette/material/formality coherence scoring.
+      // Composition coherence — primary aesthetic axis for Outfit Studio.
       const compositionScore = scoreOutfitComposition(
         outfit.items.filter(Boolean).map((i: any) => ({
           id: i.id,
@@ -4972,8 +4964,12 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         SUBCATEGORY_SIGNALS,
       );
 
-      // Scale to ±0.15 budget: compositionScore is in [-1, +1], multiply by 0.15
-      finalScore += 0.15 * compositionScore;
+      let finalScore =
+        0.28 * avgWeather +
+        0.25 * avgFeedback -
+        0.17 * formalitySpread +
+        0.10 * diversityBonus +
+        0.30 * compositionScore;
 
       const anchor = outfit.__anchor || getAnchor(outfit);
       const tieBreaker = hashString(seedString + anchor) % 1000;
@@ -5281,11 +5277,21 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         const formalitySpread =
           fScores.length >= 2 ? Math.max(...fScores) - Math.min(...fScores) : 0;
         const diversityBonus = outfit.__uniqueAnchor ? 1 : 0;
+        const compositionScoreRescore = scoreOutfitComposition(
+          newItems.filter(Boolean).map((i: any) => ({
+            id: i.id,
+            category: i.category,
+          })),
+          fullItemMap,
+          CATEGORY_FORMALITY,
+          SUBCATEGORY_SIGNALS,
+        );
         outfit.__finalScore =
-          0.4 * avgWeather +
-          0.3 * avgFeedback -
-          0.2 * formalitySpread +
-          0.1 * diversityBonus;
+          0.28 * avgWeather +
+          0.25 * avgFeedback -
+          0.17 * formalitySpread +
+          0.10 * diversityBonus +
+          0.30 * compositionScoreRescore;
       }
     };
 
