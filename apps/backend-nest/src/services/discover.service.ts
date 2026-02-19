@@ -167,6 +167,7 @@ function getBrandAuthorityScore(brand?: string | null): number {
 function normalize(str?: string | null): string {
   return (str || '')
     .toLowerCase()
+    .replace(/-/g, '')
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -210,6 +211,16 @@ function tokenSet(items: string[]): Set<string> {
     if (n) s.add(n);
   }
   return s;
+}
+
+/** Escape special regex characters in a string */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Word-boundary-safe token match: prevents "red" matching inside "tired" */
+function wordBoundaryMatch(blob: string, token: string): boolean {
+  return new RegExp(`\\b${escapeRegex(token)}\\b`).test(blob);
 }
 
 /** Fraction of needles found (substring) in text, normalized to 0..1 */
@@ -458,7 +469,10 @@ const BODY_TYPE_CATEGORY_BOOST: Record<string, Record<string, number>> = {
 };
 
 // Fit tokens that signal loose/oversized silhouette
-const LOOSE_FIT_TOKENS = new Set(['oversized', 'boxy', 'baggy', 'wide', 'loose fit', 'dropped shoulder']);
+const LOOSE_FIT_TOKENS = new Set([
+  'oversized', 'boxy', 'baggy', 'wide', 'loose fit', 'dropped shoulder',
+  'relaxed', 'relaxed fit', 'wide leg', 'wide fit',
+]);
 
 /** Build normalized veto sets from profile constraints */
 function buildVetoCtx(profile: UserProfile) {
@@ -956,8 +970,14 @@ export class DiscoverService {
 
     // --- Stage 1c: Hard Veto Filter (constraint-first enforcement) ---
     const vetoCtx = buildVetoCtx(profile);
-    const vetoStats = { avoidColor: 0, avoidMaterial: 0, avoidPattern: 0, disliked: 0 };
+    const vetoStats = { avoidColor: 0, avoidMaterial: 0, avoidPattern: 0, disliked: 0, fitVeto: 0 };
     const vetoPassed: any[] = [];
+
+    // Pre-compute fit veto gate: does the user prefer slim/tailored?
+    const userPrefersSlimVeto = profile.fit_preferences.some(f => {
+      const n = normalize(f);
+      return n === 'slim' || n === 'tailored' || n === 'fitted';
+    });
 
     for (const raw of allProducts) {
       const textParts: string[] = [
@@ -968,17 +988,25 @@ export class DiscoverService {
       const enrichedColor = raw.enriched_color ? normalize(raw.enriched_color) : '';
 
       let vetoed = false;
-      for (const c of vetoCtx.avoidColorsSet) {
-        if (enrichedColor === c || blob.includes(c)) { vetoStats.avoidColor++; vetoed = true; break; }
+
+      // Fit hard veto: immediately reject loose-fit items when user prefers slim
+      if (userPrefersSlimVeto) {
+        for (const t of LOOSE_FIT_TOKENS) {
+          if (blob.includes(t)) { vetoStats.fitVeto++; vetoed = true; break; }
+        }
+      }
+
+      if (!vetoed) for (const c of vetoCtx.avoidColorsSet) {
+        if (enrichedColor === c || wordBoundaryMatch(blob, c)) { vetoStats.avoidColor++; vetoed = true; break; }
       }
       if (!vetoed) for (const m of vetoCtx.avoidMaterialsSet) {
-        if (blob.includes(m)) { vetoStats.avoidMaterial++; vetoed = true; break; }
+        if (wordBoundaryMatch(blob, m)) { vetoStats.avoidMaterial++; vetoed = true; break; }
       }
       if (!vetoed) for (const p of vetoCtx.avoidPatternsSet) {
-        if (blob.includes(p)) { vetoStats.avoidPattern++; vetoed = true; break; }
+        if (wordBoundaryMatch(blob, p)) { vetoStats.avoidPattern++; vetoed = true; break; }
       }
       if (!vetoed) for (const s of vetoCtx.dislikedStylesSet) {
-        if (blob.includes(s)) { vetoStats.disliked++; vetoed = true; break; }
+        if (wordBoundaryMatch(blob, s)) { vetoStats.disliked++; vetoed = true; break; }
       }
       if (!vetoed) vetoPassed.push(raw);
     }
@@ -2322,3 +2350,12 @@ export class DiscoverService {
     }
   }
 }
+
+// --- Test-only exports ---
+export const __test__ = {
+  normalize,
+  wordBoundaryMatch,
+  tokenSet,
+  buildVetoCtx,
+  LOOSE_FIT_TOKENS,
+};
