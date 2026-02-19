@@ -37,6 +37,22 @@ const REQUIRED_SECRETS = [
 try {
   verifyRequiredSecrets(REQUIRED_SECRETS);
   console.log('🔐 All required secrets verified');
+
+  // ⚠️ TEMP: One-time flag verification — REMOVE after confirming
+  const FLAG_KEYS = [
+    'ELITE_ENABLED',
+    'ELITE_SCORING_DEBUG',
+    'LEARNING_EVENTS_ENABLED',
+    'LEARNING_STATE_ENABLED',
+    'LEARNING_SHADOW_MODE',
+    'DEBUG_RECOMMENDED_BUYS',
+  ] as const;
+  console.log('🏁 [FLAG CHECK] Runtime environment flags:');
+  for (const key of FLAG_KEYS) {
+    const val = process.env[key];
+    console.log(`   ${key} = ${val === undefined ? '❌ UNDEFINED' : `"${val}"`}`);
+  }
+  console.log('🏁 [FLAG CHECK] End');
 } catch (err: any) {
   console.error('❌ Secret verification failed:', err.message);
   process.exit(1);
