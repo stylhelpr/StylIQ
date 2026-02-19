@@ -12,7 +12,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { pool } from '../db/pool';
-import { LEARNING_FLAGS, AGGREGATION_CONFIG } from '../config/feature-flags';
+import { LEARNING_FLAGS, AGGREGATION_CONFIG, ELITE_FLAGS } from '../config/feature-flags';
 import {
   UserFashionState,
   ScoreMap,
@@ -59,7 +59,9 @@ export class FashionStateService {
     userId: string,
     options?: { timeoutMs?: number },
   ): Promise<UserFashionState | null> {
+    const uid8 = userId.slice(0, 8);
     if (!LEARNING_FLAGS.STATE_ENABLED) {
+      if (ELITE_FLAGS.DEBUG) this.logger.debug(`[FashionState] READ user=${uid8} result=NULL reason=STATE_DISABLED`);
       return null;
     }
 
@@ -75,18 +77,21 @@ export class FashionStateService {
       const state = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (!state) {
+        if (ELITE_FLAGS.DEBUG) this.logger.debug(`[FashionState] READ user=${uid8} result=NULL reason=NO_ROW_OR_TIMEOUT`);
         return null;
       }
 
       // Return null for cold start users - caller should use style_profiles
       if (state.isColdStart) {
+        if (ELITE_FLAGS.DEBUG) this.logger.debug(`[FashionState] READ user=${uid8} result=NULL reason=COLD_START events=${state.eventsProcessedCount}`);
         return null;
       }
 
+      if (ELITE_FLAGS.DEBUG) this.logger.debug(`[FashionState] READ user=${uid8} result=OK events=${state.eventsProcessedCount} brands=${Object.keys(state.brandScores).length} colors=${Object.keys(state.colorScores).length} styles=${Object.keys(state.styleScores).length}`);
       return state;
     } catch (error) {
       this.logger.warn(
-        `[FashionState] getStateWithFallback failed for ${userId}: ${error.message}`,
+        `[FashionState] READ user=${uid8} result=NULL reason=ERROR err=${error.message}`,
       );
       return null;
     }

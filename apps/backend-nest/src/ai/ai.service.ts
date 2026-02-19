@@ -3100,7 +3100,8 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
       `🔍 [Ask Styla] context: styleProfile=${styleProfileContext ? 'YES' : 'NO'} | ` +
       `wardrobe=${wardrobeContext ? 'YES' : 'NO'} | ` +
       `calendar=${calendarContext ? 'YES' : 'NO'} | ` +
-      `memory=${longTermSummary ? 'YES' : 'NO'}`
+      `memory=${longTermSummary ? 'YES' : 'NO'} | ` +
+      `learnedPrefs=${learnedPrefsContext ? 'YES' : 'NO'}`
     );
 
     // 1️⃣ Generate base text with OpenAI

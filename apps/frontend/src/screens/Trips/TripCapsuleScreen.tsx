@@ -27,6 +27,41 @@ import PackingListSection from '../../components/Trips/PackingListSection';
 import ItemReplaceModal from '../../components/Trips/ItemReplaceModal';
 import ConfidenceSummary from '../../components/Trips/ConfidenceSummary';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
+import {apiClient} from '../../lib/apiClient';
+
+type FashionStateSummary = {
+  topBrands: string[];
+  avoidBrands: string[];
+  topColors: string[];
+  avoidColors: string[];
+  topStyles: string[];
+  avoidStyles: string[];
+  topCategories: string[];
+  priceBracket: string | null;
+  isColdStart: boolean;
+};
+
+async function getFashionStateSummary(): Promise<FashionStateSummary | null> {
+  const res = await Promise.race([
+    apiClient.get('/learning/summary'),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 100),
+    ),
+  ]);
+  const data = res.data;
+  if (!data.hasState) return null;
+  return {
+    topBrands: data.topPreferences?.brands ?? [],
+    avoidBrands: [],
+    topColors: data.topPreferences?.colors ?? [],
+    avoidColors: [],
+    topStyles: data.topPreferences?.styles ?? [],
+    avoidStyles: [],
+    topCategories: [],
+    priceBracket: null,
+    isColdStart: data.isColdStart ?? true,
+  };
+}
 
 type Props = {
   trip: Trip;
@@ -176,6 +211,9 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
         // Read latest styleHints from ref (profile may have loaded during await)
         const currentHints = styleHintsRef.current;
 
+        // Fetch fashion state (non-blocking, 100ms timeout, null on failure)
+        const fsSummary = await getFashionStateSummary().catch(() => null);
+
         // Rebuild from clean state
         assertCapsuleWiped(wipedTrip.capsule, 'auto-rebuild');
         if (__DEV__) {
@@ -188,6 +226,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
           trip.startingLocationLabel,
           presentation,
           currentHints,
+          fsSummary ?? null,
         );
         if (__DEV__) {
           console.log('[TripCapsule] Rebuilding fresh capsule', newCapsule.build_id, 'presentation:', presentation);
@@ -292,6 +331,8 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
                 : detectPresentation(adaptedWardrobe);
               // Read latest styleHints from ref
               const currentHints = styleHintsRef.current;
+              // Fetch fashion state (non-blocking, 100ms timeout, null on failure)
+              const fsSummary = await getFashionStateSummary().catch(() => null);
               const newCapsule = buildCapsule(
                 adaptedWardrobe,
                 weatherResult.days,
@@ -299,6 +340,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
                 trip.startingLocationLabel,
                 forcePresentation,
                 currentHints,
+                fsSummary ?? null,
               );
               if (__DEV__) {
                 console.log(`[TripCapsule] FORCE REBUILD trip=${trip.id} build=${newCapsule.build_id} presentation=${forcePresentation}`);

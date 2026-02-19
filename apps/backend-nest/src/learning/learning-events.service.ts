@@ -13,7 +13,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { pool } from '../db/pool';
 import { ConsentCache } from './consent-cache';
-import { LEARNING_FLAGS, EVENT_LOGGING_CONFIG } from '../config/feature-flags';
+import { LEARNING_FLAGS, EVENT_LOGGING_CONFIG, ELITE_FLAGS } from '../config/feature-flags';
 import {
   CreateLearningEventInput,
   EVENT_SIGNAL_DEFAULTS,
@@ -80,6 +80,9 @@ export class LearningEventsService {
     if (process.env.NODE_ENV !== 'production') {
       try {
         await this.insertEvent(input);
+        this.logger.debug(
+          `[LearningEvents] OK event=${input.eventType} source=${input.sourceFeature} entity=${input.entityId ?? '-'} ceid=${input.clientEventId ?? '-'} user=${input.userId.slice(0, 8)}`,
+        );
       } catch (error) {
         this.logger.warn(
           `[LearningEvents] Dev insert failed for ${input.userId}: ${error.message}`,
@@ -105,6 +108,11 @@ export class LearningEventsService {
 
       // Success - reset failure counter
       this.consecutiveFailures = 0;
+      if (ELITE_FLAGS.DEBUG) {
+        this.logger.log(
+          `[LearningEvents] OK event=${input.eventType} source=${input.sourceFeature} entity=${input.entityId ?? '-'} ceid=${input.clientEventId ?? '-'} user=${input.userId.slice(0, 8)}`,
+        );
+      }
     } catch (error) {
       this.handleFailure(error.message, input.userId);
     }

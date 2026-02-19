@@ -3429,6 +3429,17 @@ export function buildCapsule(
   startingLocationLabel: string,
   explicitPresentation?: Presentation,
   styleHints?: TripStyleHints,
+  fashionState?: {
+    topBrands: string[];
+    avoidBrands: string[];
+    topColors: string[];
+    avoidColors: string[];
+    topStyles?: string[];
+    avoidStyles?: string[];
+    topCategories: string[];
+    priceBracket: string | null;
+    isColdStart: boolean;
+  } | null,
 ): TripCapsule {
   // Reset trace collector and build warnings for this build
   if (TRIP_TRACE) tripTrace = [];
@@ -4172,7 +4183,7 @@ export function buildCapsule(
     const canonical = outfits.map(normalizeTripsOutfit);
     const result = elitePostProcessOutfits(
       canonical,
-      {presentation, wardrobeStats},
+      {presentation, wardrobeStats, fashionState: fashionState ?? null},
       {mode: 'trips', requestId,
        rerank: ELITE_SCORING_TRIPS_V2, debug: ELITE_SCORING_DEBUG},
     );
