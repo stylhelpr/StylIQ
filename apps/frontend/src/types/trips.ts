@@ -111,6 +111,7 @@ export type TripCapsule = {
   version?: number;
   fingerprint?: string;
   tripBackupKit?: BackupSuggestion[];
+  warnings?: CapsuleWarning[];
 };
 
 export type Trip = {

@@ -192,13 +192,14 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
         if (__DEV__) {
           console.log('[TripCapsule] Rebuilding fresh capsule', newCapsule.build_id, 'presentation:', presentation);
         }
-        const newWarnings = validateCapsule(
+        const validationWarnings = validateCapsule(
           newCapsule,
           weatherResult.days,
           trip.activities,
           adaptedWardrobe,
           presentation,
         );
+        const newWarnings = [...(newCapsule.warnings ?? []), ...validationWarnings];
         if (cancelled) return;
 
         setCapsule(newCapsule);
@@ -302,7 +303,8 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
               if (__DEV__) {
                 console.log(`[TripCapsule] FORCE REBUILD trip=${trip.id} build=${newCapsule.build_id} presentation=${forcePresentation}`);
               }
-              const newWarnings = validateCapsule(newCapsule, weatherResult.days, trip.activities, adaptedWardrobe, forcePresentation);
+              const validationWarnings2 = validateCapsule(newCapsule, weatherResult.days, trip.activities, adaptedWardrobe, forcePresentation);
+              const newWarnings = [...(newCapsule.warnings ?? []), ...validationWarnings2];
 
               const updated: Trip = {
                 ...wipedTrip,

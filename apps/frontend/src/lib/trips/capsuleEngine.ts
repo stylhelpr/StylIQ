@@ -49,6 +49,8 @@ type TripTraceEvent = {
 };
 
 let tripTrace: TripTraceEvent[] = [];
+let buildWarnings: CapsuleWarning[] = [];
+let shoelessRejects = 0;
 
 function trace(step: string, message: string, data?: any) {
   tripTrace.push({step, message, data});
@@ -172,8 +174,8 @@ export type ActivityPurposeClass = 'formal_event' | 'business' | 'daily' | 'spor
 const PURPOSE_COMPATIBILITY: Record<ActivityPurposeClass, readonly GarmentPurpose[]> = {
   formal_event: ['formal', 'smart'],
   business: ['smart', 'casual', 'formal'],
-  daily: ['casual', 'smart', 'leisure'],
-  sport: ['athletic'],
+  daily: ['casual', 'smart', 'leisure', 'formal', 'outdoor'],
+  sport: ['athletic', 'outdoor', 'casual'],
   outdoor: ['outdoor', 'athletic', 'casual'],
   water: ['swim', 'leisure', 'casual'],
   rest: ['leisure', 'sleep', 'casual'],
@@ -2156,6 +2158,59 @@ function validateOutfitComposition(
     }
   }
 
+  // ── RULE 6: Silhouette Balance ──
+  // Oversized top + oversized/wide bottom = sloppy; slim top + oversized bottom = unbalanced.
+  // Swap the bottom via alternates without lowering formality.
+  const topIdx = result.findIndex(pi => {
+    const full = getFullItem(pi);
+    return full && mapMainCategoryToSlot(full.main_category ?? '') === 'tops';
+  });
+  const bottomIdx = result.findIndex(pi => {
+    const full = getFullItem(pi);
+    return full && mapMainCategoryToSlot(full.main_category ?? '') === 'bottoms';
+  });
+
+  if (topIdx >= 0 && bottomIdx >= 0) {
+    const topFull = getFullItem(result[topIdx]);
+    const bottomFull = getFullItem(result[bottomIdx]);
+    if (topFull?.fit && bottomFull?.fit) {
+      const topFit = topFull.fit.toLowerCase();
+      const bottomFit = bottomFull.fit.toLowerCase();
+
+      const isOversizedTop = /oversized|loose|baggy/.test(topFit);
+      const isSlimTop = /slim|skinny|tailored|fitted/.test(topFit);
+      const isOversizedBottom = /oversized|loose|baggy|wide/.test(bottomFit);
+
+      let needsSwap = false;
+      let validBottomFit: (c: TripWardrobeItem) => boolean = () => true;
+
+      if (isOversizedTop && isOversizedBottom) {
+        needsSwap = true;
+        validBottomFit = (c) => {
+          if (!c.fit) return true;
+          return /slim|skinny|regular|straight|tailored/.test(c.fit.toLowerCase());
+        };
+      } else if (isSlimTop && isOversizedBottom) {
+        needsSwap = true;
+        validBottomFit = (c) => {
+          if (!c.fit) return true;
+          const f = c.fit.toLowerCase();
+          return /regular|straight|wide|relaxed/.test(f) && !/oversized|baggy/.test(f);
+        };
+      }
+
+      if (needsSwap) {
+        const swap = guardedSwap(result[bottomIdx], validBottomFit);
+        if (swap) {
+          if (__DEV__) {
+            console.log(`[COMPOSITION] violation: silhouette_balance | swapped: ${result[bottomIdx].name} → ${swap.name}`);
+          }
+          result[bottomIdx] = swap;
+        }
+      }
+    }
+  }
+
   return result;
 }
 
@@ -2378,14 +2433,16 @@ function fillFootwearRoles(
     r.role === 'anchor_shoe' || r.role === 'contrast_shoe' || r.role === 'condition_shoe',
   );
 
-  // Pre-filter: use canonical isItemValidForActivity for the HIGHEST-formality
-  // activity + worst-case climate zone. This ensures no shoe enters role selection
-  // that would later be rejected by per-day assembly gating.
-  const highestFormalityActivity = activities.reduce((best, a) => {
+  // Pre-filter: use canonical isItemValidForActivity for the LOWEST-formality
+  // activity + worst-case climate zone. This admits shoes valid for at least one
+  // activity; per-day assembly gating (buildOutfitForActivity) handles per-day
+  // formality rejection. Using highest formality here incorrectly blocks casual
+  // shoes from mixed trips (e.g. Casual+Dinner → Sneakers blocked entirely).
+  const lowestFormalityActivity = activities.reduce((best, a) => {
     const ap = getActivityProfile(a);
-    return ap.formality > getActivityProfile(best).formality ? a : best;
+    return ap.formality < getActivityProfile(best).formality ? a : best;
   }, activities[0] || 'Casual');
-  const worstProfile = getActivityProfile(highestFormalityActivity);
+  const worstProfile = getActivityProfile(lowestFormalityActivity);
   // Use coldest day's climate zone for strictest climate gate
   const coldestDay = weather.length > 0
     ? weather.reduce((c, d) => (d.lowF < c.lowF ? d : c), weather[0])
@@ -2395,7 +2452,14 @@ function fillFootwearRoles(
   const usableShoes = shoeBucket.filter(s =>
     isItemValidForActivity(s, worstZone, worstProfile, presentation),
   );
-  const effectivePool = usableShoes.length > 0 ? usableShoes : shoeBucket; // fail-open
+  const effectivePool = usableShoes; // absolute — no fail-open
+  if (effectivePool.length === 0 && shoeBucket.length > 0) {
+    buildWarnings.push({
+      code: 'CLIMATE_INCOMPATIBLE_FOOTWEAR',
+      message: 'No climate-appropriate shoes available for trip conditions.',
+    });
+    return [];
+  }
 
   // Trace point 3: Candidate buckets (shoes only)
   if (TRIP_TRACE) {
@@ -2748,32 +2812,29 @@ function filterUsed<T extends {id: string}>(
 }
 
 /**
- * Evaluates whether a role-packed shoe that failed formality gating should be
- * reinserted as a penalized candidate. Safety gates (weather, presentation,
- * coverage) remain HARD FAIL — only formality rejection is softened.
+ * Evaluates whether a role-packed shoe that failed gating should be
+ * reinserted as a penalized candidate.
+ *
+ * ALL hard gates are enforced — climate, presentation, formality tier,
+ * purpose compatibility, casual-only, beach-context. No tolerance override
+ * for any hard violation. Uses the canonical gate (single source of truth).
  */
 function evaluatePackedItemTolerance(
   item: TripWardrobeItem,
   climateZone: ClimateZone,
   presentation: Presentation,
   roleRegistry: RoleRegistry,
+  activityProfile: ActivityProfile,
 ): boolean {
   // Only tolerate items intentionally packed via role planning
   const isRoleItem = [...roleRegistry.values()].some(v => v.id === item.id);
   if (!isRoleItem) return false;
 
-  const flags = inferGarmentFlags(item);
-
-  // HARD FAIL: presentation violation
-  if (presentation === 'masculine' && flags.isFeminineOnly) return false;
-
-  // HARD FAIL: weather incompatibility
-  const isColdOrFreezing = climateZone === 'cold' || climateZone === 'freezing';
-  if (isColdOrFreezing && flags.isMinimalCoverage) return false;
-  if (isColdOrFreezing && isOpenFootwear(item)) return false;
-
-  // Passed safety — formality-only rejection is tolerated
-  return true;
+  // ALL hard gates must pass — no tolerance override for any violation.
+  // Canonical gate: same function used by gatePool. Since every shoe in
+  // the rejected set already failed this gate, this will return false,
+  // preventing reinsertion of any hard-violation item.
+  return isItemValidForActivity(item, climateZone, activityProfile, presentation);
 }
 
 function buildOutfitForActivity(
@@ -2803,12 +2864,16 @@ function buildOutfitForActivity(
   const gatedBuckets = {} as Record<CategoryBucket, TripWardrobeItem[]>;
   for (const key of Object.keys(buckets) as CategoryBucket[]) {
     gatedBuckets[key] = gatePool(buckets[key], climateZone, activityProfile, presentation);
-    // Fallback: if gating empties the bucket — relax climate, KEEP formality + presentation + tier
+    // Fallback: if gating empties the bucket — relax formality, KEEP climate + presentation
     if (gatedBuckets[key].length === 0 && buckets[key].length > 0) {
+      const isColdOrFreezing = climateZone === 'cold' || climateZone === 'freezing';
       gatedBuckets[key] = buckets[key].filter(item => {
         const flags = inferGarmentFlags(item);
         if (isMasculine && flags.isFeminineOnly) return false;
         if (isFormalActivity && flags.isCasualOnly) return false;
+        // Climate enforcement remains absolute in fallback
+        if (isColdOrFreezing && flags.isMinimalCoverage) return false;
+        if (isColdOrFreezing && isOpenFootwear(item)) return false;
         const requiredTier = getRequiredFormalityTier(activityProfile.formality);
         if (requiredTier > 0 && getFormalityTier(item) < requiredTier) return false;
         return true;
@@ -2818,28 +2883,24 @@ function buildOutfitForActivity(
     gatedBuckets[key] = applyTasteGate(gatedBuckets[key], capsuleIntent?.avoidColors);
   }
   const gatedShoes = gatePool(selectedShoes, climateZone, activityProfile, presentation);
-  // Shoe fallback: relax climate, KEEP formality + presentation + tier
+  // Shoe fallback: relax formality, KEEP climate + presentation
   let finalShoes: TripWardrobeItem[];
   if (gatedShoes.length > 0) {
     finalShoes = gatedShoes;
   } else {
+    const isColdOrFreezingShoe = climateZone === 'cold' || climateZone === 'freezing';
     finalShoes = selectedShoes.filter(s => {
       const flags = inferGarmentFlags(s);
       if (isMasculine && flags.isFeminineOnly) return false;
       if (isFormalActivity && flags.isCasualOnly) return false;
+      // Climate enforcement remains absolute in shoe fallback
+      if (isColdOrFreezingShoe && isOpenFootwear(s)) return false;
+      if (isColdOrFreezingShoe && flags.isMinimalCoverage) return false;
       const requiredTier = getRequiredFormalityTier(activityProfile.formality);
       if (requiredTier > 0 && getFormalityTier(s) < requiredTier) return false;
       return true;
     });
   }
-  // Cold/freezing safety net: filter open footwear from ANY fallback path (fail-open)
-  if (climateZone === 'freezing' || climateZone === 'cold') {
-    const closedToe = finalShoes.filter(s => !isOpenFootwear(s));
-    if (closedToe.length > 0) {
-      finalShoes = closedToe;
-    }
-  }
-
   // ── NON-EMPTY SHOE FALLBACK (hard requirement: never return empty shoes) ──
   if (finalShoes.length === 0 && selectedShoes.length > 0) {
     const requiredTier = getRequiredFormalityTier(activityProfile.formality);
@@ -2875,29 +2936,40 @@ function buildOutfitForActivity(
       }
     }
 
-    // Step 3: Last resort — any non-feminine shoe (absolute emergency)
+    // Step 3: Last resort — relax formality completely but KEEP climate + presentation
     if (finalShoes.length === 0) {
       finalShoes = selectedShoes.filter(s => {
         if (isMasculine && inferGarmentFlags(s).isFeminineOnly) return false;
+        if (isColdOrFreezing && isOpenFootwear(s)) return false;
+        if (isColdOrFreezing && inferGarmentFlags(s).isMinimalCoverage) return false;
         return true;
       });
       if (__DEV__ && finalShoes.length > 0) {
-        console.log(`[TripCapsule][SHOE_FALLBACK] Emergency fallback | ${finalShoes.length} shoes for ${activity}`);
+        console.log(`[TripCapsule][SHOE_FALLBACK] Emergency fallback (climate-safe) | ${finalShoes.length} shoes for ${activity}`);
       }
+    }
+    // If still empty in cold — warn, do NOT inject open footwear
+    if (finalShoes.length === 0 && isColdOrFreezing) {
+      buildWarnings.push({
+        code: 'CLIMATE_INCOMPATIBLE_FOOTWEAR',
+        message: `No closed-toe shoes available for ${activity} in ${climateZone} conditions.`,
+      });
     }
   }
 
-  // ── Soft-fail tolerance: reinsert role-packed shoes that only failed formality ──
-  // Only applies when valid shoes already exist (preserves fail-closed when ALL shoes are invalid)
+  // ── Role-packed shoe tolerance (all hard gates enforced) ──
+  // Only role items that pass ALL canonical gates can be reinserted.
+  // Since rejected shoes already failed isItemValidForActivity, this
+  // block is effectively a no-op — no hard violation is ever tolerated.
   const toleranceShoeIds = new Set<string>();
   if (roleRegistry && roleRegistry.size > 0 && finalShoes.length > 0) {
     const rejectedShoes = selectedShoes.filter(s => !finalShoes.some(f => f.id === s.id));
     for (const shoe of rejectedShoes) {
-      if (evaluatePackedItemTolerance(shoe, climateZone, presentation, roleRegistry)) {
+      if (evaluatePackedItemTolerance(shoe, climateZone, presentation, roleRegistry, activityProfile)) {
         finalShoes.push(shoe);
         toleranceShoeIds.add(shoe.id);
         if (__DEV__) {
-          console.log(`[TripCapsule][TOLERANCE] Reinsert ${shoe.name} (${shoe.id}) | penalized soft-fail for ${activity}`);
+          console.log(`[TripCapsule][TOLERANCE] Reinsert ${shoe.name} (${shoe.id}) | passed all hard gates for ${activity}`);
         }
       }
     }
@@ -3216,6 +3288,10 @@ function buildOutfitForActivity(
 
   // Hard validation gate: reject structurally incomplete outfits
   if (!hasCoreSlots(normalized, presentation)) {
+    const coreSlots = new Set(
+      normalized.map(i => CATEGORY_MAP[i.mainCategory] || 'other'),
+    );
+    if (!coreSlots.has('shoes')) shoelessRejects++;
     console.warn('[TripCapsule][CORE_REJECT]', {
       path: mode,
       dayIndex,
@@ -3354,8 +3430,10 @@ export function buildCapsule(
   explicitPresentation?: Presentation,
   styleHints?: TripStyleHints,
 ): TripCapsule {
-  // Reset trace collector for this build
+  // Reset trace collector and build warnings for this build
   if (TRIP_TRACE) tripTrace = [];
+  buildWarnings = [];
+  shoelessRejects = 0;
 
   const requestId = `trip_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const numDays = Math.max(weather.length, 1);
@@ -3629,14 +3707,17 @@ export function buildCapsule(
   }
 
   // Step 4: Select shoes
-  // Trip-wide climate gate: filter out open footwear in freezing/cold
+  // Trip-wide climate gate: filter out open footwear in freezing/cold (ABSOLUTE — no fail-open)
   const _anyDayColdOrFreezing = weather.some(d => d.lowF < 45);
   if (_anyDayColdOrFreezing) {
     const closedToe = buckets.shoes.filter(s => !isOpenFootwear(s));
-    if (closedToe.length > 0) {
-      buckets.shoes = closedToe;
+    buckets.shoes = closedToe;
+    if (closedToe.length === 0) {
+      buildWarnings.push({
+        code: 'CLIMATE_INCOMPATIBLE_FOOTWEAR',
+        message: 'All shoes are open-toed but trip includes cold/freezing days. Add closed-toe footwear.',
+      });
     }
-    // else fail-open: keep original pool
   }
   const maxShoes = numDays <= 5 ? 2 : 3;
   const selectedShoes = fillFootwearRoles(
@@ -3801,6 +3882,10 @@ export function buildCapsule(
     // Re-validate after dress strip — stripping may have broken core slots
     for (let i = outfits.length - 1; i >= 0; i--) {
       if (!hasCoreSlots(outfits[i].items, presentation)) {
+        const dressStripSlots = new Set(
+          outfits[i].items.map(item => CATEGORY_MAP[item.mainCategory] || 'other'),
+        );
+        if (!dressStripSlots.has('shoes')) shoelessRejects++;
         console.warn('[TripCapsule][CORE_REJECT]', {
           path: 'post_dress_strip',
           outfitId: outfits[i].id,
@@ -3993,6 +4078,10 @@ export function buildCapsule(
   // No outfit leaves buildCapsule without passing this gate.
   for (let i = outfits.length - 1; i >= 0; i--) {
     if (!isFinalOutfitValid(outfits[i].items, presentation)) {
+      const finalSlots = new Set(
+        outfits[i].items.map(item => CATEGORY_MAP[item.mainCategory] || 'other'),
+      );
+      if (!finalSlots.has('shoes')) shoelessRejects++;
       console.warn('[TripCapsule][FINAL_REJECT]', {
         dayIndex: i,
         activity: outfits[i].occasion,
@@ -4001,6 +4090,41 @@ export function buildCapsule(
         items: outfits[i].items.map(item => item.name),
       });
       outfits.splice(i, 1);
+    }
+  }
+  // OUTFIT_INCOMPLETE_SHOES: surface all shoeless rejections (CORE_REJECT + FINAL_REJECT)
+  if (shoelessRejects > 0) {
+    buildWarnings.push({
+      code: 'OUTFIT_INCOMPLETE_SHOES',
+      message: `${shoelessRejects} outfit(s) dropped — no shoes available for slot.`,
+    });
+  }
+
+  // THERMAL_INSUFFICIENCY: warn if cold/freezing trip and all packed tops or bottoms are minimal coverage
+  const hasColdDay = weather.some(d => {
+    const zone = deriveClimateZone(d);
+    return zone === 'cold' || zone === 'freezing';
+  });
+  if (hasColdDay && outfits.length > 0) {
+    const packedTopIds = new Set<string>();
+    const packedBottomIds = new Set<string>();
+    for (const outfit of outfits) {
+      for (const pi of outfit.items) {
+        const slot = CATEGORY_MAP[pi.mainCategory] || 'other';
+        if (slot === 'tops') packedTopIds.add(pi.wardrobeItemId);
+        if (slot === 'bottoms') packedBottomIds.add(pi.wardrobeItemId);
+      }
+    }
+    const packedTops = eligibleItems.filter(i => packedTopIds.has(i.id));
+    const packedBottoms = eligibleItems.filter(i => packedBottomIds.has(i.id));
+    const allTopsMinimal = packedTops.length > 0 && packedTops.every(t => inferGarmentFlags(t).isMinimalCoverage);
+    const allBottomsMinimal = packedBottoms.length > 0 && packedBottoms.every(b => inferGarmentFlags(b).isMinimalCoverage);
+    if (allTopsMinimal || allBottomsMinimal) {
+      const lacking = allTopsMinimal && allBottomsMinimal ? 'tops and bottoms' : allTopsMinimal ? 'tops' : 'bottoms';
+      buildWarnings.push({
+        code: 'THERMAL_INSUFFICIENCY',
+        message: `Trip includes cold/freezing days but all packed ${lacking} are minimal-coverage items.`,
+      });
     }
   }
 
@@ -4098,6 +4222,7 @@ export function buildCapsule(
     version: CAPSULE_VERSION,
     fingerprint,
     ...(tripBackupKit.length > 0 ? {tripBackupKit} : {}),
+    ...(buildWarnings.length > 0 ? {warnings: buildWarnings} : {}),
   };
 
   // Attach trace to result for external inspection

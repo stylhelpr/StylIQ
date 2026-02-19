@@ -553,8 +553,8 @@ describe('Global Climate Gating', () => {
   });
 
   // Additional: CAPSULE_VERSION bumped for final validation gate
-  it('CAPSULE_VERSION is 16 (context regression guard)', () => {
-    expect(CAPSULE_VERSION).toBe(16);
+  it('CAPSULE_VERSION is 20 (context regression guard)', () => {
+    expect(CAPSULE_VERSION).toBe(20);
   });
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -2014,7 +2014,7 @@ describe('Backup kit — two-tier fallback', () => {
     const lowFormalityItems: TripWardrobeItem[] = [
       makeWardrobeItem({id: 'x1', name: 'Item A', main_category: 'Tops', formalityScore: 20}),  // tier 0 → blocked
       makeWardrobeItem({id: 'x2', name: 'Item B', main_category: 'Shoes', formalityScore: 15}), // tier 0 → blocked
-      makeWardrobeItem({id: 'x3', name: 'Item C', main_category: 'Shoes', formalityScore: 10}), // tier 0 → blocked
+      makeWardrobeItem({id: 'x3', name: 'Item C', main_category: 'Shoes', formalityScore: 12}), // tier 0 → blocked (>10 avoids 0-10 normalization)
       makeWardrobeItem({id: 'x4', name: 'Item D', main_category: 'Tops', formalityScore: 60}),  // tier 2 → passes
       // No formalityScore → defaults to 30 → tier 1 → passes Business requiredTier 1
       makeWardrobeItem({id: 'x5', name: 'Unclassified Item', main_category: 'Tops'}),
@@ -2989,7 +2989,7 @@ describe('aestheticBonus', () => {
   const makeLookup = (items: TripWardrobeItem[]): Map<string, TripWardrobeItem> =>
     new Map(items.map(i => [i.id, i]));
 
-  it('returns within ±0.5 for all scenarios', () => {
+  it('returns within ±1.0 for all scenarios', () => {
     const candidate = makeWardrobeItem({id: 'c1', name: 'Red Top', color: 'red', main_category: 'Tops', subcategory: 'T-Shirt'});
     const existing: TripPackingItem[] = [
       makeItem({wardrobeItemId: 'e1', mainCategory: 'Bottoms', name: 'Purple Pants'}),
@@ -3001,18 +3001,18 @@ describe('aestheticBonus', () => {
     const lookup = makeLookup(pool);
 
     const result = aestheticBonus(candidate, existing, lookup);
-    expect(result).toBeGreaterThanOrEqual(-0.5);
-    expect(result).toBeLessThanOrEqual(0.5);
+    expect(result).toBeGreaterThanOrEqual(-1.0);
+    expect(result).toBeLessThanOrEqual(1.0);
   });
 
-  it('+0.3 bonus for neutral candidate color', () => {
+  it('+0.15 bonus for neutral candidate color', () => {
     const candidate = makeWardrobeItem({id: 'c1', name: 'Black Tee', color: 'black', main_category: 'Tops'});
     const lookup = makeLookup([candidate]);
     const result = aestheticBonus(candidate, [], lookup);
-    expect(result).toBe(0.3);
+    expect(result).toBe(0.15);
   });
 
-  it('-0.5 for bold-on-bold clash (red + purple)', () => {
+  it('-0.625 for bold-on-bold clash (red + purple)', () => {
     const candidate = makeWardrobeItem({id: 'c1', name: 'Red Top', color: 'red', main_category: 'Tops'});
     const existingItem = makeWardrobeItem({id: 'e1', name: 'Purple Pants', color: 'purple', main_category: 'Bottoms'});
     const existing: TripPackingItem[] = [
@@ -3021,10 +3021,10 @@ describe('aestheticBonus', () => {
     const lookup = makeLookup([candidate, existingItem]);
 
     const result = aestheticBonus(candidate, existing, lookup);
-    // red (bold) + purple (bold) = -0.5 for bold clash
+    // red (bold) + purple (bold) = -0.5 * WEIGHT_COLOR_HARMONY(1.25) = -0.625
     // red (warm) + purple (neither warm nor cool) = no warm/cool clash
-    // no neutral = no +0.3
-    expect(result).toBe(-0.5);
+    // no neutral = no +0.15
+    expect(result).toBe(-0.625);
   });
 
   it('-0.2 for same subcategory already in outfit', () => {
@@ -3036,8 +3036,8 @@ describe('aestheticBonus', () => {
     const lookup = makeLookup([candidate, existingItem]);
 
     const result = aestheticBonus(candidate, existing, lookup);
-    // navy = neutral (+0.3) + same subcategory (-0.2) = 0.1
-    expect(result).toBeCloseTo(0.1);
+    // navy = neutral (+0.15) + all-neutral penalty (-0.25 * 1.25) + same subcategory (-0.2) = -0.3625
+    expect(result).toBeCloseTo(-0.3625);
   });
 
   it('deterministic: same inputs produce identical results across runs', () => {
@@ -3144,8 +3144,8 @@ describe('Trips sandals-in-freezing regression', () => {
     expect(capsule.outfits.length).toBeGreaterThan(0);
   });
 
-  // ── Fail-open: only sandals in freezing ──
-  it('freezing + only sandals: capsule still builds (fail-open)', () => {
+  // ── Climate hardened: only sandals in freezing → warning, no sandals ──
+  it('freezing + only sandals: capsule builds WITHOUT sandals + emits warning', () => {
     const onlySandals: TripWardrobeItem[] = [
       makeWardrobeItem({id: 't1', name: 'T-Shirt', main_category: 'Tops'}),
       makeWardrobeItem({id: 'b1', name: 'Jeans', main_category: 'Bottoms'}),
@@ -3153,12 +3153,14 @@ describe('Trips sandals-in-freezing regression', () => {
       makeWardrobeItem({id: 'ow1', name: 'Puffer Jacket', main_category: 'Outerwear'}),
     ];
     const capsule = buildCapsule(onlySandals, freezingWeather, ['Casual'], 'Home');
-    expect(capsule.outfits.length).toBeGreaterThan(0);
-    // fail-open: sandals allowed when no closed-toe alternative exists
+    // Climate hardened: sandals NEVER allowed in freezing
     const allShoeNames = capsule.outfits.flatMap(o =>
       o.items.filter(i => i.mainCategory === 'Shoes').map(i => i.name),
     );
-    expect(allShoeNames).toContain('Leather Sandals');
+    expect(allShoeNames).not.toContain('Leather Sandals');
+    // Warning emitted for climate-incompatible footwear
+    expect(capsule.warnings).toBeDefined();
+    expect(capsule.warnings!.some(w => w.code === 'CLIMATE_INCOMPATIBLE_FOOTWEAR')).toBe(true);
   });
 
   // ── Multi-day mixed climate: trip-wide gate removes sandals for entire trip ──
@@ -3181,7 +3183,8 @@ describe('Trips sandals-in-freezing regression', () => {
     const femWardrobe: TripWardrobeItem[] = [
       makeWardrobeItem({id: 't1', name: 'Blouse', main_category: 'Tops', formalityScore: 60}),
       makeWardrobeItem({id: 'b1', name: 'Skirt', main_category: 'Skirts', formalityScore: 55}),
-      makeWardrobeItem({id: 's1', name: 'Ankle Boots', main_category: 'Shoes', subcategory: 'Boots', formalityScore: 70}),
+      // formalityScore 55 = tier 2 (smart) — compatible with daily/casual activity
+      makeWardrobeItem({id: 's1', name: 'Ankle Boots', main_category: 'Shoes', subcategory: 'Boots', formalityScore: 55}),
       makeWardrobeItem({id: 's2', name: 'Strappy Sandals', main_category: 'Shoes', subcategory: 'Sandals', formalityScore: 30}),
       makeWardrobeItem({id: 'ow1', name: 'Wool Coat', main_category: 'Outerwear'}),
     ];
@@ -3193,7 +3196,7 @@ describe('Trips sandals-in-freezing regression', () => {
     expect(allShoeNames.length).toBeGreaterThan(0);
   });
 
-  it('fallback path in freezing: only sandals => fail-open allows them', () => {
+  it('fallback path in freezing: only sandals => climate-hardened, no sandals + warning', () => {
     const femOnlySandals: TripWardrobeItem[] = [
       makeWardrobeItem({id: 't1', name: 'Blouse', main_category: 'Tops'}),
       makeWardrobeItem({id: 'b1', name: 'Skirt', main_category: 'Skirts'}),
@@ -3201,12 +3204,13 @@ describe('Trips sandals-in-freezing regression', () => {
       makeWardrobeItem({id: 'ow1', name: 'Wool Coat', main_category: 'Outerwear'}),
     ];
     const capsule = buildCapsule(femOnlySandals, freezingWeather, ['Casual'], 'Home', 'feminine');
-    expect(capsule.outfits.length).toBeGreaterThan(0);
     const allShoeNames = capsule.outfits.flatMap(o =>
       o.items.filter(i => i.mainCategory === 'Shoes').map(i => i.name),
     );
-    // fail-open: no closed-toe alternative => sandals allowed
-    expect(allShoeNames).toContain('Strappy Sandals');
+    // Climate hardened: sandals NEVER allowed in freezing, even as only shoe
+    expect(allShoeNames).not.toContain('Strappy Sandals');
+    expect(capsule.warnings).toBeDefined();
+    expect(capsule.warnings!.some(w => w.code === 'CLIMATE_INCOMPATIBLE_FOOTWEAR')).toBe(true);
   });
 });
 
@@ -3526,7 +3530,7 @@ describe('Canonical gate convergence', () => {
   it('B: backup pool never accepts items rejected by primary gate', () => {
     const sneaker: TripWardrobeItem = {
       id: 'snk1', name: 'Running Sneakers', main_category: 'Shoes',
-      subcategory: 'Sneakers', formalityScore: 10,
+      subcategory: 'Sneakers', formalityScore: 15,
     };
     const oxford: TripWardrobeItem = {
       id: 'ox1', name: 'Oxford Shoes', main_category: 'Shoes',
