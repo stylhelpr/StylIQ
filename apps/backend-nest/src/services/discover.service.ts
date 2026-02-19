@@ -3,6 +3,8 @@ import { createHash } from 'crypto';
 import { pool } from '../db/pool';
 import { getSecret, secretExists } from '../config/secrets';
 import { LearningEventsService } from '../learning/learning-events.service';
+import { FashionStateService } from '../learning/fashion-state.service';
+import type { FashionStateSummary } from '../learning/dto/fashion-state.dto';
 import { LEARNING_FLAGS } from '../config/feature-flags';
 
 interface UserProfile {
@@ -683,7 +685,10 @@ function validateSetCoherence(
 export class DiscoverService {
   private readonly log = new Logger(DiscoverService.name);
 
-  constructor(private readonly learningEvents: LearningEventsService) {}
+  constructor(
+    private readonly learningEvents: LearningEventsService,
+    private readonly fashionStateService: FashionStateService,
+  ) {}
 
   private get serpApiKey(): string | undefined {
     return secretExists('SERPAPI_KEY') ? getSecret('SERPAPI_KEY') : undefined;
@@ -843,21 +848,24 @@ export class DiscoverService {
     let learnedPrefs: LearnedPreferences;
     let ownedCategories: Map<string, number>;
     let shownProductIds: string[];
+    let fsSummary: FashionStateSummary | null = null;
 
     try {
-      // Gather all personalization signals
+      // Gather all personalization signals (fashion state is non-blocking)
       [
         profile,
         browserSignals,
         learnedPrefs,
         ownedCategories,
         shownProductIds,
+        fsSummary,
       ] = await Promise.all([
         this.getUserProfile(userId),
         this.getBrowserSignals(userId),
         this.getLearnedPreferences(userId),
         this.getOwnedCategories(userId),
         this.getShownProductIds(userId),
+        this.fashionStateService.getStateSummary(userId).catch(() => null),
       ]);
     } catch (err) {
       this.log.error(`Failed to gather profile data: ${err}`);
@@ -1367,8 +1375,23 @@ export class DiscoverService {
         penalty = brandSatPenalty(brandFreq01);
       }
 
+      // --- FASHION STATE AFFINITY BONUS (additive, bounded ±6, 0.7× no-double-count) ---
+      let fashionStateBonus = 0;
+      if (fsSummary && !fsSummary.isColdStart) {
+        let rawFsBonus = 0;
+        if (normBrand && fsSummary.topBrands.some(b => normalize(b) === normBrand)) rawFsBonus += 3;
+        if (normBrand && fsSummary.avoidBrands.some(b => normalize(b) === normBrand)) rawFsBonus -= 3;
+        const enrichedC = normalize(p.enriched_color || '');
+        if (enrichedC && fsSummary.topColors.some(c => normalize(c) === enrichedC)) rawFsBonus += 2;
+        if (enrichedC && fsSummary.avoidColors.some(c => normalize(c) === enrichedC)) rawFsBonus -= 2;
+        if (fsSummary.topStyles && fsSummary.topStyles.some(s => normProductText.includes(normalize(s)))) rawFsBonus += 1;
+        if (fsSummary.avoidStyles && fsSummary.avoidStyles.some(s => normProductText.includes(normalize(s)))) rawFsBonus -= 1;
+        // 0.7 multiplier: legacy user_pref_feature already provides partial overlap
+        fashionStateBonus = Math.max(-6, Math.min(6, +(rawFsBonus * 0.7).toFixed(2)));
+      }
+
       // Weighted score: brand(7, tier-adjusted, max 10) + behavior(3) + gap(clamped) + style(16) + color(10)
-      //   + fit(4) + elevation(5) + styleDepth(3) + authority(-2..+3) - negativePenalty(4) - brandSatPenalty + basicDamp(-2) + fitConflict(-12)
+      //   + fit(4) + elevation(5) + styleDepth(3) + authority(-2..+3) - negativePenalty(4) - brandSatPenalty + basicDamp(-2) + fitConflict(-12) + fashionState(±6)
       const score =
         brandContribution +
         (3  * behavior01) +
@@ -1382,7 +1405,8 @@ export class DiscoverService {
         penalty -
         negativePenalty +
         basicDampener +
-        fitConflictPenalty;
+        fitConflictPenalty +
+        fashionStateBonus;
 
       breakdown.brand = +brandContribution.toFixed(2);
       breakdown.behavior = +(3 * behavior01).toFixed(2);
@@ -1398,6 +1422,7 @@ export class DiscoverService {
       breakdown.basicDamp = basicDampener;
       breakdown.authority = brandAuthority;
       (breakdown as any).fitConflict = fitConflictPenalty;
+      (breakdown as any).fashionState = fashionStateBonus;
 
       // --- EXPLANATION LAYER: build match reasons (literal tokens only) ---
       const reasons: string[] = [];
@@ -1412,6 +1437,8 @@ export class DiscoverService {
       if (adjustedGapBonus > 0) reasons.push(`Fills wardrobe gap: ${inferredCategory}`);
       if (fitConflictPenalty < 0) reasons.push('Fit conflict: oversized/boxy vs slim preference');
       if (elevation01 > 0) reasons.push('Elevated piece: premium materials');
+      if (fashionStateBonus > 0) reasons.push('Learned preference match');
+      if (fashionStateBonus < 0) reasons.push('Learned preference conflict');
       if (reasons.length === 0) reasons.push('General style match');
 
       if (DEBUG_RECOMMENDED_BUYS) {

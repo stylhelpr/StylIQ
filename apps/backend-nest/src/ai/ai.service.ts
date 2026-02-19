@@ -3059,6 +3059,24 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
         // Weather fetch for chat failed silently
       }
 
+    // --- LEARNED PREFERENCES (fashion state, compact, max ~80 tokens, fail-open) ---
+    let learnedPrefsContext = '';
+    if (this.fashionStateService && user_id) {
+      try {
+        const fsSummary = await this.fashionStateService.getStateSummary(user_id);
+        if (fsSummary && !fsSummary.isColdStart) {
+          const parts: string[] = [];
+          if (fsSummary.topBrands.length) parts.push(`Brands: ${fsSummary.topBrands.slice(0, 3).join(', ')}`);
+          if (fsSummary.topColors.length) parts.push(`Colors: ${fsSummary.topColors.slice(0, 3).join(', ')}`);
+          if (fsSummary.topStyles.length) parts.push(`Styles: ${fsSummary.topStyles.slice(0, 3).join(', ')}`);
+          if (fsSummary.avoidStyles?.length) parts.push(`Avoid: ${fsSummary.avoidStyles.slice(0, 2).join(', ')}`);
+          if (parts.length) {
+            learnedPrefsContext = `\n\nLEARNED PREFERENCES (from behavior):\n${parts.join(' | ')}`;
+          }
+        }
+      } catch { /* fail-open: skip learned prefs on any error */ }
+    }
+
     // Combine all context into enhanced summary
     const fullContext =
       (longTermSummary || '(no prior memory yet)') +
@@ -3075,7 +3093,8 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
       itemPrefsContext +
       lookMemoriesContext +
       notificationsContext +
-      weatherContext;
+      weatherContext +
+      learnedPrefsContext;
 
     console.log(
       `🔍 [Ask Styla] context: styleProfile=${styleProfileContext ? 'YES' : 'NO'} | ` +
