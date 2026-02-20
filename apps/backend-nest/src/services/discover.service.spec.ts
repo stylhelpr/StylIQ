@@ -59,3 +59,23 @@ describe('Deterministic ranking: normalize + scoring is stable', () => {
     expect(run1).toEqual(run2);
   });
 });
+
+// ── Tier 4 integration: module imports work ─────────────────────────
+
+describe('Tier 4 integration: discover-veto module', () => {
+  it('is importable and exports applyDiscoverVeto', () => {
+    const veto = require('./discover-veto');
+    expect(typeof veto.applyDiscoverVeto).toBe('function');
+    expect(typeof veto.inferProductFormality).toBe('function');
+    expect(typeof veto.FORMALITY_RANK_MAP).toBe('object');
+    expect(typeof veto.normalizeForVeto).toBe('function');
+  });
+});
+
+describe('Tier 4 integration: discover-curator module', () => {
+  it('is importable and exports computeCuratorSignals', () => {
+    const curator = require('./discover-curator');
+    expect(typeof curator.computeCuratorSignals).toBe('function');
+    expect(typeof curator.classifyColorFamily).toBe('function');
+  });
+});
