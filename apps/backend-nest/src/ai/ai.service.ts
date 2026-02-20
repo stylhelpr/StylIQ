@@ -51,6 +51,15 @@ import {
   isStylingResponse,
   type ChatAvoidLists,
 } from './chatTier4';
+import {
+  detectRelevantCategory,
+  detectFormalityAnchor,
+  buildShortlist,
+  formatShortlistForPrompt,
+  buildLuxuryStylistPrompt,
+  validateReasoningQuality,
+  REASONING_CORRECTION,
+} from './chatTier4Reasoning';
 import { isOccasionAppropriate, getOccasionRejectionReason } from './occasionFilter';
 import { FashionStateService } from '../learning/fashion-state.service';
 import { LearningEventsService } from '../learning/learning-events.service';
@@ -2725,9 +2734,10 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
 
     /* 👔 --- LOAD WARDROBE ITEMS FOR CHAT CONTEXT (WITH SPECIFIC ITEM DETAILS) --- */
     let wardrobeContext = '';
+    let wardrobeRows: any[] = [];
     if (contextNeeds.wardrobe)
       try {
-        const { rows: wardrobeRows } = await pool.query(
+        ({ rows: wardrobeRows } = await pool.query(
           `SELECT name, main_category, subcategory, color, material, brand, fit,
                  pattern, occasion_tags, dress_code, formality_score,
                  seasonality, layering, color_family,
@@ -2737,7 +2747,7 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
          ORDER BY created_at DESC
          LIMIT 100`,
           [user_id],
-        );
+        ));
         if (wardrobeRows.length > 0) {
           // Tier 4: build allowed wardrobe name set for hallucination guard
           for (const item of wardrobeRows) {
@@ -2812,6 +2822,19 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
       } catch (err: any) {
         console.warn('⚠️ failed to load wardrobe items for chat:', err.message);
       }
+
+    // ── Tier 4 Reasoning: Pre-LLM Shortlist (Ask Styla only) ──
+    const detectedCategory = contextNeeds.wardrobe ? detectRelevantCategory(lastUserMsg) : null;
+    const formalityAnchor = detectFormalityAnchor(lastUserMsg);
+    const shortlist = wardrobeRows.length > 0
+      ? buildShortlist(wardrobeRows, chatAvoidLists, detectedCategory, formalityAnchor)
+      : [];
+    const useShortlist = shortlist.length > 0 && contextNeeds.wardrobe;
+    let shortlistContext = '';
+    if (useShortlist) {
+      shortlistContext = formatShortlistForPrompt(shortlist);
+      console.log(`[AskStyla T4 Reasoning] shortlist: ${shortlist.length} items, category=${detectedCategory}, formality=${formalityAnchor}`);
+    }
 
     /* ⭐ --- LOAD SAVED LOOKS FOR CHAT CONTEXT --- */
     let savedLooksContext = '';
@@ -3228,13 +3251,10 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
     );
 
     // 1️⃣ Generate base text with OpenAI
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4o',
-      temperature: 0.8,
-      messages: [
-        {
-          role: 'system',
-          content: `
+    // Tier 4 Reasoning: Use luxury stylist prompt when shortlist is active
+    const systemContent = useShortlist
+      ? buildLuxuryStylistPrompt(shortlistContext, styleProfileContext, fullContext)
+      : `
 You are a world-class personal fashion stylist with FULL ACCESS to the user's personal data.
 
 YOU HAVE COMPLETE ACCESS TO ALL OF THIS USER DATA:
@@ -3272,7 +3292,15 @@ Respond naturally about outfits, wardrobe planning, or styling using ONLY the us
 
 At the end, return a short JSON block like:
 {"search_terms":["smart casual men","navy blazer outfit","loafers"]}
-        `,
+        `;
+
+    const completion = await this.openai.chat.completions.create({
+      model: 'gpt-4o',
+      temperature: useShortlist ? 0.6 : 0.8,
+      messages: [
+        {
+          role: 'system',
+          content: systemContent,
         },
         ...messages,
       ],
@@ -3366,6 +3394,35 @@ At the end, return a short JSON block like:
     } catch (validationErr: any) {
       // Fail-open: never block the response
       console.warn(`[AskStyla T4] validation error: ${validationErr.message}`);
+    }
+
+    // ── Tier 4 Reasoning: Quality validation (shortlist queries only) ──
+    if (useShortlist && isStylingResponse(aiReply)) {
+      try {
+        const shortlistNames = shortlist.map(i => (i.name || '').trim().toLowerCase());
+        const reasoningOk = validateReasoningQuality(aiReply, shortlistNames);
+        if (!reasoningOk) {
+          console.log('[AskStyla T4 Reasoning] quality check failed, regenerating once');
+          const retryCompletion = await this.openai.chat.completions.create({
+            model: 'gpt-4o',
+            temperature: 0.5,
+            messages: [
+              { role: 'system', content: systemContent + '\n\n' + REASONING_CORRECTION },
+              ...messages,
+            ],
+          });
+          const retryReply = retryCompletion.choices[0]?.message?.content?.trim();
+          if (retryReply) {
+            aiReply = retryReply;
+            console.log('[AskStyla T4 Reasoning] quality retry complete');
+          }
+        } else {
+          console.log('[AskStyla T4 Reasoning] quality check passed');
+        }
+      } catch (reasoningErr: any) {
+        // Fail-open: never block the response
+        console.warn(`[AskStyla T4 Reasoning] quality validation error: ${reasoningErr.message}`);
+      }
     }
 
     // 2️⃣ Extract search terms if model provided them
