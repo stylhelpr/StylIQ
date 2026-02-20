@@ -6,6 +6,7 @@ import { LearningEventsService } from '../learning/learning-events.service';
 import { FashionStateService } from '../learning/fashion-state.service';
 import type { FashionStateSummary } from '../learning/dto/fashion-state.dto';
 import { LEARNING_FLAGS } from '../config/feature-flags';
+import { applyDiscoverVeto, type VetoProfile, type VetoResult } from './discover-veto';
 
 interface UserProfile {
   gender: string | null;
@@ -976,16 +977,23 @@ export class DiscoverService {
 
     console.log('🔥 ENTERING SCORING BLOCK 🔥', { candidateCount: allProducts.length });
 
-    // --- Stage 1c: Hard Veto Filter (constraint-first enforcement) ---
+    // --- Stage 1c: Hard Veto Filter (Tier 4 — uses discover-veto.ts) ---
     const vetoCtx = buildVetoCtx(profile);
-    const vetoStats = { avoidColor: 0, avoidMaterial: 0, avoidPattern: 0, disliked: 0, fitVeto: 0 };
-    const vetoPassed: any[] = [];
 
-    // Pre-compute fit veto gate: does the user prefer slim/tailored?
-    const userPrefersSlimVeto = profile.fit_preferences.some(f => {
-      const n = normalize(f);
-      return n === 'slim' || n === 'tailored' || n === 'fitted';
-    });
+    const vetoProfile: VetoProfile = {
+      avoidColors: vetoCtx.avoidColorsSet,
+      avoidMaterials: vetoCtx.avoidMaterialsSet,
+      avoidPatterns: vetoCtx.avoidPatternsSet,
+      dislikedStyles: vetoCtx.dislikedStylesSet,
+      fitPreferences: profile.fit_preferences,
+      coverageNoGo: profile.coverage_no_go,
+      walkabilityRequirement: profile.walkability_requirement,
+      formalityFloor: profile.formality_floor,
+      climate: profile.climate,
+    };
+
+    const vetoStats = { avoidColor: 0, avoidMaterial: 0, avoidPattern: 0, disliked: 0, fitVeto: 0, coverage: 0, walkability: 0, formality: 0, climate: 0, materialMix: 0 };
+    const vetoPassed: any[] = [];
 
     for (const raw of allProducts) {
       const textParts: string[] = [
@@ -995,28 +1003,25 @@ export class DiscoverService {
       const blob = normalize(textParts.join(' '));
       const enrichedColor = raw.enriched_color ? normalize(raw.enriched_color) : '';
 
-      let vetoed = false;
+      const vetoResult: VetoResult = applyDiscoverVeto(
+        { title: raw.title || '', blob, enrichedColor, price: raw.extracted_price ?? null, brand: raw.source ?? null },
+        vetoProfile,
+      );
 
-      // Fit hard veto: immediately reject loose-fit items when user prefers slim
-      if (userPrefersSlimVeto) {
-        for (const t of LOOSE_FIT_TOKENS) {
-          if (blob.includes(t)) { vetoStats.fitVeto++; vetoed = true; break; }
-        }
+      if (vetoResult.vetoed) {
+        const ruleKey = (vetoResult.rule || '').replace('VETO_', '').toLowerCase();
+        const statMap: Record<string, keyof typeof vetoStats> = {
+          color: 'avoidColor', material: 'avoidMaterial', pattern: 'avoidPattern',
+          disliked: 'disliked', fit: 'fitVeto', coverage: 'coverage',
+          walkability: 'walkability', formality: 'formality', climate: 'climate',
+          material_mix: 'materialMix',
+        };
+        const statKey = statMap[ruleKey];
+        if (statKey) vetoStats[statKey]++;
+        continue;
       }
 
-      if (!vetoed) for (const c of vetoCtx.avoidColorsSet) {
-        if (enrichedColor === c || wordBoundaryMatch(blob, c)) { vetoStats.avoidColor++; vetoed = true; break; }
-      }
-      if (!vetoed) for (const m of vetoCtx.avoidMaterialsSet) {
-        if (wordBoundaryMatch(blob, m)) { vetoStats.avoidMaterial++; vetoed = true; break; }
-      }
-      if (!vetoed) for (const p of vetoCtx.avoidPatternsSet) {
-        if (wordBoundaryMatch(blob, p)) { vetoStats.avoidPattern++; vetoed = true; break; }
-      }
-      if (!vetoed) for (const s of vetoCtx.dislikedStylesSet) {
-        if (wordBoundaryMatch(blob, s)) { vetoStats.disliked++; vetoed = true; break; }
-      }
-      if (!vetoed) vetoPassed.push(raw);
+      vetoPassed.push(raw);
     }
 
     if (DEBUG_RECOMMENDED_BUYS) {
