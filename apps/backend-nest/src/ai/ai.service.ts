@@ -42,6 +42,15 @@ import {
   expandStylistAvoidColors,
 } from './stylistQualityGate';
 import { isStylisticallyIncoherent } from './styleVeto';
+import {
+  routeContextNeeds,
+  scanChatForViolations,
+  scanForWardrobeHallucinations,
+  buildCorrectionPrompt,
+  buildCorrectionNote,
+  isStylingResponse,
+  type ChatAvoidLists,
+} from './chatTier4';
 import { isOccasionAppropriate, getOccasionRejectionReason } from './occasionFilter';
 import { FashionStateService } from '../learning/fashion-state.service';
 import { LearningEventsService } from '../learning/learning-events.service';
@@ -673,7 +682,7 @@ Return format:
     let profileCtx = '';
     try {
       const res = await pool.query(
-        `SELECT favorite_colors, fit_preferences, preferred_brands, disliked_styles,
+        `SELECT color_preferences AS favorite_colors, fit_preferences, preferred_brands, disliked_styles,
                 coverage_no_go, avoid_colors, avoid_materials,
                 formality_floor, walkability_requirement
        FROM style_profiles WHERE user_id::text = $1 LIMIT 1`,
@@ -1295,7 +1304,7 @@ ${(() => {
     skin_tone,
     undertone,
     climate,
-    favorite_colors,
+    color_preferences AS favorite_colors,
     disliked_styles,
     style_keywords,
     preferred_brands,
@@ -2286,6 +2295,76 @@ ${climateNote}
       throw new Error('No user message provided');
     }
 
+    /* 🔍 --- PHASE 0: Deterministic Inventory Short-Circuit (Tier 4.5) --- */
+    const inventoryPatterns = [
+      /^do i (have|own)\b/i,
+      /^what (do )?i (have|own)\b/i,
+      /^any\b.*\b(in my (closet|wardrobe))?\s*\??$/i,
+      /^is there\b.*\b(in my (closet|wardrobe))?\s*\??$/i,
+    ];
+    const isInventoryQuery = inventoryPatterns.some((p) => p.test(lastUserMsg.trim()));
+    if (isInventoryQuery) {
+      // Extract search phrase: strip intent prefix and trailing punctuation
+      const searchRaw = lastUserMsg
+        .replace(/^(do i (have|own)|what (do )?i (have|own)|any|is there)\s*/i, '')
+        .replace(/\b(in my (closet|wardrobe))\s*/i, '')
+        .replace(/[?.!]+$/, '')
+        .trim()
+        .toLowerCase();
+      // Simple plural normalization (hoodies→hoodie, pants stays pants, dresses→dress)
+      const searchPhrase = searchRaw
+        .replace(/ies$/, 'ie')       // hoodies → hoodie
+        .replace(/([^s])ses$/, '$1se') // dresses → dress (preserve trailing e)
+        .replace(/([^s])s$/, '$1');    // jackets → jacket (but not "pants")
+      console.log(`[AskStyla T4] inventory intent detected: "${searchPhrase}"`);
+
+      try {
+        const { rows: invRows } = await pool.query(
+          `SELECT name FROM wardrobe_items WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100`,
+          [user_id],
+        );
+        if (invRows.length > 0) {
+          const searchTokens = searchPhrase.split(/\s+/).filter((t) => t.length > 2);
+          const matches = invRows.filter((r) => {
+            const nameLower = (r.name || '').toLowerCase();
+            // Full phrase match
+            if (nameLower.includes(searchPhrase)) return true;
+            // Token match: require at least 1 meaningful token
+            return searchTokens.length > 0 && searchTokens.some((t) => nameLower.includes(t));
+          });
+          console.log(`[AskStyla T4] inventory matches: ${JSON.stringify(matches.map((m) => m.name))}`);
+
+          let reply: string;
+          if (matches.length > 0) {
+            const list = matches.map((m) => `  • ${m.name}`).join('\n');
+            reply = `Yes — you have the following:\n\n${list}`;
+          } else {
+            reply = `I don't see any items matching "${searchPhrase}" in your wardrobe.`;
+          }
+
+          // Save user message + assistant reply
+          try {
+            await pool.query(
+              `INSERT INTO chat_messages (user_id, role, content) VALUES ($1,$2,$3)`,
+              [user_id, 'user', lastUserMsg],
+            );
+            await pool.query(
+              `INSERT INTO chat_messages (user_id, role, content) VALUES ($1,$2,$3)`,
+              [user_id, 'assistant', reply],
+            );
+          } catch (err: any) {
+            console.warn('⚠️ inventory short-circuit: failed to save messages:', err.message);
+          }
+
+          return { reply, images: [], links: [] };
+        }
+        // No wardrobe items at all → fall through to normal GPT flow
+        console.log('[AskStyla T4] inventory: no wardrobe items, falling through to GPT');
+      } catch (err: any) {
+        console.warn('[AskStyla T4] inventory query failed, falling through to GPT:', err.message);
+      }
+    }
+
     /* 🎯 --- SMART CONTEXT: Classify query to load only relevant data --- */
     const contextNeeds = {
       memory: true, // always load chat history
@@ -2303,6 +2382,15 @@ ${climateNote}
       notifications: false,
       weather: false,
     };
+
+    // ── Tier 4: Deterministic routing (forces needs BEFORE classifier) ──
+    const forcedNeeds = routeContextNeeds(lastUserMsg);
+    for (const key of forcedNeeds) {
+      if (key in contextNeeds) (contextNeeds as any)[key] = true;
+    }
+    if (forcedNeeds.length > 0) {
+      console.log(`[AskStyla T4] deterministic routing forced: ${JSON.stringify(forcedNeeds)}`);
+    }
 
     try {
       const classifyRes = await this.openai.chat.completions.create({
@@ -2335,6 +2423,9 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
       });
 
       console.log(`[AskStyla Debug] classifier needs: ${JSON.stringify(needs)}, styleProfile=${contextNeeds.styleProfile}`);
+      if (forcedNeeds.length > 0) {
+        console.log(`[AskStyla T4] merged needs — rule: ${JSON.stringify(forcedNeeds)}, classifier: ${JSON.stringify(needs)}`);
+      }
       // ✅ Force-enable weather context if location or weather was passed
       if (dto.lat || dto.lon || dto.weather) {
         contextNeeds.weather = true;
@@ -2468,12 +2559,22 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
         );
       }
 
+    // ── Tier 4: Hoist avoid-lists + wardrobe names for post-LLM validation ──
+    let chatAvoidLists: ChatAvoidLists = {
+      avoidColors: [], avoidMaterials: [], avoidPatterns: [], coverageNoGo: [],
+    };
+    const wardrobeItemNames = new Set<string>();
+
     /* 👗 --- LOAD STYLE PROFILE FOR CHAT CONTEXT --- */
     let styleProfileContext = '';
     if (contextNeeds.styleProfile)
       try {
+        const CHAT_STYLE_PROFILE_COLUMNS = STYLE_PROFILE_COLUMNS.replace(
+          'favorite_colors',
+          'color_preferences AS favorite_colors',
+        );
         const { rows: styleRows } = await pool.query(
-          `SELECT ${STYLE_PROFILE_COLUMNS}, style_keywords, goals
+          `SELECT ${CHAT_STYLE_PROFILE_COLUMNS}, goals
          FROM style_profiles
          WHERE user_id = $1
          LIMIT 1`,
@@ -2525,6 +2626,15 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
           const coverageNoGo = pgArr(sp.coverage_no_go);
           const avoidColors = pgArr(sp.avoid_colors);
           const avoidMaterials = pgArr(sp.avoid_materials);
+          const avoidPatterns = pgArr(sp.avoid_patterns);
+          // Tier 4: populate outer-scope avoid lists for post-LLM validation
+          chatAvoidLists = { avoidColors, avoidMaterials, avoidPatterns, coverageNoGo };
+          console.log('[AskStyla T4 DEBUG] styleProfile loaded:', {
+            avoid_colors: chatAvoidLists.avoidColors,
+            avoid_materials: chatAvoidLists.avoidMaterials,
+            avoid_patterns: chatAvoidLists.avoidPatterns,
+            coverage_no_go: chatAvoidLists.coverageNoGo,
+          });
           if (coverageNoGo.length > 0)
             parts.push(
               `HARD RULE — Coverage restrictions: ${coverageNoGo.join(', ')}`,
@@ -2609,6 +2719,7 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
           }
         }
       } catch (err: any) {
+        console.log('[AskStyla T4 DEBUG] styleProfile FAILED to load');
         console.warn('⚠️ failed to load style profile for chat:', err.message);
       }
 
@@ -2628,6 +2739,10 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
           [user_id],
         );
         if (wardrobeRows.length > 0) {
+          // Tier 4: build allowed wardrobe name set for hallucination guard
+          for (const item of wardrobeRows) {
+            if (item.name) wardrobeItemNames.add(item.name.trim().toLowerCase());
+          }
           const grouped: Record<string, any[]> = {};
           for (const item of wardrobeRows) {
             const cat = item.main_category || 'Other';
@@ -2688,9 +2803,11 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
 - "works with your [fit] [COLOR] [ITEM]"
 NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
 
-          // console.log(
-          //   `👔 Chat: Loaded ${wardrobeRows.length} wardrobe items from ${Object.keys(grouped).length} categories`,
-          // );
+          console.log('[AskStyla T4 DEBUG] wardrobe rows count:', wardrobeRows.length);
+          console.log('[AskStyla T4 DEBUG] wardrobe item names:', wardrobeRows.map(r => r.name));
+          console.log('[AskStyla T4 DEBUG] wardrobe context preview START');
+          console.log(wardrobeContext.slice(0, 1500));
+          console.log('[AskStyla T4 DEBUG] wardrobe context preview END');
         }
       } catch (err: any) {
         console.warn('⚠️ failed to load wardrobe items for chat:', err.message);
@@ -3161,9 +3278,95 @@ At the end, return a short JSON block like:
       ],
     });
 
-    const aiReply =
+    let aiReply =
       completion.choices[0]?.message?.content?.trim() ||
       'Styled response unavailable.';
+
+    // ── Tier 4: Post-LLM avoid-list validation + wardrobe hallucination guard ──
+    try {
+      console.log('[AskStyla T4 DEBUG] validation starting');
+      const hasAvoidLists = chatAvoidLists.avoidColors.length > 0
+        || chatAvoidLists.avoidMaterials.length > 0
+        || chatAvoidLists.avoidPatterns.length > 0
+        || chatAvoidLists.coverageNoGo.length > 0;
+      let allViolations: import('./chatTier4').ChatViolation[] = [];
+
+      // 2A: Avoid-list scan
+      if (hasAvoidLists && isStylingResponse(aiReply)) {
+        allViolations = scanChatForViolations(aiReply, chatAvoidLists);
+      }
+
+      // 2B: Wardrobe hallucination scan
+      if (wardrobeItemNames.size > 0 && isStylingResponse(aiReply)) {
+        const hallucinations = scanForWardrobeHallucinations(aiReply, wardrobeItemNames);
+        if (hallucinations.length > 0) {
+          console.log(`[AskStyla T4] wardrobe hallucination: ${JSON.stringify(hallucinations.map(v => v.term))} not in allowed set`);
+          allViolations = [...allViolations, ...hallucinations];
+        }
+      }
+
+      console.log('[AskStyla T4 DEBUG] violations:', allViolations);
+
+      if (allViolations.length > 0) {
+        console.log(`[AskStyla T4] violations found: ${JSON.stringify(allViolations.map(v => ({ type: v.type, term: v.term })))}`);
+
+        // Exactly ONE regeneration attempt
+        let retried = false;
+        if (!retried) {
+          retried = true;
+          console.log('[AskStyla T4 DEBUG] regeneration triggered');
+          try {
+            const correctionPrompt = buildCorrectionPrompt(allViolations);
+            const retryCompletion = await this.openai.chat.completions.create({
+              model: 'gpt-4o',
+              temperature: 0.6,
+              messages: [
+                {
+                  role: 'system',
+                  content: `
+You are a world-class personal fashion stylist with FULL ACCESS to the user's personal data.
+
+YOU HAVE COMPLETE ACCESS TO ALL OF THIS USER DATA:
+${fullContext}
+${correctionPrompt}
+
+At the end, return a short JSON block like:
+{"search_terms":["smart casual men","navy blazer outfit","loafers"]}
+                  `,
+                },
+                ...messages,
+              ],
+            });
+            const retryReply = retryCompletion.choices[0]?.message?.content?.trim() || '';
+
+            if (retryReply) {
+              const retryAvoidViolations = hasAvoidLists ? scanChatForViolations(retryReply, chatAvoidLists) : [];
+              const retryHallucinations = wardrobeItemNames.size > 0 ? scanForWardrobeHallucinations(retryReply, wardrobeItemNames) : [];
+              const retryViolations = [...retryAvoidViolations, ...retryHallucinations];
+
+              if (retryViolations.length === 0) {
+                aiReply = retryReply;
+                console.log('[AskStyla T4] regeneration succeeded — violations cleared');
+              } else {
+                aiReply = retryReply + buildCorrectionNote(retryViolations);
+                console.log(`[AskStyla T4] regeneration still has ${retryViolations.length} violations — appending note`);
+              }
+            }
+          } catch (retryErr: any) {
+            console.warn(`[AskStyla T4] regeneration failed, using original: ${retryErr.message}`);
+            aiReply = aiReply + buildCorrectionNote(allViolations);
+          }
+          console.log('[AskStyla T4 DEBUG] regeneration complete');
+        }
+      } else if (
+        (hasAvoidLists || wardrobeItemNames.size > 0) && isStylingResponse(aiReply)
+      ) {
+        console.log('[AskStyla T4] validation clean');
+      }
+    } catch (validationErr: any) {
+      // Fail-open: never block the response
+      console.warn(`[AskStyla T4] validation error: ${validationErr.message}`);
+    }
 
     // 2️⃣ Extract search terms if model provided them
     let searchTerms: string[] = [];
