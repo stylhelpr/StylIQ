@@ -58,6 +58,7 @@ export type StyleContext = {
   styleProfile?: {
     fit_preferences: string[];
     fabric_preferences: string[];
+    favorite_colors?: string[];
     style_preferences?: string[];
     disliked_styles?: string[];
     // P0/P1 profile-driven scoring
@@ -112,6 +113,7 @@ export function scoreOutfit(
   env: EliteEnv,
 ): OutfitScore {
   let score = 0;
+  let learningScore = 0; // Tracks learning-derived contributions for clamping
   const flags: string[] = [];
   let signalsAvailable = 0;
   let signalsUsed = 0;
@@ -132,10 +134,12 @@ export function scoreOutfit(
         const brandLower = brand.toLowerCase();
         if (topBrands.some((b) => b.toLowerCase() === brandLower)) {
           score += 10;
+          learningScore += 10;
           brandFired = true;
         }
         if (avoidBrands.some((b) => b.toLowerCase() === brandLower)) {
           score -= 15;
+          learningScore -= 15;
           brandFired = true;
         }
       }
@@ -159,16 +163,39 @@ export function scoreOutfit(
         if (!itemColor) continue;
         if (topColors.some((c) => colorMatches(itemColor, c))) {
           score += 5;
+          learningScore += 5;
           colorFired = true;
         }
         if (avoidColors.some((c) => colorMatches(itemColor, c))) {
           score -= 8;
+          learningScore -= 8;
           colorFired = true;
         }
       }
       if (colorFired) {
         signalsUsed++;
         flags.push('color');
+      }
+    }
+  }
+
+  // ── Favorite color boost (profile-driven, additive) ──
+  {
+    const favColors = ctx.styleProfile?.favorite_colors ?? [];
+    if (favColors.length > 0) {
+      signalsAvailable++;
+      let favFired = false;
+      for (const item of outfit.items) {
+        const itemColor = (item as any).color as string | undefined;
+        if (!itemColor) continue;
+        if (favColors.some((c) => colorMatches(itemColor, c))) {
+          score += 5;
+          favFired = true;
+        }
+      }
+      if (favFired) {
+        signalsUsed++;
+        flags.push('favorite_color');
       }
     }
   }
@@ -218,10 +245,12 @@ export function scoreOutfit(
           const tLower = token.toLowerCase();
           if (topLower.includes(tLower)) {
             score += 5;
+            learningScore += 5;
             styleFired = true;
           }
           if (avoidLower.includes(tLower)) {
             score -= 8;
+            learningScore -= 8;
             styleFired = true;
           }
         }
@@ -601,6 +630,10 @@ export function scoreOutfit(
     }
   }
 
+  // Clamp learning-derived contribution to prevent runaway influence
+  const clampedLearning = Math.max(-20, Math.min(20, learningScore));
+  score = score - learningScore + clampedLearning;
+
   const confidence = signalsAvailable > 0 ? signalsUsed / signalsAvailable : 0;
 
   return { score, confidence, flags };
@@ -645,6 +678,7 @@ export function elitePostProcessOutfits<T>(
   const STYLE_FLAGS = [
     'brand',
     'color',
+    'favorite_color',
     'category',
     'style',
     'formality',

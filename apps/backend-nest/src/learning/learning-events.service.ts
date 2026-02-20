@@ -48,6 +48,16 @@ export class LearningEventsService {
       return;
     }
 
+    // Skip zero-weight exposure/impression events (DB constraint rejects weight=0)
+    if (input.signalWeight === 0 && input.signalPolarity === 0) {
+      if (process.env.LEARNING_DEBUG === 'true') {
+        this.logger.warn(
+          `[LearningEvents] Skipping zero-weight exposure event: ${input.eventType}`,
+        );
+      }
+      return;
+    }
+
     // Circuit breaker check (production only)
     if (process.env.NODE_ENV === 'production' && this.circuitOpen) {
       if (

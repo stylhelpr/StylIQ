@@ -4,6 +4,7 @@ import { RemoveFavoriteDto } from './dto/remove-favorite.dto';
 import { pool } from '../db/pool';
 import { LearningEventsService } from '../learning/learning-events.service';
 import { LEARNING_FLAGS } from '../config/feature-flags';
+import { extractOutfitFeatures } from '../learning/extract-outfit-features';
 
 @Injectable()
 export class OutfitFavoritesService {
@@ -30,18 +31,20 @@ export class OutfitFavoritesService {
 
       // Emit OUTFIT_FAVORITED learning event
       if (LEARNING_FLAGS.EVENTS_ENABLED) {
-        this.learningEvents
-          .logEvent({
-            userId: user_id,
-            eventType: 'OUTFIT_FAVORITED',
-            entityType: 'outfit',
-            entityId: outfit_id,
-            signalPolarity: 1,
-            signalWeight: 0.3,
-            extractedFeatures: {},
-            sourceFeature: 'outfits',
-            clientEventId: `outfit_favorited:${user_id}:${outfit_id}`,
-          })
+        extractOutfitFeatures(outfit_id)
+          .then((features) =>
+            this.learningEvents.logEvent({
+              userId: user_id,
+              eventType: 'OUTFIT_FAVORITED',
+              entityType: 'outfit',
+              entityId: outfit_id,
+              signalPolarity: 1,
+              signalWeight: 0.3,
+              extractedFeatures: features,
+              sourceFeature: 'outfits',
+              clientEventId: `outfit_favorited:${user_id}:${outfit_id}`,
+            }),
+          )
           .catch(() => {});
       }
 
@@ -73,18 +76,20 @@ export class OutfitFavoritesService {
 
     // Emit OUTFIT_UNFAVORITED learning event
     if (LEARNING_FLAGS.EVENTS_ENABLED) {
-      this.learningEvents
-        .logEvent({
-          userId: user_id,
-          eventType: 'OUTFIT_UNFAVORITED',
-          entityType: 'outfit',
-          entityId: outfit_id,
-          signalPolarity: -1,
-          signalWeight: 0.2,
-          extractedFeatures: {},
-          sourceFeature: 'outfits',
-          clientEventId: `outfit_unfavorited:${user_id}:${outfit_id}`,
-        })
+      extractOutfitFeatures(outfit_id)
+        .then((features) =>
+          this.learningEvents.logEvent({
+            userId: user_id,
+            eventType: 'OUTFIT_UNFAVORITED',
+            entityType: 'outfit',
+            entityId: outfit_id,
+            signalPolarity: -1,
+            signalWeight: 0.2,
+            extractedFeatures: features,
+            sourceFeature: 'outfits',
+            clientEventId: `outfit_unfavorited:${user_id}:${outfit_id}`,
+          }),
+        )
         .catch(() => {});
     }
 

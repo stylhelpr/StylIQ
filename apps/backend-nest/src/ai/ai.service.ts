@@ -35,6 +35,12 @@ import {
 } from './elite/tasteValidator';
 import type { StylistBrainContext } from './elite/stylistBrain';
 import { selectTopOutfits, scoreOutfit } from './styleJudge';
+import {
+  selectTopOutfitsWithQualityFloor,
+  applyStylistProfileEnhancements,
+  filterWardrobeForStylist,
+  expandStylistAvoidColors,
+} from './stylistQualityGate';
 import { isStylisticallyIncoherent } from './styleVeto';
 import { isOccasionAppropriate, getOccasionRejectionReason } from './occasionFilter';
 import { FashionStateService } from '../learning/fashion-state.service';
@@ -3758,7 +3764,7 @@ Preferences: ${JSON.stringify(preferences || {})}
     // Build wardrobe summary with IDs for AI to reference
     // Blended ranking: weather relevance (0.6) + feedback preference (0.4)
     // Weather hard filter preserved: items below -5 still excluded
-    const wardrobeSummary = llmWardrobe
+    const _blendedItems = llmWardrobe
       .filter((item) => item.image_url || item.image)
       .filter((item) => item.__weatherScore >= -5) // hard weather filter preserved
       .map((item) => {
@@ -3773,19 +3779,24 @@ Preferences: ${JSON.stringify(preferences || {})}
         return { ...item, feedbackScore, __blendedScore: blendedScore };
       })
       // Sort by blended score (weather + feedback) — best contextual fit first
-      .sort((a, b) => b.__blendedScore - a.__blendedScore)
-      .slice(0, 50) // Limit to prevent token overflow
+      .sort((a, b) => b.__blendedScore - a.__blendedScore);
+
+    // 🎯 LEARNING FILTER: Hard-exclude disliked items, guarantee-include favorites
+    const { filtered: _learningFiltered, vetoIds: _stylistVetoIds } =
+      filterWardrobeForStylist(_blendedItems, feedbackContext.itemScores);
+
+    const wardrobeSummary = _learningFiltered
       .map((item) => ({
         id: item.id,
-        name: item.name || item.ai_title || 'Unnamed item',
-        category: item.main_category || item.category || 'unknown',
-        color: item.color || item.dominant_hex || 'unknown',
-        style: item.style_descriptors?.join(', ') || '',
+        name: (item as any).name || (item as any).ai_title || 'Unnamed item',
+        category: (item as any).main_category || (item as any).category || 'unknown',
+        color: (item as any).color || (item as any).dominant_hex || 'unknown',
+        style: (item as any).style_descriptors?.join(', ') || '',
         // Include preference indicator for AI context
         preference:
-          item.feedbackScore > 0
+          (item as any).feedbackScore > 0
             ? 'liked'
-            : item.feedbackScore < 0
+            : (item as any).feedbackScore < 0
               ? 'avoid'
               : undefined,
       }));
@@ -4123,10 +4134,12 @@ All items in a single outfit must feel coherent in social context.
         lines.push(
           `HARD RULE — Coverage restrictions (NEVER include items violating these): ${sp.coverage_no_go.join(', ')}`,
         );
-      if (sp.avoid_colors.length > 0)
+      if (sp.avoid_colors.length > 0) {
+        const _expandedPromptAvoid = expandStylistAvoidColors(sp.avoid_colors);
         lines.push(
-          `HARD RULE — NEVER use these colors: ${sp.avoid_colors.join(', ')}`,
+          `HARD RULE — NEVER use these colors (or any shade/variant): ${_expandedPromptAvoid.join(', ')}`,
         );
+      }
       if (sp.avoid_materials.length > 0)
         lines.push(
           `HARD RULE — NEVER use these materials: ${sp.avoid_materials.join(', ')}`,
@@ -4208,7 +4221,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
     const completion = await this.openai.chat.completions.create({
       model: 'gpt-4o',
-      temperature: 0.2, // Lower temperature for deterministic, conservative outputs
+      temperature: 0, // Deterministic: variety via visualExclusionCache, not randomness
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -4324,6 +4337,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     // Build category pools — weather-aware with tiered fallback
     const buildPoolAtThreshold = (cat: string, minScore: number) =>
       availableWardrobe
+        .filter((item) => !_stylistVetoIds.has(item.id)) // hard veto propagation
         .filter(
           (item) =>
             this.mapToCategory(item.main_category || item.category) === cat,
@@ -4753,7 +4767,9 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     if (candidateOutfits.length < _POOL_TARGET) {
       // Pre-filter wardrobe items by avoid_colors so synthetics are born valid
       const _synAvoidRaw = (brainCtx as any)?.styleProfile?.avoid_colors ?? [];
-      const _synExpanded = _synAvoidRaw.length > 0 ? expandAvoidColors(_synAvoidRaw) : [];
+      const _synExpanded = _synAvoidRaw.length > 0
+        ? [...new Set([...expandAvoidColors(_synAvoidRaw), ...expandStylistAvoidColors(_synAvoidRaw)])]
+        : [];
       const _synItemHasAvoidedColor = (item: any): boolean => {
         if (_synExpanded.length === 0) return false;
         const colors: string[] = [];
@@ -4777,6 +4793,8 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       const _bySlot: Record<string, any[]> = {};
       const _bySlotFull: Record<string, CompositionItem[]> = {};
       for (const item of availableWardrobe) {
+        // Skip vetoed items (hard-excluded disliked items)
+        if (_stylistVetoIds.has(item.id)) continue;
         // Skip items whose colors match avoid list
         if (_synItemHasAvoidedColor(item)) continue;
         const cat = this.mapToCategory(item.main_category || item.category);
@@ -5082,6 +5100,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         if (clashingEntry) {
           const replacements = [...availableWardrobe]
             .filter((w) => {
+              if (_stylistVetoIds.has(w.id)) return false; // hard veto propagation
               if (w.id === clashingEntry.item.id) return false;
               if (
                 this.mapToCategory(w.main_category || w.category) !==
@@ -5653,6 +5672,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         ? {
             fit_preferences: brainCtx.styleProfile.fit_preferences,
             fabric_preferences: brainCtx.styleProfile.fabric_preferences,
+            favorite_colors: brainCtx.styleProfile.favorite_colors,
             style_preferences: brainCtx.styleProfile.style_preferences,
             disliked_styles: brainCtx.styleProfile.disliked_styles,
             avoid_colors: brainCtx.styleProfile.avoid_colors,
@@ -5908,9 +5928,12 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       outerwear: 'outerwear', dresses: 'dress',
       accessories: 'accessory', activewear: 'activewear', swimwear: 'swimwear',
     };
-    const _avoidExpRepair = expandAvoidColors(
-      validatorCtx?.styleProfile?.avoid_colors ?? [],
-    );
+    const _avoidExpRepair = [
+      ...new Set([
+        ...expandAvoidColors(validatorCtx?.styleProfile?.avoid_colors ?? []),
+        ...expandStylistAvoidColors(validatorCtx?.styleProfile?.avoid_colors ?? []),
+      ]),
+    ];
     let _numRepairedViaSwap = 0;
 
     const repairedPool: any[] = [];
@@ -6170,6 +6193,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
       const _bySlot: Record<string, any[]> = {};
       for (const item of availableWardrobe) {
+        if (_stylistVetoIds.has(item.id)) continue; // hard veto propagation
         if (_itemHasAvoidColor(item)) continue;
         const cat = this.mapToCategory(item.main_category || item.category);
         if (!_bySlot[cat]) _bySlot[cat] = [];
@@ -6271,7 +6295,12 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     // ── AVOID_COLOR FINAL GUARD: deterministic post-repair filter ──
     const _avoidColorList = validatorCtx.styleProfile?.avoid_colors;
     if (_avoidColorList && _avoidColorList.length > 0) {
-      const _expanded = expandAvoidColors(_avoidColorList);
+      const _expanded = [
+        ...new Set([
+          ...expandAvoidColors(_avoidColorList),
+          ...expandStylistAvoidColors(_avoidColorList),
+        ]),
+      ];
 
       const _outfitHasAvoidedColor = (outfit: any): boolean => {
         for (const it of outfit.items ?? []) {
@@ -6368,8 +6397,13 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     const _rtAvoid = Array.from(
       new Set(_rtAvoidRaw.map(_rtNorm).filter(Boolean)),
     );
-    // Use expanded avoid list for return-time guard (same synonyms as validator)
-    const _rtExpandedAvoid = expandAvoidColors(_rtAvoid);
+    // Use expanded avoid list for return-time guard (synonyms + color families)
+    const _rtExpandedAvoid = [
+      ...new Set([
+        ...expandAvoidColors(_rtAvoid),
+        ...expandStylistAvoidColors(_rtAvoid),
+      ]),
+    ];
     const _rtHasAvoid = (outfit: any): boolean => {
       const items = Array.isArray(outfit?.items) ? outfit.items : [];
       for (const it of items) {
@@ -6489,22 +6523,35 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       eliteOutfits = _coherentStylist;
     }
 
-    // ── Style Judge: curate best outfits by holistic taste scoring ──
+    // ── Quality Floor: curate best outfits by holistic taste scoring + profile delta ──
     const _judgeCtxStylist = {
       requestedDressCode: validatorCtx?.requestedDressCode,
       query: constraint,
     };
     const _candidateCountStylist = eliteOutfits.length;
-    eliteOutfits = selectTopOutfits(eliteOutfits, _judgeCtxStylist);
+    eliteOutfits = selectTopOutfitsWithQualityFloor(
+      eliteOutfits,
+      _judgeCtxStylist,
+      (outfit) => applyStylistProfileEnhancements(outfit, brainCtx.styleProfile),
+    );
+    // Regen debug tag
+    if (constraint) {
+      console.log(
+        JSON.stringify({
+          _tag: 'STYLIST_REGEN_GUARD_USED',
+          reason: constraint,
+          regenCount: _candidateCountStylist,
+          shippedCount: eliteOutfits.length,
+        }),
+      );
+    }
     console.log(
       JSON.stringify({
         _tag: 'STUDIO_FINAL_CURATION_PROOF',
         mode: 'stylist',
         candidateCount: _candidateCountStylist,
         returnedCount: eliteOutfits.length,
-        topScores: eliteOutfits.map((o: any) =>
-          (scoreOutfit as any)(o, _judgeCtxStylist).total,
-        ),
+        topScores: eliteOutfits.map((o: any) => o.qualityScore ?? (scoreOutfit as any)(o, _judgeCtxStylist).total),
       }),
     );
 
@@ -6595,10 +6642,80 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       );
     }
 
-    // ── TITLE NORMALIZATION: ensure every outfit has a title for frontend ──
-    for (const outfit of eliteOutfits) {
-      if (!outfit.title) {
-        outfit.title = outfit.summary?.slice(0, 80) || 'Styled for You';
+    // ── TITLE HARDENING: enforce max 60 chars, no sentence leakage ──
+    {
+      const _leakyPatterns = /[.!?]|\bfor the\b|\bbecause\b|\bwhich\b|\bthat\b/i;
+      const _weatherLabel = (t: number | undefined) => {
+        if (t == null) return '';
+        if (t < 50) return 'Cold-Weather';
+        if (t < 65) return 'Cool-Weather';
+        if (t < 80) return 'Mild-Weather';
+        return 'Warm-Weather';
+      };
+      const _dominantSlot = (o: any): string => {
+        const items = (o.items || []).filter(Boolean);
+        const _n = (i: any) => ((i.name ?? '') as string).toLowerCase();
+        const _c = (i: any) => ((i.category ?? i.main_category ?? '') as string).toLowerCase();
+        const _s = (i: any) => ((i.subcategory ?? '') as string).toLowerCase();
+        const _m = (i: any) => ((i.material ?? '') as string).toLowerCase();
+
+        if (items.some((i: any) => _c(i) === 'outerwear')) return 'Layered Look';
+        if (items.some((i: any) => _s(i).includes('blazer') || _s(i).includes('jacket') || _n(i).includes('blazer'))) return 'Tailoring';
+        if (items.some((i: any) => _c(i) === 'dresses' || _c(i) === 'dress')) return 'Ensemble';
+        if (items.some((i: any) => (_c(i) === 'bottoms' || _c(i) === 'pants') && (_n(i).includes('denim') || _n(i).includes('jean') || _s(i).includes('jean') || _m(i).includes('denim')))) return 'Denim';
+        if (items.some((i: any) => (_c(i) === 'tops' || _c(i) === 'top') && (_n(i).includes('knit') || _n(i).includes('sweater') || _s(i).includes('knit') || _s(i).includes('sweater') || _m(i).includes('knit')))) return 'Knit Ensemble';
+        return 'Polished Look';
+      };
+
+      for (const outfit of eliteOutfits) {
+        const original = (outfit.title || '').trim();
+        const originalLength = original.length;
+        let title = original;
+
+        // If no title, or title leaks explanation text, or exceeds 60 chars → fix
+        if (!title || title.length > 60 || _leakyPatterns.test(title)) {
+          if (title && title.length > 0) {
+            // Deterministic truncation: first 6 words, capitalize, trim partials
+            const words = title.replace(/[.!?,;:]+$/g, '').split(/\s+/).slice(0, 6);
+            title = words.join(' ');
+            // Remove trailing partial words (under 3 chars) from truncation
+            if (title.length > 60) {
+              const trimWords = title.split(/\s+/);
+              while (trimWords.length > 1 && trimWords.join(' ').length > 60) {
+                trimWords.pop();
+              }
+              title = trimWords.join(' ');
+            }
+          }
+          // Still bad or empty → construct deterministic fallback
+          if (!title || title.length < 3 || title.length > 60 || _leakyPatterns.test(title)) {
+            const wLabel = _weatherLabel(temp);
+            const slot = _dominantSlot(outfit);
+            title = wLabel ? `Refined ${wLabel} ${slot}` : `Curated ${slot}`;
+            console.log(JSON.stringify({ _tag: 'STYLIST_TITLE_CONTEXTUALIZED', descriptor: slot }));
+          }
+        }
+
+        // Strip trailing punctuation
+        title = title.replace(/[.!?,;:]+$/g, '').trim();
+
+        // Guarantee title !== explanation
+        if (title === (outfit.summary || '').trim()) {
+          const wLabel = _weatherLabel(temp);
+          const slot = _dominantSlot(outfit);
+          title = wLabel ? `Refined ${wLabel} ${slot}` : `Curated ${slot}`;
+          console.log(JSON.stringify({ _tag: 'STYLIST_TITLE_CONTEXTUALIZED', descriptor: slot }));
+        }
+
+        outfit.title = title;
+
+        console.log(
+          JSON.stringify({
+            _tag: 'STYLIST_TITLE_HARDENED',
+            originalLength,
+            finalLength: title.length,
+          }),
+        );
       }
     }
 

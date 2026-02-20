@@ -259,6 +259,37 @@ const AiStylistSuggestions: React.FC<Props> = ({
     return aiData.outfits[activeOutfitIndex] || null;
   };
 
+  // Emit a learning signal from home actions (fire-and-forget)
+  const emitHomeSignal = (
+    eventType: string,
+    entityId?: string,
+    features?: Record<string, any>,
+  ) => {
+    if (!contextUUID) return;
+    getAccessToken()
+      .then(token =>
+        fetch(`${API_BASE_URL}/outfit/home-signal`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            event_type: eventType,
+            entity_id: entityId,
+            extracted_features: features,
+          }),
+        }),
+      )
+      .catch(() => {});
+  };
+
+  // Build extracted features from local outfit items (no extra API call)
+  const buildOutfitFeatures = (items: OutfitItem[]) => ({
+    item_ids: items.map(i => i.id),
+    categories: items.map(i => i.category),
+  });
+
   // ============================================
   // Visual Outfit Components (inline)
   // ============================================
@@ -484,6 +515,11 @@ const AiStylistSuggestions: React.FC<Props> = ({
       // Silent fail - swap still works locally
     });
 
+    // Emit learning signal for manual item swap
+    emitHomeSignal('SLOT_OVERRIDE', undefined, {
+      categories: [swappingCategory],
+    });
+
     setShowSwapPicker(false);
     setSwappingCategory(null);
     setSwapPickerCategory(null);
@@ -545,6 +581,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
       // Invalidate saved-outfits cache so SavedOutfitsScreen refreshes
       queryClient.invalidateQueries({queryKey: ['saved-outfits', contextUUID]});
+
+      // Emit learning signal for outfit saved from home
+      emitHomeSignal(
+        'OUTFIT_SAVED_FROM_HOME',
+        currentOutfit.id,
+        buildOutfitFeatures(items),
+      );
 
       Alert.alert('Saved!', 'Outfit added to your Saved Outfits.', [
         {text: 'View Saved', onPress: () => navigate('SavedOutfits', {})},
@@ -981,6 +1024,12 @@ const AiStylistSuggestions: React.FC<Props> = ({
       if (!res.ok) throw new Error('Failed to swap item');
       const data: AiSuggestionData = await res.json();
 
+      // Emit learning signal for tweak/constraint
+      emitHomeSignal('STYLE_CONSTRAINT_SIGNAL', undefined, {
+        tags: [`swap ${category}`],
+        categories: [category],
+      });
+
       // Update UI with new data
       setAiData(data);
       setActiveOutfitIndex(0);
@@ -1372,7 +1421,17 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
           {/* 💬 Suggestion Card ( c zone) */}
           <SwipeableCard
-            onSwipeLeft={() => fetchSuggestion('manual')}
+            onSwipeLeft={() => {
+              const dismissed = getCurrentOutfit();
+              if (dismissed) {
+                emitHomeSignal(
+                  'ITEM_EXPLICITLY_DISMISSED',
+                  dismissed.id,
+                  buildOutfitFeatures(dismissed.items),
+                );
+              }
+              fetchSuggestion('manual');
+            }}
             onSwipeRight={() => {
               const currentOutfit = getCurrentOutfit();
               navigate('Outfit', {

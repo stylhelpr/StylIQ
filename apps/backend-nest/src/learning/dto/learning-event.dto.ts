@@ -21,7 +21,10 @@ export type LearningEventType =
   | 'POST_SAVED'
   | 'POST_DISMISSED'
   | 'ITEM_EXPLICITLY_DISMISSED'
-  | 'ELITE_SUGGESTION_SERVED';
+  | 'ELITE_SUGGESTION_SERVED'
+  | 'OUTFIT_SAVED_FROM_HOME'
+  | 'SLOT_OVERRIDE'
+  | 'STYLE_CONSTRAINT_SIGNAL';
 
 /**
  * Entity types that can be the subject of learning events.
@@ -131,4 +134,7 @@ export const EVENT_SIGNAL_DEFAULTS: Record<
   POST_DISMISSED: { polarity: -1, weight: 0.2 },
   ITEM_EXPLICITLY_DISMISSED: { polarity: -1, weight: 0.4 },
   ELITE_SUGGESTION_SERVED: { polarity: 0, weight: 0 },
+  OUTFIT_SAVED_FROM_HOME: { polarity: 1, weight: 0.5 },
+  SLOT_OVERRIDE: { polarity: 1, weight: 0.3 },
+  STYLE_CONSTRAINT_SIGNAL: { polarity: 1, weight: 0.3 },
 };

@@ -5,6 +5,7 @@ import { FavoriteOutfitDto } from './dto/favorite-outfit.dto';
 import { pool } from '../db/pool';
 import { LearningEventsService } from '../learning/learning-events.service';
 import { LEARNING_FLAGS } from '../config/feature-flags';
+import { extractOutfitFeatures } from '../learning/extract-outfit-features';
 
 @Injectable()
 export class OutfitService {
@@ -145,20 +146,22 @@ export class OutfitService {
       const isNegative = rating <= 2;
 
       if (isPositive || isNegative) {
-        this.learningEvents
-          .logEvent({
-            userId: user_id,
-            eventType: isPositive
-              ? 'OUTFIT_RATED_POSITIVE'
-              : 'OUTFIT_RATED_NEGATIVE',
-            entityType: 'outfit',
-            entityId: outfit_id,
-            signalPolarity: isPositive ? 1 : -1,
-            signalWeight: 0.6,
-            extractedFeatures: {},
-            sourceFeature: 'outfits',
-            clientEventId: `outfit_rated:${user_id}:${outfit_id}:${rating}`,
-          })
+        extractOutfitFeatures(outfit_id)
+          .then((features) =>
+            this.learningEvents.logEvent({
+              userId: user_id,
+              eventType: isPositive
+                ? 'OUTFIT_RATED_POSITIVE'
+                : 'OUTFIT_RATED_NEGATIVE',
+              entityType: 'outfit',
+              entityId: outfit_id,
+              signalPolarity: isPositive ? 1 : -1,
+              signalWeight: 0.6,
+              extractedFeatures: features,
+              sourceFeature: 'outfits',
+              clientEventId: `outfit_rated:${user_id}:${outfit_id}:${rating}`,
+            }),
+          )
           .catch(() => {});
       }
     }
@@ -521,18 +524,20 @@ export class OutfitService {
     // Emit OUTFIT_WORN learning event
     if (LEARNING_FLAGS.EVENTS_ENABLED) {
       const today = new Date().toISOString().split('T')[0];
-      this.learningEvents
-        .logEvent({
-          userId,
-          eventType: 'OUTFIT_WORN',
-          entityType: 'outfit',
-          entityId: outfitId,
-          signalPolarity: 1,
-          signalWeight: 0.6,
-          extractedFeatures: {},
-          sourceFeature: 'calendar',
-          clientEventId: `outfit_worn:${userId}:${outfitId}:${today}`,
-        })
+      extractOutfitFeatures(outfitId)
+        .then((features) =>
+          this.learningEvents.logEvent({
+            userId,
+            eventType: 'OUTFIT_WORN',
+            entityType: 'outfit',
+            entityId: outfitId,
+            signalPolarity: 1,
+            signalWeight: 0.6,
+            extractedFeatures: features,
+            sourceFeature: 'calendar',
+            clientEventId: `outfit_worn:${userId}:${outfitId}:${today}`,
+          }),
+        )
         .catch(() => {});
     }
 

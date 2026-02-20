@@ -137,25 +137,35 @@ export default function OutfitFeedbackModal({
     )
       return;
 
-    const payload = {
-      user_id: userId,
-      outfit_id: outfitId ?? requestId ?? 'active',
-      rating: feedbackData.feedback, // 'like' | 'dislike'
-      item_ids: outfitItemIds, // simple per-item learning
-      notes: feedbackData.reason || undefined,
-      // request_id: requestId,                // uncomment if your backend accepts it
-      // tags: feedbackData.tags,              // uncomment if your backend accepts it
-    };
+    const numericRating = feedbackData.feedback === 'like' ? 5 : 1;
 
+    // Primary: learning-aware endpoint
     try {
-      await fetch(`${apiBaseUrl}/feedback/rate`, {
+      await fetch(`${apiBaseUrl}/outfit/feedback`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          outfit_id: outfitId ?? requestId ?? 'active',
+          rating: numericRating,
+          notes: feedbackData.reason || undefined,
+        }),
       });
     } catch (e) {
-      console.warn('Feedback POST failed:', e);
+      console.warn('Outfit feedback POST failed:', e);
     }
+
+    // Legacy bridge: fire-and-forget to /feedback/rate
+    fetch(`${apiBaseUrl}/feedback/rate`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        user_id: userId,
+        outfit_id: outfitId ?? requestId ?? 'active',
+        rating: feedbackData.feedback,
+        item_ids: outfitItemIds,
+        notes: feedbackData.reason || undefined,
+      }),
+    }).catch(() => {});
   };
 
   const handleDone = async () => {
