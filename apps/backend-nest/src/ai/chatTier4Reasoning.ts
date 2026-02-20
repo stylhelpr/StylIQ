@@ -162,7 +162,7 @@ export function buildLuxuryStylistPrompt(
   styleProfileContext: string,
   fullContext: string,
 ): string {
-  return `You are a luxury AI stylist.
+  return `You are a clinical luxury style intelligence.
 
 STYLE PROFILE DATA:
 ${styleProfileContext || '(no style profile available)'}
@@ -178,15 +178,18 @@ YOU MUST:
 2. Evaluate ONLY the shortlisted wardrobe items above.
 3. Choose EXACTLY ONE primary item from the shortlist.
 4. Justify your recommendation using ALL of the following:
-   - Body type structural logic (how the item's silhouette works with their body shape)
-   - Undertone color harmony logic (how the color complements their skin tone and undertone)
-   - Formality and authority logic (how the piece projects the desired level of presence)
-   - Goal alignment logic (how it serves what they want to achieve)
+   - Body type: explain the structural mechanism (shoulder width creation, vertical line control, waist definition, silhouette hierarchy)
+   - Undertone: explain contrast or tonal depth (saturation control, warmth balance, authority signaling)
+   - Formality: how the construction and fabric project the desired presence
+   - Goal alignment: how the piece serves the stated objective
+5. Briefly imply why competing shortlist options were not selected — without listing all items.
 
 RULES:
-- No fluff adjectives or retail marketing language.
+- BANNED WORDS: sleek, sophisticated, elegant, excellent choice, impactful, harmonious, stunning, gorgeous, fabulous, chic, lovely, beautiful, perfect, amazing, wonderful. Never use these.
+- Use decisive language. Use structural and color-theory terms only.
+- No lifestyle-blog tone. No filler adjectives. No retail marketing language.
 - No invented items — use EXACT wardrobe item names only.
-- Under 150 words.
+- Under 140 words.
 - Output must be a clean paragraph. Do not reveal reasoning steps as bullet points.
 
 At the end, return a short JSON block like:
@@ -195,13 +198,20 @@ At the end, return a short JSON block like:
 
 // ── 1e. Reasoning Quality Validator ─────────────────────────────────────
 
-const REASONING_TOKENS = [
-  'rectangle', 'structure', 'silhouette', 'olive', 'undertone',
-  'authority', 'formality', 'hourglass', 'pear', 'apple',
-  'inverted', 'warm', 'cool', 'neutral', 'proportion',
-  'elongat', 'define', 'balance', 'skin tone', 'color harmony',
-  'body type', 'body shape', 'drape', 'frame', 'presence',
-  'tailor', 'project', 'complement',
+const REQUIRED_MECHANISM_TOKENS = [
+  'shoulder', 'vertical', 'waist', 'proportion', 'hierarchy',
+  'taper', 'structure', 'frame', 'saturation', 'contrast',
+  'warmth', 'authority',
+];
+
+const CONTRAST_CLAUSE_INDICATORS = [
+  'lacks', 'does not provide', 'less structured', 'weaker option', 'compared to',
+];
+
+const BANNED_WORDS = [
+  'sleek', 'sophisticated', 'elegant', 'excellent choice', 'impactful',
+  'harmonious', 'stunning', 'gorgeous', 'fabulous', 'chic',
+  'lovely', 'beautiful', 'perfect', 'amazing', 'wonderful',
 ];
 
 export function validateReasoningQuality(
@@ -210,16 +220,26 @@ export function validateReasoningQuality(
 ): boolean {
   const lower = response.toLowerCase();
 
-  // Must reference at least 1 shortlist item by name
+  // A) Must reference at least 1 shortlist item by name
   const hasItemRef = shortlistNames.some(name =>
-    name.length >= 3 && lower.includes(name),
+    name.length >= 3 && lower.includes(name.toLowerCase()),
   );
   if (!hasItemRef) return false;
 
-  // Must use at least 2 reasoning tokens
-  const tokenHits = REASONING_TOKENS.filter(t => lower.includes(t)).length;
-  return tokenHits >= 2;
+  // B) Must use at least 3 mechanism tokens
+  const tokenHits = REQUIRED_MECHANISM_TOKENS.filter(t => lower.includes(t)).length;
+  if (tokenHits < 3) return false;
+
+  // C) Must include at least 1 contrast clause indicator
+  const hasContrast = CONTRAST_CLAUSE_INDICATORS.some(c => lower.includes(c));
+  if (!hasContrast) return false;
+
+  // D) Must NOT contain any banned words
+  const hasBanned = BANNED_WORDS.some(b => lower.includes(b));
+  if (hasBanned) return false;
+
+  return true;
 }
 
 export const REASONING_CORRECTION =
-  'You did not apply body type, undertone, or authority logic. Correct this. Your response MUST reference the specific item by name, explain how it works with the user\'s body type and silhouette, how the color complements their undertone, and how it projects authority or serves their stated goal. Under 150 words, clean paragraph.';
+  'You failed to apply structural mechanism reasoning. Use explicit silhouette mechanics (shoulder width creation, vertical line control, waist definition, proportion control, tonal saturation logic) and briefly contrast against other shortlist options. No lifestyle tone. No banned adjectives.';

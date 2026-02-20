@@ -245,38 +245,43 @@ describe('formatShortlistForPrompt', () => {
 // ── validateReasoningQuality ──────────────────────────────────────────────
 
 describe('validateReasoningQuality', () => {
-  it('passes when item name and 2+ reasoning tokens present', () => {
-    const response = 'The black blazer creates a strong silhouette that complements your body type and projects authority.';
+  it('passes a clinical structural response with contrast', () => {
+    const response = 'The black blazer widens the shoulder frame, creating vertical proportion and hierarchy. The charcoal saturation controls warmth against your undertone. The navy option lacks this structure compared to the blazer.';
     expect(validateReasoningQuality(response, ['black blazer'])).toBe(true);
   });
 
   it('fails when no item name referenced', () => {
-    const response = 'This piece creates a strong silhouette that projects authority.';
+    const response = 'This piece widens the shoulder frame with vertical proportion and authority. The other option lacks structure.';
     expect(validateReasoningQuality(response, ['black blazer'])).toBe(false);
   });
 
-  it('fails when fewer than 2 reasoning tokens', () => {
-    const response = 'The black blazer is a great choice for you.';
+  it('fails when fewer than 3 mechanism tokens', () => {
+    const response = 'The black blazer has good structure. The other lacks this quality.';
     expect(validateReasoningQuality(response, ['black blazer'])).toBe(false);
   });
 
-  it('passes with body type + undertone tokens', () => {
-    const response = 'The navy coat works beautifully with your warm undertone and rectangle body type, defining your frame.';
-    expect(validateReasoningQuality(response, ['navy coat'])).toBe(true);
+  it('fails a blog-style response', () => {
+    const response = 'The black blazer is a stunning and sophisticated choice that looks gorgeous on you. It pairs beautifully with everything in your wardrobe.';
+    expect(validateReasoningQuality(response, ['black blazer'])).toBe(false);
   });
 
-  it('is case-insensitive', () => {
-    const response = 'The BLACK BLAZER projects Authority and Structure.';
+  it('fails when response contains banned words even with mechanism tokens', () => {
+    const response = 'The black blazer creates elegant shoulder proportion and vertical hierarchy with saturation contrast. The other option lacks this authority.';
+    expect(validateReasoningQuality(response, ['black blazer'])).toBe(false);
+  });
+
+  it('fails when missing contrast clause', () => {
+    const response = 'The black blazer widens the shoulder frame, creating vertical proportion and hierarchy. The charcoal saturation controls warmth and authority.';
+    expect(validateReasoningQuality(response, ['black blazer'])).toBe(false);
+  });
+
+  it('is case-insensitive for item names and tokens', () => {
+    const response = 'The BLACK BLAZER builds Shoulder width and Vertical proportion with Hierarchy. Saturation anchors Authority. The navy option lacks this Structure.';
     expect(validateReasoningQuality(response, ['black blazer'])).toBe(true);
   });
 
-  it('handles partial token matches like "elongat" → "elongating"', () => {
-    const response = 'The tailored jacket has an elongating effect that complements your silhouette.';
-    expect(validateReasoningQuality(response, ['tailored jacket'])).toBe(true);
-  });
-
   it('skips very short item names (<3 chars)', () => {
-    const response = 'The is nice with good structure and silhouette.';
+    const response = 'The is nice with shoulder vertical waist proportion. Lacks structure.';
     expect(validateReasoningQuality(response, ['is'])).toBe(false);
   });
 });
@@ -284,15 +289,15 @@ describe('validateReasoningQuality', () => {
 // ── REASONING_CORRECTION constant ─────────────────────────────────────────
 
 describe('REASONING_CORRECTION', () => {
-  it('contains body type reference', () => {
-    expect(REASONING_CORRECTION).toContain('body type');
+  it('contains structural mechanism reference', () => {
+    expect(REASONING_CORRECTION).toContain('structural mechanism');
   });
 
-  it('contains undertone reference', () => {
-    expect(REASONING_CORRECTION).toContain('undertone');
+  it('contains silhouette mechanics reference', () => {
+    expect(REASONING_CORRECTION).toContain('silhouette mechanics');
   });
 
-  it('contains authority reference', () => {
-    expect(REASONING_CORRECTION).toContain('authority');
+  it('contains contrast instruction', () => {
+    expect(REASONING_CORRECTION).toContain('contrast against other shortlist');
   });
 });

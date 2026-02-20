@@ -49,6 +49,7 @@ import {
   buildCorrectionPrompt,
   buildCorrectionNote,
   isStylingResponse,
+  expandAvoidColorsLite,
   type ChatAvoidLists,
 } from './chatTier4';
 import {
@@ -3252,7 +3253,7 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
 
     // 1️⃣ Generate base text with OpenAI
     // Tier 4 Reasoning: Use luxury stylist prompt when shortlist is active
-    const systemContent = useShortlist
+    let systemContent = useShortlist
       ? buildLuxuryStylistPrompt(shortlistContext, styleProfileContext, fullContext)
       : `
 You are a world-class personal fashion stylist with FULL ACCESS to the user's personal data.
@@ -3293,6 +3294,32 @@ Respond naturally about outfits, wardrobe planning, or styling using ONLY the us
 At the end, return a short JSON block like:
 {"search_terms":["smart casual men","navy blazer outfit","loafers"]}
         `;
+
+    // Tier 4: Inject explicit avoid-list validation rules into system prompt
+    if (chatAvoidLists.avoidColors.length > 0
+      || chatAvoidLists.avoidMaterials.length > 0
+      || chatAvoidLists.avoidPatterns.length > 0
+      || chatAvoidLists.coverageNoGo.length > 0) {
+      const expandedColors = chatAvoidLists.avoidColors.length > 0
+        ? expandAvoidColorsLite(chatAvoidLists.avoidColors) : [];
+      systemContent += `\n\n════════════════════════
+AVOID-LIST ENFORCEMENT (MANDATORY — INTERNAL ONLY)
+════════════════════════
+
+Before recommending ANY item, you MUST internally verify it against these banned lists:
+  avoid_colors (expanded): ${expandedColors.length > 0 ? expandedColors.join(', ') : '(none)'}
+  avoid_materials: ${chatAvoidLists.avoidMaterials.length > 0 ? chatAvoidLists.avoidMaterials.join(', ') : '(none)'}
+  avoid_patterns: ${chatAvoidLists.avoidPatterns.length > 0 ? chatAvoidLists.avoidPatterns.join(', ') : '(none)'}
+  coverage_no_go: ${chatAvoidLists.coverageNoGo.length > 0 ? chatAvoidLists.coverageNoGo.join(', ') : '(none)'}
+
+Rules:
+- Check EVERY proposed item against ALL lists above before including it in your response.
+- If ANY item matches a banned color, material, pattern, or coverage rule, silently exclude it and choose a compliant alternative.
+- NEVER mention the validation process, avoid lists, or filtering to the user.
+- Your response must read as a clean, natural luxury stylist recommendation with zero validation artifacts.
+- Never ignore avoid lists even if wardrobe/styleProfile is loaded.
+`;
+    }
 
     const completion = await this.openai.chat.completions.create({
       model: 'gpt-4o',
@@ -3389,7 +3416,13 @@ At the end, return a short JSON block like:
       } else if (
         (hasAvoidLists || wardrobeItemNames.size > 0) && isStylingResponse(aiReply)
       ) {
-        console.log('[AskStyla T4] validation clean');
+        // Tier 4 guard: warn if validation artifacts leaked into user-facing response
+        const hasLeakedMarkers = /\bChecked:/i.test(aiReply) || /\bResult:\s*(PASS|FAIL)/i.test(aiReply);
+        if (hasLeakedMarkers) {
+          console.warn('[AskStyla T4] validation clean BUT response contains leaked validation markers');
+        } else {
+          console.log('[AskStyla T4] validation clean');
+        }
       }
     } catch (validationErr: any) {
       // Fail-open: never block the response
