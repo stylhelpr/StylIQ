@@ -7,6 +7,7 @@ import { FashionStateService } from '../learning/fashion-state.service';
 import type { FashionStateSummary } from '../learning/dto/fashion-state.dto';
 import { LEARNING_FLAGS } from '../config/feature-flags';
 import { applyDiscoverVeto, type VetoProfile, type VetoResult } from './discover-veto';
+import { computeCuratorSignals, type CuratorProfile, type CuratorResult } from './discover-curator';
 
 interface UserProfile {
   gender: string | null;
@@ -1097,18 +1098,22 @@ export class DiscoverService {
       }
     }
 
+    // --- Curator profile (Tier 4) ---
+    const curatorProfile: CuratorProfile = {
+      styleKeywords: profile.style_keywords,
+      formalityFloor: profile.formality_floor,
+      silhouettePreference: profile.silhouette_preference,
+      climate: profile.climate,
+      colorPreferences: effectiveFavoriteColors,
+      fitPreferences: profile.fit_preferences,
+    };
+
     // Pre-compute normalized profile sets for overlap scoring
     const profileColors = tokenSet(effectiveFavoriteColors);
     const expandedStyles = expandStyleTokens(profile.style_keywords);
     const literalStyleSet = tokenSet(profile.style_keywords);
     const fitTokens = tokenSet(profile.fit_preferences);
     const negativeTokens = tokenSet(learnedPrefs.negative_features);
-
-    // Pre-compute fit conflict: does the user prefer slim/tailored?
-    const userPrefersSlim = profile.fit_preferences.some(f => {
-      const n = normalize(f);
-      return n === 'slim' || n === 'tailored' || n === 'fitted';
-    });
 
     if (DEBUG_RECOMMENDED_BUYS) {
       console.log('🎨 STYLE VOCABULARY EXPANSION', {
@@ -1351,13 +1356,6 @@ export class DiscoverService {
       // --- BASIC ITEM DAMPENER: slight suppression of ultra-generic SKUs ---
       const basicDampener = BASIC_ITEM_RE.test(normProductText) ? -2 : 0;
 
-      // --- FIT CONFLICT PENALTY: penalize oversized/boxy when user prefers slim ---
-      let fitConflictPenalty = 0;
-      if (userPrefersSlim) {
-        const hasLooseFitToken = [...LOOSE_FIT_TOKENS].some(t => normProductText.includes(t));
-        if (hasLooseFitToken) fitConflictPenalty = -12; // strong penalty (~20% of max possible score)
-      }
-
       // --- STYLE DEPTH SIGNAL: reward products matching multiple user style keywords ---
       let styleKeywordsMatched = 0;
       for (const keyword of profile.style_keywords) {
@@ -1396,7 +1394,7 @@ export class DiscoverService {
       }
 
       // Weighted score: brand(7, tier-adjusted, max 10) + behavior(3) + gap(clamped) + style(16) + color(10)
-      //   + fit(4) + elevation(5) + styleDepth(3) + authority(-2..+3) - negativePenalty(4) - brandSatPenalty + basicDamp(-2) + fitConflict(-12) + fashionState(±6)
+      //   + fit(4) + elevation(5) + styleDepth(3) + authority(-2..+3) - negativePenalty(4) - brandSatPenalty + basicDamp(-2) + fashionState(±6)
       const score =
         brandContribution +
         (3  * behavior01) +
@@ -1410,7 +1408,6 @@ export class DiscoverService {
         penalty -
         negativePenalty +
         basicDampener +
-        fitConflictPenalty +
         fashionStateBonus;
 
       breakdown.brand = +brandContribution.toFixed(2);
@@ -1426,8 +1423,41 @@ export class DiscoverService {
       breakdown.styleDepth = +(3 * styleDepth01).toFixed(2);
       breakdown.basicDamp = basicDampener;
       breakdown.authority = brandAuthority;
-      (breakdown as any).fitConflict = fitConflictPenalty;
       (breakdown as any).fashionState = fashionStateBonus;
+
+      // --- CURATOR SIGNALS (Tier 4) ---
+      const curatorResult: CuratorResult = computeCuratorSignals(
+        {
+          title: p.title,
+          blob: normProductText,
+          enrichedColor: normalize(p.enriched_color || ''),
+          price: p.price,
+          brand: p.brand,
+          inferredCategory,
+          existingScore: score,
+          existingBreakdown: breakdown,
+        },
+        curatorProfile,
+      );
+
+      const finalScore = score + curatorResult.curatorTotal;
+
+      // Add curator signals to breakdown
+      (breakdown as any).curatorFormality = curatorResult.formalityCoherence;
+      (breakdown as any).curatorColor = curatorResult.colorHarmony;
+      (breakdown as any).curatorOccasion = curatorResult.occasionBonus;
+      (breakdown as any).curatorSilhouette = curatorResult.silhouetteDepth;
+      (breakdown as any).curatorMaterial = curatorResult.materialElevation;
+      (breakdown as any).curatorTotal = curatorResult.curatorTotal;
+      (breakdown as any).confidence = curatorResult.confidenceScore;
+      (breakdown as any).learningScore = fashionStateBonus;
+
+      if (curatorResult.curatorTotal !== 0 && DEBUG_RECOMMENDED_BUYS) {
+        console.log('🎨 CURATOR DEBUG', {
+          title: p.title,
+          ...curatorResult,
+        });
+      }
 
       // --- EXPLANATION LAYER: build match reasons (literal tokens only) ---
       const reasons: string[] = [];
@@ -1440,7 +1470,10 @@ export class DiscoverService {
         reasons.push(`Style affinity (expanded): ${matchedExpandedTokens.slice(0, 2).join(', ')}`);
       }
       if (adjustedGapBonus > 0) reasons.push(`Fills wardrobe gap: ${inferredCategory}`);
-      if (fitConflictPenalty < 0) reasons.push('Fit conflict: oversized/boxy vs slim preference');
+      if (curatorResult.silhouetteDepth < 0) reasons.push('Fit conflict: silhouette mismatch');
+      if (curatorResult.formalityCoherence > 0) reasons.push('Formality aligned');
+      if (curatorResult.materialElevation > 0) reasons.push('Premium materials detected');
+      if (curatorResult.colorHarmony > 0) reasons.push('Color harmony bonus');
       if (elevation01 > 0) reasons.push('Elevated piece: premium materials');
       if (fashionStateBonus > 0) reasons.push('Learned preference match');
       if (fashionStateBonus < 0) reasons.push('Learned preference conflict');
@@ -1448,14 +1481,14 @@ export class DiscoverService {
 
       if (DEBUG_RECOMMENDED_BUYS) {
         this.log.debug(
-          `[Discover][Score] ${JSON.stringify({ title: p.title, brand: p.brand, price: p.price, totalScore: +score.toFixed(2), breakdown })}`,
+          `[Discover][Score] ${JSON.stringify({ title: p.title, brand: p.brand, price: p.price, totalScore: +finalScore.toFixed(2), breakdown })}`,
         );
       }
 
-      return { product: { ...p, score_total: +score.toFixed(2), score_breakdown: breakdown, match_reasons: reasons }, score, breakdown };
+      return { product: { ...p, score_total: +finalScore.toFixed(2), score_breakdown: breakdown, match_reasons: reasons }, score: finalScore, breakdown, idx };
     });
 
-    scored.sort((a, b) => b.score - a.score);
+    scored.sort((a, b) => b.score - a.score || a.idx - b.idx);
 
     // --- Redundancy Penalty (pre-diversity): -2 for second item sharing brand+category+style token ---
     const seenBrandCatStyle = new Set<string>();
@@ -1481,7 +1514,7 @@ export class DiscoverService {
         }
       }
     }
-    scored.sort((a, b) => b.score - a.score);
+    scored.sort((a, b) => b.score - a.score || a.idx - b.idx);
 
     if (DEBUG_RECOMMENDED_BUYS) {
       const scores = scored.map(s => s.score);
