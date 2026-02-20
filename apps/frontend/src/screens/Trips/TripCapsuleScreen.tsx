@@ -130,6 +130,12 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
     }
     if (Array.isArray(effectiveProfile.avoid_colors) && effectiveProfile.avoid_colors.length > 0)
       hints.avoid_colors = effectiveProfile.avoid_colors;
+    if (Array.isArray(effectiveProfile.avoid_materials) && effectiveProfile.avoid_materials.length > 0)
+      hints.avoid_materials = effectiveProfile.avoid_materials;
+    if (Array.isArray(effectiveProfile.avoid_patterns) && effectiveProfile.avoid_patterns.length > 0)
+      hints.avoid_patterns = effectiveProfile.avoid_patterns;
+    if (Array.isArray(effectiveProfile.coverage_no_go) && effectiveProfile.coverage_no_go.length > 0)
+      hints.coverage_no_go = effectiveProfile.coverage_no_go;
     return Object.keys(hints).length > 0 ? hints : undefined;
   }, [effectiveProfile]);
 
@@ -227,6 +233,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
           presentation,
           currentHints,
           fsSummary ?? null,
+          trip.destination,
         );
         if (__DEV__) {
           console.log('[TripCapsule] Rebuilding fresh capsule', newCapsule.build_id, 'presentation:', presentation);
@@ -252,6 +259,21 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
         };
         await updateTrip(updated);
         onRefresh();
+
+        // Emit learning event (fire-and-forget)
+        try {
+          await apiClient.post('/learning/events', {
+            eventType: 'TRIP_CAPSULE_GENERATED',
+            entityType: 'trip_capsule',
+            entityId: newCapsule.build_id,
+            extractedFeatures: {
+              item_ids: newCapsule.packingList.flatMap(g => g.items.map(i => i.wardrobeItemId)),
+              categories: [...new Set(newCapsule.packingList.map(g => g.category))],
+              activities: trip.activities,
+            },
+            sourceFeature: 'trips',
+          });
+        } catch { /* fire-and-forget */ }
       } catch (err) {
         console.error('[TripCapsule] auto-rebuild failed:', err);
       }
@@ -341,6 +363,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
                 forcePresentation,
                 currentHints,
                 fsSummary ?? null,
+                trip.destination,
               );
               if (__DEV__) {
                 console.log(`[TripCapsule] FORCE REBUILD trip=${trip.id} build=${newCapsule.build_id} presentation=${forcePresentation}`);
@@ -427,10 +450,21 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
           items: grouped.get(cat)!,
         }));
 
-      persistCapsule({outfits: newOutfits, packingList: newPackingList});
+      persistCapsule({...capsule, outfits: newOutfits, packingList: newPackingList});
       setReplaceItem(null);
+
+      // Emit learning event (fire-and-forget)
+      try {
+        apiClient.post('/learning/events', {
+          eventType: 'TRIP_ITEM_REPLACED',
+          entityType: 'wardrobe_item',
+          entityId: newItem.wardrobeItemId,
+          extractedFeatures: {replaced_item_id: oldWardrobeId, category: newItem.mainCategory, trip_id: trip.id},
+          sourceFeature: 'trips',
+        });
+      } catch { /* fire-and-forget */ }
     },
-    [capsule, replaceItem, persistCapsule],
+    [capsule, replaceItem, persistCapsule, trip.id],
   );
 
   // Resolve presentation for replace modal filtering

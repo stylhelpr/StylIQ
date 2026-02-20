@@ -142,4 +142,7 @@ export type TripStyleHints = {
   preferred_brands?: string[];
   disliked_styles?: string[];
   avoid_colors?: string[];
+  avoid_materials?: string[];
+  avoid_patterns?: string[];
+  coverage_no_go?: string[];
 };

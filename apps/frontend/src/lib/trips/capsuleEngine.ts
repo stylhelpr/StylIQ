@@ -35,9 +35,14 @@ import {
   deriveWardrobeStats,
   colorMatches,
 } from '../elite/eliteScoring';
+import {filterByTasteGate, type TripsTasteProfile} from './tripsTasteGate';
+import {createCoherenceState, updateCoherence, capsuleDriftPenalty, type CapsuleCoherenceState} from './capsuleCoherence';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 20;
+export const CAPSULE_VERSION = 21;
+
+// ── Diagnostic debug logging (structured, guarded) ──
+const DEBUG_TRIPS_ENGINE = true;
 
 // ── Trip Trace Instrumentation ──
 const TRIP_TRACE = true;
@@ -676,6 +681,27 @@ export function activityPurposeBonus(
   return Math.max(-0.8, Math.min(0.8, bonus));
 }
 
+/** Hard gate: lightweight-only fabrics inappropriate for cold/freezing (linen dress, chiffon blouse). */
+function isLightweightFabricOnly(item: TripWardrobeItem): boolean {
+  if (!item.material) return false;
+  const mat = item.material.toLowerCase();
+  return /\b(linen|chiffon|mesh|gauze|voile|seersucker)\b/.test(mat)
+    && !/\b(wool|fleece|cashmere|down|quilted|flannel)\b/.test(mat);
+}
+
+/** Layering bases (silk base layer under wool) are exempt from lightweight gate. */
+function isLayeringBase(item: TripWardrobeItem): boolean {
+  return item.layering === 'base' || item.layering === 'mid';
+}
+
+/** Hard gate: heavy insulating fabrics inappropriate for hot weather (wool overcoat in Miami). */
+function isHeavyInsulatingOnly(item: TripWardrobeItem): boolean {
+  if (!item.material) return false;
+  const mat = item.material.toLowerCase();
+  return /\b(wool|fleece|sherpa|shearling|down|quilted|neoprene)\b/.test(mat)
+    && !/\b(lightweight|tropical|summer)\b/.test(mat);
+}
+
 /**
  * Canonical gate: single source of truth for item validity in a given activity context.
  * Every place that decides if an item is valid MUST call this — no alternate checks.
@@ -697,20 +723,61 @@ export function isItemValidForActivity(
   // RULE 0: Block feminine-only items for masculine users
   if (isMasculine && flags.isFeminineOnly) return false;
   // Rule 1: Block minimal coverage in cold/freezing
-  if (isColdOrFreezing && flags.isMinimalCoverage) return false;
+  if (isColdOrFreezing && flags.isMinimalCoverage) {
+    if (DEBUG_TRIPS_ENGINE) console.log('[TripsDebug][ClimateVeto]', JSON.stringify({itemId: item.id, name: item.name, reason: 'minimal_coverage_in_cold', minTemp: null, derivedBand: climateZone}));
+    return false;
+  }
   // Rule 1b: Block open-toed footwear in cold/freezing (shoes only)
-  if (isColdOrFreezing && isShoe && isOpenFootwear(item)) return false;
+  if (isColdOrFreezing && isShoe && isOpenFootwear(item)) {
+    if (DEBUG_TRIPS_ENGINE) console.log('[TripsDebug][ClimateVeto]', JSON.stringify({itemId: item.id, name: item.name, reason: 'open_footwear_in_cold', minTemp: null, derivedBand: climateZone}));
+    return false;
+  }
+  // Rule 1c: Block lightweight-only fabrics in cold/freezing (non-layering bases)
+  if (isColdOrFreezing && isLightweightFabricOnly(item) && !isLayeringBase(item)) {
+    if (DEBUG_TRIPS_ENGINE) console.log('[TripsDebug][ClimateVeto]', JSON.stringify({itemId: item.id, name: item.name, reason: 'lightweight_fabric_in_cold', minTemp: null, derivedBand: climateZone}));
+    return false;
+  }
+  // Rule 1d: Block heavy insulating fabrics in hot weather
+  if (climateZone === 'hot' && isHeavyInsulatingOnly(item)) {
+    if (DEBUG_TRIPS_ENGINE) console.log('[TripsDebug][ClimateVeto]', JSON.stringify({itemId: item.id, name: item.name, reason: 'heavy_insulating_in_hot', minTemp: null, derivedBand: climateZone}));
+    return false;
+  }
   // Rule 2: Block beach-context items for formal city activities
   if (isFormalActivity && isCityContext && flags.isBeachContext) return false;
   // Rule 3: Block casual-only items for formal activities
   if (isFormalActivity && flags.isCasualOnly) return false;
+  // Rule 3b: Hard reject non-insulated sneakers in freezing for formal activities
+  if (climateZone === 'freezing' && isFormalActivity && isShoe) {
+    const shoeText = `${(item.subcategory || '').toLowerCase()} ${(item.name || '').toLowerCase()}`;
+    if (/\b(sneakers?|trainers?|running|athletic)\b/.test(shoeText)
+      && !(item.material && /\b(insulated|weatherproof|waterproof|gore[- ]?tex)\b/i.test(item.material))) {
+      if (DEBUG_TRIPS_ENGINE) console.log('[TripsDebug][GATE_SHOE] REJECT sneaker in freezing business', JSON.stringify({itemId: item.id, name: item.name}));
+      return false;
+    }
+  }
   // Rule 4: Formality tier floor (unified with coherence check)
   const requiredTier = getRequiredFormalityTier(activityProfile.formality);
-  if (requiredTier > 0 && getFormalityTier(item) < requiredTier) return false;
+  if (requiredTier > 0) {
+    const itemTier = getFormalityTier(item);
+    // Freezing structured boot override: climate survival outranks strict formality gating.
+    // Structured leather/suede boots satisfy minimum formality tier in freezing conditions.
+    const isFreezingBootOverride = climateZone === 'freezing' && isShoe
+      && /boot/i.test(`${item.subcategory ?? ''} ${item.name ?? ''}`)
+      && /\b(leather|suede|structured)\b/i.test(`${item.material ?? ''} ${item.name ?? ''}`)
+      && !flags.isCasualOnly;
+    const effectiveTier = isFreezingBootOverride ? Math.max(itemTier, requiredTier) : itemTier;
+    if (DEBUG_TRIPS_ENGINE && isFreezingBootOverride) console.log('[TripsDebug][GATE_SHOE] Freezing boot override', JSON.stringify({itemId: item.id, name: item.name, itemTier, effectiveTier, requiredTier}));
+    if (effectiveTier < requiredTier) return false;
+  }
   // Rule 5: Purpose compatibility — block logically incompatible garment categories
   const itemPurpose = getGarmentPurpose(item);
   const activityPurpose = getActivityPurposeClass(activityProfile);
   if (!isPurposeCompatible(itemPurpose, activityPurpose)) return false;
+  // Rule 6: Formality ceiling — prevent overdressing (tuxedo for brunch)
+  // Block black-tie items (tier >= 3) in casual non-city contexts
+  if (activityProfile.formality <= 0 && activityProfile.context !== 'city') {
+    if (getFormalityTier(item) >= 3) return false;
+  }
 
   return true;
 }
@@ -1671,14 +1738,23 @@ export function aestheticBonus(
     }
   }
 
-  // -0.2: same subcategory already in outfit
+  // Near-duplicate detection: subcategory + color signature dedup
   const sub = (candidate.subcategory || '').toLowerCase();
   if (sub && existingItems.length > 0) {
-    const subs = existingItems.map(pi => {
+    const existingSignatures = existingItems.map(pi => {
       const full = itemLookup.get(pi.wardrobeItemId);
-      return (full?.subcategory || '').toLowerCase();
+      return `${(full?.subcategory || '').toLowerCase()}|${(full?.color || '').toLowerCase()}`;
     });
-    if (subs.includes(sub)) bonus -= 0.2;
+    const candidateSig = `${sub}|${(candidate.color || '').toLowerCase()}`;
+    if (existingSignatures.includes(candidateSig)) {
+      bonus -= 0.5; // near-duplicate: same subcategory + same color
+    } else {
+      const subs = existingItems.map(pi => {
+        const full = itemLookup.get(pi.wardrobeItemId);
+        return (full?.subcategory || '').toLowerCase();
+      });
+      if (subs.includes(sub)) bonus -= 0.2; // same subcategory, different color
+    }
   }
 
   // Clamp to ±1.0 (widened for richer aesthetic differentiation)
@@ -2277,7 +2353,7 @@ function buildCapsuleIntent(
   if (paletteColors.length < 2) {
     const neutralEntries = [...colorFreq.entries()]
       .filter(([c]) => neutralSet.has(c))
-      .sort((a, b) => b[1] - a[1]);
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     for (const [color] of neutralEntries) {
       if (paletteColors.length >= 2) break;
       if (!paletteColors.includes(color)) {
@@ -2410,6 +2486,92 @@ function determineRequiredRoles(
   return roles;
 }
 
+/** Deterministic destination style bias for footwear in luxury warm cities. */
+function getDestinationStyleBias(city: string | null, activities: TripActivity[], item: TripWardrobeItem): number {
+  if (!city) return 0;
+
+  const c = city.toLowerCase();
+
+  const isLuxuryWarmCity =
+    c.includes('miami') ||
+    c.includes('monaco') ||
+    c.includes('milan') ||
+    c.includes('rome') ||
+    c.includes('cannes') ||
+    c.includes('saint-tropez') ||
+    c.includes('st. tropez') ||
+    c.includes('st tropez') ||
+    c.includes('dubai');
+
+  if (!isLuxuryWarmCity) return 0;
+
+  const name = (item.name || '').toLowerCase();
+  const sub = (item.subcategory || '').toLowerCase();
+  const material = (item.material || '').toLowerCase();
+
+  const isSneaker = /sneakers?|trainers?|running|athletic/.test(name + ' ' + sub);
+  const isLoafer = /loafer/.test(name + ' ' + sub);
+  const isDressShoe = /oxford|derby|dress/.test(name + ' ' + sub);
+  const isLeather = /leather|suede/.test(material + ' ' + name);
+
+  const isActive = activities.includes('Active');
+
+  let bias = 0;
+
+  // Penalize loud athletic sneakers in luxury warm cities unless Active
+  if (isSneaker && !isActive) bias -= 0.4;
+
+  // Reward refined leather footwear
+  if ((isLoafer || isDressShoe) && isLeather) bias += 0.5;
+
+  return bias;
+}
+
+// ── Luxury Destination Authority ──
+// Deterministic post-scoring enforcement layer for luxury warm cities.
+// Ensures anchor/contrast shoes are refined leather footwear in formal contexts.
+
+const LUXURY_WARM_CITIES = ['miami', 'monaco', 'milan', 'rome', 'cannes', 'saint-tropez', 'st. tropez', 'st tropez', 'dubai'];
+const LUXURY_FORMAL_ACTIVITIES: TripActivity[] = ['Dinner', 'Business', 'Formal'];
+
+function isLuxuryWarmContext(
+  city: string | null,
+  climateZone: ClimateZone,
+  activities: TripActivity[],
+): boolean {
+  if (!city) return false;
+  if (climateZone !== 'warm' && climateZone !== 'hot') return false;
+  const c = city.toLowerCase();
+  const matchesCity = LUXURY_WARM_CITIES.some(lc => c.includes(lc));
+  if (!matchesCity) return false;
+  return activities.some(a => LUXURY_FORMAL_ACTIVITIES.includes(a));
+}
+
+function isLuxuryLeatherFootwear(item: TripWardrobeItem): boolean {
+  const name = (item.name || '').toLowerCase();
+  const sub = (item.subcategory || '').toLowerCase();
+  const material = (item.material || '').toLowerCase();
+  const combined = name + ' ' + sub;
+
+  const isLeather = /leather|suede/.test(material + ' ' + name);
+  if (!isLeather) return false;
+
+  const isLoafer = /loafer/.test(combined);
+  const isDerby = /derby/.test(combined);
+  const isOxford = /oxford/.test(combined);
+  const isStructuredBoot =
+    /boot/.test(combined) &&
+    !/work\s*boot|hiking|combat|rain|snow|rubber/.test(combined);
+
+  return isLoafer || isDerby || isOxford || isStructuredBoot;
+}
+
+function isFootwearSneaker(item: TripWardrobeItem): boolean {
+  const name = (item.name || '').toLowerCase();
+  const sub = (item.subcategory || '').toLowerCase();
+  return /sneakers?|trainers?|running|athletic/.test(name + ' ' + sub);
+}
+
 /**
  * Fills footwear roles using tieredPick, ensuring complementary shoe selection.
  * anchor_shoe: most versatile palette-matching shoe
@@ -2426,6 +2588,7 @@ function fillFootwearRoles(
   maxShoes: number,
   roleRegistry: RoleRegistry,
   presentation: Presentation = 'mixed',
+  city: string | null = null,
 ): TripWardrobeItem[] {
   if (shoeBucket.length === 0) return [];
 
@@ -2449,8 +2612,13 @@ function fillFootwearRoles(
     : undefined;
   const worstZone = deriveClimateZone(coldestDay);
 
+  // Gate each shoe against ALL activities — include if valid for ANY.
+  // Previous approach (lowest-formality only) accidentally blocked formal shoes
+  // via Rule 6 (formality ceiling) for casual contexts.
   const usableShoes = shoeBucket.filter(s =>
-    isItemValidForActivity(s, worstZone, worstProfile, presentation),
+    activities.some(act =>
+      isItemValidForActivity(s, worstZone, getActivityProfile(act), presentation),
+    ),
   );
   const effectivePool = usableShoes; // absolute — no fail-open
   if (effectivePool.length === 0 && shoeBucket.length > 0) {
@@ -2519,8 +2687,31 @@ function fillFootwearRoles(
     const profile = deriveGarmentProfile(item);
     const purposeMul = tripPurposeMultiplier(profile.garmentPurposes, shoeActivityPurposes);
     const thermalMul = tripThermalMultiplier(profile.thermal, warmestDay);
-    return base * purposeMul * thermalMul;
+    const destinationBias = getDestinationStyleBias(city, activities, item);
+    return base * purposeMul * thermalMul + destinationBias;
   };
+
+  // ── DEBUG: Footwear Candidate Evaluation ──
+  if (DEBUG_TRIPS_ENGINE) {
+    for (const shoe of shoeBucket) {
+      const inEffective = effectivePool.some(s => s.id === shoe.id);
+      const score = inEffective ? qualityFn(shoe) : 0;
+      console.log('[TripsDebug][FootwearEval]', JSON.stringify({
+        itemId: shoe.id,
+        name: shoe.name,
+        category: shoe.subcategory || shoe.main_category,
+        brand: shoe.brand,
+        formalityTier: getFormalityTier(shoe),
+        climateBlocked: !inEffective,
+        avoidBlocked: false,
+        coherencePenalty: 0,
+        authorityBonus: 0,
+        redundancyPenalty: 0,
+        finalScore: score,
+        selected: false,
+      }));
+    }
+  }
 
   // 1. anchor_shoe — most versatile palette-matching shoe
   const anchorResult = tieredPick(
@@ -2630,6 +2821,14 @@ function fillFootwearRoles(
           usedFallback: conditionCandidates.length === 0,
         });
       }
+    }
+  }
+
+  // ── DEBUG: Mark selected footwear ──
+  if (DEBUG_TRIPS_ENGINE) {
+    const winners = new Set(selected.slice(0, maxShoes).map(s => s.id));
+    for (const id of winners) {
+      console.log('[TripsDebug][FootwearEval][Selected]', JSON.stringify({itemId: id, selected: true}));
     }
   }
 
@@ -2853,6 +3052,9 @@ function buildOutfitForActivity(
   capsuleIntent?: CapsuleIntent,
   roleRegistry?: RoleRegistry,
   anchorBudget?: AnchorBudget,
+  tasteProfile?: TripsTasteProfile,
+  coherenceState?: CapsuleCoherenceState,
+  fashionState?: {topBrands: string[]; [key: string]: any} | null,
 ): TripPackingItem[] {
   const items: TripPackingItem[] = [];
 
@@ -2880,9 +3082,25 @@ function buildOutfitForActivity(
       });
     }
     // Taste gate: filter user-avoided colors (emergency fallback preserves pool if all vetoed)
-    gatedBuckets[key] = applyTasteGate(gatedBuckets[key], capsuleIntent?.avoidColors);
+    gatedBuckets[key] = filterByTasteGate(gatedBuckets[key], tasteProfile);
   }
   const gatedShoes = gatePool(selectedShoes, climateZone, activityProfile, presentation);
+  // ── Track shoes rejected specifically for climate (permanent veto through all fallbacks) ──
+  const climateRejectedIds = new Set<string>();
+  if (gatedShoes.length < selectedShoes.length) {
+    const _isColdOrFreezing = climateZone === 'cold' || climateZone === 'freezing';
+    for (const s of selectedShoes) {
+      if (gatedShoes.some(g => g.id === s.id)) continue;
+      const flags = inferGarmentFlags(s);
+      if (_isColdOrFreezing && flags.isMinimalCoverage) { climateRejectedIds.add(s.id); continue; }
+      if (_isColdOrFreezing && isOpenFootwear(s)) { climateRejectedIds.add(s.id); continue; }
+      if (_isColdOrFreezing && isLightweightFabricOnly(s) && !isLayeringBase(s)) { climateRejectedIds.add(s.id); continue; }
+      if (climateZone === 'hot' && isHeavyInsulatingOnly(s)) { climateRejectedIds.add(s.id); continue; }
+    }
+    if (__DEV__ && climateRejectedIds.size > 0) {
+      console.log(`[TripCapsule][GATE_SHOE] Climate-rejected (permanent veto): ${[...climateRejectedIds].join(', ')}`);
+    }
+  }
   // Shoe fallback: relax formality, KEEP climate + presentation
   let finalShoes: TripWardrobeItem[];
   if (gatedShoes.length > 0) {
@@ -2890,6 +3108,7 @@ function buildOutfitForActivity(
   } else {
     const isColdOrFreezingShoe = climateZone === 'cold' || climateZone === 'freezing';
     finalShoes = selectedShoes.filter(s => {
+      if (climateRejectedIds.has(s.id)) return false;
       const flags = inferGarmentFlags(s);
       if (isMasculine && flags.isFeminineOnly) return false;
       if (isFormalActivity && flags.isCasualOnly) return false;
@@ -2908,12 +3127,19 @@ function buildOutfitForActivity(
 
     // Step 1: Relax formality tier by ONE step, keep climate + presentation
     if (requiredTier > 0) {
-      const relaxedTier = requiredTier - 1;
+      const relaxedTier = Math.max(requiredTier - 1, 1);
       finalShoes = selectedShoes.filter(s => {
+        if (climateRejectedIds.has(s.id)) return false;
         const flags = inferGarmentFlags(s);
         if (isMasculine && flags.isFeminineOnly) return false;
         if (isColdOrFreezing && isOpenFootwear(s)) return false;
         if (isColdOrFreezing && flags.isMinimalCoverage) return false;
+        // Hard reject non-insulated sneakers in freezing business (even in fallback)
+        if (climateZone === 'freezing' && isFormalActivity) {
+          const sText = `${(s.subcategory || '').toLowerCase()} ${(s.name || '').toLowerCase()}`;
+          if (/\b(sneakers?|trainers?|running|athletic)\b/.test(sText)
+            && !(s.material && /\b(insulated|weatherproof|waterproof|gore[- ]?tex)\b/i.test(s.material))) return false;
+        }
         if (relaxedTier > 0 && getFormalityTier(s) < relaxedTier) return false;
         return true;
       });
@@ -2925,10 +3151,17 @@ function buildOutfitForActivity(
     // Step 2: Pick best closed-toe shoe matching presentation + climate (ignore formality)
     if (finalShoes.length === 0) {
       finalShoes = selectedShoes.filter(s => {
+        if (climateRejectedIds.has(s.id)) return false;
         const flags = inferGarmentFlags(s);
         if (isMasculine && flags.isFeminineOnly) return false;
         if (isColdOrFreezing && isOpenFootwear(s)) return false;
         if (isColdOrFreezing && flags.isMinimalCoverage) return false;
+        // Hard reject non-insulated sneakers in freezing business (even in fallback)
+        if (climateZone === 'freezing' && isFormalActivity) {
+          const sText = `${(s.subcategory || '').toLowerCase()} ${(s.name || '').toLowerCase()}`;
+          if (/\b(sneakers?|trainers?|running|athletic)\b/.test(sText)
+            && !(s.material && /\b(insulated|weatherproof|waterproof|gore[- ]?tex)\b/i.test(s.material))) return false;
+        }
         return true;
       });
       if (__DEV__ && finalShoes.length > 0) {
@@ -2939,9 +3172,16 @@ function buildOutfitForActivity(
     // Step 3: Last resort — relax formality completely but KEEP climate + presentation
     if (finalShoes.length === 0) {
       finalShoes = selectedShoes.filter(s => {
+        if (climateRejectedIds.has(s.id)) return false;
         if (isMasculine && inferGarmentFlags(s).isFeminineOnly) return false;
         if (isColdOrFreezing && isOpenFootwear(s)) return false;
         if (isColdOrFreezing && inferGarmentFlags(s).isMinimalCoverage) return false;
+        // Hard reject non-insulated sneakers in freezing business (even in emergency)
+        if (climateZone === 'freezing' && isFormalActivity) {
+          const sText = `${(s.subcategory || '').toLowerCase()} ${(s.name || '').toLowerCase()}`;
+          if (/\b(sneakers?|trainers?|running|athletic)\b/.test(sText)
+            && !(s.material && /\b(insulated|weatherproof|waterproof|gore[- ]?tex)\b/i.test(s.material))) return false;
+        }
         return true;
       });
       if (__DEV__ && finalShoes.length > 0) {
@@ -2954,6 +3194,19 @@ function buildOutfitForActivity(
         code: 'CLIMATE_INCOMPATIBLE_FOOTWEAR',
         message: `No closed-toe shoes available for ${activity} in ${climateZone} conditions.`,
       });
+    }
+  }
+
+  // ── Freezing boot priority: when fallback is active in freezing, prefer boots ──
+  if (climateZone === 'freezing' && gatedShoes.length === 0 && finalShoes.length > 0) {
+    const boots = finalShoes.filter(s =>
+      /boot/i.test(`${s.subcategory ?? ''} ${s.name ?? ''}`),
+    );
+    if (boots.length > 0) {
+      if (__DEV__) {
+        console.log(`[TripCapsule][SHOE_FALLBACK] Freezing boot priority: ${boots.length} boots preferred over ${finalShoes.length} total for ${activity}`);
+      }
+      finalShoes = boots;
     }
   }
 
@@ -2976,7 +3229,72 @@ function buildOutfitForActivity(
   }
 
   // ── Taste gate: remove user-avoided colors from shoes ──
-  finalShoes = applyTasteGate(finalShoes, capsuleIntent?.avoidColors);
+  finalShoes = filterByTasteGate(finalShoes, tasteProfile);
+
+  // ── FINAL_FREEZING_FORMAL_ENFORCEMENT ──
+  // Non-relaxable hard exclusion layer. Executes AFTER all fallback recovery,
+  // tolerance reinsertion, and taste gating. Removes sneakers and low-formality
+  // footwear from freezing formal contexts. Cannot be bypassed by any fallback.
+  if (climateZone === 'freezing' && isFormalActivity) {
+    const enforceTier = getRequiredFormalityTier(activityProfile.formality);
+    const beforeCount = finalShoes.length;
+    finalShoes = finalShoes.filter(s => {
+      const sText = `${(s.subcategory || '').toLowerCase()} ${(s.name || '').toLowerCase()}`;
+      const sMat = (s.material || '').toLowerCase();
+      const hasProtection = /\b(insulated|waterproof|weatherproof|gore[- ]?tex|shearling|lined)\b/.test(sMat);
+
+      // Remove ALL non-insulated sneakers/trainers/athletic shoes
+      if (/\b(sneakers?|trainers?|running|athletic)\b/.test(sText) && !hasProtection) {
+        if (DEBUG_TRIPS_ENGINE) console.log(`[TripsDebug][FINAL_SHOE_ENFORCE] REMOVED ${s.name} | reason=freezing_formality_lock sneaker`);
+        return false;
+      }
+
+      // Remove casual-only boots (work boots, combat boots, hiking boots)
+      const flags = inferGarmentFlags(s);
+      if (flags.isCasualOnly && /boot/i.test(sText)) {
+        if (DEBUG_TRIPS_ENGINE) console.log(`[TripsDebug][FINAL_SHOE_ENFORCE] REMOVED ${s.name} | reason=freezing_formality_lock casual_boot`);
+        return false;
+      }
+
+      // Remove any footwear below required formality tier
+      if (enforceTier > 0 && getFormalityTier(s) < enforceTier) {
+        if (DEBUG_TRIPS_ENGINE) console.log(`[TripsDebug][FINAL_SHOE_ENFORCE] REMOVED ${s.name} | reason=freezing_formality_lock tier=${getFormalityTier(s)}<${enforceTier}`);
+        return false;
+      }
+
+      return true;
+    });
+    if (__DEV__ && finalShoes.length < beforeCount) {
+      console.log(`[TripCapsule][FINAL_SHOE_ENFORCE] Removed ${beforeCount - finalShoes.length} shoes for freezing formal enforcement (${activity})`);
+    }
+  }
+
+  // ── FINAL_FORMAL_ENFORCEMENT (all climates) ──
+  // Prevents fallback from violating required formality tier.
+  if (isFormalActivity && climateZone !== 'freezing') {
+    const enforceTier = getRequiredFormalityTier(activityProfile.formality);
+    if (enforceTier > 0) {
+      const beforeCount = finalShoes.length;
+
+      finalShoes = finalShoes.filter(s => {
+        if (getFormalityTier(s) < enforceTier) {
+          if (DEBUG_TRIPS_ENGINE) {
+            console.log(
+              `[TripsDebug][FINAL_SHOE_ENFORCE] REMOVED ${s.name} | tier=${getFormalityTier(s)} required=${enforceTier}`
+            );
+          }
+          return false;
+        }
+        return true;
+      });
+
+      if (__DEV__ && finalShoes.length < beforeCount) {
+        console.log(
+          `[TripCapsule][FINAL_SHOE_ENFORCE] Removed ${beforeCount - finalShoes.length} shoes for formal enforcement (${activity})`
+        );
+      }
+    }
+  }
 
   // ── Weighted pick helpers (replaces modulo rotation) ──
   const maxUsesForBucket = (len: number) =>
@@ -3016,6 +3334,12 @@ function buildOutfitForActivity(
     if (item.brand && styleHints.preferred_brands?.length) {
       const brandLower = item.brand.toLowerCase();
       if (styleHints.preferred_brands.some(b => brandLower.includes(b.toLowerCase()))) score += 0.6;
+    }
+
+    // Brand authority bonus (+0.8): fashionState.topBrands from learning system
+    if (item.brand && fashionState?.topBrands?.length) {
+      const brandLower = item.brand.toLowerCase();
+      if (fashionState.topBrands.some(b => brandLower.includes(b.toLowerCase()))) score += 0.8;
     }
 
     // Fit / silhouette match (+0.6)
@@ -3063,7 +3387,17 @@ function buildOutfitForActivity(
   // ── Trip semantic multipliers (purpose + thermal) ──
   const dayActivityPurposes = expandTripActivityPurposes(activity, dayWeather);
   const qualityFn = (item: TripWardrobeItem) => {
-    const base = activityScore(item, [activity]) + activityPurposeBonus(item, activityProfile, climateZone) + aestheticBonus(item, items, poolLookup) * styleDampen + identityScore(item) * identityDampening(item) * styleDampen + warmLeisureOverride(item);
+    const coherencePen = coherenceState ? capsuleDriftPenalty(item, coherenceState) : 0;
+    // ── DEBUG: Coherence Drift Log ──
+    if (DEBUG_TRIPS_ENGINE && coherencePen !== 0) {
+      console.log('[TripsDebug][CoherencePenalty]', JSON.stringify({
+        itemId: item.id,
+        colorTemp: item.color || 'unknown',
+        silhouetteDirection: coherenceState?.silhouetteDirection ?? null,
+        penaltyApplied: coherencePen,
+      }));
+    }
+    const base = activityScore(item, [activity]) + activityPurposeBonus(item, activityProfile, climateZone) + aestheticBonus(item, items, poolLookup) * styleDampen + identityScore(item) * identityDampening(item) * styleDampen + warmLeisureOverride(item) + coherencePen;
     const profile = deriveGarmentProfile(item);
     const purposeMul = tripPurposeMultiplier(profile.garmentPurposes, dayActivityPurposes);
     const thermalMul = tripThermalMultiplier(profile.thermal, dayWeather);
@@ -3418,8 +3752,8 @@ function buildPackingList(
 
 // ── Main engine ──
 
-function generateBuildId(): string {
-  return `build_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+function generateBuildId(fingerprint: string): string {
+  return `build_${hashString(fingerprint).toString(36)}`;
 }
 
 export function buildCapsule(
@@ -3440,13 +3774,18 @@ export function buildCapsule(
     priceBracket: string | null;
     isColdStart: boolean;
   } | null,
+  destinationLabel?: string,
 ): TripCapsule {
+  // Guardrail: destination weather is required — never silently fallback
+  if (!weather || weather.length === 0) {
+    throw new Error('[CapsuleEngine] tripWeather is empty — cannot build capsule without destination weather data.');
+  }
+
   // Reset trace collector and build warnings for this build
   if (TRIP_TRACE) tripTrace = [];
   buildWarnings = [];
   shoelessRejects = 0;
 
-  const requestId = `trip_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const numDays = Math.max(weather.length, 1);
   const needs = analyzeWeather(weather);
 
@@ -3459,9 +3798,25 @@ export function buildCapsule(
   // Step 0c: Build capsule intent — stylist direction computed once, passed through engine
   const capsuleIntent = buildCapsuleIntent(eligibleItems, activities, styleHints);
 
-  // Step 0d: Determine required roles — guides shoe/outerwear selection for complementary coverage
+  // Step 0d: Build taste profile — full avoid-list enforcement (colors + materials + patterns + coverage)
+  const tasteProfile: TripsTasteProfile | undefined = styleHints ? {
+    avoid_colors: styleHints.avoid_colors ?? [],
+    avoid_materials: styleHints.avoid_materials ?? [],
+    avoid_patterns: styleHints.avoid_patterns ?? [],
+    coverage_no_go: styleHints.coverage_no_go ?? [],
+  } : undefined;
+
+  // Step 0e: Determine required roles — guides shoe/outerwear selection for complementary coverage
   const requiredRoles = determineRequiredRoles(activities, weather);
   const roleRegistry: RoleRegistry = new Map();
+
+  // Deterministic seed — used for seeded RNG, requestId, and buildId
+  const seedStr =
+    eligibleItems.map(i => i.id).join(',') +
+    weather.map(w => w.date).join(',') +
+    activities.join(',');
+  const rand = seededRandom(hashString(seedStr));
+  const requestId = `trip_${hashString(seedStr).toString(36)}`;
 
   logInput(requestId, {
     numDays,
@@ -3481,11 +3836,23 @@ export function buildCapsule(
     climateZones: weather.map(d => deriveClimateZone(d)),
   });
 
-  const seedStr =
-    eligibleItems.map(i => i.id).join(',') +
-    weather.map(w => w.date).join(',') +
-    activities.join(',');
-  const rand = seededRandom(hashString(seedStr));
+  // ── DEBUG: Climate Band Summary — derived strictly from destination weather ──
+  if (DEBUG_TRIPS_ENGINE) {
+    const minTemp = Math.min(...weather.map(d => d.lowF));
+    const maxTemp = Math.max(...weather.map(d => d.highF));
+    const derivedBand: ClimateZone =
+      maxTemp <= 32 ? 'freezing' :
+      maxTemp <= 50 ? 'cold' :
+      maxTemp <= 65 ? 'cool' :
+      maxTemp <= 85 ? 'warm' :
+      'hot';
+    console.log('[TripsDebug][Climate]', JSON.stringify({
+      city: destinationLabel || 'UNKNOWN_DESTINATION',
+      minTemp,
+      maxTemp,
+      derivedBand,
+    }));
+  }
 
   // Step 1: Bucket items by category (8 buckets) — operates on eligible items only
   const buckets: Record<CategoryBucket, TripWardrobeItem[]> = {
@@ -3534,7 +3901,7 @@ export function buildCapsule(
   };
   for (const key of Object.keys(buckets) as CategoryBucket[]) {
     const sorted = shuffleWithSeed(buckets[key], rand).sort(
-      (a, b) => bucketSortScore(b) - bucketSortScore(a),
+      (a, b) => bucketSortScore(b) - bucketSortScore(a) || a.id.localeCompare(b.id),
     );
     // Context-primary partitioning: in warm-leisure context, move purpose-aligned
     // lightweight items to the front of each bucket (preserves all items)
@@ -3734,6 +4101,7 @@ export function buildCapsule(
   const selectedShoes = fillFootwearRoles(
     buckets.shoes, requiredRoles, capsuleIntent, styleHints,
     activities, weather, maxShoes, roleRegistry, presentation,
+    startingLocationLabel,
   );
 
   logSlotDecision(requestId, {
@@ -3802,6 +4170,11 @@ export function buildCapsule(
   const usageTracker = new Map<string, number[]>();
   const anchorBudget = computeAnchorBudget(selectedShoes.map(s => s.id), numDays);
 
+  // Capsule-global coherence: track color temp + silhouette direction across outfits
+  const coherenceState = createCoherenceState();
+  // Lookup for coherence updates (reuses pool items already computed)
+  const coherenceLookup = new Map(eligibleItems.map(i => [i.id, i]));
+
   for (let day = 0; day < numDays; day++) {
     const schedule = daySchedules[day];
     const anchorItems = buildOutfitForActivity(
@@ -3820,6 +4193,9 @@ export function buildCapsule(
       capsuleIntent,
       roleRegistry,
       anchorBudget,
+      tasteProfile,
+      coherenceState,
+      fashionState,
     );
     if (anchorItems.length > 0) {
       outfits.push({
@@ -3829,6 +4205,7 @@ export function buildCapsule(
         occasion: schedule.primary,
         items: anchorItems,
       });
+      updateCoherence(coherenceState, anchorItems, coherenceLookup);
     }
   }
 
@@ -3852,6 +4229,9 @@ export function buildCapsule(
         capsuleIntent,
         roleRegistry,
         anchorBudget,
+        tasteProfile,
+        coherenceState,
+        fashionState,
       );
       if (supportItems.length >= 2) {
         outfits.push({
@@ -3861,6 +4241,7 @@ export function buildCapsule(
           occasion: schedule.secondary,
           items: supportItems,
         });
+        updateCoherence(coherenceState, supportItems, coherenceLookup);
       }
     }
   }
@@ -3928,7 +4309,7 @@ export function buildCapsule(
     return acc;
   }, new Map<string, number>());
   const topActivity = [...dominantActivity.entries()]
-    .sort((a, b) => b[1] - a[1])[0]?.[0]?.toLowerCase() || 'trip';
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0]?.toLowerCase() || 'trip';
 
   function buildReserveReason(c: {item: TripWardrobeItem; compatibleDays: number; slot: CategoryBucket}): string {
     const clauses: string[] = [];
@@ -4163,7 +4544,7 @@ export function buildCapsule(
     presentation,
   );
 
-  const buildId = generateBuildId();
+  const buildId = generateBuildId(fingerprint);
 
   logOutput(requestId, {
     outfitCount: outfits.length,
@@ -4201,6 +4582,111 @@ export function buildCapsule(
   // NOTE: No exposure event for Trips — no backend call exists.
   // Trips is 100% client-side (AsyncStorage). Revisit in Phase 2.
 
+  // ── LUXURY DESTINATION AUTHORITY — Capsule-level structural override ──
+  // Deterministic enforcement: in luxury warm cities with Dinner/Business/Formal
+  // and NO Active activity, sneakers are hard-replaced by luxury leather footwear.
+  // This is NOT scoring. This is post-assembly structural enforcement.
+  {
+    const warmestDayForAuth = weather.length > 0
+      ? weather.reduce((w, d) => (d.highF > w.highF ? d : w), weather[0])
+      : undefined;
+    const authClimateZone = deriveClimateZone(warmestDayForAuth);
+    const hasActive = activities.includes('Active');
+
+    if (
+      isLuxuryWarmContext(destinationLabel ?? startingLocationLabel, authClimateZone, activities) &&
+      !hasActive
+    ) {
+      // Find all luxury leather footwear in the full shoe pool
+      const luxuryPool = buckets.shoes.filter(s => isLuxuryLeatherFootwear(s));
+
+      if (luxuryPool.length >= 2) {
+        // Identify sneaker wardrobeItemIds currently in outfits
+        const sneakerIdsInOutfits = new Set<string>();
+        for (const outfit of eliteOutfits) {
+          for (const pi of outfit.items) {
+            if (CATEGORY_MAP[pi.mainCategory] !== 'shoes') continue;
+            const full = coherenceLookup.get(pi.wardrobeItemId);
+            if (full && isFootwearSneaker(full)) {
+              sneakerIdsInOutfits.add(pi.wardrobeItemId);
+            }
+          }
+        }
+
+        if (sneakerIdsInOutfits.size > 0) {
+          // Build replacement map: sneaker wardrobeItemId → luxury leather TripWardrobeItem
+          const replacementMap = new Map<string, TripWardrobeItem>();
+          const usedReplacementIds = new Set<string>();
+
+          // Collect all shoe wardrobeItemIds currently in outfits (non-sneaker) to avoid duplicates
+          const currentShoeIds = new Set<string>();
+          for (const outfit of eliteOutfits) {
+            for (const pi of outfit.items) {
+              if (CATEGORY_MAP[pi.mainCategory] === 'shoes' && !sneakerIdsInOutfits.has(pi.wardrobeItemId)) {
+                currentShoeIds.add(pi.wardrobeItemId);
+              }
+            }
+          }
+
+          for (const sneakerId of sneakerIdsInOutfits) {
+            const replacement = luxuryPool.find(
+              s => !currentShoeIds.has(s.id) && !usedReplacementIds.has(s.id),
+            );
+            if (replacement) {
+              replacementMap.set(sneakerId, replacement);
+              usedReplacementIds.add(replacement.id);
+            }
+          }
+
+          // Hard replace sneakers in every outfit
+          for (const outfit of eliteOutfits) {
+            for (let i = 0; i < outfit.items.length; i++) {
+              const pi = outfit.items[i];
+              if (CATEGORY_MAP[pi.mainCategory] !== 'shoes') continue;
+              const replacement = replacementMap.get(pi.wardrobeItemId);
+              if (replacement) {
+                outfit.items[i] = toPackingItem(replacement, startingLocationLabel);
+              }
+            }
+          }
+
+          // Update roleRegistry
+          const anchorShoe = roleRegistry.get('anchor_shoe');
+          if (anchorShoe && replacementMap.has(anchorShoe.id)) {
+            roleRegistry.set('anchor_shoe', replacementMap.get(anchorShoe.id)!);
+          }
+          const contrastShoe = roleRegistry.get('contrast_shoe');
+          if (contrastShoe && replacementMap.has(contrastShoe.id)) {
+            roleRegistry.set('contrast_shoe', replacementMap.get(contrastShoe.id)!);
+          }
+
+          // Update selectedShoes array for packing list consistency
+          for (let i = 0; i < selectedShoes.length; i++) {
+            const replacement = replacementMap.get(selectedShoes[i].id);
+            if (replacement) {
+              selectedShoes[i] = replacement;
+            }
+          }
+
+          if (DEBUG_TRIPS_ENGINE) {
+            console.log('[TripCapsule][LUXURY_OVERRIDE_APPLIED]', JSON.stringify({
+              city: destinationLabel ?? startingLocationLabel,
+              climateZone: authClimateZone,
+              sneakersRemoved: [...sneakerIdsInOutfits],
+              replacements: [...replacementMap.entries()].map(([from, to]) => ({
+                removedId: from,
+                replacedWith: {id: to.id, name: to.name, subcategory: to.subcategory},
+              })),
+              luxuryPoolSize: luxuryPool.length,
+              anchorShoe: roleRegistry.get('anchor_shoe')?.name,
+              contrastShoe: roleRegistry.get('contrast_shoe')?.name,
+            }));
+          }
+        }
+      }
+    }
+  }
+
   // Trace point 7: Final outcome
   if (TRIP_TRACE) {
     const shoeItems = eliteOutfits.flatMap(o => o.items.filter(i => CATEGORY_MAP[i.mainCategory] === 'shoes'));
@@ -4224,6 +4710,25 @@ export function buildCapsule(
 
     // Single log line
     console.log('TRIP TRACE', tripTrace);
+  }
+
+  // ── DEBUG: Final Capsule Summary ──
+  if (DEBUG_TRIPS_ENGINE) {
+    const shoeIds = eliteOutfits.flatMap(o => o.items.filter(i => CATEGORY_MAP[i.mainCategory] === 'shoes').map(i => i.wardrobeItemId));
+    const outerwearItems = eliteOutfits.flatMap(o => o.items.filter(i => CATEGORY_MAP[i.mainCategory] === 'outerwear'));
+    const layeringItems = eliteOutfits.flatMap(o => o.items.filter(i => {
+      const full = coherenceLookup.get(i.wardrobeItemId);
+      return full?.layering === 'mid' || full?.layering === 'base';
+    }));
+    console.log('[TripsDebug][FinalCapsule]', JSON.stringify({
+      city: destinationLabel || 'UNKNOWN_DESTINATION',
+      activities,
+      selectedFootwear: [...new Set(shoeIds)],
+      outerwearCount: new Set(outerwearItems.map(i => i.wardrobeItemId)).size,
+      layeringCount: new Set(layeringItems.map(i => i.wardrobeItemId)).size,
+      colorDirection: capsuleIntent.paletteColors,
+      silhouetteDirection: capsuleIntent.silhouetteBias,
+    }));
   }
 
   const capsuleResult = {

@@ -214,7 +214,7 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
       const presentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
         ? normalizeGenderToPresentation(rawGender)
         : detectPresentation(adapted);
-      const capsule = buildCapsule(adapted, weatherResult.days, activities, locationLabel, presentation);
+      const capsule = buildCapsule(adapted, weatherResult.days, activities, locationLabel, presentation, undefined, null, selectedDestination.displayName);
       const warnings = validateCapsule(capsule, weatherResult.days, activities, adapted, presentation);
 
       const trip: Trip = {

@@ -181,14 +181,9 @@ function buildTripWeather(
   for (const f of forecast) {
     condCounts.set(f.condition, (condCounts.get(f.condition) || 0) + 1);
   }
-  let commonCondition = 'partly-cloudy';
-  let maxCount = 0;
-  for (const [cond, count] of condCounts) {
-    if (count > maxCount) {
-      maxCount = count;
-      commonCondition = cond;
-    }
-  }
+  // Deterministic: sort by count desc, then alphabetical tiebreak (avoids Map iteration order dependence)
+  const sortedConds = [...condCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const commonCondition = sortedConds.length > 0 ? sortedConds[0][0] : 'partly-cloudy';
 
   const current = new Date(start);
   while (current <= end) {
