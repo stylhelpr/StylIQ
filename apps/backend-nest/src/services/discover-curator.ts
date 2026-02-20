@@ -4,8 +4,9 @@
  * Curator scoring signals for Recommended Buys.
  * Pure function module: NO DB, NO LLM, NO async, NO state, NO randomness, NO Date.now().
  *
- * Each product that passes veto gets scored across 6 dimensions to surface
- * the best matches for the user's style profile.
+ * Each product that passes veto gets scored across 6 dimensions (formality,
+ * color, occasion, silhouette, material, brand) to surface the best matches
+ * for the user's style profile.
  */
 
 import { inferProductFormality, FORMALITY_RANK_MAP } from './discover-veto';
@@ -28,6 +29,7 @@ export interface CuratorInput {
   inferredCategory: string | null;
   existingScore: number;
   existingBreakdown: Record<string, number>;
+  brandTier?: number;     // 1-5, null/undefined = no signal
 }
 
 export interface CuratorProfile {
@@ -40,11 +42,12 @@ export interface CuratorProfile {
 }
 
 export interface CuratorResult {
-  formalityCoherence: number;   // -8 to +4
+  formalityCoherence: number;   // -8 to +4 (1-below = -6)
   colorHarmony: number;         // -4 to +3
   occasionBonus: number;        // 0 to +3
   silhouetteDepth: number;      // -4 to +4
   materialElevation: number;    // -3 to +3
+  brandElevation: number;       // -6 to +4
   confidenceScore: number;      // 0.0 to 1.0
   signalsUsed: number;
   signalsAvailable: number;
@@ -268,7 +271,7 @@ export function computeCuratorSignals(
           formalityCoherence = 4;
           debugTags.push(`formality:at-or-above(${productRank}>=${floorRank})`);
         } else if (gap === 1) {
-          formalityCoherence = 2;
+          formalityCoherence = -8;
           debugTags.push(`formality:1-below(${productRank},floor=${floorRank})`);
         } else if (gap === 2) {
           formalityCoherence = 0;
@@ -399,13 +402,45 @@ export function computeCuratorSignals(
     debugTags.push('material:no-luxury-style');
   }
 
-  // ── 6. Confidence Score ────────────────────────────────────────
+  // ── 6. Brand Elevation (-4 to +2) ──────────────────────────────
+  signalsAvailable++;
+  let brandElevation = 0;
+  if (product.brandTier != null) {
+    signalsUsed++;
+    switch (product.brandTier) {
+      case 1: brandElevation = 4; break;
+      case 2: brandElevation = 2; break;
+      case 3: brandElevation = 0; break;
+      case 4: brandElevation = -3; break;
+      case 5: brandElevation = -6; break;
+      default: brandElevation = 0;
+    }
+    debugTags.push(`brand:tier${product.brandTier}(${brandElevation >= 0 ? '+' : ''}${brandElevation})`);
+  } else {
+    debugTags.push('brand:no-tier');
+  }
+
+  // ── 7. Confidence Score ────────────────────────────────────────
   const confidenceScore = signalsAvailable > 0
     ? signalsUsed / signalsAvailable
     : 0;
 
+  // ── Weight boost: silhouette + material get 1.5× authority ────
+  const weightedSilhouette = +(silhouetteDepth * 1.5);
+  const weightedMaterial = +(materialElevation * 1.5);
+
+  // ── Formal-context brand amplification ─────────────────────────
+  // When occasion + exact silhouette match both fire, brand authority
+  // becomes the deciding lever — amplify its weight to prevent
+  // low-tier brands from riding silhouette/occasion to the top.
+  const formalContext = occasionBonus > 0 && silhouetteDepth >= 4;
+  const weightedBrand = formalContext ? brandElevation * 1.75 : brandElevation;
+  if (formalContext && brandElevation !== 0) {
+    debugTags.push(`brand:formal-amplified(${weightedBrand >= 0 ? '+' : ''}${weightedBrand})`);
+  }
+
   // ── Clamp total ────────────────────────────────────────────────
-  const rawTotal = formalityCoherence + colorHarmony + occasionBonus + silhouetteDepth + materialElevation;
+  const rawTotal = formalityCoherence + colorHarmony + occasionBonus + weightedSilhouette + weightedMaterial + weightedBrand;
   const curatorTotal = Math.max(-15, Math.min(15, rawTotal));
 
   return {
@@ -414,6 +449,7 @@ export function computeCuratorSignals(
     occasionBonus,
     silhouetteDepth,
     materialElevation,
+    brandElevation,
     confidenceScore,
     signalsUsed,
     signalsAvailable,

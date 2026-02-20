@@ -122,24 +122,59 @@ const BRAND_TIER_MAP: Record<string, number> = {
  *  Tier 1 = luxury, Tier 5 = unknown/low authority. Default = Tier 4. */
 const BRAND_AUTHORITY_TIERS: Record<string, number> = {
   // Tier 1 – Luxury / Designer
-  'chanel': 1, 'roberto cavalli': 1, 'vera wang': 1, 'gucci': 1, 'prada': 1,
-  'saint laurent': 1, 'valentino': 1, 'versace': 1, 'balmain': 1, 'dior': 1,
-  'louis vuitton': 1, 'hermes': 1, 'bottega veneta': 1, 'balenciaga': 1,
-  'tom ford': 1, 'dolce gabbana': 1, 'givenchy': 1, 'fendi': 1, 'burberry': 1,
-  'brioni': 1, 'brunello cucinelli': 1,
+  'alexander mcqueen': 1, 'amiri': 1, 'armani': 1, 'balenciaga': 1,
+  'balmain': 1, 'bottega veneta': 1, 'brioni': 1, 'brunello cucinelli': 1,
+  'burberry': 1, 'carolina herrera': 1, 'cartier': 1, 'celine': 1,
+  'chanel': 1, 'chloe': 1, 'christian louboutin': 1, 'dior': 1,
+  'dolce gabbana': 1, 'elie saab': 1, 'emilio pucci': 1,
+  'ermenegildo zegna': 1, 'etro': 1, 'fendi': 1, 'ferragamo': 1,
+  'giorgio armani': 1, 'givenchy': 1, 'gucci': 1, 'hermes': 1,
+  'isabel marant': 1, 'jacquemus': 1, 'jimmy choo': 1, 'kenzo': 1,
+  'lanvin': 1, 'loewe': 1, 'louis vuitton': 1, 'manolo blahnik': 1,
+  'marc jacobs': 1, 'marchesa': 1, 'marni': 1, 'max mara': 1,
+  'missoni': 1, 'miu miu': 1, 'moncler': 1, 'moschino': 1,
+  'off white': 1, 'offwhite': 1, 'oscar de la renta': 1, 'prada': 1,
+  'proenza schouler': 1, 'pucci': 1, 'rick owens': 1,
+  'roberto cavalli': 1, 'saint laurent': 1, 'salvatore ferragamo': 1,
+  'stella mccartney': 1, 'thom browne': 1, 'tiffany': 1, 'tom ford': 1,
+  'valentino': 1, 'vera wang': 1, 'versace': 1, 'vivienne westwood': 1,
+  'zegna': 1,
 
   // Tier 2 – Premium Contemporary
-  'tommy hilfiger': 2, 'madewell': 2, 'nordstrom': 2, 'ralph lauren': 2,
-  'polo ralph lauren': 2, 'hugo boss': 2, 'brooks brothers': 2, 'theory': 2,
-  'reiss': 2, 'ted baker': 2, 'club monaco': 2, 'allsaints': 2, 'cos': 2,
-  'zegna': 2, 'canali': 2, 'jcrew': 2, 'j crew': 2, 'banana republic': 2,
-  'cole haan': 2, 'coach': 2, 'kate spade': 2, 'michael kors': 2,
+  'acne studios': 2, 'agolde': 2, 'alice olivia': 2, 'allsaints': 2,
+  'anine bing': 2, 'apc': 2, 'badgley mischka': 2, 'banana republic': 2,
+  'brooks brothers': 2, 'calvin klein': 2, 'canali': 2,
+  'citizens of humanity': 2, 'club monaco': 2, 'coach': 2, 'cole haan': 2,
+  'cos': 2, 'derek lam': 2, 'diane von furstenberg': 2, 'diesel': 2,
+  'dvf': 2, 'eileen fisher': 2, 'emporio armani': 2, 'furla': 2,
+  'ganni': 2, 'helmut lang': 2, 'hugo boss': 2, 'j crew': 2, 'jcrew': 2,
+  'karl lagerfeld': 2, 'kate spade': 2, 'khaite': 2, 'lacoste': 2,
+  'longchamp': 2, 'lululemon': 2, 'madewell': 2, 'massimo dutti': 2,
+  'mcm': 2, 'michael kors': 2, 'nili lotan': 2,
+  'paul smith': 2, 'phillip lim': 2, '31 phillip lim': 2,
+  'polo ralph lauren': 2, 'rag bone': 2, 'ralph lauren': 2,
+  'rebecca minkoff': 2, 'reformation': 2, 'reiss': 2, 'sandro': 2,
+  'self portrait': 2, 'staud': 2, 'stuart weitzman': 2, 'ted baker': 2,
+  'theory': 2, 'tods': 2, 'tommy hilfiger': 2, 'tory burch': 2,
+  'ulla johnson': 2, 'veronica beard': 2, 'vince': 2, 'vince camuto': 2,
+  'zimmermann': 2,
 
   // Tier 3 – Mall / Mid-tier
-  'zara': 3, 'zara usa': 3, 'hollister': 3, 'hollister co official': 3,
-  'mens wearhouse': 3, 'uniqlo': 3, 'gap': 3, 'express': 3, 'hm': 3,
-  'h m': 3, 'abercrombie': 3, 'american eagle': 3, 'asos': 3, 'topshop': 3,
-  'mango': 3, 'forever 21': 3, 'urban outfitters': 3, 'loft': 3,
+  'abercrombie': 3, 'adidas': 3, 'american eagle': 3, 'ann taylor': 3,
+  'armani exchange': 3, 'asos': 3, 'athleta': 3, 'bcbg': 3,
+  'bcbgmaxazria': 3, 'champion': 3, 'columbia': 3, 'converse': 3,
+  'dkny': 3, 'everlane': 3, 'express': 3, 'forever 21': 3,
+  'free people': 3, 'french connection': 3, 'gap': 3, 'guess': 3,
+  'h m': 3, 'hm': 3, 'hollister': 3, 'hollister co official': 3,
+  'j jill': 3, 'jjill': 3, 'kenneth cole': 3, 'levis': 3, 'loft': 3,
+  'lucky brand': 3, 'mango': 3, 'nautica': 3,
+  'new balance': 3, 'nike': 3, 'north face': 3, 'the north face': 3,
+  'patagonia': 3, 'perry ellis': 3, 'puma': 3, 'sam edelman': 3,
+  'steve madden': 3, 'tommy bahama': 3, 'topshop': 3,
+  'under armour': 3, 'under armor': 3, 'uniqlo': 3,
+  'urban outfitters': 3, 'vans': 3, 'vera bradley': 3,
+  'vineyard vines': 3, 'white house black market': 3, 'wrangler': 3,
+  'zara': 3, 'zara usa': 3,
 
   // Tier 4 – Fast Fashion / Value
   'boohoo': 4, 'boohoo usa': 4, 'boohooman': 4, 'old navy': 4, 'target': 4,
@@ -165,6 +200,58 @@ function getBrandAuthorityScore(brand?: string | null): number {
     case 5: return -3;
     default: return 0;
   }
+}
+
+/**
+ * Extract the actual fashion brand from a product title by matching against
+ * BRAND_AUTHORITY_TIERS keys. Sorted by key length descending so multi-word
+ * brands (e.g. "ralph lauren") match before single-word substrings.
+ * Word-boundary safe to prevent partial matches (e.g. "express" inside "expressed").
+ * Returns the normalized brand key or null if no match.
+ */
+const _brandTierKeysByLength = Object.keys(BRAND_AUTHORITY_TIERS)
+  .sort((a, b) => b.length - a.length);
+
+const SPAM_PREFIXES = new Set(['discount', 'buy', 'sell', 'sale', 'cheap']);
+
+function extractBrandFromTitle(title: string): string | null {
+  if (!title) return null;
+  const norm = normalize(title);
+  if (!norm) return null;
+  const tokens = norm.split(/\s+/);
+
+  for (const key of _brandTierKeysByLength) {
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (!new RegExp(`\\b${escaped}\\b`).test(norm)) continue;
+
+    // Find brand start position as contiguous token sequence
+    const brandTokens = key.split(/\s+/);
+    let startIdx = -1;
+    for (let i = 0; i <= tokens.length - brandTokens.length; i++) {
+      if (brandTokens.every((bt, j) => tokens[i + j] === bt)) {
+        startIdx = i;
+        break;
+      }
+    }
+    if (startIdx === -1) continue;
+
+    // Brand must start within first 5 tokens
+    if (startIdx > 4) continue;
+
+    // Reject if any spam token precedes the brand
+    if (tokens.slice(0, startIdx).some(t => SPAM_PREFIXES.has(t))) continue;
+
+    return key;
+  }
+  return null;
+}
+
+/** Resolve brand tier: prefer brand extracted from title, then p.brand, then p.source. */
+function resolveBrandTier(title: string, brand: string | null | undefined, source: string | null | undefined): number {
+  const extracted = extractBrandFromTitle(title);
+  if (extracted) return BRAND_AUTHORITY_TIERS[extracted] ?? 4;
+  const fallback = normalize(brand) || normalize(source) || '';
+  return BRAND_AUTHORITY_TIERS[fallback] ?? 4;
 }
 
 /** Strip non-alphanumeric (except spaces), lowercase, collapse whitespace */
@@ -418,7 +505,34 @@ function expandStyleTokens(styleKeywords: string[]): Set<string> {
 const COLOR_VOCAB: string[] = [
   'black', 'white', 'navy', 'blue', 'red', 'green', 'gray', 'grey',
   'brown', 'beige', 'tan', 'cream', 'burgundy', 'olive',
+  'charcoal', 'ivory', 'coral', 'sage', 'rust', 'mustard', 'camel', 'plum',
+  'teal', 'blush', 'wine', 'mauve', 'mint', 'rose', 'khaki', 'taupe',
+  'indigo', 'lavender', 'copper', 'gold', 'silver',
 ];
+
+/** Maps expanded fashion color tokens to canonical color buckets */
+const FASHION_COLOR_NORMALIZE: Record<string, string> = {
+  charcoal: 'gray',
+  ivory: 'beige',
+  sage: 'green',
+  rust: 'brown',
+  mustard: 'beige',
+  camel: 'beige',
+  plum: 'burgundy',
+  teal: 'blue',
+  blush: 'beige',
+  wine: 'burgundy',
+  mauve: 'burgundy',
+  mint: 'green',
+  rose: 'red',
+  khaki: 'beige',
+  taupe: 'beige',
+  indigo: 'navy',
+  lavender: 'blue',
+  copper: 'brown',
+  gold: 'beige',
+  silver: 'gray',
+};
 
 // Canonical color buckets for thumbnail-based enrichment
 const CANONICAL_COLORS = [
@@ -514,11 +628,14 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return inter / (a.size + b.size - inter);
 }
 
-/** Infer color key from product title using COLOR_VOCAB */
+/** Infer color key from product title using COLOR_VOCAB with word-boundary matching */
 function inferColorFromTitle(title: string): string {
   const normTitle = normalize(title);
   for (const c of COLOR_VOCAB) {
-    if (normTitle.includes(c)) return c === 'grey' ? 'gray' : c;
+    if (wordBoundaryMatch(normTitle, c)) {
+      const base = c === 'grey' ? 'gray' : c;
+      return FASHION_COLOR_NORMALIZE[base] ?? base;
+    }
   }
   return '';
 }
@@ -965,6 +1082,17 @@ export class DiscoverService {
       }
     }
 
+    // --- Gray-fallback: when enriched_color is gray or empty, try title inference ---
+    for (const p of allProducts) {
+      const ec = normalize(p.enriched_color || '');
+      if (!ec || ec === 'gray' || ec === 'grey') {
+        const titleColor = inferColorFromTitle(p.title);
+        if (titleColor) {
+          p.enriched_color = titleColor;
+        }
+      }
+    }
+
     if (DEBUG_RECOMMENDED_BUYS) {
       console.log('COLOR ENRICHMENT DEBUG:');
       allProducts.slice(0, 5).forEach((p: any) => {
@@ -1356,6 +1484,19 @@ export class DiscoverService {
       // --- BASIC ITEM DAMPENER: slight suppression of ultra-generic SKUs ---
       const basicDampener = BASIC_ITEM_RE.test(normProductText) ? -2 : 0;
 
+      // --- CASUAL INFLATION DAMPENER: soft penalty for generic casual basics in default mode ---
+      // Prevents mall-tier hoodies/graphic tees from outranking elevated pieces when no formality floor is set.
+      const CASUAL_INFLATION_TOKENS = ['hoodie', 'sweatshirt', 'graphic tee', 'livedin tee', 'lightweight tee', 'icon tee', 'logo tee'];
+      const productCluster = getSemanticCluster(p.title, p.category);
+      const productBrandTier = resolveBrandTier(p.title, p.brand, p.source);
+      const casualInflationPenalty =
+        !profile.formality_floor &&
+        productCluster === 'top_cluster' &&
+        productBrandTier >= 4 &&
+        CASUAL_INFLATION_TOKENS.some(token => normProductText.includes(token))
+          ? -2
+          : 0;
+
       // --- STYLE DEPTH SIGNAL: reward products matching multiple user style keywords ---
       let styleKeywordsMatched = 0;
       for (const keyword of profile.style_keywords) {
@@ -1378,7 +1519,7 @@ export class DiscoverService {
         penalty = brandSatPenalty(brandFreq01);
       }
 
-      // --- FASHION STATE AFFINITY BONUS (additive, bounded ±6, 0.7× no-double-count) ---
+      // --- FASHION STATE AFFINITY BONUS (additive, bounded ±4, 0.7× no-double-count) ---
       let fashionStateBonus = 0;
       if (fsSummary && !fsSummary.isColdStart) {
         let rawFsBonus = 0;
@@ -1390,11 +1531,11 @@ export class DiscoverService {
         if (fsSummary.topStyles && fsSummary.topStyles.some(s => normProductText.includes(normalize(s)))) rawFsBonus += 1;
         if (fsSummary.avoidStyles && fsSummary.avoidStyles.some(s => normProductText.includes(normalize(s)))) rawFsBonus -= 1;
         // 0.7 multiplier: legacy user_pref_feature already provides partial overlap
-        fashionStateBonus = Math.max(-6, Math.min(6, +(rawFsBonus * 0.7).toFixed(2)));
+        fashionStateBonus = Math.max(-4, Math.min(4, +(rawFsBonus * 0.7).toFixed(2)));
       }
 
       // Weighted score: brand(7, tier-adjusted, max 10) + behavior(3) + gap(clamped) + style(16) + color(10)
-      //   + fit(4) + elevation(5) + styleDepth(3) + authority(-2..+3) - negativePenalty(4) - brandSatPenalty + basicDamp(-2) + fashionState(±6)
+      //   + fit(4) + elevation(5) + styleDepth(3) + authority(-2..+3) - negativePenalty(4) - brandSatPenalty + basicDamp(-2) + casualInflation(-2) + fashionState(±4)
       const score =
         brandContribution +
         (3  * behavior01) +
@@ -1408,6 +1549,7 @@ export class DiscoverService {
         penalty -
         negativePenalty +
         basicDampener +
+        casualInflationPenalty +
         fashionStateBonus;
 
       breakdown.brand = +brandContribution.toFixed(2);
@@ -1423,6 +1565,7 @@ export class DiscoverService {
       breakdown.styleDepth = +(3 * styleDepth01).toFixed(2);
       breakdown.basicDamp = basicDampener;
       breakdown.authority = brandAuthority;
+      (breakdown as any).casualInflationPenalty = casualInflationPenalty;
       (breakdown as any).fashionState = fashionStateBonus;
 
       // --- CURATOR SIGNALS (Tier 4) ---
@@ -1436,11 +1579,13 @@ export class DiscoverService {
           inferredCategory,
           existingScore: score,
           existingBreakdown: breakdown,
+          brandTier: productBrandTier,
         },
         curatorProfile,
       );
 
-      const finalScore = score + curatorResult.curatorTotal;
+      const curatorWeighted = +(curatorResult.curatorTotal * 1.5).toFixed(2);
+      const finalScore = score + curatorWeighted;
 
       // Add curator signals to breakdown
       (breakdown as any).curatorFormality = curatorResult.formalityCoherence;
@@ -1448,11 +1593,19 @@ export class DiscoverService {
       (breakdown as any).curatorOccasion = curatorResult.occasionBonus;
       (breakdown as any).curatorSilhouette = curatorResult.silhouetteDepth;
       (breakdown as any).curatorMaterial = curatorResult.materialElevation;
+      (breakdown as any).curatorBrand = curatorResult.brandElevation;
       (breakdown as any).curatorTotal = curatorResult.curatorTotal;
+      (breakdown as any).curatorWeighted = curatorWeighted;
       (breakdown as any).confidence = curatorResult.confidenceScore;
       (breakdown as any).learningScore = fashionStateBonus;
+      (breakdown as any).baseScore = +score.toFixed(2);
+      (breakdown as any).brandTier = productBrandTier;
+      (breakdown as any).curatorDebugTags = [
+        ...curatorResult.debugTags,
+        ...(casualInflationPenalty < 0 ? ['casualInflationPenalty:-2'] : []),
+      ];
 
-      if (curatorResult.curatorTotal !== 0 && DEBUG_RECOMMENDED_BUYS) {
+      if (DEBUG_RECOMMENDED_BUYS) {
         console.log('🎨 CURATOR DEBUG', {
           title: p.title,
           ...curatorResult,
@@ -1516,6 +1669,38 @@ export class DiscoverService {
     }
     scored.sort((a, b) => b.score - a.score || a.idx - b.idx);
 
+    // --- Soft Cluster Diversity Penalty: -2 for excess items beyond first 2 in any cluster > 60% of top window ---
+    const CLUSTER_WINDOW = Math.min(scored.length, 20);
+    if (CLUSTER_WINDOW > 0) {
+      const windowClusters: string[] = [];
+      for (let i = 0; i < CLUSTER_WINDOW; i++) {
+        const p = scored[i].product;
+        windowClusters.push(getSemanticCluster(p.title, p.category));
+      }
+      const clusterFreq: Record<string, number> = {};
+      for (const c of windowClusters) {
+        clusterFreq[c] = (clusterFreq[c] ?? 0) + 1;
+      }
+      // Find clusters exceeding 60% of window
+      const threshold = CLUSTER_WINDOW * 0.6;
+      const overRepresented = new Set<string>();
+      for (const [cluster, count] of Object.entries(clusterFreq)) {
+        if (count > threshold) overRepresented.add(cluster);
+      }
+      if (overRepresented.size > 0) {
+        const clusterSeen: Record<string, number> = {};
+        for (let i = 0; i < CLUSTER_WINDOW; i++) {
+          const cluster = windowClusters[i];
+          if (!overRepresented.has(cluster)) continue;
+          clusterSeen[cluster] = (clusterSeen[cluster] ?? 0) + 1;
+          if (clusterSeen[cluster] > 2) {
+            scored[i].score -= 2;
+          }
+        }
+        scored.sort((a, b) => b.score - a.score || a.idx - b.idx);
+      }
+    }
+
     if (DEBUG_RECOMMENDED_BUYS) {
       const scores = scored.map(s => s.score);
       const max = Math.max(...scores);
@@ -1534,8 +1719,14 @@ export class DiscoverService {
         console.log(`#${i + 1}`, {
           title: s.product.title,
           brand: s.product.brand,
-          score: s.score,
-          breakdown: s.breakdown,
+          finalScore: +s.score.toFixed(2),
+          baseScore: (s.breakdown as any).baseScore,
+          curatorTotal: (s.breakdown as any).curatorTotal,
+          curatorWeighted: (s.breakdown as any).curatorWeighted,
+          learningScore: (s.breakdown as any).learningScore,
+          confidence: (s.breakdown as any).confidence,
+          brandTier: (s.breakdown as any).brandTier,
+          debugTags: (s.breakdown as any).curatorDebugTags,
         });
       });
     }
@@ -1595,6 +1786,8 @@ export class DiscoverService {
           title: p.title,
           brand: p.brand,
           score_total: p.score_total,
+          baseScore: (p.score_breakdown as any)?.baseScore,
+          brandTier: (p.score_breakdown as any)?.brandTier,
           match_reasons: p.match_reasons,
         });
       });
@@ -2423,4 +2616,7 @@ export const __test__ = {
   tokenSet,
   buildVetoCtx,
   LOOSE_FIT_TOKENS,
+  extractBrandFromTitle,
+  resolveBrandTier,
+  getSemanticCluster,
 };

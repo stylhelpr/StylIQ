@@ -30,6 +30,7 @@ function makeInput(overrides: Partial<CuratorInput> = {}): CuratorInput {
     inferredCategory: overrides.inferredCategory ?? null,
     existingScore: overrides.existingScore ?? 0,
     existingBreakdown: overrides.existingBreakdown ?? {},
+    brandTier: overrides.brandTier,
   };
 }
 
@@ -145,12 +146,12 @@ describe('Formality Coherence', () => {
     expect(result.formalityCoherence).toBe(4);
   });
 
-  it('+2 when product is 1 rank below floor', () => {
+  it('-8 when product is 1 rank below floor', () => {
     // Smart casual = 3, floor = business casual = 4 → 1 below
     const product = makeInput({ title: 'Smart Casual Chinos', blob: 'smart casual chinos' });
     const profile = emptyProfile({ formalityFloor: 'business casual' });
     const result = computeCuratorSignals(product, profile);
-    expect(result.formalityCoherence).toBe(2);
+    expect(result.formalityCoherence).toBe(-8);
   });
 
   it('0 when product is 2 ranks below floor', () => {
@@ -163,7 +164,7 @@ describe('Formality Coherence', () => {
 
   it('-8 when product is 3+ ranks below floor', () => {
     // Athletic = 1, floor = business casual = 4 → 3 below
-    const product = makeInput({ title: 'Athletic Running Shorts', blob: 'athletic running shorts' });
+    const product = makeInput({ title: 'Athletic Gym Tank', blob: 'athletic gym tank' });
     const profile = emptyProfile({ formalityFloor: 'business casual' });
     const result = computeCuratorSignals(product, profile);
     expect(result.formalityCoherence).toBe(-8);
@@ -500,11 +501,13 @@ describe('Clamping', () => {
     // occasionBonus = +3
     // silhouetteDepth = +4
     // materialElevation = +3
-    // Raw total = +17, should clamp to +15
+    // brandElevation = +4 (tier 1)
+    // Raw total = +21, should clamp to +15
     const product = makeInput({
       title: 'Navy Wool Blazer',         // formality = 5
       blob: 'slim fit tailored wool blazer evening',
       enrichedColor: 'black',
+      brandTier: 1,
     });
     const profile = emptyProfile({
       formalityFloor: 'business casual',  // rank 4, product rank 5 → above → +4
@@ -562,11 +565,11 @@ describe('Confidence Score', () => {
     expect(result.signalsUsed).toBeLessThanOrEqual(result.signalsAvailable);
   });
 
-  it('signalsAvailable is always 5 (one per dimension)', () => {
+  it('signalsAvailable is always 6 (one per dimension)', () => {
     const product = makeInput();
     const profile = emptyProfile();
     const result = computeCuratorSignals(product, profile);
-    expect(result.signalsAvailable).toBe(5);
+    expect(result.signalsAvailable).toBe(6);
   });
 
   it('high confidence when many signals fire', () => {
@@ -670,11 +673,13 @@ describe('debugTags', () => {
     const hasOccasion = result.debugTags.some(t => t.startsWith('occasion:'));
     const hasSilhouette = result.debugTags.some(t => t.startsWith('silhouette:'));
     const hasMaterial = result.debugTags.some(t => t.startsWith('material:'));
+    const hasBrand = result.debugTags.some(t => t.startsWith('brand:'));
     expect(hasFormality).toBe(true);
     expect(hasColor).toBe(true);
     expect(hasOccasion).toBe(true);
     expect(hasSilhouette).toBe(true);
     expect(hasMaterial).toBe(true);
+    expect(hasBrand).toBe(true);
   });
 });
 
@@ -692,6 +697,7 @@ describe('Empty profile baseline', () => {
     expect(result.occasionBonus).toBe(0);
     expect(result.silhouetteDepth).toBe(0);
     expect(result.materialElevation).toBe(0);
+    expect(result.brandElevation).toBe(0);
     expect(result.curatorTotal).toBe(0);
   });
 
@@ -714,6 +720,162 @@ describe('Empty profile baseline', () => {
     expect(result.silhouetteDepth).toBe(0);
     // Empty blob → no material signal → 0
     expect(result.materialElevation).toBe(0);
+    // No brandTier → brandElevation = 0
+    expect(result.brandElevation).toBe(0);
     expect(result.curatorTotal).toBe(0);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════
+// 12. Brand Elevation
+// ═════════════════════════════════════════════════════════════════════
+
+describe('Brand Elevation', () => {
+  it('+4 for brandTier 1 (luxury)', () => {
+    const product = makeInput({ brandTier: 1 });
+    const profile = emptyProfile();
+    const result = computeCuratorSignals(product, profile);
+    expect(result.brandElevation).toBe(4);
+  });
+
+  it('+2 for brandTier 2 (premium)', () => {
+    const product = makeInput({ brandTier: 2 });
+    const profile = emptyProfile();
+    const result = computeCuratorSignals(product, profile);
+    expect(result.brandElevation).toBe(2);
+  });
+
+  it('0 for brandTier 3 (mid-tier)', () => {
+    const product = makeInput({ brandTier: 3 });
+    const profile = emptyProfile();
+    const result = computeCuratorSignals(product, profile);
+    expect(result.brandElevation).toBe(0);
+  });
+
+  it('-3 for brandTier 4 (fast fashion)', () => {
+    const product = makeInput({ brandTier: 4 });
+    const profile = emptyProfile();
+    const result = computeCuratorSignals(product, profile);
+    expect(result.brandElevation).toBe(-3);
+  });
+
+  it('-6 for brandTier 5 (low authority)', () => {
+    const product = makeInput({ brandTier: 5 });
+    const profile = emptyProfile();
+    const result = computeCuratorSignals(product, profile);
+    expect(result.brandElevation).toBe(-6);
+  });
+
+  it('0 for undefined brandTier (no signal)', () => {
+    const product = makeInput({ brandTier: undefined });
+    const profile = emptyProfile();
+    const result = computeCuratorSignals(product, profile);
+    expect(result.brandElevation).toBe(0);
+  });
+
+  it('brandTier counts as signalsUsed when provided', () => {
+    const withTier = makeInput({ brandTier: 1 });
+    const withoutTier = makeInput({ brandTier: undefined });
+    const profile = emptyProfile();
+    const rWith = computeCuratorSignals(withTier, profile);
+    const rWithout = computeCuratorSignals(withoutTier, profile);
+    expect(rWith.signalsUsed).toBe(rWithout.signalsUsed + 1);
+  });
+
+  it('debugTag includes brand:tier prefix', () => {
+    const product = makeInput({ brandTier: 2 });
+    const profile = emptyProfile();
+    const result = computeCuratorSignals(product, profile);
+    expect(result.debugTags.some(t => t.startsWith('brand:tier2'))).toBe(true);
+  });
+
+  it('Tier 1 brand outranks Tier 5 when all else equal', () => {
+    const base = { title: 'Cotton Polo', blob: 'cotton polo shirt', enrichedColor: 'navy' };
+    const profile = emptyProfile();
+    const tier1 = computeCuratorSignals(makeInput({ ...base, brandTier: 1 }), profile);
+    const tier5 = computeCuratorSignals(makeInput({ ...base, brandTier: 5 }), profile);
+    // Tier 1 = +4, Tier 5 = -6 → 10-point separation
+    expect(tier1.curatorTotal - tier5.curatorTotal).toBe(10);
+    expect(tier1.curatorTotal).toBeGreaterThan(tier5.curatorTotal);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════
+// 13. Formal-context brand amplification
+// ═════════════════════════════════════════════════════════════════════
+
+describe('Formal-context brand amplification', () => {
+  const formalProfile = emptyProfile({
+    styleKeywords: ['formal'],
+    fitPreferences: ['slim'],
+  });
+
+  const formalBlob = 'slim fit tailored suit jacket';
+
+  it('amplifies Tier 4 penalty when occasion + exact silhouette fire', () => {
+    const product = makeInput({ blob: formalBlob, brandTier: 4 });
+    const result = computeCuratorSignals(product, formalProfile);
+    // occasionBonus = 3 (formal + tailored/suit), silhouetteDepth = 4 (slim exact)
+    // formalContext = true → brandElevation -3 × 1.75 = -5.25
+    expect(result.occasionBonus).toBe(3);
+    expect(result.silhouetteDepth).toBe(4);
+    expect(result.brandElevation).toBe(-3); // raw signal unchanged
+    expect(result.debugTags).toContain('brand:formal-amplified(-5.25)');
+  });
+
+  it('amplifies Tier 1 reward when occasion + exact silhouette fire', () => {
+    const product = makeInput({ blob: formalBlob, brandTier: 1 });
+    const result = computeCuratorSignals(product, formalProfile);
+    expect(result.brandElevation).toBe(4); // raw signal unchanged
+    expect(result.debugTags).toContain('brand:formal-amplified(+7)');
+  });
+
+  it('widens Tier 1 vs Tier 4 gap in formal context vs non-formal', () => {
+    const casualProfile = emptyProfile({ fitPreferences: ['slim'] });
+    const casualBlob = 'slim fit cotton polo shirt'; // no occasion tokens
+
+    const tier1Formal = computeCuratorSignals(makeInput({ blob: formalBlob, brandTier: 1 }), formalProfile);
+    const tier4Formal = computeCuratorSignals(makeInput({ blob: formalBlob, brandTier: 4 }), formalProfile);
+    const formalGap = tier1Formal.curatorTotal - tier4Formal.curatorTotal;
+
+    const tier1Casual = computeCuratorSignals(makeInput({ blob: casualBlob, brandTier: 1 }), casualProfile);
+    const tier4Casual = computeCuratorSignals(makeInput({ blob: casualBlob, brandTier: 4 }), casualProfile);
+    const casualGap = tier1Casual.curatorTotal - tier4Casual.curatorTotal;
+
+    // Formal gap should be wider than casual gap
+    expect(formalGap).toBeGreaterThan(casualGap);
+  });
+
+  it('does NOT amplify when occasion does not fire', () => {
+    const casualProfile = emptyProfile({
+      styleKeywords: ['casual'],
+      fitPreferences: ['slim'],
+    });
+    const product = makeInput({ blob: 'slim fit cotton polo', brandTier: 4 });
+    const result = computeCuratorSignals(product, casualProfile);
+    expect(result.occasionBonus).toBe(0);
+    expect(result.brandElevation).toBe(-3);
+    expect(result.debugTags.some(t => t.includes('formal-amplified'))).toBe(false);
+  });
+
+  it('does NOT amplify when silhouette is not exact match', () => {
+    // 'formal suit jacket' has occasion tokens (formal, suit) but no slim/loose tokens
+    // → neutral fit, user wants slim → silhouetteDepth = 0
+    const product = makeInput({ blob: 'formal suit jacket', brandTier: 4 });
+    const profile = emptyProfile({
+      styleKeywords: ['formal'],
+      fitPreferences: ['slim'],
+    });
+    const result = computeCuratorSignals(product, profile);
+    expect(result.occasionBonus).toBe(3);
+    expect(result.silhouetteDepth).toBe(0);
+    expect(result.debugTags.some(t => t.includes('formal-amplified'))).toBe(false);
+  });
+
+  it('does NOT amplify when brandTier is absent', () => {
+    const product = makeInput({ blob: formalBlob });
+    const result = computeCuratorSignals(product, formalProfile);
+    expect(result.brandElevation).toBe(0);
+    expect(result.debugTags.some(t => t.includes('formal-amplified'))).toBe(false);
   });
 });

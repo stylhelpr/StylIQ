@@ -42,7 +42,7 @@ function makeInput(overrides: Partial<VetoInput> = {}): VetoInput {
 
 describe('inferProductFormality', () => {
   it('returns 1 for athletic titles', () => {
-    expect(inferProductFormality('Nike Athletic Running Shorts')).toBe(1);
+    expect(inferProductFormality('Nike Athletic Workout Gear')).toBe(1);
   });
 
   it('returns 1 for gym titles', () => {
@@ -644,5 +644,103 @@ describe('Determinism: same input always produces same output', () => {
       const thisRun = inputs.map(i => applyDiscoverVeto(i, profile));
       expect(thisRun).toEqual(firstRun);
     }
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════
+// 6. Expanded formality keywords
+// ═════════════════════════════════════════════════════════════════════
+
+describe('inferProductFormality — expanded keywords', () => {
+  // Multi-word additions
+  it('returns 5 for "dress pants"', () => {
+    expect(inferProductFormality('Classic Dress Pants')).toBe(5);
+  });
+
+  it('returns 5 for "dress shoes"', () => {
+    expect(inferProductFormality('Leather Dress Shoes')).toBe(5);
+  });
+
+  it('returns 5 for "dress boots"', () => {
+    expect(inferProductFormality('Leather Dress Boots')).toBe(5);
+  });
+
+  it('returns 6 for "dress coat"', () => {
+    expect(inferProductFormality('Wool Dress Coat')).toBe(6);
+  });
+
+  it('returns 1 for "flip flops"', () => {
+    expect(inferProductFormality('Beach Flip Flops')).toBe(1);
+  });
+
+  // Single-word additions
+  it('returns 5 for "overcoat"', () => {
+    expect(inferProductFormality('Wool Overcoat')).toBe(5);
+  });
+
+  it('returns 4 for "slacks"', () => {
+    expect(inferProductFormality('Charcoal Slacks')).toBe(4);
+  });
+
+  it('returns 4 for "blouse"', () => {
+    expect(inferProductFormality('Silk Blouse')).toBe(4);
+  });
+
+  it('returns 4 for "heels"', () => {
+    expect(inferProductFormality('Pointed Heels')).toBe(4);
+  });
+
+  it('returns 4 for "vest"', () => {
+    expect(inferProductFormality('Quilted Vest')).toBe(4);
+  });
+
+  it('returns 3 for "boots"', () => {
+    expect(inferProductFormality('Chelsea Boots')).toBe(3);
+  });
+
+  it('returns 3 for "flats"', () => {
+    expect(inferProductFormality('Ballet Flats')).toBe(3);
+  });
+
+  it('returns 3 for "cardigan"', () => {
+    expect(inferProductFormality('Merino Cardigan')).toBe(3);
+  });
+
+  it('returns 3 for "khakis"', () => {
+    expect(inferProductFormality('Slim Khakis')).toBe(3);
+  });
+
+  it('returns 3 for "pants" (catch-all)', () => {
+    expect(inferProductFormality('Linen Pants')).toBe(3);
+  });
+
+  it('returns 2 for "pullover"', () => {
+    expect(inferProductFormality('Cotton Pullover')).toBe(2);
+  });
+
+  it('returns 2 for "shorts"', () => {
+    expect(inferProductFormality('Cotton Shorts')).toBe(2);
+  });
+
+  it('returns 2 for "sweatshirt"', () => {
+    expect(inferProductFormality('Crew Sweatshirt')).toBe(2);
+  });
+
+  it('returns 2 for "sandals"', () => {
+    expect(inferProductFormality('Leather Sandals')).toBe(2);
+  });
+
+  // Multi-word ordering test
+  it('"dress pants" matches 5 before catch-all "pants" at 3', () => {
+    expect(inferProductFormality('Navy Dress Pants')).toBe(5);
+  });
+
+  // False-positive tests
+  it('"sandalwood" does NOT match sandals', () => {
+    expect(inferProductFormality('Sandalwood Cologne')).toBeNull();
+  });
+
+  it('"vestal" does NOT match vest', () => {
+    expect(inferProductFormality('Vestal Watch')).toBeNull();
   });
 });
