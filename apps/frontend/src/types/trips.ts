@@ -145,4 +145,6 @@ export type TripStyleHints = {
   avoid_materials?: string[];
   avoid_patterns?: string[];
   coverage_no_go?: string[];
+  formality_floor?: string;          // T4 PATCH: min formality string from profile
+  walkability_requirement?: string;   // T4 PATCH: shoe walkability filter
 };

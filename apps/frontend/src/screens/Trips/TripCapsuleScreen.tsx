@@ -52,11 +52,12 @@ async function getFashionStateSummary(): Promise<FashionStateSummary | null> {
   if (!data.hasState) return null;
   return {
     topBrands: data.topPreferences?.brands ?? [],
-    avoidBrands: [],
+    // T4 PATCH: wire negative learning signals
+    avoidBrands: data.negativePreferences?.brands ?? [],
     topColors: data.topPreferences?.colors ?? [],
-    avoidColors: [],
+    avoidColors: data.negativePreferences?.colors ?? [],
     topStyles: data.topPreferences?.styles ?? [],
-    avoidStyles: [],
+    avoidStyles: data.negativePreferences?.styles ?? [],
     topCategories: [],
     priceBracket: null,
     isColdStart: data.isColdStart ?? true,
@@ -136,6 +137,11 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       hints.avoid_patterns = effectiveProfile.avoid_patterns;
     if (Array.isArray(effectiveProfile.coverage_no_go) && effectiveProfile.coverage_no_go.length > 0)
       hints.coverage_no_go = effectiveProfile.coverage_no_go;
+    // T4 PATCH: wire formality_floor and walkability_requirement from style profile
+    if (effectiveProfile.formality_floor && effectiveProfile.formality_floor !== 'No minimum')
+      hints.formality_floor = effectiveProfile.formality_floor;
+    if (effectiveProfile.walkability_requirement)
+      hints.walkability_requirement = effectiveProfile.walkability_requirement;
     return Object.keys(hints).length > 0 ? hints : undefined;
   }, [effectiveProfile]);
 

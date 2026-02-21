@@ -132,6 +132,11 @@ export class LearningController {
       colors: string[];
       styles: string[];
     };
+    negativePreferences?: {
+      brands: string[];
+      colors: string[];
+      styles: string[];
+    };
   }> {
     const userId = req.user.userId;
 
@@ -157,6 +162,14 @@ export class LearningController {
             brands: summary.topBrands,
             colors: summary.topColors,
             styles: summary.topStyles,
+          }
+        : undefined,
+      // T4 PATCH: expose negative learning signals for capsule engine
+      negativePreferences: summary
+        ? {
+            brands: summary.avoidBrands,
+            colors: summary.avoidColors,
+            styles: summary.avoidStyles,
           }
         : undefined,
     };

@@ -39,7 +39,7 @@ import {filterByTasteGate, type TripsTasteProfile} from './tripsTasteGate';
 import {createCoherenceState, updateCoherence, capsuleDriftPenalty, type CapsuleCoherenceState} from './capsuleCoherence';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 21;
+export const CAPSULE_VERSION = 24;
 
 // ── Diagnostic debug logging (structured, guarded) ──
 const DEBUG_TRIPS_ENGINE = true;
@@ -581,6 +581,43 @@ function isLightweightFabric(material: string | undefined): boolean {
 function isHeavyFabric(material: string | undefined): boolean {
   if (!material) return false;
   return HEAVY_FABRICS.test(material.toLowerCase());
+}
+
+// ── ELITE_BEACH_WARM helpers (V24) ──
+
+const BEACH_WARM_HEAVY_RE = /\b(wool|cashmere|merino|fleece|sherpa|shearling|down|quilted|tweed|velvet)\b/i;
+
+/** Pure, deterministic check: is this a warm/hot Beach context? Case-insensitive. */
+function isWarmHotBeachContext(
+  activityKey: string | undefined,
+  contextProfile: {context?: string} | undefined,
+  climateZoneOrBand: string | undefined,
+): boolean {
+  const actMatch = String(activityKey ?? '').toLowerCase() === 'beach';
+  const ctxMatch = String(contextProfile?.context ?? '').toLowerCase() === 'beach';
+  if (!actMatch && !ctxMatch) return false;
+  const zone = String(climateZoneOrBand ?? '').toLowerCase();
+  return zone === 'warm' || zone === 'hot';
+}
+
+/**
+ * Remove items whose material OR name matches heavy-fabric regex.
+ * Preserves input order (stable filter). No fallback — empty stays empty.
+ */
+function filterHeavyFabricsForBeach(
+  items: TripWardrobeItem[],
+  reasonTag: string,
+): TripWardrobeItem[] {
+  const before = items.length;
+  const filtered = items.filter(item => {
+    if (item.material && BEACH_WARM_HEAVY_RE.test(item.material)) return false;
+    if (item.name && BEACH_WARM_HEAVY_RE.test(item.name)) return false;
+    return true;
+  });
+  if (filtered.length < before) {
+    console.log(`[TripCapsule][ELITE_BEACH_WARM_FILTER] ${reasonTag} removed=${before - filtered.length} remaining=${filtered.length}`);
+  }
+  return filtered;
 }
 
 /**
@@ -1636,6 +1673,29 @@ function tieredPick(
     );
   }
 
+  // ── ELITE_BEACH_WARM_TIERED_LOCK ──
+  // Belt-and-suspenders: re-filter tiers before WPICK in case any heavy item leaked
+  // through tier construction or context-primary override.
+  if (isWarmHotBeachContext(debugLabel, contextProfile, contextClimate)) {
+    const pBefore = primary.length, sBefore = secondary.length, fBefore = fallback.length;
+    const filterInPlace = (arr: TripWardrobeItem[]): void => {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        const item = arr[i];
+        if ((item.material && BEACH_WARM_HEAVY_RE.test(item.material)) ||
+            (item.name && BEACH_WARM_HEAVY_RE.test(item.name))) {
+          arr.splice(i, 1);
+        }
+      }
+    };
+    filterInPlace(primary);
+    filterInPlace(secondary);
+    filterInPlace(fallback);
+    const removed = (pBefore - primary.length) + (sBefore - secondary.length) + (fBefore - fallback.length);
+    if (removed > 0) {
+      console.log(`[TripCapsule][ELITE_BEACH_WARM_TIERED_LOCK] ${debugLabel ?? 'unknown'} removed=${removed}`);
+    }
+  }
+
   // Try PRIMARY first
   let result = primary.length > 0
     ? weightedPick(primary, usageTracker, dayIndex, maxUsesPerItem, qualityFn, debugLabel ? `${debugLabel}/P` : undefined)
@@ -1807,9 +1867,18 @@ function applyCoherenceGuard(
   climateZone: ClimateZone,
   activityProfile: ActivityProfile,
   presentation: Presentation,
+  beachGuardZone?: ClimateZone,
 ): TripPackingItem[] {
   const result = [...outfitItems];
   const originalItems = result.map(r => ({ id: r.wardrobeItemId, name: r.name }));
+
+  // ── ELITE_BEACH_WARM_SWAP_GUARD (coherence) ──
+  // Non-bypassable: when Beach + warm/hot, no swap candidate may introduce heavy fabrics.
+  // Uses trip-level beachGuardZone (not per-day climateZone) per Tier 4 luxury policy.
+  const _beachWarmSwapActive = isWarmHotBeachContext(activityProfile.context, activityProfile, beachGuardZone ?? climateZone);
+  if (_beachWarmSwapActive) {
+    console.log(`[TripCapsule][ELITE_BEACH_WARM_SWAP_GUARD_ACTIVE] activity=Beach zone=${beachGuardZone ?? climateZone} reason=coherence_guard`);
+  }
 
   // Rule 1: Repair hard-invalid tops/bottoms/accessories (shoes & outerwear handled by Rules 2/3)
   for (let i = 0; i < result.length; i++) {
@@ -1821,13 +1890,16 @@ function applyCoherenceGuard(
     if (!bucket || !gatedBuckets[bucket]) continue;
 
     const usedInOutfit = new Set(result.map(r => r.wardrobeItemId));
-    const swapCandidates = gatedBuckets[bucket]
+    let swapCandidates = gatedBuckets[bucket]
       .filter(c => !usedInOutfit.has(c.id) && isLockedValidItem(c, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality))
       .sort((a, b) => {
         const aUses = (usageTracker.get(a.id) || []).length;
         const bUses = (usageTracker.get(b.id) || []).length;
         return aUses - bUses || a.id.localeCompare(b.id);
       });
+    if (_beachWarmSwapActive) {
+      swapCandidates = filterHeavyFabricsForBeach(swapCandidates, `swap_guard/coherence_r1/${bucket}`);
+    }
 
     if (swapCandidates.length > 0) {
       if (TRIP_TRACE) trace('coherence_guard', `Rule1 repair: hard-invalid item`, {
@@ -1853,13 +1925,16 @@ function applyCoherenceGuard(
     if (isLockedValidItem(full, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality)) continue;
 
     const usedInOutfit = new Set(result.map(r => r.wardrobeItemId));
-    const shoeSwaps = finalShoes
+    let shoeSwaps = finalShoes
       .filter(c => !usedInOutfit.has(c.id) && isLockedValidItem(c, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality))
       .sort((a, b) => {
         const aUses = (usageTracker.get(a.id) || []).length;
         const bUses = (usageTracker.get(b.id) || []).length;
         return aUses - bUses || a.id.localeCompare(b.id);
       });
+    if (_beachWarmSwapActive) {
+      shoeSwaps = filterHeavyFabricsForBeach(shoeSwaps, 'swap_guard/coherence_r2/shoes');
+    }
     if (shoeSwaps.length > 0) {
       if (TRIP_TRACE) trace('coherence_guard', `Rule2 shoe repair: hard-invalid shoe`, {
         dayIndex, rule: 'shoe_hard_repair',
@@ -1884,7 +1959,7 @@ function applyCoherenceGuard(
     if (isLockedValidItem(full, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality)) continue;
 
     const usedInOutfit = new Set(result.map(r => r.wardrobeItemId));
-    const outerSwaps = (gatedBuckets.outerwear || [])
+    let outerSwaps = (gatedBuckets.outerwear || [])
       .filter(c =>
         !usedInOutfit.has(c.id) &&
         isLockedValidItem(c, climateZone, activityProfile, presentation, capsuleIntent.baselineFormality),
@@ -1894,6 +1969,9 @@ function applyCoherenceGuard(
         const bUses = (usageTracker.get(b.id) || []).length;
         return aUses - bUses || a.id.localeCompare(b.id);
       });
+    if (_beachWarmSwapActive) {
+      outerSwaps = filterHeavyFabricsForBeach(outerSwaps, 'swap_guard/coherence_r3/outerwear');
+    }
     if (outerSwaps.length > 0) {
       if (TRIP_TRACE) trace('coherence_guard', `Rule3 outerwear repair`, {
         dayIndex, rule: 'outerwear_hard_repair',
@@ -2026,12 +2104,20 @@ function validateOutfitComposition(
   locationLabel: string,
   climateZone: ClimateZone,
   presentation: 'masculine' | 'feminine' | 'mixed',
+  beachGuardZone?: ClimateZone,
 ): TripPackingItem[] {
   const result = [...items];
   const getFullItem = (pi: TripPackingItem) => poolLookup.get(pi.wardrobeItemId);
   const currentIds = () => new Set(result.map(r => r.wardrobeItemId));
   const isFormalContext = activityProfile.formality >= 2;
   const requiredTier = getRequiredFormalityTier(activityProfile.formality);
+
+  // ── ELITE_BEACH_WARM_SWAP_GUARD (composition) ──
+  // Uses trip-level beachGuardZone (not per-day climateZone) per Tier 4 luxury policy.
+  const _beachWarmSwapActive = isWarmHotBeachContext(activityProfile.context, activityProfile, beachGuardZone ?? climateZone);
+  if (_beachWarmSwapActive) {
+    console.log(`[TripCapsule][ELITE_BEACH_WARM_SWAP_GUARD_ACTIVE] activity=Beach zone=${beachGuardZone ?? climateZone} reason=composition_validator`);
+  }
 
   // Guarded swap: for formal activities, replacement must meet or exceed the
   // original item's formality tier so composition swaps never downgrade intent.
@@ -2050,6 +2136,10 @@ function validateOutfitComposition(
         // Context Regression Guard: never swap a context-valid item for a context-invalid one
         if (originalContextValid && !isItemValidForActivity(candidate, climateZone, activityProfile, presentation)) return false;
         if (isFormalContext && getFormalityTier(candidate) < Math.min(originalTier, requiredTier)) return false;
+        // Beach warm swap guard: reject heavy fabrics from composition swap candidates
+        if (_beachWarmSwapActive &&
+            ((candidate.material && BEACH_WARM_HEAVY_RE.test(candidate.material)) ||
+             (candidate.name && BEACH_WARM_HEAVY_RE.test(candidate.name)))) return false;
         return isValid(candidate);
       },
     );
@@ -3036,6 +3126,37 @@ function evaluatePackedItemTolerance(
   return isItemValidForActivity(item, climateZone, activityProfile, presentation);
 }
 
+// ── T4 PATCH: Formality floor mapping (profile string → engine tier 0-3) ──
+const FORMALITY_FLOOR_MAP: Record<string, number> = {
+  'casual': 0,
+  'smart casual': 1,
+  'business casual': 2,
+  'black tie': 3,
+};
+
+function resolveProfileFormalityFloor(floor: string | undefined): number {
+  if (!floor) return 0;
+  return FORMALITY_FLOOR_MAP[floor.toLowerCase()] ?? 0;
+}
+
+// ── T4 PATCH: Deterministic shoe walkability filter ──
+const LOW_WALK_PATTERN = /\b(stiletto|high[- ]?heels?|platform[- ]?heels?|pumps?|slingback|mule)\b/;
+const EXTREME_LOW_WALK_PATTERN = /\b(stiletto|platform[- ]?heels?)\b/;
+
+function filterShoesByWalkability(
+  shoes: TripWardrobeItem[],
+  requirement: string,
+): TripWardrobeItem[] {
+  if (!requirement || requirement === 'Low') return shoes;
+  const pattern = requirement === 'High' ? LOW_WALK_PATTERN : EXTREME_LOW_WALK_PATTERN;
+  const filtered = shoes.filter(s => {
+    const text = `${s.subcategory ?? ''} ${s.name ?? ''}`.toLowerCase();
+    return !pattern.test(text);
+  });
+  // Emergency fallback: if all shoes excluded, preserve pool
+  return filtered.length > 0 ? filtered : shoes;
+}
+
 function buildOutfitForActivity(
   activity: TripActivity,
   dayIndex: number,
@@ -3055,12 +3176,24 @@ function buildOutfitForActivity(
   tasteProfile?: TripsTasteProfile,
   coherenceState?: CapsuleCoherenceState,
   fashionState?: {topBrands: string[]; [key: string]: any} | null,
+  formalReservation?: {shoe: TripWardrobeItem | null; trouser: TripWardrobeItem | null; top: TripWardrobeItem | null},
+  tripDerivedBand?: ClimateZone,
 ): TripPackingItem[] {
   const items: TripPackingItem[] = [];
 
   // ── Apply global climate + gender gating ──
   const climateZone = deriveClimateZone(dayWeather);
-  const activityProfile = getActivityProfile(activity);
+  // Beach heavy-fabric guard uses trip-level band (not per-day) per Tier 4 luxury policy
+  const beachGuardZone: ClimateZone = tripDerivedBand ?? climateZone;
+  let activityProfile = getActivityProfile(activity);
+  // T4 PATCH [FORMALITY-FLOOR]: enforce minimum formality from style profile
+  const profileFloor = resolveProfileFormalityFloor(styleHints?.formality_floor);
+  if (profileFloor > activityProfile.formality) {
+    activityProfile = {...activityProfile, formality: profileFloor};
+    if (DEBUG_TRIPS_ENGINE) {
+      console.log(`[TripsDebug][FORMALITY_FLOOR] Raised ${activity} formality ${getActivityProfile(activity).formality}→${profileFloor} (profile floor: ${styleHints?.formality_floor})`);
+    }
+  }
   const isMasculine = presentation === 'masculine';
   const isFormalActivity = activityProfile.formality >= 2;
   const gatedBuckets = {} as Record<CategoryBucket, TripWardrobeItem[]>;
@@ -3231,6 +3364,15 @@ function buildOutfitForActivity(
   // ── Taste gate: remove user-avoided colors from shoes ──
   finalShoes = filterByTasteGate(finalShoes, tasteProfile);
 
+  // T4 PATCH [WALKABILITY]: filter shoes by walkability requirement
+  if (styleHints?.walkability_requirement && styleHints.walkability_requirement !== 'Low') {
+    const beforeWalk = finalShoes.length;
+    finalShoes = filterShoesByWalkability(finalShoes, styleHints.walkability_requirement);
+    if (DEBUG_TRIPS_ENGINE && finalShoes.length < beforeWalk) {
+      console.log(`[TripsDebug][WALKABILITY] ${styleHints.walkability_requirement} | ${beforeWalk}→${finalShoes.length} shoes for ${activity}`);
+    }
+  }
+
   // ── FINAL_FREEZING_FORMAL_ENFORCEMENT ──
   // Non-relaxable hard exclusion layer. Executes AFTER all fallback recovery,
   // tolerance reinsertion, and taste gating. Removes sneakers and low-formality
@@ -3296,6 +3438,38 @@ function buildOutfitForActivity(
     }
   }
 
+  // ── ELITE_FORMAL_FOOTWEAR_AUTHORITY ──
+  // Prefer Tier 3 for Formal (formality >= 3). Graceful fallback to Tier 2.
+  // Never below Tier 2. Never empty pool.
+  if (activityProfile.formality >= 3 && finalShoes.length > 0) {
+    const tier3Shoes = finalShoes.filter(s => getFormalityTier(s) >= 3);
+    if (tier3Shoes.length > 0) {
+      finalShoes = tier3Shoes;
+    } else {
+      const tier2Shoes = finalShoes.filter(s => getFormalityTier(s) >= 2);
+      if (tier2Shoes.length > 0) {
+        finalShoes = tier2Shoes;
+        console.log('[TripCapsule][ELITE_WARNING] Formal footwear downgraded: no tier3 available, using tier2');
+      } else {
+        console.log('[TripCapsule][ELITE_ERROR] No Tier 2+ footwear available for Formal');
+        // Keep existing pool — never empty
+      }
+    }
+  }
+
+  // ── ELITE_FORMAL_SHOE_FLOOR_CLAMP (final guard) ──
+  // Runs AFTER all fallback cascades. Hard floor: Tier 2 minimum for Formal.
+  // Never Tier 1. Never "keep existing". Empty pool → hasCoreSlots skips day.
+  if (activityProfile.formality >= 3) {
+    const tier2Plus = finalShoes.filter(s => getFormalityTier(s) >= 2);
+    if (tier2Plus.length > 0) {
+      finalShoes = tier2Plus;
+    } else {
+      console.log('[TripCapsule][ELITE_ERROR] No Tier 2+ footwear available for Formal');
+      finalShoes = [];
+    }
+  }
+
   // ── Weighted pick helpers (replaces modulo rotation) ──
   const maxUsesForBucket = (len: number) =>
     len > 0 ? Math.ceil(numDays / len) + 1 : Infinity;
@@ -3340,6 +3514,24 @@ function buildOutfitForActivity(
     if (item.brand && fashionState?.topBrands?.length) {
       const brandLower = item.brand.toLowerCase();
       if (fashionState.topBrands.some(b => brandLower.includes(b.toLowerCase()))) score += 0.8;
+    }
+
+    // T4 PATCH [NEGATIVE-LEARNING]: penalize avoided brands/colors/styles from learning system
+    if (item.brand && fashionState?.avoidBrands?.length) {
+      const brandLower = item.brand.toLowerCase();
+      if ((fashionState.avoidBrands as string[]).some((b: string) => brandLower.includes(b.toLowerCase()))) score -= 0.8;
+    }
+    if (item.color && fashionState?.avoidColors?.length) {
+      const words = item.color.toLowerCase().split(/[\s,/&+\-]+/).filter(Boolean);
+      if (words.some(w => (fashionState.avoidColors as string[]).some((a: string) => colorMatches(w, a.toLowerCase())))) score -= 0.6;
+    }
+    if (fashionState?.avoidStyles?.length) {
+      const subLower = (item.subcategory || '').toLowerCase();
+      const nameLower = (item.name || '').toLowerCase();
+      if ((fashionState.avoidStyles as string[]).some((s: string) => {
+        const sl = s.toLowerCase();
+        return (subLower && subLower.includes(sl)) || (nameLower && nameLower.includes(sl));
+      })) score -= 0.6;
     }
 
     // Fit / silhouette match (+0.6)
@@ -3404,13 +3596,27 @@ function buildOutfitForActivity(
     return base * purposeMul * thermalMul;
   };
 
+  // Pre-compute warm/hot Beach guard once per outfit build (used in pickW belt-and-suspenders)
+  // Uses trip-level band (beachGuardZone), not per-day climateZone, per Tier 4 luxury policy.
+  const _isBeachWarmCtx = isWarmHotBeachContext(activity, activityProfile, beachGuardZone);
+  if (_isBeachWarmCtx && activity.toLowerCase() === 'beach') {
+    console.log(`[TripCapsule][BEACH_POLICY_TRIP_SCOPE] zone=${tripDerivedBand ?? climateZone} activity=Beach`);
+  }
+
   const pickW = (bucket: TripWardrobeItem[], label?: string): WeightedPickResult | null => {
-    const maxUses = maxUsesForBucket(bucket.length);
+    // ── ELITE_BEACH_WARM_PICKW_GUARD ──
+    // Belt-and-suspenders: filter heavy fabrics from the bucket right before pick,
+    // regardless of whether tieredPick or direct weightedPick path is taken.
+    let effectiveBucket = bucket;
+    if (_isBeachWarmCtx) {
+      effectiveBucket = filterHeavyFabricsForBeach(bucket, `${activity}/${label ?? 'unknown'}/pickW`);
+    }
+    const maxUses = maxUsesForBucket(effectiveBucket.length);
     const dbgLabel = __DEV__ ? `${activity}/${label}` : undefined;
     if (capsuleIntent) {
-      return tieredPick(bucket, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel, undefined, activityProfile, climateZone);
+      return tieredPick(effectiveBucket, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel, undefined, activityProfile, beachGuardZone);
     }
-    return weightedPick(bucket, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel);
+    return weightedPick(effectiveBucket, usageTracker, dayIndex, maxUses, qualityFn, dbgLabel);
   };
 
   // Wrapper that picks, pushes to items, and annotates alternates
@@ -3440,7 +3646,7 @@ function buildOutfitForActivity(
       ? (item: TripWardrobeItem) => qualityFn(item) + (toleranceShoeIds.has(item.id) ? -5 : 0)
       : qualityFn;
     const result = capsuleIntent
-      ? tieredPick(budgetedShoes, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, shoeQualityFn, dbgLabel, toleranceShoeIds, activityProfile, climateZone)
+      ? tieredPick(budgetedShoes, capsuleIntent, styleHints, usageTracker, dayIndex, maxUses, shoeQualityFn, dbgLabel, toleranceShoeIds, activityProfile, beachGuardZone)
       : weightedPick(budgetedShoes, usageTracker, dayIndex, maxUses, shoeQualityFn, dbgLabel);
     if (!result) return;
     // Consume anchor budget for the selected shoe
@@ -3454,12 +3660,61 @@ function buildOutfitForActivity(
 
   switch (activity) {
     case 'Beach': {
+      // ── ELITE_BEACH_WARM_FILTER (V24) ──
+      // In warm/hot climates, hard-block heavy fabrics (material OR name) from all Beach pools.
+      // NO fallback — if blocked pool becomes empty, hasCoreSlots rejects the outfit.
+      const beachWarmActive = isWarmHotBeachContext(activity, activityProfile, beachGuardZone);
+      if (beachWarmActive) {
+        console.log('[TripCapsule][ELITE_BEACH_WARM_FILTER_ACTIVE] zone=' + climateZone + ' activity=Beach');
+        gatedBuckets.tops = filterHeavyFabricsForBeach(gatedBuckets.tops, 'Beach/tops');
+        gatedBuckets.bottoms = filterHeavyFabricsForBeach(gatedBuckets.bottoms, 'Beach/bottoms');
+        gatedBuckets.outerwear = filterHeavyFabricsForBeach(gatedBuckets.outerwear, 'Beach/outerwear');
+        gatedBuckets.swimwear = filterHeavyFabricsForBeach(gatedBuckets.swimwear, 'Beach/swimwear');
+      }
+
       if (isMasculine) {
         // Masculine beach: tops + bottoms (regular or swim trunks) + shoes
         pickAndPush(gatedBuckets.tops, 'tops');
         const beachBottoms = getBeachBottomCandidates(gatedBuckets);
-        if (beachBottoms.length > 0) {
-          pickAndPush(beachBottoms, 'beach-bottoms');
+        // ── ELITE_BEACH_BOTTOM_PRIORITY ──
+        // Tiered selection: resort > neutral casual > structured (last resort only).
+        const BEACH_RESORT_RE = /\b(swim|trunk|board ?short|short|shorts|bermuda|linen|sarong|wrap)\b/i;
+        const BEACH_CASUAL_RE = /\b(denim|chino|cotton twill)\b/i;
+        const BEACH_STRUCTURED_RE = /\b(dress pant|dress slack|suit pant|wool trouser|structured)\b/i;
+        const resortBottoms: TripWardrobeItem[] = [];
+        const casualBottoms: TripWardrobeItem[] = [];
+        const structuredBottoms: TripWardrobeItem[] = [];
+        for (const b of beachBottoms) {
+          const sub = (b.subcategory || '').toLowerCase();
+          const name = (b.name || '').toLowerCase();
+          const mat = (b.material || '').toLowerCase();
+          const checkText = `${sub} ${name}`;
+          if (BEACH_RESORT_RE.test(checkText)) {
+            resortBottoms.push(b);
+          } else if (BEACH_STRUCTURED_RE.test(checkText)) {
+            structuredBottoms.push(b);
+          } else if (BEACH_CASUAL_RE.test(`${checkText} ${mat}`)) {
+            casualBottoms.push(b);
+          } else {
+            casualBottoms.push(b);
+          }
+        }
+        // Stable sort within each tier by ID for determinism
+        resortBottoms.sort((a, b) => a.id.localeCompare(b.id));
+        casualBottoms.sort((a, b) => a.id.localeCompare(b.id));
+        structuredBottoms.sort((a, b) => a.id.localeCompare(b.id));
+        const finalBeachBottoms = resortBottoms.length > 0
+          ? resortBottoms
+          : casualBottoms.length > 0
+            ? casualBottoms
+            : structuredBottoms.length > 0
+              ? (() => {
+                  console.log('[TripCapsule][ELITE_WARNING] Beach bottoms fallback: resort bottoms unavailable');
+                  return structuredBottoms;
+                })()
+              : beachBottoms;
+        if (finalBeachBottoms.length > 0) {
+          pickAndPush(finalBeachBottoms, 'beach-bottoms');
         }
         pickShoeW();
       } else {
@@ -3477,6 +3732,27 @@ function buildOutfitForActivity(
       break;
     }
     case 'Active': {
+      // ── ELITE_ACTIVE_CLIMATE_FILTER ──
+      // Reject heavy insulating fabrics + structured tailoring in warm/hot for Active.
+      const isWarmOrHotActive = climateZone === 'warm' || climateZone === 'hot';
+      if (isWarmOrHotActive) {
+        const ACTIVE_HEAVY_MATERIAL = /\b(wool|cashmere|merino|fleece|sherpa|shearling|down|quilted|tweed|velvet)\b/i;
+        const ACTIVE_STRUCTURED = /\b(blazer|sport coat|suit|waistcoat|structured jacket)\b/i;
+        const filterActiveClimate = (pool: TripWardrobeItem[]): TripWardrobeItem[] => {
+          const filtered = pool.filter(item => {
+            if (item.material && ACTIVE_HEAVY_MATERIAL.test(item.material)) return false;
+            const text = `${(item.subcategory || '')} ${(item.name || '')}`.toLowerCase();
+            if (ACTIVE_STRUCTURED.test(text)) return false;
+            return true;
+          });
+          if (filtered.length > 0) return filtered;
+          console.log('[TripCapsule][ELITE_WARNING] Active climate fallback: heavy fabrics only available');
+          return pool;
+        };
+        gatedBuckets.tops = filterActiveClimate(gatedBuckets.tops);
+        gatedBuckets.bottoms = filterActiveClimate(gatedBuckets.bottoms);
+      }
+
       if (isMasculine) {
         // Masculine active: tops + bottoms + shoes (standard separates)
         pickAndPush(gatedBuckets.tops, 'tops');
@@ -3526,6 +3802,30 @@ function buildOutfitForActivity(
       break;
     }
     case 'Formal': {
+      // ── ELITE_FORMAL_TOP_AUTHORITY ──
+      // Reject loud/novelty tops for Formal. Color field first, name/subcategory fallback.
+      {
+        const FORMAL_REJECT_COLOR = /\b(neon|fluorescent|electric|lime|acid|hot pink)\b/i;
+        const FORMAL_CONDITIONAL_COLOR = /\b(pink|fuchsia|magenta)\b/i;
+        const FORMAL_MUTED_EXCEPTION = /\b(muted|dusty|pale)\b/i;
+        const FORMAL_REJECT_PATTERN = /\b(polka ?dot|novelty|graphic|cartoon|tropical|tie[- ]?dye|camo|camouflage|animal ?print|leopard|zebra|psychedelic)\b/i;
+        const originalTops = gatedBuckets.tops;
+        const filteredTops = originalTops.filter(item => {
+          const color = (item.color || '').toLowerCase();
+          const text = `${(item.subcategory || '')} ${(item.name || '')}`.toLowerCase();
+          if (FORMAL_REJECT_COLOR.test(color)) return false;
+          if (FORMAL_CONDITIONAL_COLOR.test(color) && !FORMAL_MUTED_EXCEPTION.test(text)) return false;
+          if (FORMAL_REJECT_PATTERN.test(text)) return false;
+          return true;
+        });
+        if (filteredTops.length > 0) {
+          gatedBuckets.tops = filteredTops;
+        } else {
+          console.log('[TripCapsule][ELITE_ERROR] No authority tops available for Formal');
+          gatedBuckets.tops = [];
+        }
+      }
+
       if (presentation !== 'masculine' && gatedBuckets.dresses.length > 0) {
         // Quality-weighted: prefer highest-formality dress
         const formalQuality = (d: TripWardrobeItem) => getNormalizedFormality(d);
@@ -3574,7 +3874,7 @@ function buildOutfitForActivity(
 
   // Apply coherence guard: repair only hard-invalid items before normalization
   const coherenceChecked = capsuleIntent
-    ? applyCoherenceGuard(items, capsuleIntent, gatedBuckets, finalShoes, usageTracker, dayIndex, locationLabel, poolLookup, climateZone, activityProfile, presentation)
+    ? applyCoherenceGuard(items, capsuleIntent, gatedBuckets, finalShoes, usageTracker, dayIndex, locationLabel, poolLookup, climateZone, activityProfile, presentation, beachGuardZone)
     : items;
 
   // Commit repairs: penalize replaced items so they cannot be re-selected on future days.
@@ -3600,7 +3900,94 @@ function buildOutfitForActivity(
   }
 
   // Apply composition validator: repair visually incoherent outfits using alternates
-  normalized = validateOutfitComposition(normalized, poolLookup, activityProfile, locationLabel, climateZone, presentation);
+  normalized = validateOutfitComposition(normalized, poolLookup, activityProfile, locationLabel, climateZone, presentation, beachGuardZone);
+
+  // ── ELITE_FORMAL_AUTHORITY_DURABILITY ──
+  // Hard guarantee: if reserved formal authority items exist and wardrobe has
+  // Tier 3 shoe + authority top + structured trouser, force-inject them so at
+  // least one Formal outfit always builds. Runs AFTER all filters, taste gate,
+  // climate, composition — but BEFORE hasCoreSlots validation.
+  if (
+    activityProfile.formality >= 3 &&
+    formalReservation &&
+    (formalReservation.shoe || formalReservation.trouser || formalReservation.top)
+  ) {
+    const normalizedSlots = new Set(
+      normalized.map(i => CATEGORY_MAP[i.mainCategory] || 'other'),
+    );
+    const missingTop = !normalizedSlots.has('tops') && !normalizedSlots.has('dresses');
+    const missingBottom = !normalizedSlots.has('bottoms') && !normalizedSlots.has('dresses');
+    const missingShoes = !normalizedSlots.has('shoes');
+
+    // Also check if existing shoe is below Tier 2 (unacceptable for Formal)
+    const currentShoeItem = normalized.find(i => CATEGORY_MAP[i.mainCategory] === 'shoes');
+    const currentShoeFull = currentShoeItem ? poolLookup.get(currentShoeItem.wardrobeItemId) : null;
+    const shoeIsBelowTier2 = currentShoeFull ? getFormalityTier(currentShoeFull) < 2 : false;
+
+    const needsInjection = missingTop || missingBottom || missingShoes || shoeIsBelowTier2;
+
+    if (needsInjection) {
+      // Inject reserved authority top
+      if (missingTop && formalReservation.top) {
+        const existingTopIdx = normalized.findIndex(i => CATEGORY_MAP[i.mainCategory] === 'tops');
+        if (existingTopIdx === -1) {
+          normalized.push(toPackingItem(formalReservation.top, locationLabel));
+        }
+        if (__DEV__) {
+          console.log(`[TripCapsule][ELITE_FORMAL_DURABILITY] Injected authority top: ${formalReservation.top.name}`);
+        }
+      }
+
+      // Inject reserved structured trouser
+      if (missingBottom && formalReservation.trouser) {
+        const existingBottomIdx = normalized.findIndex(i => CATEGORY_MAP[i.mainCategory] === 'bottoms');
+        if (existingBottomIdx === -1) {
+          normalized.push(toPackingItem(formalReservation.trouser, locationLabel));
+        }
+        if (__DEV__) {
+          console.log(`[TripCapsule][ELITE_FORMAL_DURABILITY] Injected structured trouser: ${formalReservation.trouser.name}`);
+        }
+      }
+
+      // Inject or replace shoe: ensure Tier 2+ minimum
+      if ((missingShoes || shoeIsBelowTier2) && formalReservation.shoe) {
+        if (shoeIsBelowTier2 && currentShoeItem) {
+          // Replace sub-Tier-2 shoe with reserved Tier 3 shoe
+          normalized = normalized.filter(i => i.wardrobeItemId !== currentShoeItem.wardrobeItemId);
+        }
+        // Only inject if no shoes slot present after potential removal
+        if (!normalized.some(i => CATEGORY_MAP[i.mainCategory] === 'shoes')) {
+          normalized.push(toPackingItem(formalReservation.shoe, locationLabel));
+        }
+        if (__DEV__) {
+          console.log(`[TripCapsule][ELITE_FORMAL_DURABILITY] Injected Tier 3 shoe: ${formalReservation.shoe.name}`);
+        }
+      }
+
+      // Re-normalize structure after injection
+      normalized = normalizeOutfitStructure(normalized);
+      if (presentation === 'masculine') {
+        normalized = normalized.filter(i => CATEGORY_MAP[i.mainCategory] !== 'dresses');
+      }
+    }
+  }
+
+  // ── ELITE_BEACH_WARM_VIOLATION assertion (final non-bypassable check) ──
+  // After ALL mutations (coherence, composition, formal injection), if context is
+  // Beach + warm/hot, reject the outfit if ANY item matches heavy fabric regex.
+  if (isWarmHotBeachContext(activity, activityProfile, beachGuardZone)) {
+    for (const pi of normalized) {
+      const full = poolLookup.get(pi.wardrobeItemId);
+      const nameMatch = pi.name && BEACH_WARM_HEAVY_RE.test(pi.name);
+      const matMatch = full?.material && BEACH_WARM_HEAVY_RE.test(full.material);
+      if (nameMatch || matMatch) {
+        console.error(
+          `[TripCapsule][ELITE_BEACH_WARM_VIOLATION] itemId=${pi.wardrobeItemId} name=${pi.name}`,
+        );
+        return []; // fail the outfit build cleanly
+      }
+    }
+  }
 
   if (__DEV__) {
     console.log('[TripCapsule][OUTFIT_PICK]', {
@@ -3836,21 +4223,22 @@ export function buildCapsule(
     climateZones: weather.map(d => deriveClimateZone(d)),
   });
 
-  // ── DEBUG: Climate Band Summary — derived strictly from destination weather ──
+  // ── Trip-level climate band — derived strictly from destination weather ──
+  // Used for Beach heavy-fabric policy: trip-level scope, not per-day.
+  const tripMaxTemp = Math.max(...weather.map(d => d.highF));
+  const tripDerivedBand: ClimateZone =
+    tripMaxTemp <= 32 ? 'freezing' :
+    tripMaxTemp <= 50 ? 'cold' :
+    tripMaxTemp <= 65 ? 'cool' :
+    tripMaxTemp <= 85 ? 'warm' :
+    'hot';
   if (DEBUG_TRIPS_ENGINE) {
     const minTemp = Math.min(...weather.map(d => d.lowF));
-    const maxTemp = Math.max(...weather.map(d => d.highF));
-    const derivedBand: ClimateZone =
-      maxTemp <= 32 ? 'freezing' :
-      maxTemp <= 50 ? 'cold' :
-      maxTemp <= 65 ? 'cool' :
-      maxTemp <= 85 ? 'warm' :
-      'hot';
     console.log('[TripsDebug][Climate]', JSON.stringify({
       city: destinationLabel || 'UNKNOWN_DESTINATION',
       minTemp,
-      maxTemp,
-      derivedBand,
+      maxTemp: tripMaxTemp,
+      derivedBand: tripDerivedBand,
     }));
   }
 
@@ -3953,6 +4341,77 @@ export function buildCapsule(
         after: buckets.dresses.length + buckets.bottoms.length + buckets.accessories.length,
         detail: `dresses: ${prevDresses}→0, bottoms: ${prevBottoms}→${buckets.bottoms.length}, accessories: ${prevAccessories}→${buckets.accessories.length}`,
       });
+    }
+  }
+
+  // ── ELITE_FORMAL_AUTHORITY_RESERVATION ──
+  // Reserve best authority items for Formal before any outfit construction.
+  // Prevents casual/anchor days from consuming Formal-critical pieces.
+  type FormalReservation = {shoe: TripWardrobeItem | null; trouser: TripWardrobeItem | null; top: TripWardrobeItem | null};
+  const formalReservation: FormalReservation = {shoe: null, trouser: null, top: null};
+  const reservedFormalIds = new Set<string>();
+
+  if (activities.includes('Formal')) {
+    // Tier 3 shoe: highest formality, stable sort by ID
+    const tier3Shoes = buckets.shoes
+      .filter(s => getFormalityTier(s) >= 3)
+      .sort((a, b) => getNormalizedFormality(b) - getNormalizedFormality(a) || a.id.localeCompare(b.id));
+    if (tier3Shoes.length > 0) {
+      formalReservation.shoe = tier3Shoes[0];
+      reservedFormalIds.add(tier3Shoes[0].id);
+    }
+
+    // Structured trouser: highest formality, stable sort by ID
+    const STRUCTURED_TROUSER_RE = /\b(trouser|slacks|dress pant|suit pant)\b/i;
+    const structuredTrousers = buckets.bottoms
+      .filter(b => STRUCTURED_TROUSER_RE.test((b.subcategory || '').toLowerCase()))
+      .sort((a, b) => getNormalizedFormality(b) - getNormalizedFormality(a) || a.id.localeCompare(b.id));
+    if (structuredTrousers.length > 0) {
+      formalReservation.trouser = structuredTrousers[0];
+      reservedFormalIds.add(structuredTrousers[0].id);
+    }
+
+    // Authority top: dress shirt/blazer or neutral formal color
+    const AUTHORITY_TOP_SUB_RE = /\b(dress shirt|blazer|sport coat|suit jacket|tuxedo shirt)\b/i;
+    const AUTHORITY_TOP_COLOR_RE = /\b(white|ivory|cream|light ?blue|navy|charcoal|black|grey|gray|slate)\b/i;
+    const authorityTops = buckets.tops
+      .filter(t => {
+        const sub = (t.subcategory || '').toLowerCase();
+        const color = (t.color || '').toLowerCase();
+        return AUTHORITY_TOP_SUB_RE.test(sub) || AUTHORITY_TOP_COLOR_RE.test(color);
+      })
+      .sort((a, b) => getNormalizedFormality(b) - getNormalizedFormality(a) || a.id.localeCompare(b.id));
+    if (authorityTops.length > 0) {
+      formalReservation.top = authorityTops[0];
+      reservedFormalIds.add(authorityTops[0].id);
+    }
+
+    // Remove reserved items from general buckets
+    if (reservedFormalIds.size > 0) {
+      for (const key of Object.keys(buckets) as CategoryBucket[]) {
+        buckets[key] = buckets[key].filter(i => !reservedFormalIds.has(i.id));
+      }
+      if (__DEV__) {
+        console.log(
+          `[TripCapsule][ELITE_FORMAL_RESERVE] Reserved ${reservedFormalIds.size} items: ` +
+          [formalReservation.shoe?.name, formalReservation.trouser?.name, formalReservation.top?.name].filter(Boolean).join(', '),
+        );
+      }
+    }
+
+    // Safety: if reservation starved a core slot, return all reserves
+    const coreSlots: CategoryBucket[] = ['tops', 'bottoms', 'shoes'];
+    if (coreSlots.some(s => buckets[s].length === 0)) {
+      if (__DEV__) {
+        console.warn('[TripCapsule][ELITE_FORMAL_RESERVE] Reservation starved core slot — returning reserves');
+      }
+      if (formalReservation.shoe) buckets.shoes.push(formalReservation.shoe);
+      if (formalReservation.trouser) buckets.bottoms.push(formalReservation.trouser);
+      if (formalReservation.top) buckets.tops.push(formalReservation.top);
+      formalReservation.shoe = null;
+      formalReservation.trouser = null;
+      formalReservation.top = null;
+      reservedFormalIds.clear();
     }
   }
 
@@ -4177,6 +4636,21 @@ export function buildCapsule(
 
   for (let day = 0; day < numDays; day++) {
     const schedule = daySchedules[day];
+
+    // ── ELITE_FORMAL_INJECT: add reserved items for Formal days ──
+    const isFormalDay = schedule.primary === 'Formal';
+    if (isFormalDay && reservedFormalIds.size > 0) {
+      if (formalReservation.shoe && !selectedShoes.some(s => s.id === formalReservation.shoe!.id)) {
+        selectedShoes.push(formalReservation.shoe);
+      }
+      if (formalReservation.trouser && !buckets.bottoms.some(b => b.id === formalReservation.trouser!.id)) {
+        buckets.bottoms.push(formalReservation.trouser);
+      }
+      if (formalReservation.top && !buckets.tops.some(t => t.id === formalReservation.top!.id)) {
+        buckets.tops.push(formalReservation.top);
+      }
+    }
+
     const anchorItems = buildOutfitForActivity(
       schedule.primary,
       day,
@@ -4196,7 +4670,23 @@ export function buildCapsule(
       tasteProfile,
       coherenceState,
       fashionState,
+      isFormalDay ? formalReservation : undefined,
+      tripDerivedBand,
     );
+    // ── ELITE_FORMAL_EJECT: remove reserved items after Formal day build ──
+    if (isFormalDay && reservedFormalIds.size > 0) {
+      if (formalReservation.shoe) {
+        const idx = selectedShoes.findIndex(s => s.id === formalReservation.shoe!.id);
+        if (idx !== -1) selectedShoes.splice(idx, 1);
+      }
+      if (formalReservation.trouser) {
+        buckets.bottoms = buckets.bottoms.filter(b => b.id !== formalReservation.trouser!.id);
+      }
+      if (formalReservation.top) {
+        buckets.tops = buckets.tops.filter(t => t.id !== formalReservation.top!.id);
+      }
+    }
+
     if (anchorItems.length > 0) {
       outfits.push({
         id: `outfit_${day}`,
@@ -4213,6 +4703,20 @@ export function buildCapsule(
   for (let day = 0; day < numDays; day++) {
     const schedule = daySchedules[day];
     if (schedule.secondary) {
+      // ── ELITE_FORMAL_INJECT (support): add reserved items for Formal support days ──
+      const isFormalSupport = schedule.secondary === 'Formal';
+      if (isFormalSupport && reservedFormalIds.size > 0) {
+        if (formalReservation.shoe && !selectedShoes.some(s => s.id === formalReservation.shoe!.id)) {
+          selectedShoes.push(formalReservation.shoe);
+        }
+        if (formalReservation.trouser && !buckets.bottoms.some(b => b.id === formalReservation.trouser!.id)) {
+          buckets.bottoms.push(formalReservation.trouser);
+        }
+        if (formalReservation.top && !buckets.tops.some(t => t.id === formalReservation.top!.id)) {
+          buckets.tops.push(formalReservation.top);
+        }
+      }
+
       const supportItems = buildOutfitForActivity(
         schedule.secondary,
         day,
@@ -4232,7 +4736,24 @@ export function buildCapsule(
         tasteProfile,
         coherenceState,
         fashionState,
+        isFormalSupport ? formalReservation : undefined,
+        tripDerivedBand,
       );
+
+      // ── ELITE_FORMAL_EJECT (support): remove reserved items after Formal support build ──
+      if (isFormalSupport && reservedFormalIds.size > 0) {
+        if (formalReservation.shoe) {
+          const idx = selectedShoes.findIndex(s => s.id === formalReservation.shoe!.id);
+          if (idx !== -1) selectedShoes.splice(idx, 1);
+        }
+        if (formalReservation.trouser) {
+          buckets.bottoms = buckets.bottoms.filter(b => b.id !== formalReservation.trouser!.id);
+        }
+        if (formalReservation.top) {
+          buckets.tops = buckets.tops.filter(t => t.id !== formalReservation.top!.id);
+        }
+      }
+
       if (supportItems.length >= 2) {
         outfits.push({
           id: `outfit_${day}_support`,
@@ -4530,6 +5051,65 @@ export function buildCapsule(
         (Object.keys(buckets) as CategoryBucket[]).map(k => [k, buckets[k].length]),
       ),
     });
+  }
+
+  // ── ELITE_CAPSULE_INTEGRITY_CHECK ──
+  // Warning-only: verify Formal authority items exist in capsule when available in wardrobe.
+  if (activities.includes('Formal')) {
+    const wardrobeLookup = new Map(eligibleItems.map(i => [i.id, i]));
+    const formalOutfitItems = outfits
+      .filter(o => o.occasion === 'Formal')
+      .flatMap(o => o.items);
+
+    const missing: string[] = [];
+
+    // Check Tier 3 shoes
+    const wardrobeHasTier3Shoe = eligibleItems.some(i =>
+      mapMainCategoryToSlot(i.main_category ?? '') === 'shoes' && getFormalityTier(i) >= 3,
+    );
+    const formalHasTier3Shoe = formalOutfitItems.some(i => {
+      const full = wardrobeLookup.get(i.wardrobeItemId);
+      return full && mapMainCategoryToSlot(full.main_category ?? '') === 'shoes' && getFormalityTier(full) >= 3;
+    });
+    if (wardrobeHasTier3Shoe && !formalHasTier3Shoe) missing.push('tier3_shoe');
+
+    // Check structured trousers
+    const STRUCTURED_TROUSER = /\b(trouser|slacks|dress pant|suit pant)\b/i;
+    const wardrobeHasStructuredTrouser = eligibleItems.some(i =>
+      STRUCTURED_TROUSER.test((i.subcategory || '').toLowerCase()),
+    );
+    const formalHasStructuredTrouser = formalOutfitItems.some(i => {
+      const full = wardrobeLookup.get(i.wardrobeItemId);
+      return full && STRUCTURED_TROUSER.test((full.subcategory || '').toLowerCase());
+    });
+    if (wardrobeHasStructuredTrouser && !formalHasStructuredTrouser) missing.push('structured_trouser');
+
+    // Check authority tops (dress shirt, blazer, or neutral formal colors)
+    const AUTHORITY_TOP_SUB = /\b(dress shirt|blazer|sport coat|suit jacket|tuxedo shirt)\b/i;
+    const AUTHORITY_TOP_COLOR = /\b(white|ivory|cream|light ?blue|navy|charcoal|black|grey|gray|slate)\b/i;
+    const wardrobeHasAuthorityTop = eligibleItems.some(i => {
+      const sub = (i.subcategory || '').toLowerCase();
+      const color = (i.color || '').toLowerCase();
+      const slot = mapMainCategoryToSlot(i.main_category ?? '');
+      return slot === 'tops' && (AUTHORITY_TOP_SUB.test(sub) || AUTHORITY_TOP_COLOR.test(color));
+    });
+    const formalHasAuthorityTop = formalOutfitItems.some(i => {
+      const full = wardrobeLookup.get(i.wardrobeItemId);
+      if (!full) return false;
+      const sub = (full.subcategory || '').toLowerCase();
+      const color = (full.color || '').toLowerCase();
+      const slot = mapMainCategoryToSlot(full.main_category ?? '');
+      return slot === 'tops' && (AUTHORITY_TOP_SUB.test(sub) || AUTHORITY_TOP_COLOR.test(color));
+    });
+    if (wardrobeHasAuthorityTop && !formalHasAuthorityTop) missing.push('authority_top');
+
+    if (missing.length > 0) {
+      console.log(`[TripCapsule][ELITE_CAPSULE_DEFICIENCY] Missing: ${missing.join(', ')}`);
+      buildWarnings.push({
+        code: 'ELITE_CAPSULE_DEFICIENCY',
+        message: `Formal authority items available in wardrobe but missing from capsule: ${missing.join(', ')}`,
+      });
+    }
   }
 
   // Step 10: Build packing list
