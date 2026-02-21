@@ -1735,7 +1735,10 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     }}>
                     <TouchableOpacity
                       style={[globalStyles.buttonPrimary, {width: 120}]}
-                      onPress={() => setFeedbackModalVisible(true)}>
+                      onPress={() => {
+                        console.log('[STUDIO RATING DEBUG] Frontend handler fired', { outfitId, ratingValue: feedbackData.feedback });
+                        setFeedbackModalVisible(true);
+                      }}>
                       <Text style={globalStyles.buttonPrimaryText}>
                         Rate Outfit
                       </Text>
@@ -2069,13 +2072,14 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 setPendingSaveOutfit(null);
               }}
               onSave={async (name, date) => {
+                console.log('[STUDIO SAVE DEBUG] Frontend handler fired', { outfitId });
                 if (pendingSaveOutfit && userId) {
                   try {
                     const accessToken = await getAccessToken();
 
                     // LEARNING: fire accept event alongside save (fire-and-forget)
                     if (outfitItemIds.length >= 2 && accessToken && sessionId) {
-                      fetch(`${API_BASE_URL}/api/wardrobe/outfits`, {
+                      fetch(`${API_BASE_URL}/wardrobe/outfits`, {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
@@ -2128,6 +2132,31 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     await response.json();
                     // Invalidate saved-outfits cache so SavedOutfitsScreen refreshes
                     queryClient.invalidateQueries({queryKey: ['saved-outfits', userId]});
+
+                    // POST to /outfit/favorite for learning pipeline
+                    console.log('[STUDIO SAVE DEBUG] About to POST favorite');
+                    try {
+                      const favResponse = await fetch(
+                        `${API_BASE_URL}/outfit/favorite`,
+                        {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${accessToken}`,
+                          },
+                          body: JSON.stringify({
+                            outfit_id: outfitId ?? requestId ?? 'active',
+                            outfit_type: 'ai',
+                          }),
+                        },
+                      );
+                      console.log(
+                        '[STUDIO SAVE DEBUG] Favorite POST complete, status:',
+                        favResponse.status,
+                      );
+                    } catch (favErr) {
+                      console.error('[STUDIO SAVE DEBUG] Favorite POST error:', favErr);
+                    }
                   } catch (err) {
                     console.error('Error saving outfit:', err);
                   } finally {

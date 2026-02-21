@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getAccessToken} from '../../utils/auth';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
 import {useAppTheme} from '../../context/ThemeContext';
@@ -134,38 +135,76 @@ export default function OutfitFeedbackModal({
       !userId ||
       !feedbackData.feedback ||
       !(outfitItemIds && outfitItemIds.length)
-    )
+    ) {
+      console.warn('[STUDIO RATING DEBUG] Missing required data', {
+        apiBaseUrl: !!apiBaseUrl,
+        userId: !!userId,
+        feedback: feedbackData.feedback,
+        itemCount: outfitItemIds?.length ?? 0,
+      });
       return;
+    }
+
+    console.log('[STUDIO RATING DEBUG] About to POST', {
+      outfitId,
+      ratingValue: feedbackData.feedback,
+    });
+
+    let accessToken: string | null = null;
+    try {
+      accessToken = await getAccessToken();
+    } catch (e) {
+      console.error('[STUDIO RATING DEBUG] Failed to get access token:', e);
+      return;
+    }
 
     const numericRating = feedbackData.feedback === 'like' ? 5 : 1;
 
     // Primary: learning-aware endpoint
     try {
-      await fetch(`${apiBaseUrl}/outfit/feedback`, {
+      const response = await fetch(`${apiBaseUrl}/outfit/feedback`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           outfit_id: outfitId ?? requestId ?? 'active',
           rating: numericRating,
           notes: feedbackData.reason || undefined,
         }),
       });
+      console.log(
+        '[STUDIO RATING DEBUG] /outfit/feedback response status:',
+        response.status,
+      );
     } catch (e) {
-      console.warn('Outfit feedback POST failed:', e);
+      console.error('[STUDIO RATING DEBUG] /outfit/feedback network error:', e);
     }
 
-    // Legacy bridge: fire-and-forget to /feedback/rate
-    fetch(`${apiBaseUrl}/feedback/rate`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        user_id: userId,
-        outfit_id: outfitId ?? requestId ?? 'active',
-        rating: feedbackData.feedback,
-        item_ids: outfitItemIds,
-        notes: feedbackData.reason || undefined,
-      }),
-    }).catch(() => {});
+    // Legacy bridge to /feedback/rate
+    try {
+      const response = await fetch(`${apiBaseUrl}/feedback/rate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          outfit_id: outfitId ?? requestId ?? 'active',
+          rating: feedbackData.feedback,
+          item_ids: outfitItemIds,
+          notes: feedbackData.reason || undefined,
+        }),
+      });
+      console.log(
+        '[STUDIO RATING DEBUG] /feedback/rate response status:',
+        response.status,
+      );
+    } catch (e) {
+      console.error('[STUDIO RATING DEBUG] /feedback/rate network error:', e);
+    }
   };
 
   const handleDone = async () => {

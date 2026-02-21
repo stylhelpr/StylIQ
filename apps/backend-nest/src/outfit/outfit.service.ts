@@ -170,11 +170,12 @@ export class OutfitService {
   }
 
   async favoriteOutfit(dto: FavoriteOutfitDto) {
-    const { user_id, outfit_id, outfit_type = 'ai' } = dto;
+    const { user_id, outfit_id, outfit_type } = dto;
+    const normalizedType = outfit_type === 'custom' ? 'custom' : 'suggestion';
     await pool.query(
       `INSERT INTO outfit_favorites (user_id, outfit_id, outfit_type)
        VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-      [user_id, outfit_id, outfit_type],
+      [user_id, outfit_id, normalizedType],
     );
     return { message: 'Favorited' };
   }

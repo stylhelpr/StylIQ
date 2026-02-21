@@ -205,7 +205,8 @@ export class LearningEventsService {
    */
   private async insertEvent(input: CreateLearningEventInput): Promise<void> {
     this.logger.log(
-      `[LearningEventsService] INSERT event_type=${input.eventType} source_feature=${input.sourceFeature} user_id=${input.userId}`,
+      '[STUDIO LEARNING DEBUG] insertEvent called',
+      { event_type: input.eventType, source_feature: input.sourceFeature, user_id: input.userId },
     );
     await pool.query(
       `INSERT INTO user_learning_events (

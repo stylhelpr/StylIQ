@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { OutfitService } from './outfit.service';
 import { SuggestOutfitDto } from './dto/suggest-outfit.dto';
@@ -32,6 +33,8 @@ const HOME_SIGNAL_TYPES: Set<string> = new Set([
 @UseGuards(JwtAuthGuard)
 @Controller('outfit')
 export class OutfitController {
+  private readonly logger = new Logger(OutfitController.name);
+
   constructor(
     private readonly outfitService: OutfitService,
     private readonly learningEvents: LearningEventsService,
@@ -57,6 +60,8 @@ export class OutfitController {
 
   @Post('feedback')
   submitFeedback(@Req() req, @Body() dto: Omit<OutfitFeedbackDto, 'user_id'>) {
+    this.logger.log('[STUDIO RATING DEBUG] Backend /outfit/feedback route hit');
+    this.logger.log(JSON.stringify(dto));
     const user_id = req.user.userId;
     return this.outfitService.submitFeedback({ user_id, ...dto });
   }
@@ -105,9 +110,34 @@ export class OutfitController {
   }
 
   @Post('favorite')
-  favoriteOutfit(@Req() req, @Body() dto: Omit<FavoriteOutfitDto, 'user_id'>) {
+  async favoriteOutfit(@Req() req, @Body() dto: Omit<FavoriteOutfitDto, 'user_id'>) {
+    this.logger.log('[STUDIO SAVE DEBUG] Backend /outfit/favorite route hit');
+    this.logger.log(JSON.stringify(dto));
     const user_id = req.user.userId;
-    return this.outfitService.favoriteOutfit({ user_id, ...dto });
+    const result = await this.outfitService.favoriteOutfit({ user_id, ...dto });
+
+    // Fire OUTFIT_SAVED_FROM_HOME learning event for save pipeline
+    if (LEARNING_FLAGS.EVENTS_ENABLED) {
+      const { EVENT_SIGNAL_DEFAULTS } = await import(
+        '../learning/dto/learning-event.dto'
+      );
+      const defaults = EVENT_SIGNAL_DEFAULTS['OUTFIT_SAVED_FROM_HOME'];
+      this.learningEvents
+        .logEvent({
+          userId: user_id,
+          eventType: 'OUTFIT_SAVED_FROM_HOME',
+          entityType: 'outfit',
+          entityId: dto.outfit_id,
+          signalPolarity: defaults.polarity,
+          signalWeight: defaults.weight,
+          extractedFeatures: {},
+          sourceFeature: 'studio',
+          clientEventId: `outfit_saved:${user_id}:${dto.outfit_id}:${Date.now()}`,
+        })
+        .catch(() => {});
+    }
+
+    return result;
   }
 
   @Get('favorites/:userId')
