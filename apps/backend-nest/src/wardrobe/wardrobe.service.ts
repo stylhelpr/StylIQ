@@ -4000,6 +4000,67 @@ ${lockedLines}
     [4, ['tuxedo', 'gown', 'formal', 'patent', 'evening', 'black tie']],
   ];
 
+  // ── REMOVAL INTENT: slots that can be removed without breaking an outfit ──
+  private static readonly REMOVABLE_SLOTS: Set<string> = new Set([
+    'outerwear', 'accessories',
+  ]);
+
+  private static readonly REMOVAL_PHRASES: string[] = [
+    'remove', 'get rid of', 'drop', 'ditch', 'without',
+    "don't need", 'do not need', 'skip', 'take off', 'lose the',
+  ];
+
+  private static readonly REMOVAL_NO_PATTERNS: RegExp =
+    /\bno\s+(belt|jacket|blazer|coat|outerwear|tie|scarf|hat|bag|watch|bracelet|necklace|sunglasses|cardigan|hoodie|vest|parka|trench|windbreaker|raincoat)\b/i;
+
+  private static readonly REMOVAL_KEYWORD_TO_SLOT: Record<string, Slot> = {
+    belt: 'accessories',
+    tie: 'accessories',
+    scarf: 'accessories',
+    hat: 'accessories',
+    bag: 'accessories',
+    watch: 'accessories',
+    bracelet: 'accessories',
+    necklace: 'accessories',
+    sunglasses: 'accessories',
+    jacket: 'outerwear',
+    blazer: 'outerwear',
+    coat: 'outerwear',
+    outerwear: 'outerwear',
+    cardigan: 'outerwear',
+    hoodie: 'outerwear',
+    vest: 'outerwear',
+    parka: 'outerwear',
+    trench: 'outerwear',
+    windbreaker: 'outerwear',
+    raincoat: 'outerwear',
+  };
+
+  /**
+   * Detect if a refinement prompt expresses intent to REMOVE an item.
+   * Deterministic substring matching only.
+   */
+  private static detectRemovalIntent(prompt: string): boolean {
+    const lower = prompt.toLowerCase();
+    for (const phrase of WardrobeService.REMOVAL_PHRASES) {
+      if (lower.includes(phrase)) return true;
+    }
+    if (WardrobeService.REMOVAL_NO_PATTERNS.test(lower)) return true;
+    return false;
+  }
+
+  /**
+   * Infer which slot to remove from prompt keywords.
+   * Returns null if ambiguous or not inferable.
+   */
+  private static inferRemovalSlot(prompt: string): Slot | null {
+    const lower = prompt.toLowerCase();
+    for (const [keyword, slot] of Object.entries(WardrobeService.REMOVAL_KEYWORD_TO_SLOT)) {
+      if (lower.includes(keyword)) return slot;
+    }
+    return null;
+  }
+
   /**
    * DETERMINISTIC OUTFIT SLOT SWAP (Composition-Guided Recomposition)
    *
@@ -4184,7 +4245,7 @@ ${lockedLines}
       const vItems = swappedItems.map(toVI);
       const result = tasteValidateOutfit(vItems, vCtx);
       if (!result.valid) {
-        console.log(`⚡ [SWAP] Taste validation HARD FAIL (fail-close): ${result.hardFails.join(', ')}`);
+        console.log(`⚡ [SWAP] Taste validation FAIL (log-only, manual swap override): ${result.hardFails.join(', ')}`);
         validationPassed = false;
       }
 
@@ -4195,36 +4256,24 @@ ${lockedLines}
       };
       const vetoResult = isStylisticallyIncoherent(vetoOutfit, {});
       if (vetoResult.invalid) {
-        console.log(`⚡ [SWAP] Style veto HARD FAIL (fail-close): ${vetoResult.reason}`);
+        console.log(`⚡ [SWAP] Style veto FAIL (log-only, manual swap override): ${vetoResult.reason}`);
         validationPassed = false;
       }
     } catch (err) {
-      console.warn('⚡ [SWAP] Validation error (fail-close):', (err as any)?.message);
+      console.warn('⚡ [SWAP] Validation error (log-only, manual swap override):', (err as any)?.message);
       validationPassed = false;
     }
 
     const elapsed = Date.now() - startTime;
     console.log(`⚡ [SWAP] Completed in ${elapsed}ms valid=${validationPassed} composition=${compositionScore.toFixed(3)}`);
 
-    // 6. Fail-close: if hard validation failures exist, return null so controller
-    //    falls through to generateOutfitsFast() which has the full repair pipeline.
-    if (!validationPassed) {
-      console.log(
-        JSON.stringify({
-          _tag: 'SWAP_FAIL_CLOSE',
-          reqId,
-          reason: 'hard validation failure in recomposeOutfitSlot, delegating to safe path',
-          elapsedMs: elapsed,
-        }),
-      );
-      return null;
-    }
-
     const outfit = {
       outfit_id: reqId,
       title: 'Recomposed Outfit',
       items: outfitItems,
-      why: 'Slot swapped with composition-compatible item.',
+      why: validationPassed
+        ? 'Slot swapped with composition-compatible item.'
+        : 'Slot swapped per user selection (validation logged).',
       missing: undefined,
     };
 
@@ -4470,6 +4519,69 @@ ${lockedLines}
       }
     }
 
+    // ── REMOVAL EARLY-RETURN: if user wants to remove a slot, skip all ranking ──
+    const isRemoval = WardrobeService.detectRemovalIntent(input.refinementPrompt);
+    if (isRemoval && WardrobeService.REMOVABLE_SLOTS.has(targetSlot)) {
+      // Use explicit keyword slot if main parser yielded a different removable slot
+      const removalSlot = WardrobeService.inferRemovalSlot(input.refinementPrompt) ?? targetSlot;
+      if (!WardrobeService.REMOVABLE_SLOTS.has(removalSlot)) {
+        // Inferred slot is non-removable (e.g., tops/bottoms/shoes) → preserve existing behavior
+        console.log(`REMOVAL_BLOCKED ${JSON.stringify({ prompt: input.refinementPrompt, slot: removalSlot, reason: 'non-removable slot' })}`);
+      } else {
+        const removedItem = oldSlotItems[0];
+        console.log(`REMOVAL_DETECTED ${JSON.stringify({ prompt: input.refinementPrompt, slot: removalSlot })}`);
+
+        // Re-split if inferRemovalSlot gave a different slot than parser
+        let finalKeptItems = keptItems;
+        if (removalSlot !== targetSlot) {
+          finalKeptItems = [];
+          for (const row of currentDbItems) {
+            if (mapMainCategoryToSlot(row.main_category) !== removalSlot) {
+              finalKeptItems.push(row);
+            }
+          }
+        }
+
+        const formatItem = (it: any, idx: number) => ({
+          index: idx,
+          id: it.id,
+          name: it.name,
+          label: it.name || 'Item',
+          image: it.touched_up_image_url || it.processed_image_url || it.image_url,
+          image_url: it.image_url,
+          main_category: it.main_category,
+          subcategory: it.subcategory,
+          color: it.color,
+          color_family: it.color_family,
+          brand: it.brand,
+          dress_code: it.dress_code,
+          formality_score: it.formality_score,
+          material: it.material,
+          fit: it.fit,
+        });
+        const outfitItems = finalKeptItems.map(formatItem);
+
+        const elapsed = Date.now() - startTime;
+        console.log(`REMOVE_OUTFIT_SUCCESS ${JSON.stringify({ slot: removalSlot, removedItemId: removedItem?.id, reason: 'user_remove_intent', elapsedMs: elapsed })}`);
+
+        const outfit = {
+          outfit_id: reqId,
+          title: 'Refined Outfit',
+          items: outfitItems,
+          why: `Removed ${removalSlot} per your request.`,
+          missing: undefined,
+        };
+
+        return {
+          request_id: reqId,
+          outfit_id: reqId,
+          items: outfitItems,
+          why: outfit.why,
+          outfits: [outfit],
+        };
+      }
+    }
+
     // 3. Single Pinecone query for the target slot
     const slotFilter = pineconeFilterForSlot(targetSlot);
     let candidateIds: string[] = [];
@@ -4680,6 +4792,60 @@ ${lockedLines}
 
     // 5b. Escalation re-ranking: bias toward higher judge score + higher formality
     if (isEscalation && scoredCandidates.length > 0) {
+      // ── HARD GUARD: reject candidates with formality tier below original ──
+      const poolSizeBeforeFilter = scoredCandidates.length;
+      const downgradedIds: string[] = [];
+      for (let i = scoredCandidates.length - 1; i >= 0; i--) {
+        if (scoredCandidates[i].formalityTier < originalFormalityTier) {
+          downgradedIds.push(scoredCandidates[i].candidate.id);
+          scoredCandidates.splice(i, 1);
+        }
+      }
+      if (downgradedIds.length > 0) {
+        console.log(`ESCALATION_DOWNGRADE_BLOCKED ${JSON.stringify({ blocked: downgradedIds.length, originalTier: originalFormalityTier, poolSizeBeforeFilter })}`);
+      }
+
+      // If no candidates survive the tier guard → return original outfit unchanged
+      if (scoredCandidates.length === 0) {
+        const elapsed = Date.now() - startTime;
+        console.log(`ESCALATION_NO_UPGRADE_AVAILABLE ${JSON.stringify({ originalTier: originalFormalityTier, poolSizeBeforeFilter, elapsedMs: elapsed })}`);
+
+        // Return original outfit as-is — maintain dignity, no downgrade
+        const originalItems = currentDbItems;
+        const formatItemOriginal = (it: any, idx: number) => ({
+          index: idx,
+          id: it.id,
+          name: it.name,
+          label: it.name || 'Item',
+          image: it.touched_up_image_url || it.processed_image_url || it.image_url,
+          image_url: it.image_url,
+          main_category: it.main_category,
+          subcategory: it.subcategory,
+          color: it.color,
+          color_family: it.color_family,
+          brand: it.brand,
+          dress_code: it.dress_code,
+          formality_score: it.formality_score,
+          material: it.material,
+          fit: it.fit,
+        });
+        const originalOutfitItems = originalItems.map(formatItemOriginal);
+        const outfit = {
+          outfit_id: reqId,
+          title: 'Refined Outfit',
+          items: originalOutfitItems,
+          why: 'No higher-formality option available. Keeping current outfit.',
+          missing: undefined,
+        };
+        return {
+          request_id: reqId,
+          outfit_id: reqId,
+          items: originalOutfitItems,
+          why: outfit.why,
+          outfits: [outfit],
+        };
+      }
+
       for (const sc of scoredCandidates) {
         let escalationBonus = 0;
 
@@ -4721,6 +4887,8 @@ ${lockedLines}
         })),
         originalJudgeScore,
         originalFormalityTier,
+        poolSizeBeforeFilter,
+        poolSizeAfterFilter: scoredCandidates.length,
       })}`);
 
       bestCandidate = scoredCandidates[0].candidate;

@@ -1012,32 +1012,53 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             <MaterialIcons name="lock" size={16} color="#fff" />
           </View>
         )}
-        {/* Swap out Item button - hide for locked items and until outfit is selected */}
-        {!isLocked && hasRefined && (
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation();
-              h('impactLight');
-              setSwapSection(section);
-              setShowWardrobePicker(true);
-            }}
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              backgroundColor: 'rgba(0,0,0,0.7)',
-              borderRadius: 16,
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-            }}>
-            <MaterialIcons name="swap-horiz" size={16} color="#fff" />
-            <Text style={{color: '#fff', fontSize: 12, fontWeight: '500'}}>
-              Swap
-            </Text>
-          </TouchableOpacity>
+        {/* Swap + Remove buttons - visible whenever outfit is displayed, hidden for locked items */}
+        {!isLocked && hasOutfit && (
+          <View style={{position: 'absolute', top: 8, right: 8, gap: 6, alignItems: 'flex-end'}}>
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                h('impactLight');
+                setSwapSection(section);
+                setShowWardrobePicker(true);
+              }}
+              style={{
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                borderRadius: 16,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+              }}>
+              <MaterialIcons name="swap-horiz" size={16} color="#fff" />
+              <Text style={{color: '#fff', fontSize: 12, fontWeight: '500'}}>
+                Swap
+              </Text>
+            </TouchableOpacity>
+            {item?.mainCategory && ['Outerwear', 'Accessories'].includes(item.mainCategory) && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  h('impactMedium');
+                  handleRefine(`Remove the ${item.mainCategory!.toLowerCase()}`);
+                }}
+                style={{
+                  backgroundColor: 'rgba(0,0,0,0.7)',
+                  borderRadius: 16,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                }}>
+                <MaterialIcons name="close" size={16} color="#fff" />
+                <Text style={{color: '#fff', fontSize: 12, fontWeight: '500'}}>
+                  Remove
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
         <View style={styles.overlay}>
           <View style={globalStyles.labelContainer2}>
