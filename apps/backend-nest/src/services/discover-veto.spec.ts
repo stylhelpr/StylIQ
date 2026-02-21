@@ -744,3 +744,81 @@ describe('inferProductFormality — expanded keywords', () => {
     expect(inferProductFormality('Vestal Watch')).toBeNull();
   });
 });
+
+// ═════════════════════════════════════════════════════════════════════
+// 7. VETO_NON_APPAREL — Rule 0
+// ═════════════════════════════════════════════════════════════════════
+
+describe('VETO_NON_APPAREL', () => {
+  const anyProfile = emptyProfile();
+
+  it('vetoes "phone case"', () => {
+    const input = makeInput({ title: 'iPhone 15 Phone Case Clear' });
+    const result = applyDiscoverVeto(input, anyProfile);
+    expect(result.vetoed).toBe(true);
+    expect(result.rule).toBe('VETO_NON_APPAREL');
+  });
+
+  it('vetoes "dog collar"', () => {
+    const input = makeInput({ title: 'Leather Dog Collar Large' });
+    const result = applyDiscoverVeto(input, anyProfile);
+    expect(result.vetoed).toBe(true);
+    expect(result.rule).toBe('VETO_NON_APPAREL');
+  });
+
+  it('vetoes "wall art"', () => {
+    const input = makeInput({ title: 'Abstract Wall Art Canvas' });
+    const result = applyDiscoverVeto(input, anyProfile);
+    expect(result.vetoed).toBe(true);
+    expect(result.rule).toBe('VETO_NON_APPAREL');
+  });
+
+  it('vetoes "mug"', () => {
+    const input = makeInput({ title: 'Ceramic Coffee Mug 12oz' });
+    const result = applyDiscoverVeto(input, anyProfile);
+    expect(result.vetoed).toBe(true);
+    expect(result.rule).toBe('VETO_NON_APPAREL');
+  });
+
+  it('vetoes "pillow"', () => {
+    const input = makeInput({ title: 'Throw Pillow Cover 18x18' });
+    const result = applyDiscoverVeto(input, anyProfile);
+    expect(result.vetoed).toBe(true);
+    expect(result.rule).toBe('VETO_NON_APPAREL');
+  });
+
+  it('vetoes "gift card"', () => {
+    const input = makeInput({ title: '$50 Gift Card' });
+    const result = applyDiscoverVeto(input, anyProfile);
+    expect(result.vetoed).toBe(true);
+    expect(result.rule).toBe('VETO_NON_APPAREL');
+  });
+
+  it('vetoes "supplement"', () => {
+    const input = makeInput({ title: 'Protein Supplement Powder' });
+    const result = applyDiscoverVeto(input, anyProfile);
+    expect(result.vetoed).toBe(true);
+    expect(result.rule).toBe('VETO_NON_APPAREL');
+  });
+
+  it('does NOT veto normal apparel', () => {
+    const input = makeInput({ title: 'Slim Fit Cotton Polo Shirt' });
+    const result = applyDiscoverVeto(input, anyProfile);
+    expect(result.rule).not.toBe('VETO_NON_APPAREL');
+  });
+
+  it('does NOT veto leather jacket (not "dog collar")', () => {
+    const input = makeInput({ title: 'Leather Moto Jacket' });
+    const result = applyDiscoverVeto(input, anyProfile);
+    expect(result.rule).not.toBe('VETO_NON_APPAREL');
+  });
+
+  it('runs before other rules (Rule 0)', () => {
+    // Even with avoid_colors set, non-apparel should veto first
+    const profile = emptyProfile({ avoidColors: new Set(['red']) });
+    const input = makeInput({ title: 'Red Phone Case' });
+    const result = applyDiscoverVeto(input, profile);
+    expect(result.vetoed).toBe(true);
+    expect(result.rule).toBe('VETO_NON_APPAREL');
+  });
+});

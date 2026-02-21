@@ -1,6 +1,6 @@
 import { __test__ } from './discover.service';
 
-const { normalize, wordBoundaryMatch, LOOSE_FIT_TOKENS, extractBrandFromTitle, resolveBrandTier, getSemanticCluster } = __test__;
+const { normalize, wordBoundaryMatch, LOOSE_FIT_TOKENS, extractBrandFromTitle, extractProductBrand, resolveBrandTier, getSemanticCluster } = __test__;
 
 // ── Slim preference blocks loose-fit tokens ──────────────────────────
 
@@ -80,7 +80,7 @@ describe('Tier 4 integration: discover-curator module', () => {
   });
 });
 
-// ── Brand extraction from title ─────────────────────────────────────
+// ── Brand extraction from title (tier-map-based) ─────────────────────
 
 describe('extractBrandFromTitle', () => {
   it('extracts "gucci" from title', () => {
@@ -116,7 +116,6 @@ describe('extractBrandFromTitle', () => {
   });
 
   it('prefers longer multi-word brand over shorter substring', () => {
-    // "polo ralph lauren" (16 chars) should match before "polo" would (not in tiers anyway)
     expect(extractBrandFromTitle('Polo Ralph Lauren Oxford Shirt')).toBe('polo ralph lauren');
   });
 
@@ -135,7 +134,6 @@ describe('extractBrandFromTitle', () => {
   });
 
   it('accepts brand within first 5 tokens', () => {
-    // "gucci" at token index 4 — within ≤4 boundary
     expect(extractBrandFromTitle('Luxury Designer Cashmere Wool Gucci Sweater')).toBe('gucci');
   });
 
@@ -189,38 +187,113 @@ describe('extractBrandFromTitle', () => {
   });
 });
 
-describe('resolveBrandTier', () => {
-  it('title brand overrides retailer source', () => {
-    // Title has "Vince" (not in tiers) + brand="Editorialist" (not in tiers) → tier 4
-    // But title with "Gucci" + source="Editorialist" → tier 1
-    const tier = resolveBrandTier('Gucci Men\'s Leather Belt', 'Editorialist', 'Editorialist');
-    expect(tier).toBe(1);
+// ── extractProductBrand (heuristic, tier-independent) ────────────────
+
+describe('extractProductBrand', () => {
+  it('extracts "Gucci" from title', () => {
+    expect(extractProductBrand('Gucci Men\'s Leather Belt')).toBe('Gucci');
   });
 
-  it('title brand overrides p.brand when p.brand is a retailer', () => {
-    const tier = resolveBrandTier('Hugo Boss Slim Fit Blazer', 'Saks Fifth Avenue', 'Saks');
-    expect(tier).toBe(2); // hugo boss = tier 2
+  it('extracts "Ralph Lauren" (multi-word) from title', () => {
+    expect(extractProductBrand('Ralph Lauren Classic Fit Polo')).toBe('Ralph Lauren');
   });
 
-  it('falls back to p.brand when title has no known brand', () => {
-    const tier = resolveBrandTier('Classic Cotton Polo Shirt', 'zara', null);
-    expect(tier).toBe(3); // zara = tier 3
+  it('extracts "Hugo Boss" from title', () => {
+    expect(extractProductBrand('Hugo Boss Slim Fit Suit Jacket')).toBe('Hugo Boss');
   });
 
-  it('falls back to p.source when title and brand have no known brand', () => {
-    const tier = resolveBrandTier('Classic Cotton Polo', null, 'Walmart');
-    expect(tier).toBe(5); // walmart = tier 5
+  it('extracts "Nike" from "Nike Air Max 90"', () => {
+    expect(extractProductBrand('Nike Air Max 90')).toBe('Nike Air Max 90');
   });
 
-  it('returns 4 (default) when nothing matches', () => {
-    const tier = resolveBrandTier('Some Random Product', 'Unknown Store', 'Random Source');
-    expect(tier).toBe(4);
+  it('stops at known descriptor words', () => {
+    // "Classic" is a stop word
+    expect(extractProductBrand('Classic Cotton Polo')).toBeNull();
+  });
+
+  it('stops at lowercase words', () => {
+    expect(extractProductBrand('Zara slim fit pants')).toBe('Zara');
+  });
+
+  it('returns null for empty title', () => {
+    expect(extractProductBrand('')).toBeNull();
+  });
+
+  it('returns null when title starts with descriptor', () => {
+    expect(extractProductBrand('Slim Fit Cotton Shirt')).toBeNull();
+  });
+
+  it('returns null when title starts with color', () => {
+    expect(extractProductBrand('Black Leather Jacket')).toBeNull();
+  });
+
+  it('does not include possessive s in brand', () => {
+    const brand = extractProductBrand("Levi's Slim Taper Jeans");
+    expect(brand).toBe('Levi');
+  });
+
+  it('handles all-caps brand', () => {
+    // All title-cased words pass; resolveBrandTier word-boundary-matches "dkny" inside
+    expect(extractProductBrand('DKNY Sport Leggings')).toBe('DKNY Sport Leggings');
   });
 
   it('is deterministic across 100 runs', () => {
-    const first = resolveBrandTier('Gucci Leather Belt', 'Editorialist', 'Saks');
+    const titles = [
+      'Gucci Leather Belt',
+      'Classic Cotton Polo',
+      'Nike Air Max 90',
+      'Ralph Lauren Slim Fit Shirt',
+    ];
+    const firstResults = titles.map(t => extractProductBrand(t));
     for (let i = 0; i < 100; i++) {
-      expect(resolveBrandTier('Gucci Leather Belt', 'Editorialist', 'Saks')).toBe(first);
+      titles.forEach((t, idx) => {
+        expect(extractProductBrand(t)).toBe(firstResults[idx]);
+      });
+    }
+  });
+});
+
+// ── resolveBrandTier (new single-arg signature) ─────────────────────
+
+describe('resolveBrandTier', () => {
+  it('resolves known brand (tier 1)', () => {
+    expect(resolveBrandTier('Gucci')).toBe(1);
+  });
+
+  it('resolves known brand case-insensitive', () => {
+    expect(resolveBrandTier('GUCCI')).toBe(1);
+  });
+
+  it('resolves multi-word brand', () => {
+    expect(resolveBrandTier('Hugo Boss')).toBe(2);
+  });
+
+  it('resolves brand with extra words via word-boundary match', () => {
+    // "Nike Air Max" contains "nike" as a word boundary match
+    expect(resolveBrandTier('Nike Air Max')).toBe(3);
+  });
+
+  it('returns 3 (default) when brand is unknown', () => {
+    expect(resolveBrandTier('Unknown Brand')).toBe(3);
+  });
+
+  it('returns 3 (default) when brand is null', () => {
+    expect(resolveBrandTier(null)).toBe(3);
+  });
+
+  it('returns 3 (default) when brand is empty string', () => {
+    expect(resolveBrandTier('')).toBe(3);
+  });
+
+  it('never falls back to merchant (no source arg)', () => {
+    // New signature only takes productBrand — no source/merchant fallback
+    expect(resolveBrandTier(null)).toBe(3);
+  });
+
+  it('is deterministic across 100 runs', () => {
+    const first = resolveBrandTier('Gucci');
+    for (let i = 0; i < 100; i++) {
+      expect(resolveBrandTier('Gucci')).toBe(first);
     }
   });
 });
@@ -228,7 +301,6 @@ describe('resolveBrandTier', () => {
 // ── Casual Inflation Dampener: unit-level signal conditions ──────────
 
 describe('Casual inflation dampener: cluster + token conditions', () => {
-  // Verify cluster assignment for tokens that should trigger the penalty
   it('"Graphic Tee" lands in top_cluster (tee triggers)', () => {
     expect(getSemanticCluster('Old Navy Graphic Tee')).toBe('top_cluster');
   });
@@ -245,7 +317,6 @@ describe('Casual inflation dampener: cluster + token conditions', () => {
     expect(getSemanticCluster('Lightweight Tee')).toBe('top_cluster');
   });
 
-  // Verify normalized tokens match in normalized product text
   it('"hoodie" token matches in normalized text', () => {
     const normText = normalize('Old Navy Classic Hoodie');
     expect(normText.includes('hoodie')).toBe(true);
@@ -266,27 +337,26 @@ describe('Casual inflation dampener: cluster + token conditions', () => {
     expect(normText.includes('livedin tee')).toBe(true);
   });
 
-  // Brand tier conditions
+  // Brand tier conditions (now single-arg resolveBrandTier)
   it('Old Navy resolves to tier 4 (penalty eligible)', () => {
-    expect(resolveBrandTier('Old Navy Graphic Tee', 'Old Navy', null)).toBe(4);
+    expect(resolveBrandTier('Old Navy')).toBe(4);
   });
 
   it('Gucci resolves to tier 1 (penalty NOT eligible)', () => {
-    expect(resolveBrandTier('Gucci Cotton Tee', 'Gucci', null)).toBe(1);
+    expect(resolveBrandTier('Gucci')).toBe(1);
   });
 
   it('Theory resolves to tier 2 (penalty NOT eligible)', () => {
-    expect(resolveBrandTier('Theory Graphic Tee', 'Theory', null)).toBe(2);
+    expect(resolveBrandTier('Theory')).toBe(2);
   });
 
-  // Negative cases: elevated brands should NOT be penalized
-  it('luxury brand graphic tee is NOT eligible (tier 1)', () => {
-    const tier = resolveBrandTier('Gucci Graphic Tee', 'Gucci', null);
+  it('luxury brand is NOT eligible (tier 1)', () => {
+    const tier = resolveBrandTier('Gucci');
     expect(tier).toBeLessThan(4);
   });
 
-  it('premium brand sweater is NOT eligible (tier 2)', () => {
-    const tier = resolveBrandTier('Theory Cashmere Sweater', 'Theory', null);
+  it('premium brand is NOT eligible (tier 2)', () => {
+    const tier = resolveBrandTier('Theory');
     expect(tier).toBeLessThan(4);
   });
 });

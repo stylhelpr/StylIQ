@@ -57,6 +57,7 @@ export interface DiscoverProduct {
   batch_date?: string;
   is_current?: boolean;
   enriched_color?: string | null;
+  enriched_color_source?: 'ml' | 'fallback' | 'cached' | null;
   // Explanation layer (optional — won't break existing consumers)
   score_total?: number;
   score_breakdown?: Record<string, number>;
@@ -214,6 +215,54 @@ const _brandTierKeysByLength = Object.keys(BRAND_AUTHORITY_TIERS)
 
 const SPAM_PREFIXES = new Set(['discount', 'buy', 'sell', 'sale', 'cheap']);
 
+/**
+ * Heuristic brand extractor: pull leading capitalized word sequence from title.
+ * Independent of BRAND_AUTHORITY_TIERS — works for ANY brand.
+ * Stops at known product descriptors, lowercase words, or possessive markers.
+ */
+const BRAND_STOP_WORDS = new Set([
+  'classic', 'modern', 'casual', 'formal', 'slim', 'regular', 'new', 'premium',
+  'luxury', 'designer', 'original', 'authentic', 'essential', 'basic', 'organic',
+  'natural', 'handmade', 'custom', 'vintage', 'retro', 'oversized', 'lightweight',
+  'stretch', 'solid', 'striped', 'plaid', 'printed', 'graphic', 'plain',
+  'long', 'short', 'mid', 'mini', 'maxi', 'cropped',
+  'cotton', 'wool', 'silk', 'leather', 'linen', 'polyester', 'nylon', 'cashmere',
+  'mens', 'womens', 'men', 'women', 'unisex', 'kids', 'boys', 'girls',
+  'black', 'white', 'blue', 'red', 'green', 'navy', 'gray', 'grey',
+  'brown', 'beige', 'pink', 'yellow', 'purple', 'orange', 'cream', 'ivory',
+  'size', 'pack', 'set', 'piece', 'pair', 'lot',
+  'for', 'with', 'in', 'on', 'at', 'by',
+  'cool', 'soft', 'warm', 'light', 'heavy', 'thin', 'thick', 'wide', 'narrow',
+  'tight', 'loose', 'big', 'small', 'large',
+]);
+
+function extractProductBrand(title: string): string | null {
+  if (!title) return null;
+  const words = title.trim().split(/\s+/);
+  const brandWords: string[] = [];
+
+  for (const word of words) {
+    // Strip trailing possessive 's
+    const clean = word.replace(/'s$/i, '');
+    const alpha = clean.replace(/[^a-zA-Z0-9]/g, '');
+    if (!alpha) break;
+
+    // Stop at known non-brand descriptor words
+    if (BRAND_STOP_WORDS.has(alpha.toLowerCase())) break;
+
+    // Stop at lowercase words (brand names are title-cased or all-caps)
+    const isCapitalized = /^[A-Z]/.test(alpha);
+    const isAllCaps = /^[A-Z0-9]+$/.test(alpha) && alpha.length > 1;
+    const isNumeric = /^\d+$/.test(alpha);
+    if (!isCapitalized && !isAllCaps && !isNumeric) break;
+
+    brandWords.push(clean);
+    if (brandWords.length >= 4) break;
+  }
+
+  return brandWords.length > 0 ? brandWords.join(' ') : null;
+}
+
 function extractBrandFromTitle(title: string): string | null {
   if (!title) return null;
   const norm = normalize(title);
@@ -246,12 +295,19 @@ function extractBrandFromTitle(title: string): string | null {
   return null;
 }
 
-/** Resolve brand tier: prefer brand extracted from title, then p.brand, then p.source. */
-function resolveBrandTier(title: string, brand: string | null | undefined, source: string | null | undefined): number {
-  const extracted = extractBrandFromTitle(title);
-  if (extracted) return BRAND_AUTHORITY_TIERS[extracted] ?? 4;
-  const fallback = normalize(brand) || normalize(source) || '';
-  return BRAND_AUTHORITY_TIERS[fallback] ?? 4;
+/** Resolve brand tier from productBrand. Never falls back to merchant/source. Default = tier 3. */
+function resolveBrandTier(productBrand: string | null | undefined): number {
+  if (!productBrand) return 3;
+  const norm = normalize(productBrand);
+  if (!norm) return 3;
+  // Exact match
+  if (BRAND_AUTHORITY_TIERS[norm] != null) return BRAND_AUTHORITY_TIERS[norm];
+  // Word-boundary match against known brand keys (handles "Nike Air Max" → "nike")
+  for (const key of _brandTierKeysByLength) {
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`\\b${escaped}\\b`).test(norm)) return BRAND_AUTHORITY_TIERS[key];
+  }
+  return 3;
 }
 
 /** Strip non-alphanumeric (except spaces), lowercase, collapse whitespace */
@@ -836,6 +892,7 @@ export class DiscoverService {
     if (cacheValid && cached.length > 0) {
       console.log('🔥 Returning from CACHE PATH 🔥');
       // this.log.log(`🛒 Returning ${cached.length} cached products for user ${userId} (weekly lock active - NO API CALLS)`);
+      this.emitRecommendedBuysServed(userId, cached);
       return cached;
     }
 
@@ -880,7 +937,41 @@ export class DiscoverService {
     this.log.log(
       `Locked ${products.length} products for user ${userId} - no more API calls for 7 days`,
     );
+    this.emitRecommendedBuysServed(userId, products);
     return products;
+  }
+
+  /**
+   * Emit a single RECOMMENDED_BUYS_SERVED event for the entire batch.
+   * Fire-and-forget: failures are swallowed so the response is never blocked.
+   */
+  private emitRecommendedBuysServed(
+    userId: string,
+    products: DiscoverProduct[],
+  ): void {
+    if (!LEARNING_FLAGS.EVENTS_ENABLED || products.length === 0) return;
+
+    const productIds = products.map(p => p.product_id).filter(Boolean);
+    const brands = [...new Set(products.map(p => p.brand).filter(Boolean))] as string[];
+    const categories = [...new Set(products.map(p => p.category).filter(Boolean))] as string[];
+
+    this.learningEvents
+      .logEvent({
+        userId,
+        eventType: 'RECOMMENDED_BUYS_SERVED',
+        entityType: 'product',
+        entityId: undefined,
+        signalPolarity: 0,
+        signalWeight: 0.1,
+        extractedFeatures: {
+          item_ids: productIds,
+          brands,
+          categories,
+        },
+        sourceFeature: 'recommended_buys',
+        clientEventId: `rec_buys_served:${userId}:${createHash('sha256').update(productIds.join(',')).digest('hex').slice(0, 16)}`,
+      })
+      .catch(() => {});
   }
 
   // Returns true if cache is still valid (within 7 days AND profile unchanged), false otherwise
@@ -1064,7 +1155,7 @@ export class DiscoverService {
       return [];
     }
 
-    // --- Stage 1b: Color Enrichment from thumbnails ---
+    // --- Stage 1b: Color Enrichment from thumbnails (with source tracking) ---
     const ENRICHMENT_CONCURRENCY = 5;
     for (let i = 0; i < allProducts.length; i += ENRICHMENT_CONCURRENCY) {
       const batch = allProducts.slice(i, i + ENRICHMENT_CONCURRENCY);
@@ -1076,8 +1167,11 @@ export class DiscoverService {
         ),
       );
       for (let j = 0; j < batch.length; j++) {
-        if (!batch[j].enriched_color) {
+        if (batch[j].enriched_color) {
+          batch[j].enriched_color_source = 'cached';
+        } else {
           batch[j].enriched_color = colors[j];
+          batch[j].enriched_color_source = colors[j] ? 'ml' : null;
         }
       }
     }
@@ -1089,6 +1183,7 @@ export class DiscoverService {
         const titleColor = inferColorFromTitle(p.title);
         if (titleColor) {
           p.enriched_color = titleColor;
+          p.enriched_color_source = 'fallback';
         }
       }
     }
@@ -1121,7 +1216,7 @@ export class DiscoverService {
       climate: profile.climate,
     };
 
-    const vetoStats = { avoidColor: 0, avoidMaterial: 0, avoidPattern: 0, disliked: 0, fitVeto: 0, coverage: 0, walkability: 0, formality: 0, climate: 0, materialMix: 0 };
+    const vetoStats = { nonApparel: 0, avoidColor: 0, avoidMaterial: 0, avoidPattern: 0, disliked: 0, fitVeto: 0, coverage: 0, walkability: 0, formality: 0, climate: 0, materialMix: 0 };
     const vetoPassed: any[] = [];
 
     for (const raw of allProducts) {
@@ -1140,6 +1235,7 @@ export class DiscoverService {
       if (vetoResult.vetoed) {
         const ruleKey = (vetoResult.rule || '').replace('VETO_', '').toLowerCase();
         const statMap: Record<string, keyof typeof vetoStats> = {
+          non_apparel: 'nonApparel',
           color: 'avoidColor', material: 'avoidMaterial', pattern: 'avoidPattern',
           disliked: 'disliked', fit: 'fitVeto', coverage: 'coverage',
           walkability: 'walkability', formality: 'formality', climate: 'climate',
@@ -1334,50 +1430,53 @@ export class DiscoverService {
       const productTextBlob = textParts.filter(Boolean).join(' ');
       const normProductText = normalize(productTextBlob);
 
-      // Style scoring uses expanded vocabulary (aesthetic → retail descriptors)
-      // Capped normalization: 3 matches = full score (1.0)
-      const STYLE_MATCH_CAP = 3;
-      let styleHits = 0;
-      const matchedLiteralTokens: string[] = [];
-      const matchedExpandedTokens: string[] = [];
-      for (const token of expandedStyles) {
-        if (normProductText.includes(token)) {
-          styleHits++;
-          if (literalStyleSet.has(token)) {
-            matchedLiteralTokens.push(token);
-          } else {
-            matchedExpandedTokens.push(token);
-          }
-        }
-      }
-      let style01 = expandedStyles.size > 0
-        ? clamp01(styleHits / STYLE_MATCH_CAP)
-        : 0;
-
-      // --- CATEGORY → STYLE BRIDGE: boost style when product category implies user's style ---
-      let categoryBridgeApplied = false;
-      if (style01 < 1.0) {
-        for (const [categoryKeyword, impliedStyles] of Object.entries(CATEGORY_STYLE_BRIDGE)) {
-          if (normProductText.includes(categoryKeyword)) {
-            const userStylesNorm = profile.style_keywords.map(k => normalize(k));
-            if (impliedStyles.some(s => userStylesNorm.includes(normalize(s)))) {
-              style01 = clamp01(style01 + 0.4);
-              categoryBridgeApplied = true;
-              break;
+      // --- STYLE MATCH: single source of truth for scoring, debug, and match_reasons ---
+      const styleMatch = (() => {
+        const STYLE_MATCH_CAP = 3;
+        let hits = 0;
+        const literalTokens: string[] = [];
+        const expandedTokens: string[] = [];
+        for (const token of expandedStyles) {
+          if (normProductText.includes(token)) {
+            hits++;
+            if (literalStyleSet.has(token)) {
+              literalTokens.push(token);
+            } else {
+              expandedTokens.push(token);
             }
           }
         }
-      }
+        let score01 = expandedStyles.size > 0
+          ? clamp01(hits / STYLE_MATCH_CAP)
+          : 0;
+
+        // Category → style bridge: boost when product category implies user's style
+        let bridgeApplied = false;
+        if (score01 < 1.0) {
+          for (const [categoryKeyword, impliedStyles] of Object.entries(CATEGORY_STYLE_BRIDGE)) {
+            if (normProductText.includes(categoryKeyword)) {
+              const userStylesNorm = profile.style_keywords.map(k => normalize(k));
+              if (impliedStyles.some(s => userStylesNorm.includes(normalize(s)))) {
+                score01 = clamp01(score01 + 0.4);
+                bridgeApplied = true;
+                break;
+              }
+            }
+          }
+        }
+
+        return { hits, score01, literalTokens, expandedTokens, bridgeApplied };
+      })();
 
       if (DEBUG_RECOMMENDED_BUYS && idx < 5) {
-        console.log('🔍 STYLE DEBUG', {
+        console.log('STYLE DEBUG', {
           title: p.title,
-          matches: styleHits,
-          categoryBridge: categoryBridgeApplied,
-          cappedStyle01: +style01.toFixed(4),
-          weightedStyleContribution: +(16 * style01).toFixed(2),
-          literalTokens: matchedLiteralTokens,
-          expandedTokens: matchedExpandedTokens,
+          matches: styleMatch.hits,
+          categoryBridge: styleMatch.bridgeApplied,
+          cappedStyle01: +styleMatch.score01.toFixed(4),
+          weightedStyleContribution: +(16 * styleMatch.score01).toFixed(2),
+          literalTokens: styleMatch.literalTokens,
+          expandedTokens: styleMatch.expandedTokens,
         });
       }
 
@@ -1466,14 +1565,14 @@ export class DiscoverService {
       let adjustedGapBonus = gapBonus * bodyMultiplier;
 
       // --- GAP CLAMP: gap must never dominate style contribution ---
-      const styleContribution = 16 * style01;
+      const styleContribution = 16 * styleMatch.score01;
       if (styleContribution > 0 && adjustedGapBonus > styleContribution * 1.2) {
         adjustedGapBonus = styleContribution * 1.2;
       }
 
       // --- ELEVATION SIGNAL: reward elevated pieces with prestige materials ---
       let elevation01 = 0;
-      if (typeof p.price === 'number' && p.price > p50Price && styleHits > 0) {
+      if (typeof p.price === 'number' && p.price > p50Price && styleMatch.hits > 0) {
         let prestigeHits = 0;
         for (const d of PRESTIGE_DESCRIPTORS) {
           if (normProductText.includes(d)) prestigeHits++;
@@ -1488,7 +1587,7 @@ export class DiscoverService {
       // Prevents mall-tier hoodies/graphic tees from outranking elevated pieces when no formality floor is set.
       const CASUAL_INFLATION_TOKENS = ['hoodie', 'sweatshirt', 'graphic tee', 'livedin tee', 'lightweight tee', 'icon tee', 'logo tee'];
       const productCluster = getSemanticCluster(p.title, p.category);
-      const productBrandTier = resolveBrandTier(p.title, p.brand, p.source);
+      const productBrandTier = resolveBrandTier(p.brand);
       const casualInflationPenalty =
         !profile.formality_floor &&
         productCluster === 'top_cluster' &&
@@ -1509,7 +1608,7 @@ export class DiscoverService {
       const styleDepth01 = clamp01(styleKeywordsMatched / 3);
 
       // --- BRAND AUTHORITY: quality intelligence (independent of user preference) ---
-      const brandAuthority = getBrandAuthorityScore(p.brand || p.source);
+      const brandAuthority = getBrandAuthorityScore(p.brand);
 
       // Brand saturation penalty — only when brand matches
       let penalty = 0;
@@ -1540,7 +1639,7 @@ export class DiscoverService {
         brandContribution +
         (3  * behavior01) +
         adjustedGapBonus +
-        (16 * style01) +
+        (16 * styleMatch.score01) +
         (10 * color01) +
         (4  * fit01) +
         (5  * elevation01) +
@@ -1555,7 +1654,7 @@ export class DiscoverService {
       breakdown.brand = +brandContribution.toFixed(2);
       breakdown.behavior = +(3 * behavior01).toFixed(2);
       breakdown.gap = +adjustedGapBonus.toFixed(2);
-      breakdown.style = +(16 * style01).toFixed(2);
+      breakdown.style = +(16 * styleMatch.score01).toFixed(2);
       breakdown.color = +(10 * color01).toFixed(2);
       breakdown.fit = +(4 * fit01).toFixed(2);
       breakdown.negativePenalty = negativePenalty;
@@ -1616,11 +1715,11 @@ export class DiscoverService {
       const reasons: string[] = [];
       if (brandContribution > 0) reasons.push(`Matches preferred brand: ${p.brand}`);
       if (color01 > 0 && matchedColors.length > 0) reasons.push(`Aligns with color palette: ${matchedColors.join(', ')}`);
-      if (matchedLiteralTokens.length > 0) {
-        reasons.push(`Style match: ${matchedLiteralTokens.slice(0, 3).join(', ')}`);
+      if (styleMatch.literalTokens.length > 0) {
+        reasons.push(`Style match: ${styleMatch.literalTokens.slice(0, 3).join(', ')}`);
       }
-      if (matchedExpandedTokens.length > 0 && categoryBridgeApplied) {
-        reasons.push(`Style affinity (expanded): ${matchedExpandedTokens.slice(0, 2).join(', ')}`);
+      if (styleMatch.expandedTokens.length > 0 && styleMatch.bridgeApplied) {
+        reasons.push(`Style affinity (expanded): ${styleMatch.expandedTokens.slice(0, 2).join(', ')}`);
       }
       if (adjustedGapBonus > 0) reasons.push(`Fills wardrobe gap: ${inferredCategory}`);
       if (curatorResult.silhouetteDepth < 0) reasons.push('Fit conflict: silhouette mismatch');
@@ -2125,15 +2224,16 @@ export class DiscoverService {
       id: '', // Will be set by DB
       product_id: this.getProductId(raw),
       title: raw.title || 'Untitled',
-      brand: raw.source || null,
+      brand: extractProductBrand(raw.title) || null, // productBrand from title, NEVER defaults to merchant
       price: this.toNumberOrNull(raw.extracted_price),
       price_raw: raw.price || null,
       image_url: raw.thumbnail || '',
       link: raw.product_link || '',
-      source: raw.source || null,
+      source: raw.source || null, // merchant/retailer
       category: inferMainCategory(raw.title) || null,
       position,
       enriched_color: raw.enriched_color || null,
+      enriched_color_source: raw.enriched_color_source || null,
     };
   }
 
@@ -2617,6 +2717,7 @@ export const __test__ = {
   buildVetoCtx,
   LOOSE_FIT_TOKENS,
   extractBrandFromTitle,
+  extractProductBrand,
   resolveBrandTier,
   getSemanticCluster,
 };

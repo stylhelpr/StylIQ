@@ -196,6 +196,22 @@ const COLD_VETO_TOKENS = [
   'mesh', 'sheer', 'open-toe', 'open toe', 'sandal', 'tank top', 'sleeveless',
 ];
 
+// ─── Non-apparel tokens (hard veto) ─────────────────────────────────
+
+const NON_APPAREL_TOKENS = [
+  'phone case', 'iphone', 'samsung case', 'tablet', 'laptop',
+  'air freshener', 'candle', 'diffuser',
+  'dog collar', 'pet bed', 'cat toy', 'pet harness',
+  'car seat', 'floor mat', 'car cover',
+  'pillow', 'pillowcase', 'duvet', 'comforter', 'bed sheet', 'curtain',
+  'wall art', 'poster', 'sticker', 'decal', 'magnet',
+  'mug', 'tumbler', 'water bottle', 'lunch box',
+  'notebook', 'planner', 'pen set',
+  'action figure', 'toy', 'board game', 'puzzle',
+  'supplement', 'vitamin', 'protein powder',
+  'gift card', 'e gift',
+];
+
 // ─── Athletic material mix tokens ────────────────────────────────────
 
 const ATHLETIC_MATERIALS = ['nylon', 'polyester', 'spandex'];
@@ -212,7 +228,7 @@ function veto(rule: string, reason: string): VetoResult {
 }
 
 /**
- * Apply all 10 hard-veto rules in priority order.
+ * Apply all 11 hard-veto rules in priority order.
  * Returns on first match (short-circuit).
  *
  * Input blob and enrichedColor are expected to be pre-normalized.
@@ -220,6 +236,13 @@ function veto(rule: string, reason: string): VetoResult {
 export function applyDiscoverVeto(product: VetoInput, profile: VetoProfile): VetoResult {
   const blob = product.blob;
   const normTitle = normalizeForVeto(product.title);
+
+  // ── 0. VETO_NON_APPAREL ──────────────────────────────────────────
+  for (const token of NON_APPAREL_TOKENS) {
+    if (wordBoundaryMatch(blob, normalizeForVeto(token))) {
+      return veto('VETO_NON_APPAREL', `Non-apparel item detected: "${token}"`);
+    }
+  }
 
   // ── 1. VETO_FIT ──────────────────────────────────────────────────
   const hasSlimPref = profile.fitPreferences.some(

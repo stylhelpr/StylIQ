@@ -24,7 +24,8 @@ export type LearningEventType =
   | 'ELITE_SUGGESTION_SERVED'
   | 'OUTFIT_SAVED_FROM_HOME'
   | 'SLOT_OVERRIDE'
-  | 'STYLE_CONSTRAINT_SIGNAL';
+  | 'STYLE_CONSTRAINT_SIGNAL'
+  | 'RECOMMENDED_BUYS_SERVED';
 
 /**
  * Entity types that can be the subject of learning events.
@@ -137,4 +138,5 @@ export const EVENT_SIGNAL_DEFAULTS: Record<
   OUTFIT_SAVED_FROM_HOME: { polarity: 1, weight: 0.5 },
   SLOT_OVERRIDE: { polarity: 1, weight: 0.3 },
   STYLE_CONSTRAINT_SIGNAL: { polarity: 1, weight: 0.3 },
+  RECOMMENDED_BUYS_SERVED: { polarity: 0, weight: 0.1 },
 };
