@@ -8,6 +8,7 @@ import type { FashionStateSummary } from '../learning/dto/fashion-state.dto';
 import { LEARNING_FLAGS } from '../config/feature-flags';
 import { applyDiscoverVeto, type VetoProfile, type VetoResult } from './discover-veto';
 import { computeCuratorSignals, type CuratorProfile, type CuratorResult } from './discover-curator';
+import { runDiscoverSharedBrainGate, type BrainGateProfile } from './discover-brain-adapter';
 
 interface UserProfile {
   gender: string | null;
@@ -1873,8 +1874,89 @@ export class DiscoverService {
       });
     }
 
+    // --- Stage 5: Shared Brain Gate ---
+    // Invoke shared Tier 4 modules (styleVeto, tasteValidator, stylistQualityGate)
+    // on each candidate. Filter out rejects, preserve rank order.
+    const brainProfile: BrainGateProfile = {
+      gender: profile.gender,
+      climate: profile.climate,
+      fit_preferences: profile.fit_preferences,
+      style_preferences: profile.style_preferences,
+      disliked_styles: profile.disliked_styles,
+      avoid_colors: profile.avoid_colors,
+      avoid_materials: profile.avoid_materials,
+      avoid_patterns: profile.avoid_patterns,
+      coverage_no_go: profile.coverage_no_go,
+      walkability_requirement: profile.walkability_requirement,
+      silhouette_preference: profile.silhouette_preference,
+      formality_floor: profile.formality_floor,
+    };
+
+    const testBrainGate = (product: DiscoverProduct) =>
+      runDiscoverSharedBrainGate({
+        userId,
+        profile: brainProfile,
+        candidateProduct: {
+          product_id: product.product_id,
+          title: product.title,
+          brand: product.brand,
+          price: product.price,
+          category: product.category,
+          enriched_color: product.enriched_color ?? null,
+        },
+      });
+
+    const brainGated: DiscoverProduct[] = [];
+    const testedIds = new Set<string>();
+    const brainFailReasons = new Map<string, number>();
+
+    // First pass: gate coherent set (already in rank order)
+    for (const product of coherent) {
+      testedIds.add(product.product_id);
+      const result = testBrainGate(product);
+      if (result.pass) {
+        brainGated.push(product);
+      } else {
+        for (const r of result.reasons) {
+          brainFailReasons.set(r, (brainFailReasons.get(r) || 0) + 1);
+        }
+      }
+    }
+
+    // Fill pass: if below target, pull from diversified (rank order) for items
+    // not in coherent. Iterate deterministically in score-descending order.
+    let fillCount = 0;
+    if (brainGated.length < TARGET_PRODUCTS) {
+      for (const product of diversified) {
+        if (brainGated.length >= TARGET_PRODUCTS) break;
+        if (testedIds.has(product.product_id)) continue;
+        testedIds.add(product.product_id);
+        const result = testBrainGate(product);
+        if (result.pass) {
+          brainGated.push(product);
+          fillCount++;
+        } else {
+          for (const r of result.reasons) {
+            brainFailReasons.set(r, (brainFailReasons.get(r) || 0) + 1);
+          }
+        }
+      }
+    }
+
+    if (DEBUG_RECOMMENDED_BUYS) {
+      const topReasons = [...brainFailReasons.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      console.log('🧠 SHARED BRAIN GATE', {
+        beforeCount: coherent.length,
+        afterCount: brainGated.length,
+        topFailReasons: topReasons,
+        fillsFromBelowCutLine: fillCount,
+      });
+    }
+
     // Final slice to target count, re-assign positions
-    const finalProducts = coherent
+    const finalProducts = brainGated
       .slice(0, TARGET_PRODUCTS)
       .map((p, i) => ({ ...p, position: i + 1 }));
 
