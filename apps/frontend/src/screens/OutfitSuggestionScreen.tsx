@@ -687,6 +687,15 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       };
       const swapCategory = swapCategoryMap[swapSection] || swapSection;
 
+      // Get IDs of items being replaced (same slot as swap target)
+      const replacedItemIds = rawItems
+        .filter((it: any) => {
+          const cat = (it?.mainCategory || it?.main_category || '').toLowerCase();
+          return cat === swapCategory;
+        })
+        .map((it: any) => it?.id)
+        .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+
       // Get IDs of items we want to KEEP (everything except the swapped section)
       const itemsToKeep = rawItems
         .filter((it: any) => {
@@ -696,8 +705,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         .map((it: any) => it?.id)
         .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
 
-      // Lock the items we're keeping PLUS the new item
-      const allLockedIds = [...itemsToKeep, item.id];
+      // Lock replaced items (for learning capture), kept items, PLUS the new item
+      const allLockedIds = [...replacedItemIds, ...itemsToKeep, item.id];
 
       // Build swap prompt
       const swapPrompt = `Replace ONLY the ${swapSection} with this specific ${itemCategory}. Keep all other items exactly the same.`;
@@ -1814,6 +1823,26 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         {flex: 1},
                       ]}
                       onPress={() => {
+                        // LEARNING: fire accept event (fire-and-forget)
+                        if (outfitItemIds.length >= 2 && sessionId) {
+                          getAccessToken()
+                            .then(tkn => {
+                              if (!tkn) return;
+                              fetch(`${API_BASE_URL}/api/wardrobe/outfits`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  Authorization: `Bearer ${tkn}`,
+                                },
+                                body: JSON.stringify({
+                                  learning_accept: true,
+                                  lockedItemIds: outfitItemIds,
+                                  requestId: sessionId,
+                                }),
+                              }).catch(() => {});
+                            })
+                            .catch(() => {});
+                        }
                         clear();
                         setLockedItem(null);
                         setSelectedMoodLabel(null);
@@ -2043,6 +2072,23 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 if (pendingSaveOutfit && userId) {
                   try {
                     const accessToken = await getAccessToken();
+
+                    // LEARNING: fire accept event alongside save (fire-and-forget)
+                    if (outfitItemIds.length >= 2 && accessToken && sessionId) {
+                      fetch(`${API_BASE_URL}/api/wardrobe/outfits`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${accessToken}`,
+                        },
+                        body: JSON.stringify({
+                          learning_accept: true,
+                          lockedItemIds: outfitItemIds,
+                          requestId: sessionId,
+                        }),
+                      }).catch(() => {});
+                    }
+
                     const response = await fetch(
                       `${API_BASE_URL}/custom-outfits`,
                       {

@@ -89,6 +89,7 @@ import {
   type StyleProfileFields,
 } from '../ai/elite/stylistBrain';
 import { LearningEventsService } from '../learning/learning-events.service';
+import type { LearningEventType, SignalPolarity } from '../learning/dto/learning-event.dto';
 import {
   validateOutfit as tasteValidateOutfit,
   extractItemColors,
@@ -108,6 +109,12 @@ import {
   scoreOutfitComposition,
   type CompositionItem,
 } from '../ai/composition';
+
+// FAST-scoped learning signal loader + boost (bypasses STATE_ENABLED)
+import {
+  loadFastLearningSignals,
+  applyFastLearningBoost,
+} from './fast-learning-loader';
 
 // Structured audit logging (gated behind OUTFIT_AI_DEBUG env var)
 import {
@@ -283,6 +290,51 @@ export class WardrobeService {
     private readonly fashionStateService: FashionStateService,
     private readonly learningEventsService: LearningEventsService,
   ) {}
+
+  private emitRefinementLearning(
+    userId: string,
+    eventType: LearningEventType,
+    polarity: SignalPolarity,
+    weight: number,
+    opts: {
+      entityId?: string;
+      entitySignature?: string;
+      itemIds?: string[];
+      tags?: string[];
+      metadata?: Record<string, any>;
+    },
+  ): void {
+    if (!LEARNING_FLAGS.EVENTS_ENABLED) return;
+    const cw = Math.max(0.1, Math.min(1.0, weight));
+    try {
+      this.learningEventsService
+        .logEvent({
+          userId,
+          eventType,
+          entityType: 'outfit',
+          entityId: opts.entityId,
+          entitySignature: opts.entitySignature,
+          signalPolarity: polarity,
+          signalWeight: cw,
+          extractedFeatures: {
+            item_ids: opts.itemIds,
+            tags: opts.entitySignature
+              ? [...(opts.tags ?? []), opts.entitySignature]
+              : opts.tags,
+          },
+          sourceFeature: 'outfit_refinement',
+          context: opts.metadata
+            ? ({ ...opts.metadata, schema_version: 1 } as any)
+            : ({ schema_version: 1 } as any),
+          clientEventId: opts.entitySignature
+            ? `${opts.entitySignature}:${userId}:${opts.entityId ?? 'none'}`
+            : undefined,
+        })
+        .catch(() => {});
+    } catch (err) {
+      console.warn('[LEARNING] refinement emit failed:', (err as any)?.message);
+    }
+  }
 
   // 👇 track base query + refinements per session (Redis-backed, 30-min TTL)
   private static readonly SESSION_TTL = 1800; // 30 minutes
@@ -3132,6 +3184,10 @@ ${lockedLines}
 
       // ── Elite Scoring: load context early (needed for slot-pick avoid_colors + taste validator + rerank) ──
       const eliteStyleContext = await this.loadEliteStyleContext(userId);
+
+      // ── FAST-scoped learning signal loader (bypasses STATE_ENABLED) ──
+      const fastSignals = await loadFastLearningSignals(userId);
+
       const _bpEarly = (eliteStyleContext as any)?._brainStyleProfile;
       const _earlyAvoid: string[] = _bpEarly?.avoid_colors ?? eliteStyleContext?.styleProfile?.avoid_colors ?? [];
       const _earlyAvoidExpanded = _earlyAvoid.length > 0 ? expandAvoidColors(_earlyAvoid) : [];
@@ -3824,7 +3880,11 @@ ${lockedLines}
       let eliteOutfits = outfits;
       if (ELITE_FLAGS.STUDIO || ELITE_FLAGS.STUDIO_V2 || demoEliteFast) {
         const canonical = outfits.map(normalizeStudioOutfit);
-        const result = elitePostProcessOutfits(canonical, eliteStyleContext, {
+        // Merge FAST learning signals into elite context (without mutating original)
+        const _fastMergedCtx: StyleContext = fastSignals
+          ? { ...eliteStyleContext, fashionState: fastSignals.summary }
+          : eliteStyleContext;
+        const result = elitePostProcessOutfits(canonical, _fastMergedCtx, {
           mode: 'studio',
           requestId: reqId,
           rerank: _usedV2Fast,
@@ -3862,6 +3922,20 @@ ${lockedLines}
           }
         }
       }
+      // ── FAST-local learning boost (after elite rerank, before final return) ──
+      if (fastSignals) {
+        const { outfits: boosted, boostLog } = applyFastLearningBoost(
+          eliteOutfits,
+          fastSignals,
+        );
+        eliteOutfits = boosted;
+        if (boostLog.length > 0) {
+          console.log(
+            JSON.stringify({ _tag: 'FAST_LEARNING_BOOST', boosts: boostLog }),
+          );
+        }
+      }
+
       if (demoEliteFast) {
         console.log(
           JSON.stringify({
@@ -3869,10 +3943,12 @@ ${lockedLines}
             mode: 'fast',
             shadowMode: _shadowOnlyFast,
             demoElite: true,
-            stateLoaded: !!eliteStyleContext?.fashionState,
-            signalCount: eliteStyleContext?.fashionState
-              ? Object.keys(eliteStyleContext.fashionState).length
-              : 0,
+            stateLoaded: !!fastSignals || !!eliteStyleContext?.fashionState,
+            signalCount:
+              fastSignals?.signalCount ??
+              (eliteStyleContext?.fashionState
+                ? Object.keys(eliteStyleContext.fashionState).length
+                : 0),
           }),
         );
       }
@@ -4106,6 +4182,24 @@ ${lockedLines}
     const startTime = Date.now();
     const reqId = input.requestId || randomUUID();
 
+    // LEARNING: pure logging accept — early exit before any refinement logic
+    if ((input as any).learning_accept === true) {
+      this.emitRefinementLearning(userId, 'STYLE_CONSTRAINT_SIGNAL', 1, 0.7, {
+        entityId: reqId,
+        entitySignature: 'refinement_applied',
+        itemIds: input.outfitItems?.map((i) => i.id).filter(Boolean) ?? [],
+        tags: ['explicit_accept'],
+        metadata: { outfit_id: reqId },
+      });
+      return {
+        request_id: reqId,
+        outfit_id: reqId,
+        items: input.outfitItems ?? [],
+        why: 'accepted',
+        outfits: [],
+      };
+    }
+
     console.log(`⚡ [SWAP] Starting recomposeOutfitSlot reqId=${reqId} slot=${input.swapSlot} newItem=${input.newItemId}`);
 
     // 1. Fetch the new item + all existing outfit items from DB in one query
@@ -4136,6 +4230,7 @@ ${lockedLines}
     // Replace items in the target slot with the new item; keep everything else
     const swappedItems: any[] = [];
     let slotReplaced = false;
+    let replacedItemId: string | undefined;
     for (const item of input.outfitItems) {
       const db: any = itemMap.get(item.id);
       const mainCat = (db?.main_category || (item as any).main_category || '').trim();
@@ -4144,7 +4239,7 @@ ${lockedLines}
       );
 
       if (isTargetSlot && !slotReplaced) {
-        // Skip old item in this slot — we'll add the new one
+        replacedItemId = db?.id ?? item.id;
         slotReplaced = true;
         continue;
       }
@@ -4266,6 +4361,24 @@ ${lockedLines}
 
     const elapsed = Date.now() - startTime;
     console.log(`⚡ [SWAP] Completed in ${elapsed}ms valid=${validationPassed} composition=${compositionScore.toFixed(3)}`);
+
+    // LEARNING: manual swap override
+    this.emitRefinementLearning(userId, 'SLOT_OVERRIDE', 1, 1.0, {
+      entityId: reqId,
+      entitySignature: 'refinement_item_override',
+      itemIds: [input.newItemId],
+      tags: ['manual_swap', input.swapSlot],
+      metadata: { slot: input.swapSlot, selected_item_id: input.newItemId },
+    });
+    if (replacedItemId && replacedItemId !== input.newItemId) {
+      this.emitRefinementLearning(userId, 'ITEM_EXPLICITLY_DISMISSED', -1, 0.9, {
+        entityId: reqId,
+        entitySignature: 'refinement_item_rejected',
+        itemIds: [replacedItemId],
+        tags: ['rejection', 'manual_swap', input.swapSlot],
+        metadata: { slot: input.swapSlot, rejected_item_id: replacedItemId },
+      });
+    }
 
     const outfit = {
       outfit_id: reqId,
@@ -4455,6 +4568,24 @@ ${lockedLines}
     const startTime = Date.now();
     const reqId = input.requestId || randomUUID();
 
+    // LEARNING: pure logging accept — early exit before any refinement logic
+    if ((input as any).learning_accept === true) {
+      this.emitRefinementLearning(userId, 'STYLE_CONSTRAINT_SIGNAL', 1, 0.7, {
+        entityId: reqId,
+        entitySignature: 'refinement_applied',
+        itemIds: input.currentItemIds,
+        tags: ['explicit_accept'],
+        metadata: { outfit_id: reqId },
+      });
+      return {
+        request_id: reqId,
+        outfit_id: reqId,
+        items: input.currentItemIds.map((id) => ({ id })),
+        why: 'accepted',
+        outfits: [],
+      };
+    }
+
     // 1. Parse which slot to CHANGE (not keep)
     //    "Keep the shirt and slacks but give me brown shoes instead"
     //    → change zone = "give me brown shoes instead" → shoes
@@ -4563,6 +4694,21 @@ ${lockedLines}
 
         const elapsed = Date.now() - startTime;
         console.log(`REMOVE_OUTFIT_SUCCESS ${JSON.stringify({ slot: removalSlot, removedItemId: removedItem?.id, reason: 'user_remove_intent', elapsedMs: elapsed })}`);
+
+        this.emitRefinementLearning(userId, 'SLOT_OVERRIDE', 1, 0.8, {
+          entityId: reqId,
+          entitySignature: 'refinement_item_removed',
+          tags: ['removal', removalSlot],
+          metadata: { slot: removalSlot, removed_item_id: removedItem?.id },
+        });
+        if (removedItem?.id) {
+          this.emitRefinementLearning(userId, 'ITEM_EXPLICITLY_DISMISSED', -1, 0.8, {
+            entityId: reqId,
+            entitySignature: 'refinement_item_rejected',
+            itemIds: [removedItem.id],
+            tags: ['rejection', 'removal', removalSlot],
+          });
+        }
 
         const outfit = {
           outfit_id: reqId,
@@ -4719,6 +4865,13 @@ ${lockedLines}
       };
       originalJudgeScore = scoreOutfit(originalJudgeOutfit, {}).total;
       console.log(`ESCALATION_DETECTED ${JSON.stringify({ prompt: input.refinementPrompt, originalFormalityTier, originalJudgeScore })}`);
+
+      this.emitRefinementLearning(userId, 'STYLE_CONSTRAINT_SIGNAL', 1, 0.6, {
+        entityId: reqId,
+        entitySignature: 'refinement_escalation_requested',
+        tags: ['escalation', targetSlot],
+        metadata: { slot: targetSlot, request_text: input.refinementPrompt },
+      });
     }
 
     // Scored candidate list for escalation re-ranking

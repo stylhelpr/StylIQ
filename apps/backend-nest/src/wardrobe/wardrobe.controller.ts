@@ -183,6 +183,18 @@ export class WardrobeController {
       /^Replace ONLY the (top|bottom|shoes|outerwear|accessories)\b/i,
     );
     const locked = body.lockedItemIds ?? [];
+
+    // ── LEARNING ACCEPT: pure logging, no generation ──
+    if ((body as any).learning_accept === true && locked.length >= 2) {
+      return this.service.mutateOutfit(userId, {
+        currentItemIds: locked,
+        refinementPrompt: '',
+        weather: weatherArg,
+        requestId,
+        learning_accept: true,
+      } as any);
+    }
+
     if (
       swapMatch &&
       locked.length >= 2 &&
