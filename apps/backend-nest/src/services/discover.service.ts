@@ -4,7 +4,7 @@ import { pool } from '../db/pool';
 import { getSecret, secretExists } from '../config/secrets';
 import { LearningEventsService } from '../learning/learning-events.service';
 import { FashionStateService } from '../learning/fashion-state.service';
-import type { FashionStateSummary } from '../learning/dto/fashion-state.dto';
+import type { FashionStateSummary, UserFashionState } from '../learning/dto/fashion-state.dto';
 import { LEARNING_FLAGS } from '../config/feature-flags';
 import { applyDiscoverVeto, type VetoProfile, type VetoResult } from './discover-veto';
 import { computeCuratorSignals, type CuratorProfile, type CuratorResult } from './discover-curator';
@@ -1060,6 +1060,7 @@ export class DiscoverService {
     let ownedCategories: Map<string, number>;
     let shownProductIds: string[];
     let fsSummary: FashionStateSummary | null = null;
+    let rawFashionState: UserFashionState | null = null;
 
     try {
       // Gather all personalization signals (fashion state is non-blocking)
@@ -1070,6 +1071,7 @@ export class DiscoverService {
         ownedCategories,
         shownProductIds,
         fsSummary,
+        rawFashionState,
       ] = await Promise.all([
         this.getUserProfile(userId),
         this.getBrowserSignals(userId),
@@ -1077,6 +1079,7 @@ export class DiscoverService {
         this.getOwnedCategories(userId),
         this.getShownProductIds(userId),
         this.fashionStateService.getStateSummary(userId).catch(() => null),
+        this.fashionStateService.getState(userId).catch(() => null),
       ]);
     } catch (err) {
       this.log.error(`Failed to gather profile data: ${err}`);
@@ -1375,6 +1378,14 @@ export class DiscoverService {
     // Basic item regex for dampener (applied to normalized text)
     const BASIC_ITEM_RE = /\b(basic|regular fit tshirt|crew neck|crewneck|plain tee|solid tee)\b/;
 
+    // --- LEARNING: build normalized brand weight map from raw fashion state ---
+    const LEARNING_MULTIPLIER = 2;
+    const normalizedBrandState = Object.entries(rawFashionState?.brandScores || {})
+      .reduce((acc, [brand, weight]) => {
+        acc[normalize(brand)] = weight as number;
+        return acc;
+      }, {} as Record<string, number>);
+
     const scored = transformed.map((p, idx) => {
       const breakdown = {
         brand: 0,
@@ -1634,8 +1645,29 @@ export class DiscoverService {
         fashionStateBonus = Math.max(-4, Math.min(4, +(rawFsBonus * 0.7).toFixed(2)));
       }
 
+      // --- LEARNING SCORE: weight-based brand affinity from raw fashion state ---
+      const normalizedProductBrand = normalize(p.brand);
+      let brandLearningWeight = 0;
+      for (const [key, weight] of Object.entries(normalizedBrandState)) {
+        if (
+          normalizedProductBrand.includes(key) ||
+          key.includes(normalizedProductBrand)
+        ) {
+          brandLearningWeight = weight;
+          break;
+        }
+      }
+      const learningScore = brandLearningWeight * LEARNING_MULTIPLIER;
+
+      console.log('🧠 LEARNING DEBUG', {
+        brand: p.brand,
+        normalizedProductBrand,
+        brandLearningWeight,
+        learningScore,
+      });
+
       // Weighted score: brand(7, tier-adjusted, max 10) + behavior(3) + gap(clamped) + style(16) + color(10)
-      //   + fit(4) + elevation(5) + styleDepth(3) + authority(-2..+3) - negativePenalty(4) - brandSatPenalty + basicDamp(-2) + casualInflation(-2) + fashionState(±4)
+      //   + fit(4) + elevation(5) + styleDepth(3) + authority(-2..+3) - negativePenalty(4) - brandSatPenalty + basicDamp(-2) + casualInflation(-2) + fashionState(±4) + learning
       const score =
         brandContribution +
         (3  * behavior01) +
@@ -1685,7 +1717,7 @@ export class DiscoverService {
       );
 
       const curatorWeighted = +(curatorResult.curatorTotal * 1.5).toFixed(2);
-      const finalScore = score + curatorWeighted;
+      const finalScore = score + curatorWeighted + learningScore;
 
       // Add curator signals to breakdown
       (breakdown as any).curatorFormality = curatorResult.formalityCoherence;
@@ -1697,7 +1729,7 @@ export class DiscoverService {
       (breakdown as any).curatorTotal = curatorResult.curatorTotal;
       (breakdown as any).curatorWeighted = curatorWeighted;
       (breakdown as any).confidence = curatorResult.confidenceScore;
-      (breakdown as any).learningScore = fashionStateBonus;
+      (breakdown as any).learningScore = learningScore;
       (breakdown as any).baseScore = +score.toFixed(2);
       (breakdown as any).brandTier = productBrandTier;
       (breakdown as any).curatorDebugTags = [
