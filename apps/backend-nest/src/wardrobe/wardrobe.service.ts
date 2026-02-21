@@ -4143,7 +4143,7 @@ ${lockedLines}
 
     const outfitItems = swappedItems.map(formatItem);
 
-    // 5. Run taste validation (fail-open: if validation fails, still return the swap)
+    // 5. Run taste validation (fail-close on hard fails → return null for safe regeneration)
     let validationPassed = true;
     try {
       const toVI = (it: any): ValidatorItem => ({
@@ -4184,7 +4184,7 @@ ${lockedLines}
       const vItems = swappedItems.map(toVI);
       const result = tasteValidateOutfit(vItems, vCtx);
       if (!result.valid) {
-        console.log(`⚡ [SWAP] Taste validation failed: ${result.hardFails.join(', ')}`);
+        console.log(`⚡ [SWAP] Taste validation HARD FAIL (fail-close): ${result.hardFails.join(', ')}`);
         validationPassed = false;
       }
 
@@ -4195,24 +4195,36 @@ ${lockedLines}
       };
       const vetoResult = isStylisticallyIncoherent(vetoOutfit, {});
       if (vetoResult.invalid) {
-        console.log(`⚡ [SWAP] Style veto triggered: ${vetoResult.reason}`);
+        console.log(`⚡ [SWAP] Style veto HARD FAIL (fail-close): ${vetoResult.reason}`);
         validationPassed = false;
       }
     } catch (err) {
-      console.warn('⚡ [SWAP] Validation error (fail-open):', (err as any)?.message);
+      console.warn('⚡ [SWAP] Validation error (fail-close):', (err as any)?.message);
+      validationPassed = false;
     }
 
     const elapsed = Date.now() - startTime;
     console.log(`⚡ [SWAP] Completed in ${elapsed}ms valid=${validationPassed} composition=${compositionScore.toFixed(3)}`);
 
-    // 6. Return in the same shape as generateOutfitsFast
+    // 6. Fail-close: if hard validation failures exist, return null so controller
+    //    falls through to generateOutfitsFast() which has the full repair pipeline.
+    if (!validationPassed) {
+      console.log(
+        JSON.stringify({
+          _tag: 'SWAP_FAIL_CLOSE',
+          reqId,
+          reason: 'hard validation failure in recomposeOutfitSlot, delegating to safe path',
+          elapsedMs: elapsed,
+        }),
+      );
+      return null;
+    }
+
     const outfit = {
       outfit_id: reqId,
       title: 'Recomposed Outfit',
       items: outfitItems,
-      why: validationPassed
-        ? 'Slot swapped with composition-compatible item.'
-        : 'Slot swapped (validation warnings present).',
+      why: 'Slot swapped with composition-compatible item.',
       missing: undefined,
     };
 
@@ -4237,8 +4249,8 @@ ${lockedLines}
    * 3. Embed refinement text → 1 Pinecone query for target slot
    * 4. Rank candidates by composition compatibility
    * 5. Replace slot with best candidate
-   * 6. Validate (taste + veto, fail-open)
-   * 7. Return single mutated outfit
+   * 6. Validate (taste + veto, fail-close on hard fails → return null)
+   * 7. Return single mutated outfit (or null if hard fails → controller safe path)
    *
    * Returns null if parsing fails or no candidates found → caller falls back.
    */
@@ -4310,6 +4322,42 @@ ${lockedLines}
     }
 
     return { filtered, colors, subtypes };
+  }
+
+  // ── Escalation intent detection ──────────────────────────────────
+  private static readonly ESCALATION_KEYWORDS = [
+    'better', 'stronger', 'sharper', 'more elite', 'elevate', 'upgrade',
+    'more formal', 'higher level', 'premium', 'nicer', 'dressier',
+    'classier', 'more polished', 'step up', 'level up', 'refined',
+    'powerful', 'executive', 'commanding', 'authoritative',
+    'stronger presence', 'more serious', 'boardroom ready', 'boardroom',
+    'more senior', 'more dominant', 'more commanding', 'more presence',
+    'more authority',
+  ];
+
+  private static detectEscalationIntent(prompt: string): boolean {
+    const lower = prompt.toLowerCase();
+    return WardrobeService.ESCALATION_KEYWORDS.some((kw) => lower.includes(kw));
+  }
+
+  /**
+   * Derives a formality tier (0–4) from subcategory/name using SWAP_SUBCATEGORY_SIGNALS.
+   * Same logic as composition.ts deriveFormalityScore but scoped to studio-only usage.
+   */
+  private static inferFormalityTier(item: any): number {
+    const sub = (item.subcategory || '').toLowerCase();
+    const name = (item.name || '').toLowerCase();
+    const mainCat = (item.main_category || '').toLowerCase();
+
+    if (mainCat === 'formalwear' || mainCat === 'suits') return 4;
+
+    const combined = `${sub} ${name}`;
+    for (const [tier, signals] of WardrobeService.SWAP_SUBCATEGORY_SIGNALS) {
+      if (signals.some((s) => combined.includes(s))) return tier;
+    }
+
+    const cat = mapMainCategoryToSlot(item.main_category ?? '');
+    return WardrobeService.SWAP_CATEGORY_FORMALITY[cat] ?? 2;
   }
 
   private static computeIntentBonus(
@@ -4534,6 +4582,43 @@ ${lockedLines}
       [...keptItems, ...filteredCandidateRows].map((it: any) => [it.id, it]),
     );
 
+    // 5a. Detect escalation intent for quality-biased ranking
+    const isEscalation = WardrobeService.detectEscalationIntent(input.refinementPrompt);
+    const originalSlotItem = oldSlotItems[0];
+    const originalFormalityTier = originalSlotItem
+      ? WardrobeService.inferFormalityTier(originalSlotItem)
+      : -1;
+
+    // Compute styleJudge score for original outfit (baseline for escalation comparison)
+    let originalJudgeScore = 0;
+    if (isEscalation) {
+      const originalJudgeOutfit = {
+        items: [...keptItems, ...(originalSlotItem ? [originalSlotItem] : [])].map((it: any) => ({
+          id: it.id,
+          name: it.name,
+          main_category: it.main_category,
+          subcategory: it.subcategory,
+          color: it.color,
+          color_family: it.color_family,
+          material: it.material,
+          formality_score: it.formality_score,
+          dress_code: it.dress_code,
+        })),
+      };
+      originalJudgeScore = scoreOutfit(originalJudgeOutfit, {}).total;
+      console.log(`ESCALATION_DETECTED ${JSON.stringify({ prompt: input.refinementPrompt, originalFormalityTier, originalJudgeScore })}`);
+    }
+
+    // Scored candidate list for escalation re-ranking
+    const scoredCandidates: Array<{
+      candidate: any;
+      compositionScore: number;
+      intentBonus: number;
+      judgeScore: number;
+      formalityTier: number;
+      finalScore: number;
+    }> = [];
+
     for (const candidate of filteredCandidateRows) {
       const testItems: CompositionItem[] = [
         ...contextItems,
@@ -4556,13 +4641,97 @@ ${lockedLines}
       const { bonus, colorMatch, subtypeMatch } = WardrobeService.computeIntentBonus(
         candidate, refineColors, refineSubtypes,
       );
-      const score = Math.min(baseScore + bonus, 1.0);
+      const compositeScore = Math.min(baseScore + bonus, 1.0);
       if (bonus > 0) {
-        console.log(`REFINE_INTENT_SCORE ${JSON.stringify({ itemId: candidate.id, baseScore: +baseScore.toFixed(3), bonus: +bonus.toFixed(2), finalScore: +score.toFixed(3), colorMatch, subtypeMatch })}`);
+        console.log(`REFINE_INTENT_SCORE ${JSON.stringify({ itemId: candidate.id, baseScore: +baseScore.toFixed(3), bonus: +bonus.toFixed(2), finalScore: +compositeScore.toFixed(3), colorMatch, subtypeMatch })}`);
       }
-      if (score > bestScore) {
-        bestScore = score;
-        bestCandidate = candidate;
+
+      // Compute escalation metrics (judge score + formality tier) for all candidates
+      // when escalation is active; zero-cost when not
+      let judgeScore = 0;
+      let formalityTier = 0;
+      if (isEscalation) {
+        formalityTier = WardrobeService.inferFormalityTier(candidate);
+        const candidateJudgeOutfit = {
+          items: [...keptItems, candidate].map((it: any) => ({
+            id: it.id,
+            name: it.name,
+            main_category: it.main_category,
+            subcategory: it.subcategory,
+            color: it.color,
+            color_family: it.color_family,
+            material: it.material,
+            formality_score: it.formality_score,
+            dress_code: it.dress_code,
+          })),
+        };
+        judgeScore = scoreOutfit(candidateJudgeOutfit, {}).total;
+      }
+
+      scoredCandidates.push({
+        candidate,
+        compositionScore: compositeScore,
+        intentBonus: bonus,
+        judgeScore,
+        formalityTier,
+        finalScore: compositeScore, // base; may be adjusted below
+      });
+    }
+
+    // 5b. Escalation re-ranking: bias toward higher judge score + higher formality
+    if (isEscalation && scoredCandidates.length > 0) {
+      for (const sc of scoredCandidates) {
+        let escalationBonus = 0;
+
+        // Reward candidates that produce a higher styleJudge total than original
+        const judgeDelta = sc.judgeScore - originalJudgeScore;
+        if (judgeDelta > 0) {
+          // Normalize: +10 judge points → +0.15 bonus (capped at +0.30)
+          escalationBonus += Math.min(judgeDelta * 0.015, 0.30);
+        }
+
+        // Reward formality tier upgrade (penalize lateral/downgrade)
+        const formalityDelta = sc.formalityTier - originalFormalityTier;
+        if (formalityDelta > 0) {
+          // Each tier up → +0.10 bonus (capped at +0.20)
+          escalationBonus += Math.min(formalityDelta * 0.10, 0.20);
+        } else if (formalityDelta === 0 && originalFormalityTier >= 0) {
+          // Lateral swap penalty: same tier as original → small penalty to prefer upgrades
+          escalationBonus -= 0.05;
+        }
+
+        sc.finalScore = Math.min(sc.compositionScore + escalationBonus, 1.0);
+      }
+
+      // Sort by final score descending; ties broken by judge score
+      scoredCandidates.sort((a, b) =>
+        b.finalScore !== a.finalScore
+          ? b.finalScore - a.finalScore
+          : b.judgeScore - a.judgeScore,
+      );
+
+      console.log(`ESCALATION_RANKING ${JSON.stringify({
+        topCandidates: scoredCandidates.slice(0, 3).map((sc) => ({
+          id: sc.candidate.id,
+          name: sc.candidate.name,
+          compositionScore: +sc.compositionScore.toFixed(3),
+          judgeScore: sc.judgeScore,
+          formalityTier: sc.formalityTier,
+          finalScore: +sc.finalScore.toFixed(3),
+        })),
+        originalJudgeScore,
+        originalFormalityTier,
+      })}`);
+
+      bestCandidate = scoredCandidates[0].candidate;
+      bestScore = scoredCandidates[0].finalScore;
+    } else {
+      // Non-escalation: pick best by composition + intent (original logic)
+      for (const sc of scoredCandidates) {
+        if (sc.finalScore > bestScore) {
+          bestScore = sc.finalScore;
+          bestCandidate = sc.candidate;
+        }
       }
     }
 
@@ -4587,7 +4756,7 @@ ${lockedLines}
     });
     const outfitItems = allItems.map(formatItem);
 
-    // 7. Validate (fail-open)
+    // 7. Validate (fail-close on hard fails → return null for safe regeneration)
     let validationPassed = true;
     try {
       const toVI = (it: any): ValidatorItem => ({
@@ -4627,31 +4796,46 @@ ${lockedLines}
       const vItems = allItems.map(toVI);
       const result = tasteValidateOutfit(vItems, vCtx);
       if (!result.valid) {
-        console.log(`⚡ [MUTATE] Taste validation failed: ${result.hardFails.join(', ')}`);
+        console.log(`⚡ [MUTATE] Taste validation HARD FAIL (fail-close): ${result.hardFails.join(', ')}`);
         validationPassed = false;
       }
 
       const vetoOutfit = { items: outfitItems, outfit_id: reqId };
       const vetoResult = isStylisticallyIncoherent(vetoOutfit, {});
       if (vetoResult.invalid) {
-        console.log(`⚡ [MUTATE] Style veto triggered: ${vetoResult.reason}`);
+        console.log(`⚡ [MUTATE] Style veto HARD FAIL (fail-close): ${vetoResult.reason}`);
         validationPassed = false;
       }
     } catch (err) {
-      console.warn('⚡ [MUTATE] Validation error (fail-open):', (err as any)?.message);
+      console.warn('⚡ [MUTATE] Validation error (fail-close):', (err as any)?.message);
+      validationPassed = false;
     }
 
     const elapsed = Date.now() - startTime;
+
+    // 8. Fail-close: if hard validation failures exist, return null so controller
+    //    falls through to generateOutfitsFast() which has the full repair pipeline.
+    if (!validationPassed) {
+      console.log(
+        JSON.stringify({
+          _tag: 'MUTATE_FAIL_CLOSE',
+          reqId,
+          slot: targetSlot,
+          candidateId: bestCandidate.id,
+          reason: 'hard validation failure in mutateOutfit, delegating to safe path',
+          elapsedMs: elapsed,
+        }),
+      );
+      return null;
+    }
+
     console.log(`MUTATE_OUTFIT_SUCCESS { reason: "slot=${targetSlot} candidate=${bestCandidate.id} score=${bestScore.toFixed(3)} elapsed=${elapsed}ms valid=${validationPassed}" }`);
 
-    // 8. Return in generateOutfitsFast shape
     const outfit = {
       outfit_id: reqId,
       title: 'Refined Outfit',
       items: outfitItems,
-      why: validationPassed
-        ? 'Outfit refined with composition-compatible replacement.'
-        : 'Outfit refined (validation warnings present).',
+      why: 'Outfit refined with composition-compatible replacement.',
       missing: undefined,
     };
 
