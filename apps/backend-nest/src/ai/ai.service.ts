@@ -3351,6 +3351,69 @@ Rules:
 - Do NOT treat a blazer, coat, or jacket as a top — they are outerwear only`;
     }
 
+    // ── Tier 4: Inventory authority — detect non-owned garment references (Ask Styla only) ──
+    const nonOwnedRefs: string[] = [];
+    if (wardrobeItemNames.size > 0) {
+      const GARMENT_RE = /\b(tuxedo|tux|suit|blazer|jacket|coat|parka|windbreaker|trench\s*coat|peacoat|bomber|anorak|blouse|sweater|hoodie|cardigan|vest|polo|turtleneck|henley|camisole|trousers|jeans|shorts|chinos|skirt|gown|jumpsuit|romper|boots?|sneakers?|loafers?|oxfords?|heels?|pumps?|sandals?|flip\s*flops?|mules?|flats?|slides?|espadrilles?|brogues?|hat|cap|beanie|scarf|tie|bow\s*tie|belt|watch|purse|clutch|backpack|sunglasses|gloves|earrings?|necklace|bracelet|cufflinks?|poncho|cape|kimono|tunic|bodysuit|leggings|joggers|sweatpants)\b/gi;
+
+      const garmentHits = [...new Set(
+        (msgLower.match(GARMENT_RE) || []).map(m => m.trim().toLowerCase()),
+      )];
+
+      for (const term of garmentHits) {
+        let owned = false;
+        for (const name of wardrobeItemNames) {
+          if (name.includes(term)) { owned = true; break; }
+        }
+        if (!owned) nonOwnedRefs.push(term);
+      }
+
+      if (nonOwnedRefs.length > 0) {
+        console.log(`[AskStyla T4 InventoryAuth] non-owned refs detected: ${JSON.stringify(nonOwnedRefs)}`);
+        systemContent += `\n\n════════════════════════
+INVENTORY AUTHORITY (MANDATORY — INTERNAL ONLY)
+════════════════════════
+The user referenced the following items that are NOT in their wardrobe:
+${nonOwnedRefs.map(r => `  - "${r}"`).join('\n')}
+
+Rules:
+- Do NOT treat these items as owned by the user.
+- Do NOT style the user with these items.
+- Do NOT reference them as if the user owns them.
+- Briefly note: "I don't see a [item] in your wardrobe — would you like to add one?"
+- Then build a complete outfit recommendation using ONLY actual wardrobe pieces.
+- NEVER mention this validation to the user beyond the ownership note.
+`;
+      }
+    }
+
+    // Build LLM-safe messages — strip non-owned garment phrases from last user message
+    let llmMessages = messages;
+    let llmUserMsg = lastUserMsg;
+    if (nonOwnedRefs.length > 0) {
+      let sanitized = lastUserMsg;
+      for (const ref of nonOwnedRefs) {
+        const escaped = ref.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        sanitized = sanitized
+          .replace(new RegExp(`\\bwith\\s+my\\s+(?:\\w+\\s+){0,3}${escaped}\\b`, 'gi'), '')
+          .replace(new RegExp(`\\bmy\\s+(?:\\w+\\s+){0,3}${escaped}\\b`, 'gi'), '')
+          .replace(new RegExp(`\\band\\s+(?:\\w+\\s+){0,3}${escaped}\\b`, 'gi'), '')
+          .replace(new RegExp(`\\b${escaped}\\b`, 'gi'), '');
+      }
+      sanitized = sanitized.replace(/\s{2,}/g, ' ').replace(/\s+([,.])/g, '$1').trim();
+      if (sanitized) {
+        llmUserMsg = sanitized;
+        llmMessages = [...messages];
+        for (let i = llmMessages.length - 1; i >= 0; i--) {
+          if (llmMessages[i].role === 'user') {
+            llmMessages[i] = { ...llmMessages[i], content: sanitized };
+            break;
+          }
+        }
+        console.log(`[AskStyla T4 InventoryAuth] sanitized msg: "${sanitized}"`);
+      }
+    }
+
     // ── Structured Slot Output: Force JSON slot selection for outfit-building queries ──
     const isOutfitBuildRequest = wardrobeRows.length > 0 && (
       /\b(style me|dress me|put.{0,10}together|build.{0,10}(?:outfit|look)|create.{0,10}(?:outfit|look)|suggest.{0,10}(?:outfit|look)|recommend.{0,15}(?:outfit|look|wear))\b/i.test(msgLower) ||
@@ -3360,6 +3423,7 @@ Rules:
     );
 
     let structuredSlotLocked = false;
+    let lockedSlotSummary = '';
 
     if (isOutfitBuildRequest) {
       try {
@@ -3367,12 +3431,17 @@ Rules:
           .map(r => `- ${r.ai_title || r.name} [${r.main_category}]`)
           .join('\n');
 
-        const slotSystemPrompt = `You are a fashion stylist selecting outfit items from a user's wardrobe.
+        const slotMemoryContext =
+          longTermSummary && typeof longTermSummary === 'string'
+            ? longTermSummary.slice(0, 1500)
+            : '';
 
+        const slotSystemPrompt = `You are a fashion stylist selecting outfit items from a user's wardrobe.
+${slotMemoryContext ? `\n=== LONG-TERM USER MEMORY (CONSTRAINTS ONLY) ===\n${slotMemoryContext}\n=== END MEMORY ===\n` : ''}
 USER'S WARDROBE:
 ${wardrobeItemList}
 
-USER REQUEST: "${lastUserMsg}"
+USER REQUEST: "${llmUserMsg}"
 
 You MUST output a valid JSON object with the following structure:
 {
@@ -3400,7 +3469,7 @@ Rules:
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: slotSystemPrompt },
-            ...messages,
+            ...llmMessages,
           ],
         });
 
@@ -3509,7 +3578,7 @@ You MUST correct these issues:
                 response_format: { type: 'json_object' },
                 messages: [
                   { role: 'system', content: retryCorrectionPrompt },
-                  ...messages,
+                  ...llmMessages,
                 ],
               });
 
@@ -3560,6 +3629,7 @@ You MUST correct these issues:
                 ? [`- Accessories: ${slots.accessories.join(', ')}`]
                 : []),
             ].join('\n');
+            lockedSlotSummary = lockedItemsList;
 
             systemContent += `\n\n════════════════════════════════════════
 SLOT-LOCKED ITEMS (MANDATORY — DO NOT CHANGE)
@@ -3591,16 +3661,21 @@ Additional rules:
       }
     }
 
+    const proseMessages = structuredSlotLocked
+      ? [
+          { role: 'system' as const, content: systemContent },
+          { role: 'user' as const, content: llmUserMsg },
+          { role: 'assistant' as const, content: `Validated outfit:\n${lockedSlotSummary}` },
+        ]
+      : [
+          { role: 'system' as const, content: systemContent },
+          ...llmMessages,
+        ];
+
     const completion = await this.openai.chat.completions.create({
       model: 'gpt-4o',
-      temperature: useShortlist ? 0.6 : 0.8,
-      messages: [
-        {
-          role: 'system',
-          content: systemContent,
-        },
-        ...messages,
-      ],
+      temperature: structuredSlotLocked ? 0.5 : (useShortlist ? 0.6 : 0.8),
+      messages: proseMessages,
     });
 
     let aiReply =
@@ -3659,7 +3734,7 @@ At the end, return a short JSON block like:
 {"search_terms":["smart casual men","navy blazer outfit","loafers"]}
                   `,
                 },
-                ...messages,
+                ...llmMessages,
               ],
             });
             const retryReply = retryCompletion.choices[0]?.message?.content?.trim() || '';
@@ -3805,7 +3880,7 @@ At the end, return a short JSON block like:
                 temperature: 0.6,
                 messages: [
                   { role: 'system', content: systemContent + outfitCorrectionPrompt },
-                  ...messages,
+                  ...llmMessages,
                 ],
               });
               const retryReply = validatorRetry.choices[0]?.message?.content?.trim() || '';
@@ -3859,7 +3934,7 @@ At the end, return a short JSON block like:
             temperature: 0.5,
             messages: [
               { role: 'system', content: systemContent + '\n\n' + REASONING_CORRECTION },
-              ...messages,
+              ...llmMessages,
             ],
           });
           const retryReply = retryCompletion.choices[0]?.message?.content?.trim();
