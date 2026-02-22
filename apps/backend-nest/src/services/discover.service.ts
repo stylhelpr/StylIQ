@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { pool } from '../db/pool';
 import { getSecret, secretExists } from '../config/secrets';
 import { LearningEventsService } from '../learning/learning-events.service';
@@ -65,7 +65,7 @@ export interface DiscoverProduct {
   match_reasons?: string[];
 }
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const TARGET_PRODUCTS = 10;
 const DEBUG_RECOMMENDED_BUYS = process.env.DEBUG_RECOMMENDED_BUYS === 'true';
 
@@ -888,7 +888,7 @@ export class DiscoverService {
 
     console.log('🔥 Cache validity evaluated 🔥', { cacheValid, cachedCount: cached.length });
 
-    // HARDLOCK: If cache is valid (within 7 days) AND we have products, return them. NO API CALLS.
+    // HARDLOCK: If cache is valid (within 24 hours) AND we have products, return them. NO API CALLS.
     // If cache is "valid" but empty, we should still try to fetch.
     if (cacheValid && cached.length > 0) {
       console.log('🔥 Returning from CACHE PATH 🔥');
@@ -904,7 +904,7 @@ export class DiscoverService {
       );
     }
 
-    // Cache expired or never set - ONE fetch attempt, then lock for a week
+    // Cache expired or never set - ONE fetch attempt, then lock for 24 hours
     this.log.log(
       `Cache expired or empty for user ${userId} - fetching fresh products`,
     );
@@ -929,14 +929,14 @@ export class DiscoverService {
       }
     }
 
-    // ALWAYS set timestamp and save whatever we got - locks for a week regardless
+    // ALWAYS set timestamp and save whatever we got - locks for 24 hours regardless
     if (products.length > 0) {
       await this.saveProducts(userId, products);
     }
     await this.updateRefreshTimestamp(userId);
 
     this.log.log(
-      `Locked ${products.length} products for user ${userId} - no more API calls for 7 days`,
+      `Locked ${products.length} products for user ${userId} - no more API calls for 24 hours`,
     );
     this.emitRecommendedBuysServed(userId, products);
     return products;
@@ -1052,7 +1052,7 @@ export class DiscoverService {
     }).catch(() => {});
   }
 
-  // Returns true if cache is still valid (within 7 days AND profile unchanged), false otherwise
+  // Returns true if cache is still valid (within 24 hours AND profile unchanged), false otherwise
   private async isCacheValid(userId: string): Promise<boolean> {
     try {
       const result = await pool.query(
@@ -1068,7 +1068,7 @@ export class DiscoverService {
       const lastRefreshTime = new Date(lastRefresh).getTime();
       const age = Date.now() - lastRefreshTime;
 
-      if (age >= SEVEN_DAYS_MS) return false; // TTL expired
+      if (age >= TWENTY_FOUR_HOURS_MS) return false; // TTL expired
 
       // Profile fingerprint check: invalidate if profile changed since last refresh
       const profile = await this.getUserProfile(userId);
@@ -2797,7 +2797,7 @@ export class DiscoverService {
               categories: product.category ? [product.category] : [],
             },
             sourceFeature: 'shopping',
-            clientEventId: `product_saved:${userId}:${productId}`,
+            clientEventId: `product_saved:${userId}:${productId}:${randomUUID()}`,
           })
           .catch(() => {});
       }
@@ -2845,17 +2845,21 @@ export class DiscoverService {
 
       // Emit PRODUCT_UNSAVED learning event (shadow mode - no behavior change)
       if (LEARNING_FLAGS.EVENTS_ENABLED) {
-        this.learningEvents
-          .logEvent({
-            userId,
-            eventType: 'PRODUCT_UNSAVED',
-            entityType: 'product',
-            entityId: productId,
-            signalPolarity: -1,
-            signalWeight: 0.2,
-            extractedFeatures: {},
-            sourceFeature: 'shopping',
-            clientEventId: `product_unsaved:${userId}:${productId}`,
+        this.extractProductFeatures(userId, productId)
+          .then(({ features }) => {
+            this.learningEvents
+              .logEvent({
+                userId,
+                eventType: 'PRODUCT_UNSAVED',
+                entityType: 'product',
+                entityId: productId,
+                signalPolarity: -1,
+                signalWeight: 0.2,
+                extractedFeatures: features,
+                sourceFeature: 'shopping',
+                clientEventId: `product_unsaved:${userId}:${productId}:${randomUUID()}`,
+              })
+              .catch(() => {});
           })
           .catch(() => {});
       }
