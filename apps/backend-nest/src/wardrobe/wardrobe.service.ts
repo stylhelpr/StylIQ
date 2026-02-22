@@ -95,6 +95,10 @@ import {
   extractItemColors,
   expandAvoidColors,
   colorMatchesSafe,
+  extractColorIntent,
+  extractGarmentIntent,
+  extractCandidateGarmentTokens,
+  validateItemAgainstIntent,
 } from '../ai/elite/tasteValidator';
 import type {
   ValidatorItem,
@@ -3316,12 +3320,6 @@ ${lockedLines}
               continue;
             }
 
-            // P0: skip items whose colors match avoid_colors
-            if (_itemViolatesAvoidColors(item)) {
-              if (!_pickedFallback) _pickedFallback = item;
-              continue;
-            }
-
             // P1: slot compatibility — reject garment-type mismatches
             const slotCheck = validateSlotMatch(
               { category: targetSlot, description: sr.slot.description, formality: sr.slot.formality },
@@ -3332,6 +3330,20 @@ ${lockedLines}
               console.log(
                 `⚡ [FAST] STUDIO_SLOT_REJECTED | slot: "${sr.slot.description}" | candidate: "${item.name}" (${item.subcategory || item.main_category}) | reason: ${slotCheck.reason}`,
               );
+              continue;
+            }
+
+            // P2: unified drift gate — replaces inline P0 (avoid colors) + P2 (color intent) + P3 (garment intent)
+            const _driftCheck = validateItemAgainstIntent({
+              slotDescription: sr.slot.description,
+              candidateItem: item,
+              avoidColors: _earlyAvoid,
+            });
+            if (!_driftCheck.valid) {
+              console.log(
+                `⚡ [FAST] DRIFT_REJECTED | slot: "${sr.slot.description}" | candidate: "${item.name}" | ${_driftCheck.reason}`,
+              );
+              if (!_pickedFallback) _pickedFallback = item;
               continue;
             }
 
@@ -3353,11 +3365,22 @@ ${lockedLines}
             _pickedFallback = null;
             break;
           }
-          // If ALL candidates violated avoid_colors, fall back to top match
-          // so we fail-closed later in validation rather than crashing selection
+          // If ALL candidates failed drift gates, validate fallback against FULL slot intent
+          // (not empty string — slotDescription must carry color/garment intent)
           if (!_slotPicked && _pickedFallback && !items.some((it) => mapMainCategoryToSlot(it.main_category) === targetSlot)) {
-            items.push(this.dbRowToCatalogItem(_pickedFallback));
-            usedIds.add(_pickedFallback.id);
+            const _fbCheck = validateItemAgainstIntent({
+              slotDescription: sr.slot.description,
+              candidateItem: _pickedFallback,
+              avoidColors: _earlyAvoid,
+            });
+            if (_fbCheck.valid) {
+              items.push(this.dbRowToCatalogItem(_pickedFallback));
+              usedIds.add(_pickedFallback.id);
+            } else {
+              console.log(
+                `⚡ [FAST] FALLBACK_DRIFT_REJECTED | slot: "${sr.slot.description}" | fallback: "${_pickedFallback.name}" | ${_fbCheck.reason}`,
+              );
+            }
           }
         }
 
@@ -3435,7 +3458,13 @@ ${lockedLines}
 
         const pickFirst = (slot: string) =>
           fallbackPool.find(
-            (r: any) => mapMainCategoryToSlot(r.main_category) === slot,
+            (r: any) =>
+              mapMainCategoryToSlot(r.main_category) === slot &&
+              validateItemAgainstIntent({
+                slotDescription: query,
+                candidateItem: r,
+                avoidColors: _earlyAvoid,
+              }).valid,
           );
 
         const toItem = (r: any): CatalogItem => ({

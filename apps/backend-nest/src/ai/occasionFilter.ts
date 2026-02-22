@@ -28,7 +28,7 @@ export type OccasionContext = {
 // ── Formal context detection ──────────────────────────────────────────────
 
 const FORMAL_CONTEXT_RE =
-  /\b(church|funeral|wedding|interview|business|formal|ceremony|baptism|christening|communion|black\s?tie|gala|cocktail)\b/i;
+  /\b(church|funeral|wedding|interview|business|formal|ceremony|baptism|christening|communion|black\s?tie|gala|cocktail|executive)\b/i;
 
 export function isFormalOccasion(ctx: OccasionContext): boolean {
   if (!ctx.query) return false;
@@ -98,11 +98,35 @@ const checkOpenCasualFootwear: RejectionCheck = (item) => {
   return null;
 };
 
+const CASUAL_OUTERWEAR_RE =
+  /\b(puffer|windbreaker|anorak|parka|rain\s?jacket|field\s?jacket)\b/i;
+
+const checkCasualOuterwear: RejectionCheck = (item) => {
+  const slot = itemSlot(item);
+  if (slot !== 'outerwear') return null;
+  const text = itemText(item);
+  if (CASUAL_OUTERWEAR_RE.test(text)) return 'CASUAL_OUTERWEAR';
+  return null;
+};
+
+const LOUD_OUTERWEAR_COLOR_RE =
+  /\b(yellow|orange|neon|fluorescent|lime|hot\s?pink|bright\s?red|bright\s?orange)\b/i;
+
+const checkLoudColorOuterwear: RejectionCheck = (item) => {
+  const slot = itemSlot(item);
+  if (slot !== 'outerwear') return null;
+  const colors = `${itemText(item)} ${itemColors(item)}`;
+  if (LOUD_OUTERWEAR_COLOR_RE.test(colors)) return 'LOUD_COLOR_OUTERWEAR';
+  return null;
+};
+
 const CHECKS: RejectionCheck[] = [
   checkLoudPatternTop,
   checkLoudTailoringColor,
   checkAthleticCasualTop,
   checkOpenCasualFootwear,
+  checkCasualOuterwear,
+  checkLoudColorOuterwear,
 ];
 
 // ── Public API ────────────────────────────────────────────────────────────

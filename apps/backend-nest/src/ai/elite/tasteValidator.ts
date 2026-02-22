@@ -235,10 +235,171 @@ function checkCoverageNoGo(
   return null;
 }
 
-// ── Navy synonym normalization ─────────────────────────────────────────────
+// ── Color-family synonym expansion ────────────────────────────────────────
 const COLOR_SYNONYMS: Record<string, string[]> = {
   navy: ['navy blue', 'dark navy', 'midnight', 'ink'],
+  red: ['crimson', 'scarlet', 'burgundy', 'maroon', 'magenta', 'wine'],
+  pink: ['fuchsia', 'blush', 'rose'],
 };
+
+// ── Known color tokens (for extracting color intent from free text) ───────
+const KNOWN_COLOR_TOKENS = new Set([
+  'black', 'white', 'red', 'blue', 'green', 'yellow', 'orange', 'purple',
+  'pink', 'brown', 'grey', 'gray', 'beige', 'cream', 'ivory', 'tan', 'khaki',
+  'navy', 'cobalt', 'teal', 'turquoise', 'cyan', 'indigo', 'cerulean', 'azure',
+  'crimson', 'scarlet', 'burgundy', 'maroon', 'magenta', 'wine',
+  'olive', 'sage', 'emerald', 'mint', 'jade', 'moss', 'lime',
+  'fuchsia', 'blush', 'rose', 'salmon', 'coral', 'mauve',
+  'charcoal', 'slate', 'silver', 'ash',
+  'chocolate', 'espresso', 'mocha', 'cognac', 'chestnut', 'walnut', 'sienna', 'taupe',
+  'mustard', 'gold', 'amber', 'rust', 'copper', 'terracotta', 'peach', 'apricot',
+  'violet', 'plum', 'lavender', 'lilac', 'eggplant', 'aubergine',
+  'camel', 'nude', 'sand', 'oatmeal', 'wheat', 'caramel', 'pearl',
+]);
+
+/**
+ * Extract explicit color tokens from a free-text description (e.g. LLM slot description).
+ * Deterministic: lowercase, strip punctuation, match against known color list.
+ * Returns de-duped color tokens in order of appearance.
+ */
+export function extractColorIntent(description: string): string[] {
+  const tokens = description.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const t of tokens) {
+    if (KNOWN_COLOR_TOKENS.has(t) && !seen.has(t)) {
+      seen.add(t);
+      result.push(t);
+    }
+  }
+  return result;
+}
+
+// ── Known garment tokens (for extracting garment-type intent from free text) ──
+// Multi-word tokens MUST come before their single-word substrings so that
+// the greedy scan matches the most specific form first.
+const KNOWN_GARMENT_PHRASES: string[] = [
+  // outerwear – multi-word first
+  'sport coat', 'sports coat', 'suit jacket', 'bomber jacket', 'leather jacket',
+  'denim jacket', 'puffer jacket', 'rain jacket', 'field jacket', 'shirt jacket',
+  'shacket',
+  'trench coat', 'overcoat', 'topcoat', 'pea coat', 'peacoat',
+  'puffer coat',
+  // tops – multi-word first
+  'dress shirt', 'button down', 'button up', 'camp shirt', 'camp collar',
+  'polo shirt', 'rugby shirt', 'henley shirt',
+  't shirt', 'tee shirt',
+  'tank top', 'crop top', 'tube top',
+  'sports bra', 'sport bra', 'bralette',
+  // bottoms – multi-word first
+  'cargo pants', 'dress pants', 'wide leg pants', 'jogger pants',
+  'cargo shorts', 'board shorts', 'swim trunks',
+  // shoes – multi-word first
+  'chelsea boots', 'combat boots', 'ankle boots', 'knee boots',
+  'dress shoes', 'running shoes',
+  // dresses / jumpsuits – multi-word first
+  'maxi dress', 'midi dress', 'mini dress', 'wrap dress', 'shirt dress',
+  // single-word outerwear
+  'blazer', 'coat', 'jacket', 'parka', 'anorak', 'windbreaker', 'vest', 'gilet',
+  'cape', 'poncho', 'puffer',
+  // single-word tops
+  'shirt', 'blouse', 'tunic', 'camisole', 'bodysuit',
+  'sweater', 'jumper', 'pullover', 'hoodie', 'cardigan', 'sweatshirt',
+  'turtleneck', 'crewneck',
+  // single-word bottoms
+  'pants', 'trousers', 'chinos', 'jeans', 'leggings', 'joggers',
+  'shorts', 'skirt', 'culottes',
+  // single-word shoes
+  'loafers', 'oxfords', 'derbies', 'brogues', 'monks', 'mules', 'clogs',
+  'boots', 'sneakers', 'trainers', 'sandals', 'espadrilles', 'heels',
+  'pumps', 'flats', 'slides', 'slippers', 'moccasins',
+  // dresses / jumpsuits
+  'dress', 'gown', 'jumpsuit', 'romper', 'overalls',
+  // accessories (garment-adjacent)
+  'scarf', 'tie', 'belt', 'hat', 'cap', 'beanie', 'gloves',
+];
+
+// Build a Set of the normalized phrases for O(1) lookup during candidate matching
+const KNOWN_GARMENT_TOKEN_SET = new Set(KNOWN_GARMENT_PHRASES.map((p) => p.toLowerCase()));
+
+// ── Category families for controlled equivalency in CATEGORY_DRIFT gate ──
+// Tokens within the same family are considered stylistically interchangeable.
+const CATEGORY_FAMILIES: Record<string, string[]> = {
+  formal_shoes: ['oxford', 'oxfords', 'derby', 'derbies', 'loafers', 'dress shoes', 'monks', 'brogues'],
+  tailored_outerwear: ['blazer', 'sport coat', 'sports coat', 'suit jacket', 'tailored jacket'],
+  tailored_trousers: ['trousers', 'dress pants', 'chinos'],
+  dress_shirts: ['dress shirt', 'button down', 'button up', 'button up shirt'],
+};
+
+// Pre-compute token → family lookup for O(1) matching
+const TOKEN_TO_FAMILY = new Map<string, string>();
+for (const [family, tokens] of Object.entries(CATEGORY_FAMILIES)) {
+  for (const token of tokens) {
+    TOKEN_TO_FAMILY.set(token, family);
+  }
+}
+
+/** Returns true if any intent token shares a category family with any candidate token. */
+function sharesFamily(intentTokens: string[], candidateTokens: Set<string>): boolean {
+  for (const gi of intentTokens) {
+    const family = TOKEN_TO_FAMILY.get(gi);
+    if (!family) continue;
+    for (const ct of candidateTokens) {
+      if (TOKEN_TO_FAMILY.get(ct) === family) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Extract explicit garment-type tokens from a free-text description.
+ * Multi-word phrases are matched greedily before single-word tokens.
+ * Returns de-duped garment tokens in order of appearance.
+ */
+export function extractGarmentIntent(description: string): string[] {
+  const text = description.toLowerCase().replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const phrase of KNOWN_GARMENT_PHRASES) {
+    if (text.includes(phrase) && !seen.has(phrase)) {
+      seen.add(phrase);
+      result.push(phrase);
+    }
+  }
+  return result;
+}
+
+/**
+ * Build a flat set of garment tokens from a candidate item's metadata.
+ * Used by the garment category drift gate.
+ */
+export function extractCandidateGarmentTokens(item: {
+  main_category?: string;
+  subcategory?: string;
+  item_type?: string;
+  name?: string;
+}): Set<string> {
+  const parts: string[] = [];
+  if (item.main_category) parts.push(item.main_category);
+  if (item.subcategory) parts.push(item.subcategory);
+  if (item.item_type) parts.push(item.item_type);
+  if (item.name) parts.push(item.name);
+  const text = parts.join(' ').toLowerCase().replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const tokens = new Set<string>();
+  // Match multi-word phrases first, then single tokens
+  for (const phrase of KNOWN_GARMENT_PHRASES) {
+    if (text.includes(phrase)) {
+      tokens.add(phrase);
+    }
+  }
+  // Also add individual words so single-token intents can match
+  for (const word of text.split(' ')) {
+    if (KNOWN_GARMENT_TOKEN_SET.has(word)) {
+      tokens.add(word);
+    }
+  }
+  return tokens;
+}
 
 /** Extract all color strings from an item, normalized + de-duped. */
 export function extractItemColors(item: ValidatorItem): string[] {
@@ -310,6 +471,104 @@ export function colorMatchesSafe(ic: string, ac: string): boolean {
   // 3. Single-token avoid: must appear as a full token in item color
   const icTokens = icNorm.split(/[^a-z]+/).filter(Boolean);
   return icTokens.includes(acNorm);
+}
+
+// ── Import for dual avoid-color expansion ──────────────────────────────────
+// Local re-export to avoid circular dependency:
+// expandStylistAvoidColors lives in stylistQualityGate.ts.
+// We import it lazily inside validateItemAgainstIntent to keep this module
+// zero-side-effect at parse time.
+import { expandStylistAvoidColors } from '../stylistQualityGate';
+
+/**
+ * Unified drift validation gate — deterministic, reject-only.
+ *
+ * Checks a single candidate item against:
+ *   1. Avoid-color expansion (synonym + family)
+ *   2. Color intent extracted from slot/query description
+ *   3. Garment-type intent extracted from slot/query description
+ *
+ * Returns { valid: true } when the item passes ALL gates,
+ * or { valid: false, reason } on the first failing gate.
+ *
+ * Callers MUST pass a meaningful `slotDescription` (per-slot LLM text or the
+ * user query). Passing an empty string disables color/garment intent gates,
+ * which lets wrong-color items through.
+ */
+export function validateItemAgainstIntent(opts: {
+  slotDescription: string;
+  candidateItem: {
+    color?: string;
+    color_family?: string;
+    name?: string;
+    main_category?: string;
+    subcategory?: string;
+    item_type?: string;
+  };
+  avoidColors?: string[];
+}): { valid: boolean; reason?: string } {
+  const { slotDescription, candidateItem, avoidColors } = opts;
+
+  // ── 1. Avoid-color gate ──────────────────────────────────────────────────
+  if (avoidColors && avoidColors.length > 0) {
+    const expandedAvoid = new Set([
+      ...expandAvoidColors(avoidColors),
+      ...expandStylistAvoidColors(avoidColors),
+    ]);
+    const itemColors = extractItemColors(candidateItem as any);
+    if (candidateItem.color_family) {
+      itemColors.push(candidateItem.color_family.trim().toLowerCase());
+    }
+    for (const ic of itemColors) {
+      for (const ac of expandedAvoid) {
+        if (colorMatchesSafe(ic, ac)) {
+          return { valid: false, reason: `AVOID_COLOR: "${ic}" matches avoided "${ac}"` };
+        }
+      }
+    }
+  }
+
+  // ── 2. Color intent gate ─────────────────────────────────────────────────
+  const intentColors = extractColorIntent(slotDescription);
+  if (intentColors.length > 0) {
+    const candidateColorStrs = extractItemColors(candidateItem as any);
+    if (candidateItem.color_family) {
+      candidateColorStrs.push(candidateItem.color_family.trim().toLowerCase());
+    }
+    // Also pull color-like tokens from item name (e.g. "Yellow Hooded Puffer")
+    if (candidateItem.name) {
+      candidateColorStrs.push(candidateItem.name.trim().toLowerCase());
+    }
+    const candidateTokens = new Set<string>();
+    for (const c of candidateColorStrs) {
+      for (const t of c.replace(/[^a-z\s]/g, ' ').split(/\s+/)) {
+        if (t) candidateTokens.add(t);
+      }
+    }
+    if (!intentColors.some((ic) => candidateTokens.has(ic))) {
+      return {
+        valid: false,
+        reason: `COLOR_DRIFT: intent [${intentColors}] no overlap with candidate [${[...candidateTokens].slice(0, 10)}]`,
+      };
+    }
+  }
+
+  // ── 3. Garment intent gate ───────────────────────────────────────────────
+  const garmentIntent = extractGarmentIntent(slotDescription);
+  if (garmentIntent.length > 0) {
+    const candidateGarmentTokens = extractCandidateGarmentTokens(candidateItem);
+    if (!garmentIntent.some((gi) => candidateGarmentTokens.has(gi))) {
+      // Allow if intent and candidate belong to the same category family
+      if (!sharesFamily(garmentIntent, candidateGarmentTokens)) {
+        return {
+          valid: false,
+          reason: `CATEGORY_DRIFT: intent [${garmentIntent}] no overlap with candidate [${[...candidateGarmentTokens].slice(0, 10)}]`,
+        };
+      }
+    }
+  }
+
+  return { valid: true };
 }
 
 function checkAvoidColors(
