@@ -486,6 +486,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                       right: 6,
                       alignItems: 'center',
                       gap: 10,
+                    
                     }}>
                     {/* Heart icon */}
                     <TouchableOpacity
