@@ -13,6 +13,7 @@ import {
   Get,
   Post,
   Delete,
+  Body,
   Req,
   UseGuards,
   HttpCode,
@@ -24,6 +25,12 @@ import { ConsentCache } from './consent-cache';
 import { LearningEventsService } from './learning-events.service';
 import { FashionStateService } from './fashion-state.service';
 import { LEARNING_FLAGS } from '../config/feature-flags';
+import {
+  LearningEventType,
+  EntityType,
+  ExtractedFeatures,
+  EVENT_SIGNAL_DEFAULTS,
+} from './dto/learning-event.dto';
 
 @Controller('learning')
 @UseGuards(JwtAuthGuard)
@@ -33,6 +40,43 @@ export class LearningController {
     private readonly eventsService: LearningEventsService,
     private readonly fashionStateService: FashionStateService,
   ) {}
+
+  /**
+   * Log a learning event from the frontend.
+   * Fire-and-forget: returns 202 immediately, event is persisted best-effort.
+   */
+  @Post('events')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async logEvent(
+    @Req() req,
+    @Body()
+    body: {
+      eventType: LearningEventType;
+      entityType: EntityType;
+      entityId?: string;
+      extractedFeatures?: ExtractedFeatures;
+      sourceFeature: string;
+    },
+  ): Promise<{ accepted: boolean }> {
+    const userId = req.user.userId;
+    const defaults = EVENT_SIGNAL_DEFAULTS[body.eventType];
+    if (!defaults) {
+      return { accepted: false };
+    }
+
+    await this.eventsService.logEvent({
+      userId,
+      eventType: body.eventType,
+      entityType: body.entityType,
+      entityId: body.entityId,
+      signalPolarity: defaults.polarity,
+      signalWeight: defaults.weight,
+      extractedFeatures: body.extractedFeatures ?? {},
+      sourceFeature: body.sourceFeature,
+    });
+
+    return { accepted: true };
+  }
 
   /**
    * Get current learning consent status.

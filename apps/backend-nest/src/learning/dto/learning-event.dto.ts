@@ -26,7 +26,9 @@ export type LearningEventType =
   | 'SLOT_OVERRIDE'
   | 'STYLE_CONSTRAINT_SIGNAL'
   | 'PRODUCT_CLICK'
-  | 'RECOMMENDED_BUYS_SERVED';
+  | 'RECOMMENDED_BUYS_SERVED'
+  | 'TRIP_CAPSULE_GENERATED'
+  | 'TRIP_ITEM_REPLACED';
 
 /**
  * Entity types that can be the subject of learning events.
@@ -36,7 +38,9 @@ export type EntityType =
   | 'product'
   | 'post'
   | 'look'
-  | 'notification';
+  | 'notification'
+  | 'wardrobe_item'
+  | 'trip_capsule';
 
 /**
  * Signal polarity values.
@@ -141,4 +145,6 @@ export const EVENT_SIGNAL_DEFAULTS: Record<
   STYLE_CONSTRAINT_SIGNAL: { polarity: 1, weight: 0.3 },
   PRODUCT_CLICK: { polarity: 1, weight: 0.35 },
   RECOMMENDED_BUYS_SERVED: { polarity: 0, weight: 0.1 },
+  TRIP_CAPSULE_GENERATED: { polarity: 0, weight: 0.1 },
+  TRIP_ITEM_REPLACED: { polarity: -1, weight: 0.4 },
 };
