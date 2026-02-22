@@ -246,7 +246,7 @@ export default function SavedRecommendationsModal({
 
       Alert.alert(
         'Remove from Saved',
-        `Are you sure you want to remove "${productTitle || 'this item'}" from your saved recommendations?`,
+        `Are you sure you want to remove "${productTitle || 'this item'}" from your saved recommendations? You will not be able to get it back`,
         [
           {
             text: 'Cancel',
@@ -336,7 +336,7 @@ export default function SavedRecommendationsModal({
                 position: 'absolute',
                 top: 8,
                 right: 8,
-                backgroundColor: 'rgba(0,0,0,0.5)',
+                backgroundColor: 'rgb(0, 0, 0)',
                 borderRadius: 16,
                 padding: 6,
               }}
@@ -350,7 +350,7 @@ export default function SavedRecommendationsModal({
                 product.product_id ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <MaterialIcons name="favorite" size={18} color="#ff4d6d" />
+                <MaterialIcons name="delete" size={18} color="red" />
               )}
             </TouchableOpacity>
 
@@ -506,7 +506,7 @@ export default function SavedRecommendationsModal({
           />
 
           <View style={styles.header}>
-            <Text style={styles.title}>Saved Recommended Buys</Text>
+            <Text style={styles.title}>Liked Recommended Buys</Text>
           </View>
 
           <Animatable.View animation="fadeIn" duration={400} style={{flex: 1}}>

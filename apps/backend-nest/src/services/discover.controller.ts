@@ -41,4 +41,20 @@ export class DiscoverController {
     const userId = req.user.userId;
     return this.discoverService.toggleSaveProduct(userId, productId);
   }
+
+  // Emit PRODUCT_CLICK learning event
+  @Post(':userId/product-click')
+  async productClick(@Req() req, @Body('product_id') productId: string) {
+    const userId = req.user.userId;
+    this.discoverService.emitProductClick(userId, productId);
+    return { success: true };
+  }
+
+  // Emit ITEM_EXPLICITLY_DISMISSED learning event
+  @Post(':userId/dismiss')
+  async dismissProduct(@Req() req, @Body('product_id') productId: string) {
+    const userId = req.user.userId;
+    this.discoverService.emitItemDismissed(userId, productId);
+    return { success: true };
+  }
 }

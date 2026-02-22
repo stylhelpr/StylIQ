@@ -25,6 +25,7 @@ export type LearningEventType =
   | 'OUTFIT_SAVED_FROM_HOME'
   | 'SLOT_OVERRIDE'
   | 'STYLE_CONSTRAINT_SIGNAL'
+  | 'PRODUCT_CLICK'
   | 'RECOMMENDED_BUYS_SERVED';
 
 /**
@@ -138,5 +139,6 @@ export const EVENT_SIGNAL_DEFAULTS: Record<
   OUTFIT_SAVED_FROM_HOME: { polarity: 1, weight: 0.5 },
   SLOT_OVERRIDE: { polarity: 1, weight: 0.3 },
   STYLE_CONSTRAINT_SIGNAL: { polarity: 1, weight: 0.3 },
+  PRODUCT_CLICK: { polarity: 1, weight: 0.35 },
   RECOMMENDED_BUYS_SERVED: { polarity: 0, weight: 0.1 },
 };

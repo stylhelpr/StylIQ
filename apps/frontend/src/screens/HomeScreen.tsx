@@ -1070,6 +1070,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     setReaderTitle(title);
     setReaderProduct(product || null);
     setReaderVisible(true);
+    if (userId && product?.product_id) {
+      apiClient.post(`/discover/${userId}/product-click`, {
+        product_id: product.product_id,
+      }).catch(() => {});
+    }
   };
 
   const handleReaderToggleSave = useCallback(async () => {
@@ -1092,6 +1097,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       setSavingReaderProduct(false);
     }
   }, [userId, readerProduct, savingReaderProduct, updateProductSaved]);
+
+  const handleDismissProduct = useCallback((product: DiscoverProduct) => {
+    if (!userId) return;
+    apiClient.post(`/discover/${userId}/dismiss`, {
+      product_id: product.product_id,
+    }).catch(() => {});
+  }, [userId]);
 
   const {prefs, ready} = useHomePrefs(userId);
 
@@ -2350,6 +2362,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </View>
                 <DiscoverCarousel
                   onOpenItem={openArticle}
+                  onDismiss={handleDismissProduct}
                   savedModalVisible={savedRecommendationsModalVisible}
                   onCloseSavedModal={() =>
                     setSavedRecommendationsModalVisible(false)

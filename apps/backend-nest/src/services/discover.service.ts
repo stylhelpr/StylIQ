@@ -975,6 +975,83 @@ export class DiscoverService {
       .catch(() => {});
   }
 
+  private derivePriceTier(price: number | null): string | null {
+    if (price == null) return null;
+    if (price < 30) return 'budget';
+    if (price < 100) return 'mid';
+    if (price < 300) return 'premium';
+    return 'luxury';
+  }
+
+  private async extractProductFeatures(
+    userId: string,
+    productId: string,
+  ): Promise<{ features: import('../learning/dto/learning-event.dto').ExtractedFeatures; found: boolean }> {
+    try {
+      const result = await pool.query(
+        `SELECT brand, category, enriched_color, price
+         FROM user_discover_products
+         WHERE user_id = $1 AND product_id = $2
+         LIMIT 1`,
+        [userId, productId],
+      );
+      if (result.rowCount === 0) return { features: {}, found: false };
+      const row = result.rows[0];
+      const tags: string[] = [];
+      const tier = this.derivePriceTier(row.price);
+      if (tier) tags.push(`priceTier:${tier}`);
+      return {
+        found: true,
+        features: {
+          brands: row.brand ? [row.brand] : [],
+          categories: row.category ? [row.category] : [],
+          colors: row.enriched_color ? [row.enriched_color] : [],
+          tags,
+        },
+      };
+    } catch {
+      return { features: {}, found: false };
+    }
+  }
+
+  emitProductClick(userId: string, productId: string): void {
+    if (!LEARNING_FLAGS.EVENTS_ENABLED) return;
+    this.extractProductFeatures(userId, productId).then(({ features }) => {
+      this.learningEvents
+        .logEvent({
+          userId,
+          eventType: 'PRODUCT_CLICK',
+          entityType: 'product',
+          entityId: productId,
+          signalPolarity: 1,
+          signalWeight: 0.35,
+          extractedFeatures: features,
+          sourceFeature: 'shopping',
+          clientEventId: `product_click:${userId}:${productId}:${Date.now()}`,
+        })
+        .catch(() => {});
+    }).catch(() => {});
+  }
+
+  emitItemDismissed(userId: string, productId: string): void {
+    if (!LEARNING_FLAGS.EVENTS_ENABLED) return;
+    this.extractProductFeatures(userId, productId).then(({ features }) => {
+      this.learningEvents
+        .logEvent({
+          userId,
+          eventType: 'ITEM_EXPLICITLY_DISMISSED',
+          entityType: 'product',
+          entityId: productId,
+          signalPolarity: -1,
+          signalWeight: 0.4,
+          extractedFeatures: features,
+          sourceFeature: 'shopping',
+          clientEventId: `item_dismissed:${userId}:${productId}:${Date.now()}`,
+        })
+        .catch(() => {});
+    }).catch(() => {});
+  }
+
   // Returns true if cache is still valid (within 7 days AND profile unchanged), false otherwise
   private async isCacheValid(userId: string): Promise<boolean> {
     try {

@@ -94,6 +94,7 @@ type Product = {
 
 type DiscoverCarouselProps = {
   onOpenItem?: (url: string, title?: string, product?: Product) => void;
+  onDismiss?: (product: Product) => void;
   savedModalVisible?: boolean;
   onCloseSavedModal?: () => void;
   onSavedProductsChange?: (
@@ -108,6 +109,7 @@ export type DiscoverProduct = Product;
 
 const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
   onOpenItem,
+  onDismiss,
   savedModalVisible: externalSavedModalVisible,
   onCloseSavedModal,
   onSavedProductsChange,
@@ -130,6 +132,9 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
 
   // Track locally unsaved product IDs to ensure heart icon shows correct state
   const [locallyUnsavedIds, setLocallyUnsavedIds] = useState<Set<string>>(new Set());
+
+  // Track disliked product IDs (thumbs-down)
+  const [dislikedIds, setDislikedIds] = useState<Set<string>>(new Set());
 
   // Compute display items with corrected saved state
   const displayItems = useMemo(
@@ -198,10 +203,19 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
     [],
   );
 
-  // Toggle save/unsave a product
+  // Toggle save/unsave a product (thumbs up)
   const handleToggleSave = useCallback(
     async (product: Product) => {
       if (!userId || savingProductId) return;
+
+      // Clear dislike if active
+      if (dislikedIds.has(product.product_id)) {
+        setDislikedIds(prev => {
+          const next = new Set(prev);
+          next.delete(product.product_id);
+          return next;
+        });
+      }
 
       setSavingProductId(product.product_id);
       ReactNativeHapticFeedback.trigger('impactLight', {
@@ -229,7 +243,46 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
         setSavingProductId(null);
       }
     },
-    [userId, savingProductId],
+    [userId, savingProductId, dislikedIds],
+  );
+
+  // Toggle dislike on a product (thumbs down) — no removal
+  const handleDismiss = useCallback(
+    async (product: Product) => {
+      ReactNativeHapticFeedback.trigger('impactLight', {
+        enableVibrateFallback: true,
+        ignoreAndroidSystemSettings: false,
+      });
+      if (dislikedIds.has(product.product_id)) {
+        // Undo — local only, no event emitted
+        setDislikedIds(prev => {
+          const next = new Set(prev);
+          next.delete(product.product_id);
+          return next;
+        });
+      } else {
+        // If saved, unsave directly via API
+        if (product.saved && userId) {
+          try {
+            const response = await apiClient.post(`/discover/${userId}/toggle-save`, {
+              product_id: product.product_id,
+            });
+            setRecommended(prev =>
+              prev.map(p =>
+                p.product_id === product.product_id
+                  ? {...p, saved: response.data.saved}
+                  : p,
+              ),
+            );
+          } catch (err) {
+            console.error('Failed to unsave on dislike:', err);
+          }
+        }
+        setDislikedIds(prev => new Set(prev).add(product.product_id));
+        onDismiss?.(product);
+      }
+    },
+    [onDismiss, dislikedIds, userId],
   );
 
   // Fetch saved products for modal
@@ -418,38 +471,63 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                 <View style={{position: 'relative', width: '100%'}}>
                   <Image
                     source={{uri: item.image_url}}
-                    style={[globalStyles.image7, {backgroundColor: 'white'}]}
+                    style={[globalStyles.image7, {backgroundColor: '#eeeeee'}]}
                     resizeMode="contain"
                     //  resizeMode="cover"
                     onError={() =>
                       console.warn('⚠️ image failed', item.image_url)
                     }
                   />
-                  {/* Heart icon overlay */}
-                  <TouchableOpacity
-                    onPress={e => {
-                      e.stopPropagation();
-                      handleToggleSave(item);
-                    }}
+                  {/* Heart + Thumbs-down stacked vertically */}
+                  <View
                     style={{
                       position: 'absolute',
                       top: 6,
                       right: 6,
-                      backgroundColor: 'rgba(0,0,0,0.4)',
-                      borderRadius: 14,
-                      padding: 5,
-                    }}
-                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-                    {savingProductId === item.product_id ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
+                      alignItems: 'center',
+                      gap: 10,
+                    }}>
+                    {/* Heart icon */}
+                    <TouchableOpacity
+                      onPress={e => {
+                        e.stopPropagation();
+                        handleToggleSave(item);
+                      }}
+                      style={{
+                        backgroundColor: 'rgba(0,0,0,0.85)',
+                        borderRadius: 14,
+                        padding: 5,
+                      }}
+                      hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                      {savingProductId === item.product_id ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <MaterialIcons
+                          name="thumb-up"
+                          size={16}
+                          color={item.saved ? '#4CAF50' : '#fff'}
+                        />
+                      )}
+                    </TouchableOpacity>
+                    {/* Thumbs-down icon */}
+                    <TouchableOpacity
+                      onPress={e => {
+                        e.stopPropagation();
+                        handleDismiss(item);
+                      }}
+                      style={{
+                        backgroundColor: 'rgba(0,0,0,0.85)',
+                        borderRadius: 14,
+                        padding: 5,
+                      }}
+                      hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
                       <MaterialIcons
-                        name={item.saved ? 'favorite' : 'favorite-border'}
+                        name="thumb-down"
                         size={16}
-                        color={item.saved ? '#ff4d6d' : '#fff'}
+                        color={dislikedIds.has(item.product_id) ? '#ff4d4d' : '#fff'}
                       />
-                    )}
-                  </TouchableOpacity>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <Text
                   style={[
