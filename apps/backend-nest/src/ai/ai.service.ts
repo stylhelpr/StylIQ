@@ -50,6 +50,7 @@ import {
   buildCorrectionNote,
   isStylingResponse,
   expandAvoidColorsLite,
+  extractOutfitItemsFromResponse,
   type ChatAvoidLists,
 } from './chatTier4';
 import {
@@ -2574,6 +2575,8 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
       avoidColors: [], avoidMaterials: [], avoidPatterns: [], coverageNoGo: [],
     };
     const wardrobeItemNames = new Set<string>();
+    let chatValidatorProfile: ValidatorContext['styleProfile'] = null;
+    let chatTempF: number | null = null;
 
     /* 👗 --- LOAD STYLE PROFILE FOR CHAT CONTEXT --- */
     let styleProfileContext = '';
@@ -2639,6 +2642,19 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
           const avoidPatterns = pgArr(sp.avoid_patterns);
           // Tier 4: populate outer-scope avoid lists for post-LLM validation
           chatAvoidLists = { avoidColors, avoidMaterials, avoidPatterns, coverageNoGo };
+          chatValidatorProfile = {
+            coverage_no_go: coverageNoGo,
+            avoid_colors: avoidColors,
+            avoid_materials: avoidMaterials,
+            formality_floor: sp.formality_floor || null,
+            walkability_requirement: sp.walkability_requirement || null,
+            avoid_patterns: avoidPatterns,
+            silhouette_preference: sp.silhouette_preference || null,
+            fit_preferences: pgArr(sp.fit_preferences),
+            fabric_preferences: pgArr(sp.fabric_preferences),
+            style_preferences: pgArr(sp.style_preferences),
+            disliked_styles: pgArr(sp.disliked_styles),
+          };
           console.log('[AskStyla T4 DEBUG] styleProfile loaded:', {
             avoid_colors: chatAvoidLists.avoidColors,
             avoid_materials: chatAvoidLists.avoidMaterials,
@@ -3190,9 +3206,7 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
           const weather = await fetchWeatherForAI(dto.lat, dto.lon);
           if (weather) {
             weatherContext = `\n\n🌦️ CURRENT WEATHER:\n• Temperature: ${weather.tempF}°F\n• Condition: ${weather.condition}\n• Humidity: ${weather.humidity}%\n• Wind: ${weather.windSpeed} mph`;
-            // console.log(
-            //   `🌦️ Chat: Loaded weather - ${weather.tempF}°F, ${weather.condition}`,
-            // );
+            chatTempF = weather.tempF;
           }
         } else if (dto.weather) {
           // Use weather passed directly from frontend if no lat/lon
@@ -3200,6 +3214,7 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
           if (w.tempF || w.temperature) {
             const temp = w.tempF || Math.round((w.temperature * 9) / 5 + 32);
             weatherContext = `\n\n🌦️ CURRENT WEATHER:\n• Temperature: ${temp}°F${w.condition ? `\n• Condition: ${w.condition}` : ''}`;
+            chatTempF = temp;
           }
         }
       } catch (err: any) {
@@ -3321,6 +3336,261 @@ Rules:
 `;
     }
 
+    // ── Pre-generation: inject structural slot requirements for business/formal contexts ──
+    const msgLower = lastUserMsg.toLowerCase();
+    const isFormalContext =
+      /\b(black[\s-]?tie|gala|formal)\b/.test(msgLower) ||
+      /\b(business|dinner|office|interview|meeting|professional)\b/.test(msgLower);
+    if (isFormalContext && wardrobeRows.length > 0) {
+      systemContent += `\n\nSTRUCTURAL REQUIREMENTS (MANDATORY):
+- You MUST include exactly one TOP (shirt, sweater, knit, button-up, polo, turtleneck, etc.)
+- You MUST include exactly one BOTTOM (trousers, chinos, dress pants, skirt, etc.)
+- You MUST include exactly one pair of SHOES
+- Outerwear (blazer, coat, jacket) is OPTIONAL and does NOT count as a top
+- Do NOT omit any required slot
+- Do NOT treat a blazer, coat, or jacket as a top — they are outerwear only`;
+    }
+
+    // ── Structured Slot Output: Force JSON slot selection for outfit-building queries ──
+    const isOutfitBuildRequest = wardrobeRows.length > 0 && (
+      /\b(style me|dress me|put.{0,10}together|build.{0,10}(?:outfit|look)|create.{0,10}(?:outfit|look)|suggest.{0,10}(?:outfit|look)|recommend.{0,15}(?:outfit|look|wear))\b/i.test(msgLower) ||
+      /\bwhat.{0,20}(?:should|can|could|to)\s+(?:i\s+)?wear\b/i.test(msgLower) ||
+      /\boutfit\s+(?:for|idea|suggestion)\b/i.test(msgLower) ||
+      isFormalContext
+    );
+
+    let structuredSlotLocked = false;
+
+    if (isOutfitBuildRequest) {
+      try {
+        const wardrobeItemList = wardrobeRows
+          .map(r => `- ${r.ai_title || r.name} [${r.main_category}]`)
+          .join('\n');
+
+        const slotSystemPrompt = `You are a fashion stylist selecting outfit items from a user's wardrobe.
+
+USER'S WARDROBE:
+${wardrobeItemList}
+
+USER REQUEST: "${lastUserMsg}"
+
+You MUST output a valid JSON object with the following structure:
+{
+  "tops": "exact wardrobe item name",
+  "bottoms": "exact wardrobe item name",
+  "outerwear": "exact wardrobe item name or null",
+  "shoes": "exact wardrobe item name",
+  "accessories": []
+}
+
+Rules:
+- Use ONLY exact wardrobe item names provided above.
+- Do NOT output prose.
+- Do NOT explain.
+- Do NOT omit required slots.
+- tops, bottoms, shoes are MANDATORY.
+- A blazer, coat, or jacket is OUTERWEAR — never tops.
+- tops means: shirt, sweater, blouse, t-shirt, polo, turtleneck, knit, button-up, henley, tank, camisole, etc.
+- If no suitable outerwear exists, set outerwear to null.
+- accessories must be an array (empty array if none).`;
+
+        const slotCompletion = await this.openai.chat.completions.create({
+          model: 'gpt-4o',
+          temperature: 0.5,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: slotSystemPrompt },
+            ...messages,
+          ],
+        });
+
+        const slotRaw = slotCompletion.choices[0]?.message?.content?.trim() || '';
+        const slots = JSON.parse(slotRaw);
+
+        if (slots.tops && slots.bottoms && slots.shoes) {
+          console.log(`[AskStyla Structured Slots] ✅ locked: tops=${slots.tops}, bottoms=${slots.bottoms}, shoes=${slots.shoes}, outerwear=${slots.outerwear || 'none'}, accessories=${(slots.accessories || []).length}`);
+
+          // ── Build ValidatorItem[] directly from structured slots ──
+          // Inline slot resolution — mirrors mainCatToSlot() in chatTier4.ts exactly
+          const resolveSlot = (mainCat: string | undefined): string => {
+            switch ((mainCat ?? '').toLowerCase().trim()) {
+              case 'tops': return 'tops';
+              case 'bottoms': return 'bottoms';
+              case 'shoes': return 'shoes';
+              case 'outerwear': return 'outerwear';
+              case 'dresses': return 'dresses';
+              case 'activewear': return 'activewear';
+              case 'swimwear': return 'swimwear';
+              default: return 'accessories';
+            }
+          };
+
+          const findWardrobeRow = (itemName: string) => {
+            const norm = itemName.toLowerCase().replace(/\s+/g, ' ').trim();
+            return wardrobeRows.find(r => {
+              const aiNorm = (r.ai_title || '').toLowerCase().replace(/\s+/g, ' ').trim();
+              const nameNorm = (r.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+              return aiNorm === norm || nameNorm === norm;
+            });
+          };
+
+          const buildValidatorItem = (itemName: string, fallbackSlot: string): ValidatorItem => {
+            const row = findWardrobeRow(itemName);
+            if (row) {
+              return {
+                id: itemName,
+                slot: resolveSlot(row.main_category) as any,
+                name: row.ai_title || row.name,
+                subcategory: row.subcategory,
+                color: row.color,
+                material: row.material,
+                fit: row.fit,
+                formality_score: row.formality_score != null ? Number(row.formality_score) : undefined,
+                dress_code: row.dress_code,
+              };
+            }
+            return { id: itemName, slot: fallbackSlot as any, name: itemName };
+          };
+
+          const structuredValidatorItems: ValidatorItem[] = [
+            buildValidatorItem(slots.tops, 'tops'),
+            buildValidatorItem(slots.bottoms, 'bottoms'),
+            buildValidatorItem(slots.shoes, 'shoes'),
+            ...(slots.outerwear ? [buildValidatorItem(slots.outerwear, 'outerwear')] : []),
+            ...(Array.isArray(slots.accessories)
+              ? slots.accessories.filter(Boolean).map((a: string) => buildValidatorItem(a, 'accessories'))
+              : []),
+          ];
+
+          // ── Build ValidatorContext ──
+          const chatRequestedDressCode: string | undefined = (() => {
+            if (!lastUserMsg) return undefined;
+            const m = lastUserMsg.toLowerCase();
+            if (/\b(black[\s-]?tie|gala|formal)\b/.test(m)) return 'formal';
+            if (/\b(business|office|interview|meeting|professional)\b/.test(m)) return 'business casual';
+            return undefined;
+          })();
+
+          const chatValidatorCtx: ValidatorContext = {
+            climateZone: chatTempF != null ? tempToClimateZone(chatTempF) : undefined,
+            requestedDressCode: chatRequestedDressCode,
+            styleProfile: chatValidatorProfile,
+          };
+
+          // ── Validate structured slots BEFORE prose generation ──
+          console.log(`[AskStyla T4 Validator] validating structured slots: ${structuredValidatorItems.map(i => `${i.slot}=${i.name}`).join(', ')}`);
+          const slotValidation = tasteValidateOutfit(
+            structuredValidatorItems,
+            chatValidatorCtx,
+          );
+
+          if (slotValidation.valid) {
+            console.log(`[AskStyla T4 Validator] validation clean (coherence: ${slotValidation.coherenceScore})`);
+            structuredSlotLocked = true;
+          } else {
+            console.log(`[AskStyla T4 Validator] structured slots HARD FAIL: ${slotValidation.hardFails.join('; ')}`);
+
+            // ── One retry: re-select slots with correction instructions ──
+            try {
+              const failLines = slotValidation.hardFails.map(f => `- ${f}`).join('\n');
+              const retryCorrectionPrompt = `${slotSystemPrompt}
+
+CRITICAL: Your previous slot selection FAILED validation:
+${failLines}
+
+You MUST correct these issues:
+- Respect dress code, formality, climate, and user preferences.
+- Do NOT repeat the previous invalid combination.
+- tops, bottoms, shoes remain MANDATORY.`;
+
+              const retrySlotCompletion = await this.openai.chat.completions.create({
+                model: 'gpt-4o',
+                temperature: 0.5,
+                response_format: { type: 'json_object' },
+                messages: [
+                  { role: 'system', content: retryCorrectionPrompt },
+                  ...messages,
+                ],
+              });
+
+              const retrySlotRaw = retrySlotCompletion.choices[0]?.message?.content?.trim() || '';
+              const retrySlots = JSON.parse(retrySlotRaw);
+
+              if (retrySlots.tops && retrySlots.bottoms && retrySlots.shoes) {
+                const retryValidatorItems: ValidatorItem[] = [
+                  buildValidatorItem(retrySlots.tops, 'tops'),
+                  buildValidatorItem(retrySlots.bottoms, 'bottoms'),
+                  buildValidatorItem(retrySlots.shoes, 'shoes'),
+                  ...(retrySlots.outerwear ? [buildValidatorItem(retrySlots.outerwear, 'outerwear')] : []),
+                  ...(Array.isArray(retrySlots.accessories)
+                    ? retrySlots.accessories.filter(Boolean).map((a: string) => buildValidatorItem(a, 'accessories'))
+                    : []),
+                ];
+
+                const retryValidation = tasteValidateOutfit(retryValidatorItems, chatValidatorCtx);
+
+                if (retryValidation.valid) {
+                  // Retry succeeded — update slots for prose generation
+                  slots.tops = retrySlots.tops;
+                  slots.bottoms = retrySlots.bottoms;
+                  slots.shoes = retrySlots.shoes;
+                  slots.outerwear = retrySlots.outerwear || null;
+                  slots.accessories = Array.isArray(retrySlots.accessories) ? retrySlots.accessories : [];
+                  structuredSlotLocked = true;
+                  console.log(`[AskStyla T4 Validator] retry succeeded — validation passed (coherence: ${retryValidation.coherenceScore})`);
+                } else {
+                  console.log(`[AskStyla T4 Validator] retry also failed (${retryValidation.hardFails.join('; ')}) — falling through to free-text`);
+                }
+              } else {
+                console.log(`[AskStyla T4 Validator] retry missing required slots — falling through to free-text`);
+              }
+            } catch (retryErr: any) {
+              console.warn(`[AskStyla T4 Validator] retry slot selection error — falling through to free-text: ${retryErr.message}`);
+            }
+          }
+
+          // ── Inject slot-lock into systemContent for prose rendering ──
+          if (structuredSlotLocked) {
+            const lockedItemsList = [
+              `- Top: ${slots.tops}`,
+              `- Bottom: ${slots.bottoms}`,
+              `- Shoes: ${slots.shoes}`,
+              ...(slots.outerwear ? [`- Outerwear: ${slots.outerwear}`] : []),
+              ...(Array.isArray(slots.accessories) && slots.accessories.length > 0
+                ? [`- Accessories: ${slots.accessories.join(', ')}`]
+                : []),
+            ].join('\n');
+
+            systemContent += `\n\n════════════════════════════════════════
+SLOT-LOCKED ITEMS (MANDATORY — DO NOT CHANGE)
+════════════════════════════════════════
+You MUST use EXACTLY these items in your outfit recommendation:
+${lockedItemsList}
+
+VERBATIM NAME RULES (ZERO TOLERANCE — FAILURE = INVALID RESPONSE):
+1. You MUST copy each item name EXACTLY as written above — character for character.
+2. Do NOT shorten, abbreviate, paraphrase, reword, or summarize any item name.
+3. Do NOT remove hyphens, apostrophes, or any punctuation from item names.
+4. Do NOT reorder words within an item name.
+5. Do NOT change casing (uppercase/lowercase) of any item name.
+6. Do NOT drop qualifiers like "Men's", "Women's", color descriptors, or brand prefixes.
+7. Each locked item name string MUST appear at least once VERBATIM in your response body.
+8. If you cannot include an item name verbatim, stop and regenerate your response — do NOT output a modified version.
+9. Treat every item name as a frozen string literal. Copy-paste it; do not retype it.
+
+Additional rules:
+- Do NOT substitute, add, or remove any items from the locked list.
+- Write a natural, conversational styling recommendation around these verbatim item names.
+- Include search_terms JSON at the end as usual.`;
+          }
+        } else {
+          console.log(`[AskStyla Structured Slots] ⚠️ missing required slots (tops=${!!slots.tops}, bottoms=${!!slots.bottoms}, shoes=${!!slots.shoes}), falling through to free-text`);
+        }
+      } catch (slotErr: any) {
+        console.warn(`[AskStyla Structured Slots] slot selection failed, falling through to free-text: ${slotErr.message}`);
+      }
+    }
+
     const completion = await this.openai.chat.completions.create({
       model: 'gpt-4o',
       temperature: useShortlist ? 0.6 : 0.8,
@@ -3429,8 +3699,156 @@ At the end, return a short JSON block like:
       console.warn(`[AskStyla T4] validation error: ${validationErr.message}`);
     }
 
+    // ── Tier 4: Outfit-shaped response → tasteValidateOutfit gating ──
+    // SKIP prose-based extraction validation when structured slots were already validated
+    if (!structuredSlotLocked && wardrobeRows.length > 0 && isStylingResponse(aiReply)) {
+      try {
+        const extractedItems = extractOutfitItemsFromResponse(aiReply, wardrobeRows);
+
+        if (extractedItems.length >= 2) {
+          console.log(`[AskStyla T4 Validator] ${extractedItems.length} outfit items detected: ${extractedItems.map(i => i.name).join(', ')}`);
+
+          // Derive requestedDressCode from user message — same pattern as Stylist Suggestions (line ~6106)
+          const chatRequestedDressCode: string | undefined = (() => {
+            if (!lastUserMsg) return undefined;
+            const m = lastUserMsg.toLowerCase();
+            if (/\b(black[\s-]?tie|gala|formal)\b/.test(m)) return 'formal';
+            if (/\b(business|office|interview|meeting|professional)\b/.test(m)) return 'business casual';
+            return undefined;
+          })();
+
+          const chatValidatorCtx: ValidatorContext = {
+            climateZone: chatTempF != null ? tempToClimateZone(chatTempF) : undefined,
+            requestedDressCode: chatRequestedDressCode,
+            styleProfile: chatValidatorProfile,
+          };
+
+          const outfitValidation = tasteValidateOutfit(
+            extractedItems as ValidatorItem[],
+            chatValidatorCtx,
+          );
+
+          if (!outfitValidation.valid) {
+            console.log(`[AskStyla T4 Validator] HARD FAIL: ${outfitValidation.hardFails.join('; ')}`);
+
+            // Build targeted correction instructions from specific hardFail types
+            const correctionInstructions: string[] = [];
+            for (const fail of outfitValidation.hardFails) {
+              if (fail.startsWith('MISSING_REQUIRED_SLOTS')) {
+                const missing = fail.replace('MISSING_REQUIRED_SLOTS:', '').trim();
+
+                // Inline slot resolution — mirrors mainCatToSlot() in chatTier4.ts exactly
+                const resolveSlot = (mainCat: string | undefined): string => {
+                  switch ((mainCat ?? '').toLowerCase().trim()) {
+                    case 'tops': return 'tops';
+                    case 'bottoms': return 'bottoms';
+                    case 'shoes': return 'shoes';
+                    case 'outerwear': return 'outerwear';
+                    case 'dresses': return 'dresses';
+                    case 'activewear': return 'activewear';
+                    case 'swimwear': return 'swimwear';
+                    default: return 'accessories';
+                  }
+                };
+
+                const injectCandidates = (slotKey: string, slotLabel: string) => {
+                  const candidates = wardrobeRows
+                    .filter(r => resolveSlot(r.main_category) === slotKey)
+                    .slice(0, 5);
+
+                  const candidateNames = candidates
+                    .map(r => r.ai_title || r.name)
+                    .filter(Boolean);
+
+                  if (candidateNames.length > 0) {
+                    correctionInstructions.push(
+                      `You MUST include exactly one ${slotLabel} item from the user's wardrobe. Choose one of:\n${candidateNames.map(n => `  - ${n}`).join('\n')}`,
+                    );
+                  } else {
+                    correctionInstructions.push(`You MUST include at least one ${slotLabel} item from the wardrobe.`);
+                  }
+                };
+
+                if (missing.includes('tops'))    injectCandidates('tops', 'TOP');
+                if (missing.includes('bottoms')) injectCandidates('bottoms', 'BOTTOM');
+                if (missing.includes('shoes'))   injectCandidates('shoes', 'SHOES');
+                if (!missing.includes('tops') && !missing.includes('bottoms') && !missing.includes('shoes')) {
+                  correctionInstructions.push(`You are missing required outfit slots: ${missing}. Include items for all required slots.`);
+                }
+              } else if (fail.startsWith('DRESS_CODE_MISMATCH')) {
+                correctionInstructions.push('One or more items violate the requested dress code. Replace them with items whose dress_code is compatible.');
+              } else if (fail.startsWith('FORMALITY_FLOOR')) {
+                correctionInstructions.push('One or more items are below the user\'s minimum formality level. Choose more formal alternatives from the wardrobe.');
+              } else if (fail.startsWith('EXTREME_WEATHER_CONTRADICTION')) {
+                correctionInstructions.push('One or more items are inappropriate for the current weather/climate. Choose climate-appropriate alternatives.');
+              } else if (fail.startsWith('COVERAGE_NO_GO')) {
+                correctionInstructions.push('One or more items violate the user\'s coverage preferences. Choose items that respect their coverage requirements.');
+              } else if (fail.startsWith('AVOID_COLOR')) {
+                const colorMatch = fail.match(/matches avoided "([^"]+)"/);
+                correctionInstructions.push(`Do NOT include items in ${colorMatch ? `"${colorMatch[1]}"` : 'the user\'s avoided colors'}. Pick different-colored alternatives.`);
+              } else if (fail.startsWith('AVOID_MATERIAL')) {
+                correctionInstructions.push('One or more items use a material the user wants to avoid. Choose items made from different materials.');
+              } else if (fail.startsWith('WALKABILITY')) {
+                correctionInstructions.push('The shoes are not suitable for the user\'s walkability requirement. Choose more practical footwear.');
+              } else if (fail.startsWith('CROSS_PRESENTATION')) {
+                correctionInstructions.push('One or more items do not match the user\'s presentation preference. Choose items aligned with their style presentation.');
+              }
+            }
+
+            const failLines = outfitValidation.hardFails.map(f => `- ${f}`);
+            const outfitCorrectionPrompt =
+              `\n\nCRITICAL: Your previous outfit suggestion FAILED validation:\n${failLines.join('\n')}\n\nYou must correct these issues. Rules:\n- Use ONLY items from the user's wardrobe.\n- Include all required outfit slots (top, bottom, shoes for separates; dress + shoes for dresses).\n- Respect dress code, formality, climate, and user preferences.\n- Do NOT repeat the previous invalid combination.\n\nRequired corrections:\n${correctionInstructions.map(c => `- ${c}`).join('\n')}`;
+
+            try {
+              const validatorRetry = await this.openai.chat.completions.create({
+                model: 'gpt-4o',
+                temperature: 0.6,
+                messages: [
+                  { role: 'system', content: systemContent + outfitCorrectionPrompt },
+                  ...messages,
+                ],
+              });
+              const retryReply = validatorRetry.choices[0]?.message?.content?.trim() || '';
+
+              if (retryReply) {
+                const retryItems = extractOutfitItemsFromResponse(retryReply, wardrobeRows);
+                if (retryItems.length >= 2) {
+                  const retryValidation = tasteValidateOutfit(
+                    retryItems as ValidatorItem[],
+                    chatValidatorCtx,
+                  );
+                  if (retryValidation.valid) {
+                    aiReply = retryReply;
+                    console.log('[AskStyla T4 Validator] retry succeeded — validation passed');
+                  } else {
+                    aiReply = 'I cannot construct a compliant outfit from your wardrobe under current constraints.';
+                    console.log(`[AskStyla T4 Validator] retry also failed (${retryValidation.hardFails.join('; ')}) — returning fallback`);
+                  }
+                } else {
+                  // Retry produced non-outfit response — accept it
+                  aiReply = retryReply;
+                  console.log('[AskStyla T4 Validator] retry is non-outfit — accepting');
+                }
+              }
+            } catch (retryErr: any) {
+              aiReply = 'I cannot construct a compliant outfit from your wardrobe under current constraints.';
+              console.warn(`[AskStyla T4 Validator] retry error — returning fallback: ${retryErr.message}`);
+            }
+          } else {
+            console.log(`[AskStyla T4 Validator] passed (coherence: ${outfitValidation.coherenceScore})`);
+          }
+        }
+      } catch (extractErr: any) {
+        // Extraction/infrastructure error — log and continue (don't block response)
+        console.warn(`[AskStyla T4 Validator] extraction error: ${extractErr.message}`);
+      }
+    } else if (structuredSlotLocked) {
+      console.log('[AskStyla T4 Validator] skipped prose extraction — structured slots already validated');
+    }
+
     // ── Tier 4 Reasoning: Quality validation (shortlist queries only) ──
-    if (useShortlist && isStylingResponse(aiReply)) {
+    // Skip when structured slots already validated — prevents spurious regeneration
+    if (useShortlist && isStylingResponse(aiReply) && !structuredSlotLocked) {
       try {
         const shortlistNames = shortlist.map(i => (i.name || '').trim().toLowerCase());
         const reasoningOk = validateReasoningQuality(aiReply, shortlistNames);

@@ -37,137 +37,136 @@ export const routeVoiceCommand = async (
     keys.some(k => lower.includes(k));
 
   // ---------------------------
-  // 🔹 Navigation Intents
+  // 🔹 Navigation Intents (DISABLED — commented out to prevent voice-triggered navigation)
+  // Uncomment to re-enable.
   // ---------------------------
-  if (includesAny(['login', 'sign in', 'log in'])) return go('Login', 'Login');
-  if (includesAny(['home', 'main'])) return go('Home', 'Home');
-  if (includesAny(['profile', 'account'])) return go('Profile', 'Profile');
-  if (includesAny(['style profile', 'styling profile', 'style settings']))
-    return go('StyleProfileScreen', 'Style Profile');
-  if (includesAny(['fashion news', 'news', 'news stories']))
-    return go('Explore', 'Explore');
-  if (includesAny(['community share', 'community', 'share']))
-    return go('CommunityShowcaseScreen', 'CommunityShowcaseScreen');
-  if (includesAny(['wardrobe', 'closet'])) return go('Wardrobe', 'Wardrobe');
-  if (includesAny(['settings', 'preferences', 'options']))
-    return go('Settings', 'Settings');
-  if (includesAny(['barcode', 'scanner', 'scan']))
-    return go('BarcodeScannerScreen', 'Barcode Scanner');
-  if (includesAny(['measurements', 'sizes', 'fit data']))
-    return go('Measurements', 'Measurements');
-  if (includesAny(['budget', 'brands', 'spending']))
-    return go('BudgetAndBrands', 'Budget and Brands');
-  if (includesAny(['appearance', 'look settings']))
-    return go('Appearance', 'Appearance');
-  if (includesAny(['lifestyle', 'daily life', 'routine']))
-    return go('Lifestyle', 'Lifestyle');
-  if (includesAny(['style summary', 'summary']))
-    return go('StyleSummary', 'Style Summary');
-  if (includesAny(['activities', 'hobbies']))
-    return go('Activities', 'Activities');
-  if (includesAny(['body types', 'body type']))
-    return go('BodyTypes', 'Body Types');
-  if (includesAny(['shop', 'shopping, browser']))
-    return go('ShoppingDashboard');
-  if (includesAny(['climate', 'weather preferences']))
-    return go('Climate', 'Climate');
-  if (includesAny(['color preferences', 'favorite colors']))
-    return go('ColorPreferences', 'Color Preferences');
-  if (includesAny(['eye color'])) return go('EyeColor', 'Eye Color');
-  if (includesAny(['fashion goals', 'style goals']))
-    return go('FashionGoals', 'Fashion Goals');
-  if (includesAny(['fit preferences']))
-    return go('FitPreferences', 'Fit Preferences');
-  if (includesAny(['hair color'])) return go('HairColor', 'Hair Color');
-  if (includesAny(['personality', 'traits']))
-    return go('PersonalityTraits', 'Personality Traits');
-  if (includesAny(['preference strength']))
-    return go('PreferenceStrength', 'Preference Strength');
-  if (includesAny(['proportions', 'body proportions']))
-    return go('Proportions', 'Proportions');
-  if (includesAny(['search', 'find'])) return go('Search', 'Search');
-  if (includesAny(['skin tone', 'complexion']))
-    return go('SkinTone', 'Skin Tone');
-  if (includesAny(['style icon'])) return go('StyleIcon', 'Style Icon');
-  if (includesAny(['voice', 'assistant']))
-    return go('Voice', 'Voice Assistant');
-  if (includesAny(['item detail', 'details']))
-    return go('ItemDetail', 'Item Detail');
-  if (includesAny(['add item', 'add clothing', 'new item']))
-    return go('AddItem', 'Add Item');
-  if (includesAny(['outfit builder', 'build outfit']))
-    return go('OutfitBuilder', 'Outfit Builder');
-  if (includesAny(['style me', 'create outfit'])) return go('Outfit', 'Outfit');
-  if (includesAny(['saved outfits', 'saved looks']))
-    return go('SavedOutfits', 'Saved Outfits');
-  if (includesAny(['try on', 'overlay'])) return go('TryOnOverlay', 'Try On');
-  if (includesAny(['notifications', 'alerts']))
-    return go('Notifications', 'Notifications');
-  if (includesAny(['undertone', 'undertones']))
-    return go('Undertone', 'Undertone');
-  if (includesAny(['style keywords', 'keywords']))
-    return go('StyleKeywords', 'Style Keywords');
-  if (includesAny(['personal information', 'personal info']))
-    return go('PersonalInformation', 'Personal Information');
-  if (includesAny(['contact'])) return go('ContactScreen', 'Contact');
+  // if (includesAny(['login', 'sign in', 'log in'])) return go('Login', 'Login');
+  // if (includesAny(['home', 'main'])) return go('Home', 'Home');
+  // if (includesAny(['profile', 'account'])) return go('Profile', 'Profile');
+  // if (includesAny(['style profile', 'styling profile', 'style settings']))
+  //   return go('StyleProfileScreen', 'Style Profile');
+  // if (includesAny(['fashion news', 'news', 'news stories']))
+  //   return go('Explore', 'Explore');
+  // if (includesAny(['community share', 'community', 'share']))
+  //   return go('CommunityShowcaseScreen', 'CommunityShowcaseScreen');
+  // if (includesAny(['wardrobe', 'closet'])) return go('Wardrobe', 'Wardrobe');
+  // if (includesAny(['settings', 'preferences', 'options']))
+  //   return go('Settings', 'Settings');
+  // if (includesAny(['barcode', 'scanner', 'scan']))
+  //   return go('BarcodeScannerScreen', 'Barcode Scanner');
+  // if (includesAny(['measurements', 'sizes', 'fit data']))
+  //   return go('Measurements', 'Measurements');
+  // if (includesAny(['budget', 'brands', 'spending']))
+  //   return go('BudgetAndBrands', 'Budget and Brands');
+  // if (includesAny(['appearance', 'look settings']))
+  //   return go('Appearance', 'Appearance');
+  // if (includesAny(['lifestyle', 'daily life', 'routine']))
+  //   return go('Lifestyle', 'Lifestyle');
+  // if (includesAny(['style summary', 'summary']))
+  //   return go('StyleSummary', 'Style Summary');
+  // if (includesAny(['activities', 'hobbies']))
+  //   return go('Activities', 'Activities');
+  // if (includesAny(['body types', 'body type']))
+  //   return go('BodyTypes', 'Body Types');
+  // if (includesAny(['shop', 'shopping, browser']))
+  //   return go('ShoppingDashboard');
+  // if (includesAny(['climate', 'weather preferences']))
+  //   return go('Climate', 'Climate');
+  // if (includesAny(['color preferences', 'favorite colors']))
+  //   return go('ColorPreferences', 'Color Preferences');
+  // if (includesAny(['eye color'])) return go('EyeColor', 'Eye Color');
+  // if (includesAny(['fashion goals', 'style goals']))
+  //   return go('FashionGoals', 'Fashion Goals');
+  // if (includesAny(['fit preferences']))
+  //   return go('FitPreferences', 'Fit Preferences');
+  // if (includesAny(['hair color'])) return go('HairColor', 'Hair Color');
+  // if (includesAny(['personality', 'traits']))
+  //   return go('PersonalityTraits', 'Personality Traits');
+  // if (includesAny(['preference strength']))
+  //   return go('PreferenceStrength', 'Preference Strength');
+  // if (includesAny(['proportions', 'body proportions']))
+  //   return go('Proportions', 'Proportions');
+  // if (includesAny(['search', 'find'])) return go('Search', 'Search');
+  // if (includesAny(['skin tone', 'complexion']))
+  //   return go('SkinTone', 'Skin Tone');
+  // if (includesAny(['style icon'])) return go('StyleIcon', 'Style Icon');
+  // if (includesAny(['voice', 'assistant']))
+  //   return go('Voice', 'Voice Assistant');
+  // if (includesAny(['item detail', 'details']))
+  //   return go('ItemDetail', 'Item Detail');
+  // if (includesAny(['add item', 'add clothing', 'new item']))
+  //   return go('AddItem', 'Add Item');
+  // if (includesAny(['outfit builder', 'build outfit']))
+  //   return go('OutfitBuilder', 'Outfit Builder');
+  // if (includesAny(['style me', 'create outfit'])) return go('Outfit', 'Outfit');
+  // if (includesAny(['saved outfits', 'saved looks']))
+  //   return go('SavedOutfits', 'Saved Outfits');
+  // if (includesAny(['try on', 'overlay'])) return go('TryOnOverlay', 'Try On');
+  // if (includesAny(['notifications', 'alerts']))
+  //   return go('Notifications', 'Notifications');
+  // if (includesAny(['undertone', 'undertones']))
+  //   return go('Undertone', 'Undertone');
+  // if (includesAny(['style keywords', 'keywords']))
+  //   return go('StyleKeywords', 'Style Keywords');
+  // if (includesAny(['personal information', 'personal info']))
+  //   return go('PersonalInformation', 'Personal Information');
+  // if (includesAny(['contact'])) return go('ContactScreen', 'Contact');
   // if (includesAny(['about', 'about stylhelpr']))
   //   return go('AboutScreen', 'About');
-  if (includesAny(['feedback', 'support']))
-    return go('FeedbackScreen', 'Feedback');
-  if (
-    includesAny([
-      'ai stylist',
-      'ai chat',
-      'stylist chat',
-      'chatbot',
-      'assistant',
-      'chat',
-    ])
-  )
-    return go('AiStylistChatScreen', 'AI Stylist Chat');
-  if (includesAny(['recreated look', 'recreate']))
-    return go('RecreatedLook', 'Recreated Look');
-  if (includesAny(['web page', 'browser']))
-    return go('WebPageScreen', 'Web Page');
-  if (includesAny(['planner', 'schedule', 'calendar']))
-    return go('Planner', 'Planner');
+  // if (includesAny(['feedback', 'support']))
+  //   return go('FeedbackScreen', 'Feedback');
+  // if (
+  //   includesAny([
+  //     'ai stylist',
+  //     'ai chat',
+  //     'stylist chat',
+  //     'chatbot',
+  //     'assistant',
+  //     'chat',
+  //   ])
+  // )
+  //   return go('AiStylistChatScreen', 'AI Stylist Chat');
+  // if (includesAny(['recreated look', 'recreate']))
+  //   return go('RecreatedLook', 'Recreated Look');
+  // if (includesAny(['web page', 'browser']))
+  //   return go('WebPageScreen', 'Web Page');
+  // if (includesAny(['planner', 'schedule', 'calendar']))
+  //   return go('Planner', 'Planner');
 
-  if (
-    lastIntent === 'navigation' &&
-    (lower.includes('back') || lower.includes('previous'))
-  ) {
-    navigate('Home');
-    return;
-  }
+  // if (
+  //   lastIntent === 'navigation' &&
+  //   (lower.includes('back') || lower.includes('previous'))
+  // ) {
+  //   navigate('Home');
+  //   return;
+  // }
 
   // ---------------------------
-  // 🔙 Backward Navigation (Fixed)
+  // 🔙 Backward Navigation (DISABLED)
   // ---------------------------
-  if (includesAny(['back', 'previous', 'go back'])) {
-    try {
-      // Call navigate with a special flag or your back action handler
-      if (navigate && typeof navigate === 'function') {
-        navigate('..'); // or use your stack goBack logic here
-      } else {
-        console.log('⚠️ No navigation function available');
-      }
+  // if (includesAny(['back', 'previous', 'go back'])) {
+  //   try {
+  //     if (navigate && typeof navigate === 'function') {
+  //       navigate('..');
+  //     } else {
+  //       console.log('⚠️ No navigation function available');
+  //     }
+  //     VoiceMemory.set('lastIntent', 'navigation');
+  //     VoiceMemory.set('lastTopic', 'back');
+  //     console.log('🔙 Navigating back (via navigate)');
+  //     return;
+  //   } catch (err) {
+  //     console.log('⚠️ Back navigation failed (via navigate):', err);
+  //   }
+  // }
 
-      VoiceMemory.set('lastIntent', 'navigation');
-      VoiceMemory.set('lastTopic', 'back');
-      console.log('🔙 Navigating back (via navigate)');
-      return;
-    } catch (err) {
-      console.log('⚠️ Back navigation failed (via navigate):', err);
-    }
-  }
-
-  if (includesAny(['back', 'previous', 'go back'])) {
-    navigate('..'); // equivalent to goBack()
-    VoiceMemory.set('lastIntent', 'navigation');
-    VoiceMemory.set('lastTopic', 'back');
-    console.log('🔙 Navigating back');
-    return;
-  }
+  // if (includesAny(['back', 'previous', 'go back'])) {
+  //   navigate('..');
+  //   VoiceMemory.set('lastIntent', 'navigation');
+  //   VoiceMemory.set('lastTopic', 'back');
+  //   console.log('🔙 Navigating back');
+  //   return;
+  // }
 
   // ----------------------------
   // 🧠 Memory-driven commands

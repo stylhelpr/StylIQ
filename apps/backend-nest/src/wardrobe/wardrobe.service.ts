@@ -2538,6 +2538,56 @@ ${lockedLines}
       }
       console.log('⚡ [FAST] Available item types:', availableItems.join(', '));
 
+      // ── 0a) Inventory-Aware Color Shaping ─────────────────────────
+      // Extract color intent from query and build a per-slot color map
+      // so the LLM prompt can be constrained to colors actually in the wardrobe.
+      const _colorIntent = extractColorIntent(query);
+      let _availableColorsBySlot: Record<string, string[]> = {};
+      let _colorAnchorSlot: string | undefined;
+
+      if (_colorIntent.length > 0) {
+        const { rows: colorRows } = await pool.query(
+          `SELECT main_category, color, color_family FROM wardrobe_items
+           WHERE user_id = $1 AND main_category IS NOT NULL`,
+          [userId],
+        );
+        // Build slot → unique colors map
+        const slotColorMap = new Map<string, Set<string>>();
+        for (const r of colorRows as any[]) {
+          const slot = mapMainCategoryToSlot(r.main_category);
+          if (!slot) continue;
+          if (!slotColorMap.has(slot)) slotColorMap.set(slot, new Set());
+          const colorTokens = [r.color, r.color_family]
+            .filter(Boolean)
+            .map((c: string) => c.trim().toLowerCase());
+          for (const ct of colorTokens) slotColorMap.get(slot)!.add(ct);
+        }
+        _availableColorsBySlot = Object.fromEntries(
+          [...slotColorMap.entries()].map(([s, cs]) => [s, [...cs]]),
+        );
+
+        // Determine primary anchor slot — prefer bottoms for charcoal/gray tones
+        const grayTones = new Set(['charcoal', 'gray', 'grey', 'slate', 'graphite']);
+        const intentIsGray = _colorIntent.some((t) => grayTones.has(t));
+        const slotPreference = intentIsGray
+          ? ['bottoms', 'outerwear', 'tops', 'shoes', 'accessories']
+          : ['outerwear', 'bottoms', 'tops', 'shoes', 'accessories'];
+
+        for (const slot of slotPreference) {
+          const colors = _availableColorsBySlot[slot] ?? [];
+          const hasMatch = colors.some((c) =>
+            _colorIntent.some((intent) => colorMatchesSafe(c, intent)),
+          );
+          if (hasMatch) {
+            _colorAnchorSlot = slot;
+            break;
+          }
+        }
+        console.log(
+          `⚡ [FAST] Color intent: [${_colorIntent.join(', ')}] anchor_slot=${_colorAnchorSlot ?? 'none'} colors_by_slot=${JSON.stringify(_availableColorsBySlot)}`,
+        );
+      }
+
       // ── 0b) For refinements, determine which SLOTS to keep vs change ──
       // CRITICAL: LLM NEVER receives item names, only slot-level actions
       // Parse user's refinement prompt to detect EXPLICIT change requests
@@ -2897,6 +2947,24 @@ ${lockedLines}
 - Do not use unescaped quotes inside string values.
 - "why" must be <= 140 chars, single sentence.
 - If you cannot produce 9 outfits, produce as many as possible but still valid JSON.`;
+
+      // ── Inventory Color Constraint — append to prompt if color intent detected ──
+      if (_colorIntent.length > 0 && Object.keys(_availableColorsBySlot).length > 0) {
+        const slotLines = Object.entries(_availableColorsBySlot)
+          .map(([slot, colors]) => `  - ${slot}: ${colors.join(', ')}`)
+          .join('\n');
+        const anchorLine = _colorAnchorSlot
+          ? `The PRIMARY color anchor slot is "${_colorAnchorSlot}" — it MUST contain a ${_colorIntent.join('/')} piece.`
+          : `No exact color match found for ${_colorIntent.join('/')} — use the closest tonal match available.`;
+        planPrompt += `\n\nINVENTORY COLOR CONSTRAINT (MANDATORY):
+The user wants: ${_colorIntent.join(', ')}.
+${anchorLine}
+Available colors by slot in the user's wardrobe:
+${slotLines}
+- Do NOT suggest colors that are not listed above for any slot.
+- If a slot has no exact match for the requested color, choose the closest tonal complement from that slot's available colors.
+- Prioritize tonal harmony across the outfit (e.g., charcoal + navy + black, not charcoal + magenta + lime).`;
+      }
 
       console.log('⚡ [FAST] Plan prompt length:', planPrompt.length, 'chars');
       console.log(
@@ -3425,6 +3493,41 @@ ${lockedLines}
         };
       });
 
+      // ── Primary Color Anchor Rule ─────────────────────────────
+      // If color intent was extracted, reject outfits that lack at least one
+      // item matching the intent color. Fail-open: if rejection would empty
+      // the list, keep all outfits.
+      if (_colorIntent.length > 0) {
+        const anchorSlotPreference = ['bottoms', 'outerwear', 'tops', 'shoes', 'accessories'];
+        const withAnchor = outfits.filter((outfit: any) => {
+          const items: CatalogItem[] = outfit.items ?? [];
+          // Check if any item's color tokens match the intent
+          for (const item of items) {
+            const itemColors = extractItemColors(item as any);
+            if (item.color_family) itemColors.push(item.color_family.trim().toLowerCase());
+            const matches = itemColors.some((ic) =>
+              _colorIntent.some((intent) => colorMatchesSafe(ic, intent)),
+            );
+            if (matches) return true;
+          }
+          console.log(
+            `⚡ [FAST] EXECUTIVE_COLOR_ANCHOR_FAIL: "${outfit.title}" has no ${_colorIntent.join('/')} piece`,
+          );
+          return false;
+        });
+        // Fail-open: only apply filter if it doesn't empty the list
+        if (withAnchor.length > 0) {
+          console.log(
+            `⚡ [FAST] Color anchor filter: ${outfits.length} → ${withAnchor.length} outfits`,
+          );
+          outfits = withAnchor;
+        } else {
+          console.log(
+            '⚡ [FAST] Color anchor filter would reject all — keeping originals (fail-open)',
+          );
+        }
+      }
+
       // Hard validation gate — discard structurally invalid outfits
       outfits = validateOutfitCore(outfits, query);
 
@@ -3896,6 +3999,148 @@ ${lockedLines}
         ).length;
       }
 
+      // ── Executive Coherence Gate (pre-score rejection filter) ──────
+      // Lightweight deterministic filter that rejects outfits violating
+      // executive formality constraints. Only activates for executive queries.
+      const _isExecutiveQuery =
+        /\b(executive|business\s*formal|board\s*room|boardroom|corporate\s*formal)\b/i.test(query);
+
+      if (_isExecutiveQuery && outfits.length > 0) {
+        // 5-rank formality scale mapping
+        const formalityRank = (score: number | undefined): number => {
+          if (score == null) return 3; // default to Business Casual
+          if (score <= 2) return 1; // Casual
+          if (score <= 4) return 2; // Smart Casual
+          if (score <= 6) return 3; // Business Casual
+          if (score <= 8) return 4; // Business Formal
+          return 5; // Black Tie
+        };
+
+        const NON_TAILORED_OUTERWEAR =
+          /\b(puffer|windbreaker|anorak|parka|field\s*jacket|bomber|hoodie|fleece|rain\s*coat|raincoat|track\s*jacket)\b/i;
+
+        // Hard deterministic reject for casual tops by name/subcategory (not metadata-dependent)
+        const EXECUTIVE_CASUAL_TOP_REGEX =
+          /\b(hoodie|sweatshirt|t-?shirt|tee|pullover|graphic|athletic)\b/i;
+
+        const coherent = outfits.filter((outfit: any) => {
+          const items: CatalogItem[] = outfit.items ?? [];
+          if (items.length === 0) return true;
+
+          // Rule 1: Formality deviation > 1 level (exclude accessories)
+          const FORMALITY_SLOTS = new Set(['tops', 'bottoms', 'outerwear', 'shoes']);
+          const coreItems = items.filter((it) =>
+            FORMALITY_SLOTS.has(mapMainCategoryToSlot(it.main_category)),
+          );
+          if (coreItems.length > 0) {
+            const ranks = coreItems.map((it) => formalityRank(it.formality_score));
+            const formalitySpread = Math.max(...ranks) - Math.min(...ranks);
+            if (formalitySpread > 1) {
+              console.log(
+                `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" formality spread=${formalitySpread}`,
+              );
+              return false;
+            }
+          }
+
+          // Rule 2: Casual piece in executive mode
+          const hasCasual = items.some((it) => {
+            const dc = (it.dress_code ?? '').toLowerCase();
+            return (
+              dc === 'ultracasual' ||
+              dc === 'ultra casual' ||
+              dc === 'casual' ||
+              (it.formality_score != null && it.formality_score < 4)
+            );
+          });
+          if (hasCasual) {
+            console.log(
+              `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" contains casual piece in executive context`,
+            );
+            return false;
+          }
+
+          // Rule 3: Color family coherence (executive neutral-aware)
+          // Executive neutrals are expected in formal outfits and don't count
+          // toward the accent limit. Allow unlimited neutrals + at most 1 accent.
+          const EXEC_NEUTRALS = new Set([
+            'white', 'gray', 'grey', 'charcoal', 'black',
+            'navy', 'midnight', 'slate', 'stone',
+            'brown', 'tan', 'beige', 'ecru',
+          ]);
+          const normalizeExecColor = (raw: string): string => {
+            const t = raw.trim().toLowerCase();
+            if (t === 'grey') return 'gray';
+            if (t === 'navy blue') return 'navy';
+            if (t === 'midnight blue') return 'midnight';
+            if (t === 'dark blue' || t === 'ink') return 'navy';
+            return t;
+          };
+          const families = new Set(
+            items
+              .map((it) => normalizeExecColor(it.color_family ?? ''))
+              .filter(Boolean),
+          );
+          const neutralFamilies: string[] = [];
+          const nonNeutralFamilies: string[] = [];
+          for (const f of families) {
+            if (EXEC_NEUTRALS.has(f)) {
+              neutralFamilies.push(f);
+            } else {
+              nonNeutralFamilies.push(f);
+            }
+          }
+          if (nonNeutralFamilies.length > 1) {
+            console.log(
+              `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" accents=${nonNeutralFamilies.length} neutrals=[${neutralFamilies.join(', ')}] accents=[${nonNeutralFamilies.join(', ')}]`,
+            );
+            return false;
+          }
+
+          // Rule 4: Non-tailored outerwear in executive context
+          const hasNonTailored = items.some((it) => {
+            const slot = mapMainCategoryToSlot(it.main_category);
+            if (slot !== 'outerwear') return false;
+            const text = `${it.subcategory ?? ''} ${it.name ?? it.label ?? ''}`;
+            return NON_TAILORED_OUTERWEAR.test(text);
+          });
+          if (hasNonTailored) {
+            console.log(
+              `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" has non-tailored outerwear in executive context`,
+            );
+            return false;
+          }
+
+          // Rule 5: Hard reject casual tops by name/subcategory string match
+          const hasCasualTop = items.some((it) => {
+            const slot = mapMainCategoryToSlot(it.main_category);
+            if (slot !== 'tops') return false;
+            const combined = `${it.name ?? ''} ${it.subcategory ?? ''}`.toLowerCase();
+            return EXECUTIVE_CASUAL_TOP_REGEX.test(combined);
+          });
+          if (hasCasualTop) {
+            console.log(
+              `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" reason: CASUAL_TOP_HARD_REJECT`,
+            );
+            return false;
+          }
+
+          return true;
+        });
+
+        // Fail-open: if all outfits rejected, keep original set
+        if (coherent.length > 0) {
+          console.log(
+            `⚡ [FAST] Executive coherence gate: ${outfits.length} → ${coherent.length} outfits`,
+          );
+          outfits = coherent;
+        } else {
+          console.log(
+            '⚡ [FAST] Executive coherence gate would reject all — keeping originals (fail-open)',
+          );
+        }
+      }
+
       // Elite Scoring hook — Phase 2: rerank when V2 flag on
       // ONE-FLAG: ELITE_ENABLED in feature-flags.ts:42 force-enables STUDIO + STUDIO_V2
       const demoEliteFast = isEliteDemoUser(userId);
@@ -4064,6 +4309,28 @@ ${lockedLines}
           ),
         }),
       );
+
+      // ── FINAL DEDUP PASS (Tier 4 Presentation Guarantee) ──
+      {
+        const seenSignatures = new Set<string>();
+        const beforeDedup = eliteOutfits.length;
+        eliteOutfits = eliteOutfits.filter((outfit: any) => {
+          const allItemIds = Object.values(outfit.slots || {})
+            .flat()
+            .map((item: any) => item?.id)
+            .filter(Boolean)
+            .sort();
+          const signature = allItemIds.join('|');
+          if (seenSignatures.has(signature)) return false;
+          seenSignatures.add(signature);
+          return true;
+        });
+        if (eliteOutfits.length < beforeDedup) {
+          console.log(
+            `⚡ [FAST] FINAL_DEDUP: ${beforeDedup} → ${eliteOutfits.length} outfits`,
+          );
+        }
+      }
 
       return {
         request_id: reqId,

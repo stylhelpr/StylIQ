@@ -225,6 +225,94 @@ export function isStylingResponse(responseText: string): boolean {
   return hits >= 2;
 }
 
+// ── Phase 3: Outfit Item Extraction for Validator Gating ─────────────
+
+/** Minimal shape of a wardrobe row as loaded in chat(). */
+export interface ChatWardrobeRow {
+  name?: string;
+  ai_title?: string;
+  main_category?: string;
+  subcategory?: string;
+  color?: string;
+  material?: string;
+  fit?: string;
+  formality_score?: number;
+  dress_code?: string;
+}
+
+/** Extracted item shape — structurally compatible with ValidatorItem. */
+export type ChatExtractedItem = {
+  id: string;
+  slot: string;
+  name?: string;
+  subcategory?: string;
+  color?: string;
+  material?: string;
+  fit?: string;
+  formality_score?: number;
+  dress_code?: string;
+};
+
+/** Map main_category to validator slot. Deterministic, fail-closed to 'accessories'. */
+function mainCatToSlot(mainCategory: string | undefined): string {
+  switch ((mainCategory ?? '').toLowerCase().trim()) {
+    case 'tops': return 'tops';
+    case 'bottoms': return 'bottoms';
+    case 'shoes': return 'shoes';
+    case 'outerwear': return 'outerwear';
+    case 'dresses': return 'dresses';
+    case 'activewear': return 'activewear';
+    case 'swimwear': return 'swimwear';
+    default: return 'accessories';
+  }
+}
+
+/**
+ * Extract wardrobe items referenced in AI response text.
+ * Deterministic: lowercase + whitespace-collapse + substring match.
+ * Returns unique matched items in order of first appearance.
+ * Items with names < 4 chars are skipped to avoid false positives.
+ */
+export function extractOutfitItemsFromResponse(
+  response: string,
+  wardrobeRows: ChatWardrobeRow[],
+): ChatExtractedItem[] {
+  const normResp = response.toLowerCase().replace(/\s+/g, ' ');
+  const seen = new Set<number>();
+  const hits: Array<{ idx: number; pos: number }> = [];
+
+  for (let i = 0; i < wardrobeRows.length; i++) {
+    const row = wardrobeRows[i];
+    for (const rawName of [row.ai_title, row.name]) {
+      if (!rawName) continue;
+      const n = rawName.toLowerCase().replace(/\s+/g, ' ').trim();
+      if (n.length < 4) continue;
+      const pos = normResp.indexOf(n);
+      if (pos >= 0 && !seen.has(i)) {
+        seen.add(i);
+        hits.push({ idx: i, pos });
+      }
+    }
+  }
+
+  hits.sort((a, b) => a.pos - b.pos);
+
+  return hits.map(h => {
+    const r = wardrobeRows[h.idx];
+    return {
+      id: String(h.idx),
+      slot: mainCatToSlot(r.main_category),
+      name: r.ai_title || r.name,
+      subcategory: r.subcategory,
+      color: r.color,
+      material: r.material,
+      fit: r.fit,
+      formality_score: r.formality_score != null ? Number(r.formality_score) : undefined,
+      dress_code: r.dress_code,
+    };
+  });
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function escapeRegex(s: string): string {
