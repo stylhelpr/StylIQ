@@ -1,15 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SuggestOutfitDto } from './dto/suggest-outfit.dto';
 import { OutfitFeedbackDto } from './dto/outfit-feedback.dto';
 import { FavoriteOutfitDto } from './dto/favorite-outfit.dto';
 import { pool } from '../db/pool';
 import { LearningEventsService } from '../learning/learning-events.service';
+import { FashionStateService } from '../learning/fashion-state.service';
 import { LEARNING_FLAGS } from '../config/feature-flags';
 import { extractOutfitFeatures } from '../learning/extract-outfit-features';
 
 @Injectable()
 export class OutfitService {
-  constructor(private readonly learningEvents: LearningEventsService) {}
+  private readonly logger = new Logger(OutfitService.name);
+
+  constructor(
+    private readonly learningEvents: LearningEventsService,
+    private readonly fashionStateService: FashionStateService,
+  ) {}
 
   async suggestOutfit(dto: SuggestOutfitDto) {
     const {
@@ -140,29 +146,33 @@ export class OutfitService {
       [user_id, outfit_id, rating, notes],
     );
 
-    // Emit OUTFIT_RATED learning event (shadow mode - no behavior change)
+    // Emit OUTFIT_RATED learning event + inline recompute
     if (LEARNING_FLAGS.EVENTS_ENABLED && rating != null) {
       const isPositive = rating >= 4;
       const isNegative = rating <= 2;
 
       if (isPositive || isNegative) {
-        extractOutfitFeatures(outfit_id)
-          .then((features) =>
-            this.learningEvents.logEvent({
-              userId: user_id,
-              eventType: isPositive
-                ? 'OUTFIT_RATED_POSITIVE'
-                : 'OUTFIT_RATED_NEGATIVE',
-              entityType: 'outfit',
-              entityId: outfit_id,
-              signalPolarity: isPositive ? 1 : -1,
-              signalWeight: 0.6,
-              extractedFeatures: features,
-              sourceFeature: 'outfits',
-              clientEventId: `outfit_rated:${user_id}:${outfit_id}:${rating}`,
-            }),
-          )
-          .catch(() => {});
+        try {
+          const features = await extractOutfitFeatures(outfit_id);
+          await this.learningEvents.logEvent({
+            userId: user_id,
+            eventType: isPositive
+              ? 'OUTFIT_RATED_POSITIVE'
+              : 'OUTFIT_RATED_NEGATIVE',
+            entityType: 'outfit',
+            entityId: outfit_id,
+            signalPolarity: isPositive ? 1 : -1,
+            signalWeight: 0.6,
+            extractedFeatures: features,
+            sourceFeature: 'outfits',
+            clientEventId: `outfit_rated:${user_id}:${outfit_id}:${rating}`,
+          });
+          this.fashionStateService
+            .computeAndSaveState(user_id)
+            .catch(err => this.logger.error('[LEARNING INLINE] recompute failed', err));
+        } catch (err) {
+          this.logger.error('[LEARNING] outfit rated event failed', err);
+        }
       }
     }
 

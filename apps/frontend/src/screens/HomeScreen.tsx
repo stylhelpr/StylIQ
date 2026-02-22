@@ -2356,7 +2356,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         marginTop: -5,
                         marginRight: moderateScale(tokens.spacing.sm),         
                       }}>
-                      See Saved Recs
+                      See All Liked
                     </Text>
                   </Pressable>
                 </View>

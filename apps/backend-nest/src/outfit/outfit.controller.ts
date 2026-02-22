@@ -17,6 +17,7 @@ import { OutfitFeedbackDto } from './dto/outfit-feedback.dto';
 import { FavoriteOutfitDto } from './dto/favorite-outfit.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { LearningEventsService } from '../learning/learning-events.service';
+import { FashionStateService } from '../learning/fashion-state.service';
 import { LEARNING_FLAGS } from '../config/feature-flags';
 import type {
   LearningEventType,
@@ -38,6 +39,7 @@ export class OutfitController {
   constructor(
     private readonly outfitService: OutfitService,
     private readonly learningEvents: LearningEventsService,
+    private readonly fashionStateService: FashionStateService,
   ) {}
 
   @Get('custom')
@@ -105,6 +107,12 @@ export class OutfitController {
         clientEventId: `home_signal:${userId}:${eventType}:${Date.now()}`,
       })
       .catch(() => {});
+
+    this.fashionStateService
+      .computeAndSaveState(userId)
+      .catch(err =>
+        console.error('[LEARNING INLINE] recompute failed', err),
+      );
 
     return { status: 'ok' };
   }

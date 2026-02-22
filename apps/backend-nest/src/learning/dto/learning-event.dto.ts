@@ -134,7 +134,7 @@ export const EVENT_SIGNAL_DEFAULTS: Record<
   POST_LIKED: { polarity: 1, weight: 0.3 },
   POST_SAVED: { polarity: 1, weight: 0.5 },
   POST_DISMISSED: { polarity: -1, weight: 0.2 },
-  ITEM_EXPLICITLY_DISMISSED: { polarity: -1, weight: 0.4 },
+  ITEM_EXPLICITLY_DISMISSED: { polarity: -1, weight: 0.2 },
   ELITE_SUGGESTION_SERVED: { polarity: 0, weight: 0 },
   OUTFIT_SAVED_FROM_HOME: { polarity: 1, weight: 0.5 },
   SLOT_OVERRIDE: { polarity: 1, weight: 0.3 },

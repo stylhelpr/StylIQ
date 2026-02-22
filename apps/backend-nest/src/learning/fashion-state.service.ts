@@ -198,6 +198,7 @@ export class FashionStateService {
    * This is called by the cron job and can also be triggered on-demand.
    */
   async computeAndSaveState(userId: string): Promise<UserFashionState> {
+    this.logger.log(`[LEARNING INLINE] recompute for ${userId}`);
     const cutoffDate = new Date(
       Date.now() - AGGREGATION_CONFIG.MAX_EVENT_AGE_DAYS * 24 * 60 * 60 * 1000,
     );

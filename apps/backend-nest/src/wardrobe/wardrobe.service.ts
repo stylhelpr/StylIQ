@@ -335,6 +335,11 @@ export class WardrobeService {
             : undefined,
         })
         .catch(() => {});
+      this.fashionStateService
+        .computeAndSaveState(userId)
+        .catch(err =>
+          console.error('[LEARNING INLINE] recompute failed', err),
+        );
     } catch (err) {
       console.warn('[LEARNING] refinement emit failed:', (err as any)?.message);
     }

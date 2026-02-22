@@ -1033,23 +1033,27 @@ export class DiscoverService {
     }).catch(() => {});
   }
 
-  emitItemDismissed(userId: string, productId: string): void {
+  async emitItemDismissed(userId: string, productId: string): Promise<void> {
     if (!LEARNING_FLAGS.EVENTS_ENABLED) return;
-    this.extractProductFeatures(userId, productId).then(({ features }) => {
-      this.learningEvents
-        .logEvent({
-          userId,
-          eventType: 'ITEM_EXPLICITLY_DISMISSED',
-          entityType: 'product',
-          entityId: productId,
-          signalPolarity: -1,
-          signalWeight: 0.4,
-          extractedFeatures: features,
-          sourceFeature: 'shopping',
-          clientEventId: `item_dismissed:${userId}:${productId}:${Date.now()}`,
-        })
-        .catch(() => {});
-    }).catch(() => {});
+    try {
+      const { features } = await this.extractProductFeatures(userId, productId);
+      await this.learningEvents.logEvent({
+        userId,
+        eventType: 'ITEM_EXPLICITLY_DISMISSED',
+        entityType: 'product',
+        entityId: productId,
+        signalPolarity: -1,
+        signalWeight: 0.4,
+        extractedFeatures: features,
+        sourceFeature: 'shopping',
+        clientEventId: `item_dismissed:${userId}:${productId}:${Date.now()}`,
+      });
+      this.fashionStateService
+        .computeAndSaveState(userId)
+        .catch(err => this.log.error('[LEARNING INLINE] recompute failed', err));
+    } catch (err) {
+      this.log.error('[LEARNING] item dismissed event failed', err);
+    }
   }
 
   // Returns true if cache is still valid (within 24 hours AND profile unchanged), false otherwise
