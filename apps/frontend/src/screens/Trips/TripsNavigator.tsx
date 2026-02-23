@@ -80,7 +80,11 @@ const TripsNavigator = ({navigate, wardrobe, userGenderPresentation}: Props) => 
         <CreateTripScreen
           wardrobe={wardrobe}
           onBack={goToHome}
-          onTripCreated={trip => goToCapsule(trip.id)}
+          onTripCreated={trip => {
+            setTrips(prev => [trip, ...prev]);
+            setSelectedTripId(trip.id);
+            setScreen('capsule');
+          }}
           userGenderPresentation={userGenderPresentation}
         />
       );

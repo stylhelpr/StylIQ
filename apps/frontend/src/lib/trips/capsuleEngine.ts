@@ -2471,10 +2471,13 @@ function buildCapsuleIntent(
   const silhouetteBias = styleHints?.fit_preferences?.[0]?.toLowerCase() ?? null;
 
   // 7. Avoid colors: user-vetoed colors from style profile (read if present)
+  console.log('[CAPSULE TRACE] INTENT input styleHints:', styleHints);
+  console.log('[CAPSULE TRACE] INTENT styleHints.avoid_colors raw:', (styleHints as Record<string, unknown> | undefined)?.avoid_colors);
   const rawAvoid = (styleHints as Record<string, unknown> | undefined)?.avoid_colors;
   const avoidColors: string[] = Array.isArray(rawAvoid)
     ? rawAvoid.map((c: string) => c.toLowerCase())
     : [];
+  console.log('[CAPSULE TRACE] derived avoidColors:', avoidColors);
 
   if (__DEV__) {
     console.log('[TripCapsule][INTENT]', {paletteColors, accentColor, baselineFormality, silhouetteBias, avoidColors});
@@ -3157,6 +3160,7 @@ function filterShoesByWalkability(
   return filtered.length > 0 ? filtered : shoes;
 }
 
+let _scoringTraced = false;
 function buildOutfitForActivity(
   activity: TripActivity,
   dayIndex: number,
@@ -3517,6 +3521,7 @@ function buildOutfitForActivity(
     }
 
     // T4 PATCH [NEGATIVE-LEARNING]: penalize avoided brands/colors/styles from learning system
+    if (!_scoringTraced) { console.log('[CAPSULE TRACE] scoring fashionState.avoidColors:', fashionState?.avoidColors); _scoringTraced = true; }
     if (item.brand && fashionState?.avoidBrands?.length) {
       const brandLower = item.brand.toLowerCase();
       if ((fashionState.avoidBrands as string[]).some((b: string) => brandLower.includes(b.toLowerCase()))) score -= 0.8;
@@ -4163,6 +4168,11 @@ export function buildCapsule(
   } | null,
   destinationLabel?: string,
 ): TripCapsule {
+  _scoringTraced = false;
+  console.log('[CAPSULE TRACE] buildCapsule received fashionState:', fashionState);
+  console.log('[CAPSULE TRACE] buildCapsule fashionState.avoidColors:', fashionState?.avoidColors);
+  console.log('[CAPSULE TRACE] buildCapsule received styleHints:', styleHints);
+  console.log('[CAPSULE TRACE] buildCapsule styleHints.avoid_colors:', (styleHints as any)?.avoid_colors);
   // Guardrail: destination weather is required — never silently fallback
   if (!weather || weather.length === 0) {
     throw new Error('[CapsuleEngine] tripWeather is empty — cannot build capsule without destination weather data.');
@@ -4182,8 +4192,17 @@ export function buildCapsule(
   // Step 0b: Pre-filter ineligible items BEFORE any bucketing/scoring
   const eligibleItems = filterEligibleItems(wardrobeItems, presentation);
 
+  // --- HOTFIX: merge learning avoidColors into styleHints for INTENT ---
+  const mergedStyleHints: TripStyleHints | undefined = (styleHints || fashionState?.avoidColors?.length) ? {
+    ...styleHints,
+    avoid_colors: [
+      ...(styleHints?.avoid_colors ?? []),
+      ...(fashionState?.avoidColors ?? []),
+    ],
+  } as TripStyleHints : undefined;
+
   // Step 0c: Build capsule intent — stylist direction computed once, passed through engine
-  const capsuleIntent = buildCapsuleIntent(eligibleItems, activities, styleHints);
+  const capsuleIntent = buildCapsuleIntent(eligibleItems, activities, mergedStyleHints);
 
   // Step 0d: Build taste profile — full avoid-list enforcement (colors + materials + patterns + coverage)
   const tasteProfile: TripsTasteProfile | undefined = styleHints ? {

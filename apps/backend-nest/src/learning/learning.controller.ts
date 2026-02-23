@@ -18,6 +18,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pool } from '../db/pool';
@@ -35,6 +36,8 @@ import {
 @Controller('learning')
 @UseGuards(JwtAuthGuard)
 export class LearningController {
+  private readonly logger = new Logger(LearningController.name);
+
   constructor(
     private readonly consentCache: ConsentCache,
     private readonly eventsService: LearningEventsService,
@@ -59,6 +62,14 @@ export class LearningController {
     },
   ): Promise<{ accepted: boolean }> {
     const userId = req.user.userId;
+
+    this.logger.log('[Learning] EVENT RECEIVED', {
+      userId,
+      eventType: body.eventType,
+      entityType: body.entityType,
+      sourceFeature: body.sourceFeature,
+    });
+
     const defaults = EVENT_SIGNAL_DEFAULTS[body.eventType];
     if (!defaults) {
       return { accepted: false };
@@ -187,15 +198,41 @@ export class LearningController {
     const eventsCount = await this.eventsService.getEventCount(userId);
     const state = await this.fashionStateService.getState(userId);
 
+    // Fetch profile-level avoid_colors (fail-open)
+    let profileAvoidColors: string[] = [];
+    try {
+      const spResult = await pool.query(
+        'SELECT avoid_colors FROM style_profiles WHERE user_id = $1 LIMIT 1',
+        [userId],
+      );
+      const raw = spResult.rows[0]?.avoid_colors;
+      profileAvoidColors = Array.isArray(raw) ? raw : [];
+    } catch (e) {
+      this.logger.warn(`[Learning] summary: failed to fetch style_profiles avoid_colors: ${e.message}`);
+    }
+
     if (!state) {
+      // Even without fashion state, surface profile avoid_colors
+      const merged = [...new Set(profileAvoidColors.map(c => c.toLowerCase()))];
       return {
         eventsCount,
-        hasState: false,
+        hasState: merged.length > 0,
         isColdStart: true,
+        negativePreferences: merged.length > 0
+          ? { brands: [], colors: merged, styles: [] }
+          : undefined,
       };
     }
 
     const summary = await this.fashionStateService.getStateSummary(userId);
+
+    // Merge profile avoid_colors + learned avoid_colors, dedupe case-insensitive
+    const learnedAvoidColors = summary?.avoidColors ?? [];
+    const mergedAvoidColors = [
+      ...new Set(
+        [...profileAvoidColors, ...learnedAvoidColors].map(c => c.toLowerCase()),
+      ),
+    ];
 
     return {
       eventsCount,
@@ -209,13 +246,16 @@ export class LearningController {
           }
         : undefined,
       // T4 PATCH: expose negative learning signals for capsule engine
+      // T5 PATCH: merge style_profiles.avoid_colors into learned avoid_colors
       negativePreferences: summary
         ? {
             brands: summary.avoidBrands,
-            colors: summary.avoidColors,
+            colors: mergedAvoidColors,
             styles: summary.avoidStyles,
           }
-        : undefined,
+        : mergedAvoidColors.length > 0
+          ? { brands: [], colors: mergedAvoidColors, styles: [] }
+          : undefined,
     };
   }
 

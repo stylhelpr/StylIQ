@@ -38,6 +38,38 @@ import ActivityChips from '../../components/Trips/ActivityChips';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 import DestinationInput from './DestinationInput';
 import {GeocodeSuggestion} from './useGeocodeSearch';
+import {apiClient} from '../../lib/apiClient';
+
+type FashionStateSummary = {
+  topBrands: string[];
+  avoidBrands: string[];
+  topColors: string[];
+  avoidColors: string[];
+  topStyles: string[];
+  avoidStyles: string[];
+  topCategories: string[];
+  priceBracket: string | null;
+  isColdStart: boolean;
+};
+
+async function getFashionStateSummary(): Promise<FashionStateSummary | null> {
+  console.log('[TRIPS DEBUG] learning summary invoked');
+  const res = await apiClient.get('/learning/summary');
+  console.log('[TRIPS DEBUG] learning summary response', res?.data);
+  const data = res.data;
+  if (!data.hasState) return null;
+  return {
+    topBrands: data.topPreferences?.brands ?? [],
+    avoidBrands: data.negativePreferences?.brands ?? [],
+    topColors: data.topPreferences?.colors ?? [],
+    avoidColors: data.negativePreferences?.colors ?? [],
+    topStyles: data.topPreferences?.styles ?? [],
+    avoidStyles: data.negativePreferences?.styles ?? [],
+    topCategories: [],
+    priceBracket: null,
+    isColdStart: data.isColdStart ?? true,
+  };
+}
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
@@ -211,10 +243,40 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
         locations.find(l => l.id === selectedLocationId)?.label || 'Home';
       const locationWardrobe = filterWardrobeByLocation(wardrobe, selectedLocationId);
       const adapted = locationWardrobe.map(adaptWardrobeItem);
+
+      if (__DEV__) {
+        console.log('[CREATE TRIP DEBUG]', {
+          wardrobeLength: wardrobe?.length,
+          locationFiltered: locationWardrobe.length,
+          adaptedLength: adapted.length,
+          weatherDays: weatherResult.days?.length,
+          selectedLocationId,
+        });
+      }
+
+      if (adapted.length === 0) {
+        Alert.alert(
+          'No Wardrobe Items',
+          'No items available for this closet location. Add items to your wardrobe and try again.',
+        );
+        setIsBuilding(false);
+        return;
+      }
+
       const presentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
         ? normalizeGenderToPresentation(rawGender)
         : detectPresentation(adapted);
-      const capsule = buildCapsule(adapted, weatherResult.days, activities, locationLabel, presentation, undefined, null, selectedDestination.displayName);
+      console.log('[TRIPS DEBUG] About to call learning summary');
+      let fsSummary = null;
+      try {
+        fsSummary = await getFashionStateSummary();
+      } catch (e) {
+        console.warn('[TRIPS DEBUG] learning summary failed', e);
+      }
+      console.log('[TRIPS DEBUG] final fsSummary used:', fsSummary);
+      console.log('[TRIPS TRACE] fsSummary before buildCapsule:', fsSummary);
+      console.log('[TRIPS TRACE] avoidColors before buildCapsule:', fsSummary?.avoidColors);
+      const capsule = buildCapsule(adapted, weatherResult.days, activities, locationLabel, presentation, undefined, fsSummary, selectedDestination.displayName);
       const warnings = validateCapsule(capsule, weatherResult.days, activities, adapted, presentation);
 
       const trip: Trip = {
