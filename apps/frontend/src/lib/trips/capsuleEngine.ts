@@ -57,6 +57,16 @@ let tripTrace: TripTraceEvent[] = [];
 let buildWarnings: CapsuleWarning[] = [];
 let shoelessRejects = 0;
 
+// Gate log dedup: suppress identical consecutive gate logs within a single build
+const _gateLogSeen = new Map<string, string>();
+function gateLog(gateType: string, itemId: string, result: string, msg: string) {
+  if (!__DEV__) return;
+  const key = `${gateType}|${itemId}`;
+  if (_gateLogSeen.get(key) === result) return;
+  _gateLogSeen.set(key, result);
+  console.log(msg);
+}
+
 function trace(step: string, message: string, data?: any) {
   tripTrace.push({step, message, data});
 }
@@ -827,11 +837,10 @@ export function gatePool(
 ): TripWardrobeItem[] {
   return items.filter(item => {
     const valid = isItemValidForActivity(item, climateZone, activity, presentation);
-    if (__DEV__) {
-      const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
-      if (isShoe) {
-        console.log(`[TripCapsule][GATE_SHOE] ${valid ? 'PASS' : 'REJECT'} ${item.name} (${item.id}) | zone=${climateZone} formality=${activity.formality} presentation=${presentation}`);
-      }
+    const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
+    if (isShoe) {
+      gateLog('GATE_SHOE', item.id, valid ? 'PASS' : 'REJECT',
+        `[TripCapsule][GATE_SHOE] ${valid ? 'PASS' : 'REJECT'} ${item.name} (${item.id}) | zone=${climateZone} formality=${activity.formality} presentation=${presentation}`);
     }
     return valid;
   });
@@ -918,9 +927,8 @@ export function gateBackupPool(
 
     // GATE 1 — Presentation (never relax)
     if (isMasculine && flags.isFeminineOnly) {
-      if (__DEV__ && isShoe) {
-        console.log(`[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=presentation | isFeminineOnly=true`);
-      }
+      if (isShoe) gateLog('GATE_BACKUP_SHOE', item.id, 'REJECT',
+        `[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=presentation | isFeminineOnly=true`);
       return false;
     }
 
@@ -929,9 +937,8 @@ export function gateBackupPool(
     // per-outfit formality check — they are proven-fit. Only apply the tier-
     // based formality floor to unused items that haven't been validated yet.
     if (!provenFitIds.has(item.id) && requiredTier > 0 && itemTier < requiredTier) {
-      if (__DEV__ && isShoe) {
-        console.log(`[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} itemTier=${itemTier} requiredTier=${requiredTier}`);
-      }
+      if (isShoe) gateLog('GATE_BACKUP_SHOE', item.id, 'REJECT',
+        `[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} itemTier=${itemTier} requiredTier=${requiredTier}`);
       return false;
     }
 
@@ -940,16 +947,14 @@ export function gateBackupPool(
     const sweetMax = item.climateSweetspotFMax;
     if (sweetMin != null && sweetMax != null) {
       if (sweetMax < tripLowF - 15 || sweetMin > tripHighF + 15) {
-        if (__DEV__ && isShoe) {
-          console.log(`[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=climate | sweetspot=${sweetMin}-${sweetMax} tripRange=${tripLowF}-${tripHighF}`);
-        }
+        if (isShoe) gateLog('GATE_BACKUP_SHOE', item.id, 'REJECT',
+          `[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=climate | sweetspot=${sweetMin}-${sweetMax} tripRange=${tripLowF}-${tripHighF}`);
         return false;
       }
     }
 
-    if (__DEV__ && isShoe) {
-      console.log(`[TripCapsule][GATE_BACKUP_SHOE] PASS ${item.name} (${item.id}) | tier=${itemTier}/${requiredTier} climate=${sweetMin ?? '?'}-${sweetMax ?? '?'}/${tripLowF}-${tripHighF}`);
-    }
+    if (isShoe) gateLog('GATE_BACKUP_SHOE', item.id, 'PASS',
+      `[TripCapsule][GATE_BACKUP_SHOE] PASS ${item.name} (${item.id}) | tier=${itemTier}/${requiredTier} climate=${sweetMin ?? '?'}-${sweetMax ?? '?'}/${tripLowF}-${tripHighF}`);
 
     return true;
   });
@@ -978,18 +983,16 @@ export function gateBackupPoolFallback(
 
     // GATE 1 — Presentation (never relax)
     if (isMasculine && flags.isFeminineOnly) {
-      if (__DEV__ && isShoe) {
-        console.log(`[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=presentation`);
-      }
+      if (isShoe) gateLog('GATE_FALLBACK_SHOE', item.id, 'REJECT',
+        `[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=presentation`);
       return false;
     }
 
     // GATE 2 — Trip-incompatible casual (tier-based, never relax for unproven items)
     // Proven-fit items (used in outfits) bypass — they passed gatePool already.
     if (!provenFitIds.has(item.id) && requiredTier > 0 && itemTier < requiredTier) {
-      if (__DEV__ && isShoe) {
-        console.log(`[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} itemTier=${itemTier} requiredTier=${requiredTier}`);
-      }
+      if (isShoe) gateLog('GATE_FALLBACK_SHOE', item.id, 'REJECT',
+        `[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} itemTier=${itemTier} requiredTier=${requiredTier}`);
       return false;
     }
 
@@ -998,16 +1001,14 @@ export function gateBackupPoolFallback(
     const sweetMax = item.climateSweetspotFMax;
     if (sweetMin != null && sweetMax != null) {
       if (sweetMax < tripLowF - 25 || sweetMin > tripHighF + 25) {
-        if (__DEV__ && isShoe) {
-          console.log(`[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=climate | sweetspot=${sweetMin}-${sweetMax} tripRange=${tripLowF}-${tripHighF}`);
-        }
+        if (isShoe) gateLog('GATE_FALLBACK_SHOE', item.id, 'REJECT',
+          `[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=climate | sweetspot=${sweetMin}-${sweetMax} tripRange=${tripLowF}-${tripHighF}`);
         return false;
       }
     }
 
-    if (__DEV__ && isShoe) {
-      console.log(`[TripCapsule][GATE_FALLBACK_SHOE] PASS ${item.name} (${item.id}) | tier=${itemTier}/${requiredTier}`);
-    }
+    if (isShoe) gateLog('GATE_FALLBACK_SHOE', item.id, 'PASS',
+      `[TripCapsule][GATE_FALLBACK_SHOE] PASS ${item.name} (${item.id}) | tier=${itemTier}/${requiredTier}`);
 
     return true;
   });
@@ -4169,6 +4170,7 @@ export function buildCapsule(
   destinationLabel?: string,
 ): TripCapsule {
   _scoringTraced = false;
+  _gateLogSeen.clear();
   console.log('[CAPSULE TRACE] buildCapsule received fashionState:', fashionState);
   console.log('[CAPSULE TRACE] buildCapsule fashionState.avoidColors:', fashionState?.avoidColors);
   console.log('[CAPSULE TRACE] buildCapsule received styleHints:', styleHints);
@@ -4193,12 +4195,24 @@ export function buildCapsule(
   const eligibleItems = filterEligibleItems(wardrobeItems, presentation);
 
   // --- HOTFIX: merge learning avoidColors into styleHints for INTENT ---
-  const mergedStyleHints: TripStyleHints | undefined = (styleHints || fashionState?.avoidColors?.length) ? {
+  const rawAvoid = [
+    ...(styleHints?.avoid_colors ?? []),
+    ...(fashionState?.avoidColors ?? []),
+  ];
+  const normalizedAvoid = Array.from(
+    new Set(
+      rawAvoid
+        .flatMap(c =>
+          String(c)
+            .split(/and|\/|,/i)
+        )
+        .map(c => c.trim().toLowerCase())
+        .filter(Boolean)
+    )
+  );
+  const mergedStyleHints: TripStyleHints | undefined = (styleHints || normalizedAvoid.length) ? {
     ...styleHints,
-    avoid_colors: [
-      ...(styleHints?.avoid_colors ?? []),
-      ...(fashionState?.avoidColors ?? []),
-    ],
+    avoid_colors: normalizedAvoid,
   } as TripStyleHints : undefined;
 
   // Step 0c: Build capsule intent — stylist direction computed once, passed through engine
@@ -4244,18 +4258,17 @@ export function buildCapsule(
 
   // ── Trip-level climate band — derived strictly from destination weather ──
   // Used for Beach heavy-fabric policy: trip-level scope, not per-day.
+  // Rule: cold mornings dominate (minTemp <= 40 → cold), then hot afternoons (maxTemp >= 75 → warm), else cool.
+  const tripMinTemp = Math.min(...weather.map(d => d.lowF));
   const tripMaxTemp = Math.max(...weather.map(d => d.highF));
   const tripDerivedBand: ClimateZone =
-    tripMaxTemp <= 32 ? 'freezing' :
-    tripMaxTemp <= 50 ? 'cold' :
-    tripMaxTemp <= 65 ? 'cool' :
-    tripMaxTemp <= 85 ? 'warm' :
-    'hot';
+    tripMinTemp <= 40 ? 'cold' :
+    tripMaxTemp >= 75 ? 'warm' :
+    'cool';
   if (DEBUG_TRIPS_ENGINE) {
-    const minTemp = Math.min(...weather.map(d => d.lowF));
     console.log('[TripsDebug][Climate]', JSON.stringify({
       city: destinationLabel || 'UNKNOWN_DESTINATION',
-      minTemp,
+      minTemp: tripMinTemp,
       maxTemp: tripMaxTemp,
       derivedBand: tripDerivedBand,
     }));

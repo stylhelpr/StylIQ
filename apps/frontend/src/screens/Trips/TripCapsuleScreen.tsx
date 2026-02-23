@@ -182,10 +182,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
 
     if (didRebuildRef.current) return;
 
-    // DEV: force rebuild so capsuleEngine logging runs
-    if (__DEV__) {
-      console.log('[TripCapsule] DEV forcing rebuild for logging');
-    } else if (!needsRebuild) {
+    if (!needsRebuild) {
       return;
     }
 
@@ -208,10 +205,12 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
         setWarnings([]);
         await updateTrip(wipedTrip);
 
+        const normalizedStart = typeof trip.startDate === 'string' ? trip.startDate.split('T')[0] : trip.startDate;
+        const normalizedEnd = typeof trip.endDate === 'string' ? trip.endDate.split('T')[0] : trip.endDate;
         const weatherResult = await fetchRealWeather(
           trip.destination,
-          trip.startDate,
-          trip.endDate,
+          normalizedStart,
+          normalizedEnd,
           __DEV__ ? {bypassCache: true, reason: 'DEV_FORCE_REBUILD'} : undefined,
         );
         if (cancelled) return;
@@ -344,10 +343,12 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
 
               // Rebuild from clean state
               assertCapsuleWiped(wipedTrip.capsule, 'FORCE');
+              const normalizedStart = typeof trip.startDate === 'string' ? trip.startDate.split('T')[0] : trip.startDate;
+              const normalizedEnd = typeof trip.endDate === 'string' ? trip.endDate.split('T')[0] : trip.endDate;
               const weatherResult = await fetchRealWeather(
                 trip.destination,
-                trip.startDate,
-                trip.endDate,
+                normalizedStart,
+                normalizedEnd,
                 {bypassCache: true, reason: 'FORCE_REBUILD'},
               );
               const forcePresentation = normalizeGenderToPresentation(rawGender) !== 'mixed'

@@ -198,43 +198,52 @@ export class TripsService {
     userId: string,
     dto: UpdateTripItemsDto,
   ) {
-    // Verify ownership
-    const tripRes = await pool.query(
-      `SELECT id FROM trips WHERE id = $1 AND user_id = $2`,
-      [tripId, userId],
-    );
-    if (tripRes.rows.length === 0) {
-      throw new NotFoundException('Trip not found');
-    }
+    console.log('[TripsService][REPLACE_ITEMS] tripId:', tripId, 'userId:', userId);
+    console.log('[TripsService][REPLACE_ITEMS] items count:', dto.items?.length, 'capsule:', dto.capsule ? 'present' : 'null');
 
-    // Delete existing items
-    await pool.query(`DELETE FROM trip_items WHERE trip_id = $1`, [tripId]);
-
-    // Insert new items
-    const { items, capsule } = dto;
-    if (items.length > 0) {
-      const values: any[] = [];
-      const placeholders = items.map((item, i) => {
-        const offset = i * 3;
-        values.push(tripId, item.wardrobeItemId, item.role ?? null);
-        return `($${offset + 1}, $${offset + 2}, $${offset + 3})`;
-      });
-
-      await pool.query(
-        `INSERT INTO trip_items (trip_id, wardrobe_item_id, role)
-         VALUES ${placeholders.join(', ')}`,
-        values,
+    try {
+      // Verify ownership
+      const tripRes = await pool.query(
+        `SELECT id FROM trips WHERE id = $1 AND user_id = $2`,
+        [tripId, userId],
       );
-    }
+      if (tripRes.rows.length === 0) {
+        throw new NotFoundException('Trip not found');
+      }
 
-    // Persist capsule snapshot if provided
-    if (capsule !== undefined) {
-      await pool.query(
-        `UPDATE trips SET capsule = $1, updated_at = NOW() WHERE id = $2`,
-        [capsule, tripId],
-      );
-    }
+      // Delete existing items
+      await pool.query(`DELETE FROM trip_items WHERE trip_id = $1`, [tripId]);
 
-    return { tripId, items };
+      // Insert new items
+      const { items, capsule } = dto;
+      if (items.length > 0) {
+        const values: any[] = [];
+        const placeholders = items.map((item, i) => {
+          const offset = i * 3;
+          values.push(tripId, item.wardrobeItemId, item.role ?? null);
+          return `($${offset + 1}, $${offset + 2}, $${offset + 3})`;
+        });
+
+        await pool.query(
+          `INSERT INTO trip_items (trip_id, wardrobe_item_id, role)
+           VALUES ${placeholders.join(', ')}`,
+          values,
+        );
+      }
+
+      // Persist capsule snapshot if provided
+      if (capsule !== undefined) {
+        await pool.query(
+          `UPDATE trips SET capsule = $1, updated_at = NOW() WHERE id = $2`,
+          [capsule ? JSON.stringify(capsule) : null, tripId],
+        );
+      }
+
+      return { tripId, items };
+    } catch (err) {
+      console.error('[TripsService][UPDATE_ERROR]', err);
+      console.error('[TripsService][UPDATE_PAYLOAD]', JSON.stringify(dto).slice(0, 1000));
+      throw err;
+    }
   }
 }

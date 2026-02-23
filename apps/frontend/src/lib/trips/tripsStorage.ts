@@ -63,7 +63,21 @@ export async function saveTrip(trip: Trip): Promise<boolean> {
       };
       console.log('[TripsStorage] POST /trips payload:', JSON.stringify(payload).slice(0, 500));
       const res = await apiClient.post('/trips', payload);
-      console.log('[TripsStorage] synced trip id=', res.data?.id);
+      const backendId = res.data?.id;
+      console.log('[TripsStorage] synced trip id=', backendId);
+
+      // Replace local ID with backend UUID so future PATCH calls use the correct ID
+      if (backendId && backendId !== trip.id) {
+        const oldId = trip.id;
+        trip.id = backendId;
+        const updatedTrips = await getTrips();
+        const idx = updatedTrips.findIndex(t => t.id === oldId);
+        if (idx >= 0) {
+          updatedTrips[idx].id = backendId;
+          await AsyncStorage.setItem(TRIPS_KEY, JSON.stringify(updatedTrips));
+          console.log('[TripsStorage] local ID updated to backend UUID:', backendId);
+        }
+      }
     } catch (syncErr: any) {
       console.warn('[TripsStorage] backend sync failed', {
         message: syncErr?.message,
@@ -94,14 +108,22 @@ export async function updateTrip(updated: Trip): Promise<boolean> {
       const items = (updated.capsule?.packingList ?? []).flatMap(g =>
         (g.items ?? []).map(i => ({wardrobeItemId: i.wardrobeItemId})),
       );
+      console.log('[FRONTEND PATCH PAYLOAD]', {
+        tripId: updated.id,
+        itemsLength: items?.length,
+        capsulePresent: !!updated.capsule,
+      });
       await apiClient.patch(`/trips/${updated.id}/items`, {
         items,
         capsule: updated.capsule ?? null,
       });
     } catch (syncErr: any) {
-      console.warn('[TripsStorage] updateTrip backend sync failed', {
-        message: syncErr?.message,
+      console.error('[TripsStorage][SYNC_ERROR]', {
+        tripId: updated.id,
+        payload: {items: (updated.capsule?.packingList ?? []).flatMap(g => (g.items ?? []).map(i => i.wardrobeItemId)).length + ' items', capsule: updated.capsule ? 'present' : 'null'},
+        error: syncErr?.response?.data || syncErr?.message || syncErr,
         status: syncErr?.response?.status,
+        url: `/trips/${updated.id}/items`,
       });
     }
 
