@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Trip, ClosetLocation} from '../../types/trips';
+import {apiClient} from '../apiClient';
 
 const TRIPS_KEY = '@styliq_trips';
 const LOCATIONS_KEY = '@styliq_closet_locations';
@@ -39,6 +40,39 @@ export async function saveTrip(trip: Trip): Promise<boolean> {
     const trips = await getTrips();
     trips.unshift(trip);
     await AsyncStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
+
+    // Sync to backend (fire-and-forget, never blocks UI)
+    try {
+      const items = (trip.capsule?.packingList ?? []).flatMap(g =>
+        (g.items ?? []).map(i => ({wardrobeItemId: i.wardrobeItemId})),
+      );
+      const payload = {
+        destination: trip.destination,
+        startDate: trip.startDate,
+        endDate: trip.endDate,
+        items,
+        ...(trip.activities?.length ? {activities: trip.activities} : {}),
+        ...(trip.weather?.length ? {weather: trip.weather} : {}),
+        ...(trip.capsule ? {capsule: trip.capsule} : {}),
+        ...(trip.startingLocationId
+          ? {startingLocationId: trip.startingLocationId}
+          : {}),
+        ...(trip.startingLocationLabel
+          ? {startingLocationLabel: trip.startingLocationLabel}
+          : {}),
+      };
+      console.log('[TripsStorage] POST /trips payload:', JSON.stringify(payload).slice(0, 500));
+      const res = await apiClient.post('/trips', payload);
+      console.log('[TripsStorage] synced trip id=', res.data?.id);
+    } catch (syncErr: any) {
+      console.warn('[TripsStorage] backend sync failed', {
+        message: syncErr?.message,
+        code: syncErr?.code,
+        status: syncErr?.response?.status,
+        data: syncErr?.response?.data,
+      });
+    }
+
     return true;
   } catch (err) {
     console.error('[TripsStorage] saveTrip failed:', err);
@@ -54,6 +88,23 @@ export async function updateTrip(updated: Trip): Promise<boolean> {
       trips[idx] = updated;
       await AsyncStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
     }
+
+    // Sync capsule + items to backend
+    try {
+      const items = (updated.capsule?.packingList ?? []).flatMap(g =>
+        (g.items ?? []).map(i => ({wardrobeItemId: i.wardrobeItemId})),
+      );
+      await apiClient.patch(`/trips/${updated.id}/items`, {
+        items,
+        capsule: updated.capsule ?? null,
+      });
+    } catch (syncErr: any) {
+      console.warn('[TripsStorage] updateTrip backend sync failed', {
+        message: syncErr?.message,
+        status: syncErr?.response?.status,
+      });
+    }
+
     return true;
   } catch (err) {
     console.error('[TripsStorage] updateTrip failed:', err);
@@ -62,13 +113,25 @@ export async function updateTrip(updated: Trip): Promise<boolean> {
 }
 
 export async function deleteTrip(id: string): Promise<boolean> {
+  console.log('[TripsStorage] DELETE /trips/' + id);
+  try {
+    await apiClient.delete(`/trips/${id}`);
+    console.log('[TripsStorage] backend delete success');
+  } catch (err: any) {
+    console.error('[TripsStorage] backend delete failed', {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return false;
+  }
   try {
     const trips = await getTrips();
     const filtered = trips.filter(t => t.id !== id);
     await AsyncStorage.setItem(TRIPS_KEY, JSON.stringify(filtered));
     return true;
   } catch (err) {
-    console.error('[TripsStorage] deleteTrip failed:', err);
+    console.error('[TripsStorage] deleteTrip local cleanup failed:', err);
     return false;
   }
 }

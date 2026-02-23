@@ -24,13 +24,15 @@ type Props = {
 const TripCard = ({trip, onPress, onDelete}: Props) => {
   const {theme} = useAppTheme();
 
-  const temps = trip.weather.map(w => ({high: w.highF, low: w.lowF}));
+  const weather = trip.weather ?? [];
+
+  const temps = weather.map(w => ({high: w.highF, low: w.lowF}));
   const maxHigh =
     temps.length > 0 ? Math.max(...temps.map(t => t.high)) : 70;
   const minLow = temps.length > 0 ? Math.min(...temps.map(t => t.low)) : 50;
 
   const conditionCounts: Record<string, number> = {};
-  trip.weather.forEach(w => {
+  weather.forEach(w => {
     conditionCounts[w.condition] = (conditionCounts[w.condition] || 0) + 1;
   });
   const dominantCondition =
@@ -44,9 +46,9 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
     d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
   const dateRange = `${formatDate(start)} – ${formatDate(end)}`;
 
-  const numOutfits = trip.capsule?.outfits.length || 0;
+  const numOutfits = trip.capsule?.outfits?.length ?? 0;
   const numItems =
-    trip.capsule?.packingList.reduce((sum, g) => sum + g.items.length, 0) || 0;
+    (trip.capsule?.packingList ?? []).reduce((sum, g) => sum + (g.items?.length ?? 0), 0);
   const capsuleStatus = trip.capsule
     ? `${numOutfits} looks · ${numItems} items`
     : 'No capsule yet';

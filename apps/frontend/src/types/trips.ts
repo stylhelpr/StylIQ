@@ -123,9 +123,9 @@ export type Trip = {
   startDate: string;
   endDate: string;
   activities: TripActivity[];
-  startingLocationId: string;
-  startingLocationLabel: string;
-  weather: DayWeather[];
+  startingLocationId?: string | null;
+  startingLocationLabel?: string | null;
+  weather?: DayWeather[];
   weatherSource?: WeatherSource;
   capsule: TripCapsule | null;
   warnings?: CapsuleWarning[];

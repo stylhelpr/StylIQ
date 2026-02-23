@@ -14,7 +14,7 @@ import {
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../../hooks/useStyleProfile';
 import {updateTrip} from '../../lib/trips/tripsStorage';
-import {adaptWardrobeItem, buildCapsule, validateCapsule, CAPSULE_VERSION, shouldRebuildCapsule, detectPresentation, buildCapsuleFingerprint, RebuildMode, inferGarmentFlags, getActivityProfile} from '../../lib/trips/capsuleEngine';
+import {adaptWardrobeItem, buildCapsule, validateCapsule, detectPresentation, inferGarmentFlags, getActivityProfile} from '../../lib/trips/capsuleEngine';
 import {normalizeGenderToPresentation} from '../../lib/trips/styleEligibility';
 import {filterEligibleItems} from '../../lib/trips/styleEligibility';
 import {PACKING_CATEGORY_ORDER} from '../../lib/trips/constants';
@@ -52,7 +52,6 @@ async function getFashionStateSummary(): Promise<FashionStateSummary | null> {
   if (!data.hasState) return null;
   return {
     topBrands: data.topPreferences?.brands ?? [],
-    // T4 PATCH: wire negative learning signals
     avoidBrands: data.negativePreferences?.brands ?? [],
     topColors: data.topPreferences?.colors ?? [],
     avoidColors: data.negativePreferences?.colors ?? [],
@@ -72,15 +71,6 @@ type Props = {
   userGenderPresentation?: string;
 };
 
-/** DEV failsafe: buildCapsule must never be called while an old capsule exists */
-function assertCapsuleWiped(currentCapsule: TripCapsule | null, context: string) {
-  if (__DEV__ && currentCapsule) {
-    console.warn(
-      `[TripCapsule] FAILSAFE: buildCapsule called with existing capsule — invalid rebuild (${context})`,
-    );
-  }
-}
-
 const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresentation}: Props) => {
   const {theme} = useAppTheme();
   const [capsule, setCapsule] = useState<TripCapsule | null>(trip.capsule);
@@ -88,7 +78,6 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
   const [replaceItem, setReplaceItem] = useState<TripPackingItem | null>(null);
   const [isRebuilding, setIsRebuilding] = useState(false);
 
-  // Resolve presentation: explicit prop > hook > wardrobe detection
   const hookGender = useGenderPresentation();
   const rawGender = userGenderPresentation ?? hookGender;
 
@@ -97,12 +86,10 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
     [wardrobe, trip.startingLocationId],
   );
 
-  // Fetch style profile for capsule hints
   const {user} = useAuth0();
   const userId = user?.sub || '';
   const {styleProfile} = useStyleProfile(userId);
 
-  // --- Profile readiness gate (prevents build with undefined styleHints) ---
   const profileReady = !!styleProfile && Object.keys(styleProfile).length > 0;
   const lastProfileRef = useRef<typeof styleProfile | null>(null);
 
@@ -137,156 +124,11 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       hints.avoid_patterns = effectiveProfile.avoid_patterns;
     if (Array.isArray(effectiveProfile.coverage_no_go) && effectiveProfile.coverage_no_go.length > 0)
       hints.coverage_no_go = effectiveProfile.coverage_no_go;
-    // T4 PATCH: wire formality_floor and walkability_requirement from style profile
     if (effectiveProfile.formality_floor && effectiveProfile.formality_floor !== 'No minimum')
       hints.formality_floor = effectiveProfile.formality_floor;
     if (effectiveProfile.walkability_requirement)
       hints.walkability_requirement = effectiveProfile.walkability_requirement;
     return Object.keys(hints).length > 0 ? hints : undefined;
-  }, [effectiveProfile]);
-
-  // Auto-rebuild stale capsules (created before current engine version)
-  const didRebuildRef = useRef(false);
-  // Ref to track latest styleHints so the async rebuild always reads current value
-  const styleHintsRef = useRef(styleHints);
-  useEffect(() => { styleHintsRef.current = styleHints; }, [styleHints]);
-
-  useEffect(() => {
-    // BLOCK: never build without a valid profile snapshot
-    if (!effectiveProfile) {
-      if (__DEV__) {
-        console.log('[TRIP BLOCK] prevented build — profile not ready');
-      }
-      return;
-    }
-
-    const presentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
-      ? normalizeGenderToPresentation(rawGender)
-      : detectPresentation(adaptedWardrobe);
-    const fingerprint = buildCapsuleFingerprint(
-      adaptedWardrobe,
-      trip.weather || [],
-      trip.activities,
-      trip.startingLocationLabel,
-      presentation,
-      styleHints,
-    );
-    const {rebuild: needsRebuild, reason, mode} = shouldRebuildCapsule(
-      capsule ?? undefined,
-      CAPSULE_VERSION,
-      presentation,
-      fingerprint,
-    );
-
-    if (__DEV__) {
-      console.log(
-        `[TripCapsule] trip=${trip.id} capsuleVersion=${capsule?.version ?? 0} engineVersion=${CAPSULE_VERSION} mode=${mode} action=${needsRebuild ? 'REBUILD' : 'SKIP'} reason=${reason}`,
-      );
-    }
-
-    if (didRebuildRef.current) return;
-
-    // DEV: force rebuild so capsuleEngine logging runs
-    if (__DEV__) {
-      console.log('[TripCapsule] DEV forcing rebuild for logging');
-    } else if (!needsRebuild) {
-      return;
-    }
-
-    didRebuildRef.current = true;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        // HARD RESET: delete old capsule before rebuilding
-        if (__DEV__) {
-          console.log('[TripCapsule] HARD RESET: deleting old capsule', trip.id);
-        }
-        const wipedTrip: Trip = {
-          ...trip,
-          capsule: null,
-          warnings: undefined,
-        };
-        setCapsule(null);
-        setWarnings([]);
-        await updateTrip(wipedTrip);
-
-        const weatherResult = await fetchRealWeather(
-          trip.destination,
-          trip.startDate,
-          trip.endDate,
-          __DEV__ ? {bypassCache: true, reason: 'DEV_FORCE_REBUILD'} : undefined,
-        );
-        if (cancelled) return;
-
-        // Read latest styleHints from ref (profile may have loaded during await)
-        const currentHints = styleHintsRef.current;
-
-        // Fetch fashion state (non-blocking, 100ms timeout, null on failure)
-        const fsSummary = await getFashionStateSummary().catch(() => null);
-
-        // Rebuild from clean state
-        assertCapsuleWiped(wipedTrip.capsule, 'auto-rebuild');
-        if (__DEV__) {
-          console.log('[TRIP DEBUG] sending styleHints', currentHints);
-        }
-        const newCapsule = buildCapsule(
-          adaptedWardrobe,
-          weatherResult.days,
-          trip.activities,
-          trip.startingLocationLabel,
-          presentation,
-          currentHints,
-          fsSummary ?? null,
-          trip.destination,
-        );
-        if (__DEV__) {
-          console.log('[TripCapsule] Rebuilding fresh capsule', newCapsule.build_id, 'presentation:', presentation);
-        }
-        const validationWarnings = validateCapsule(
-          newCapsule,
-          weatherResult.days,
-          trip.activities,
-          adaptedWardrobe,
-          presentation,
-        );
-        const newWarnings = [...(newCapsule.warnings ?? []), ...validationWarnings];
-        if (cancelled) return;
-
-        setCapsule(newCapsule);
-        setWarnings(newWarnings);
-        const updated: Trip = {
-          ...wipedTrip,
-          weather: weatherResult.days,
-          weatherSource: weatherResult.source,
-          capsule: newCapsule,
-          warnings: newWarnings.length > 0 ? newWarnings : undefined,
-        };
-        await updateTrip(updated);
-        onRefresh();
-
-        // Emit learning event (fire-and-forget)
-        try {
-          await apiClient.post('/learning/events', {
-            eventType: 'TRIP_CAPSULE_GENERATED',
-            entityType: 'trip_capsule',
-            entityId: newCapsule.build_id,
-            extractedFeatures: {
-              item_ids: newCapsule.packingList.flatMap(g => g.items.map(i => i.wardrobeItemId)),
-              categories: [...new Set(newCapsule.packingList.map(g => g.category))],
-              activities: trip.activities,
-            },
-            sourceFeature: 'trips',
-          });
-        } catch { /* fire-and-forget */ }
-      } catch (err) {
-        console.error('[TripCapsule] auto-rebuild failed:', err);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveProfile]);
 
   const start = new Date(trip.startDate + 'T00:00:00');
@@ -308,21 +150,11 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       if (!saved) {
         Alert.alert('Save Error', "Couldn't save changes. Please try again.");
       }
-      onRefresh();
     },
-    [trip, onRefresh],
+    [trip],
   );
 
-  const handleRebuild = useCallback(() => {
-    // BLOCK: never rebuild without a valid profile snapshot
-    if (!styleHintsRef.current) {
-      if (__DEV__) {
-        console.log('[TRIP BLOCK] prevented FORCE rebuild — profile not ready');
-      }
-      Alert.alert('Style Profile Loading', 'Please wait for your style profile to load before rebuilding.');
-      return;
-    }
-
+  const handleRebuild = () => {
     Alert.alert(
       'Rebuild Capsule',
       'Rebuild your packing list? Packed checkmarks will be reset.',
@@ -333,65 +165,34 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
           onPress: async () => {
             setIsRebuilding(true);
             try {
-              // FORCE REBUILD: hard reset — ignores version/fingerprint/dress-leak
-              if (__DEV__) {
-                console.log(`[TripCapsule] FORCE REBUILD: deleting old capsule trip=${trip.id}`);
-              }
-              const wipedTrip: Trip = {
-                ...trip,
-                capsule: null,
-                warnings: undefined,
-              };
-              setCapsule(null);
-              setWarnings([]);
-              await updateTrip(wipedTrip);
-
-              // Rebuild from clean state
-              assertCapsuleWiped(wipedTrip.capsule, 'FORCE');
-              const weatherResult = await fetchRealWeather(
-                trip.destination,
-                trip.startDate,
-                trip.endDate,
-                {bypassCache: true, reason: 'FORCE_REBUILD'},
-              );
-              const forcePresentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
+              const presentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
                 ? normalizeGenderToPresentation(rawGender)
                 : detectPresentation(adaptedWardrobe);
-              // Read latest styleHints from ref
-              const currentHints = styleHintsRef.current;
-              // Fetch fashion state (non-blocking, 100ms timeout, null on failure)
+
+              const weatherResult = await fetchRealWeather(
+                trip.destination, trip.startDate, trip.endDate,
+                {bypassCache: true, reason: 'FORCE_REBUILD'},
+              );
               const fsSummary = await getFashionStateSummary().catch(() => null);
               const newCapsule = buildCapsule(
-                adaptedWardrobe,
-                weatherResult.days,
-                trip.activities,
-                trip.startingLocationLabel,
-                forcePresentation,
-                currentHints,
-                fsSummary ?? null,
-                trip.destination,
+                adaptedWardrobe, weatherResult.days, trip.activities,
+                trip.startingLocationLabel, presentation, styleHints,
+                fsSummary ?? null, trip.destination,
               );
-              if (__DEV__) {
-                console.log(`[TripCapsule] FORCE REBUILD trip=${trip.id} build=${newCapsule.build_id} presentation=${forcePresentation}`);
-              }
-              const validationWarnings2 = validateCapsule(newCapsule, weatherResult.days, trip.activities, adaptedWardrobe, forcePresentation);
-              const newWarnings = [...(newCapsule.warnings ?? []), ...validationWarnings2];
+              const validationWarnings = validateCapsule(
+                newCapsule, weatherResult.days, trip.activities, adaptedWardrobe, presentation,
+              );
+              const newWarnings = [...(newCapsule.warnings ?? []), ...validationWarnings];
 
-              const updated: Trip = {
-                ...wipedTrip,
+              setCapsule(newCapsule);
+              setWarnings(newWarnings);
+              await updateTrip({
+                ...trip,
                 weather: weatherResult.days,
                 weatherSource: weatherResult.source,
                 capsule: newCapsule,
                 warnings: newWarnings.length > 0 ? newWarnings : undefined,
-              };
-              const saved = await updateTrip(updated);
-              if (!saved) {
-                Alert.alert('Save Error', "Couldn't save rebuilt capsule. Please try again.");
-              } else {
-                setCapsule(newCapsule);
-                setWarnings(newWarnings);
-              }
-              onRefresh();
+              });
             } catch (err) {
               console.error('[TripCapsule] rebuild failed:', err);
               Alert.alert('Error', 'Something went wrong rebuilding your capsule.');
@@ -402,7 +203,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
         },
       ],
     );
-  }, [trip, adaptedWardrobe, rawGender, onRefresh]);
+  };
 
   const handleTogglePacked = useCallback(
     (itemId: string) => {
@@ -423,7 +224,6 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       if (!capsule || !replaceItem) return;
       const oldWardrobeId = replaceItem.wardrobeItemId;
 
-      // Replace in outfits
       const newOutfits = capsule.outfits.map(outfit => ({
         ...outfit,
         items: outfit.items.map(item =>
@@ -431,7 +231,6 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
         ),
       }));
 
-      // Rebuild packing list from outfits
       const allItems = newOutfits.flatMap(o => o.items);
       const uniqueMap = new Map<string, TripPackingItem>();
       for (const item of allItems) {
@@ -458,34 +257,20 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
 
       persistCapsule({...capsule, outfits: newOutfits, packingList: newPackingList});
       setReplaceItem(null);
-
-      // Emit learning event (fire-and-forget)
-      try {
-        apiClient.post('/learning/events', {
-          eventType: 'TRIP_ITEM_REPLACED',
-          entityType: 'wardrobe_item',
-          entityId: newItem.wardrobeItemId,
-          extractedFeatures: {replaced_item_id: oldWardrobeId, category: newItem.mainCategory, trip_id: trip.id},
-          sourceFeature: 'trips',
-        });
-      } catch { /* fire-and-forget */ }
     },
-    [capsule, replaceItem, persistCapsule, trip.id],
+    [capsule, replaceItem, persistCapsule],
   );
 
-  // Resolve presentation for replace modal filtering
   const resolvedPresentation = useMemo(() => {
     const fromProfile = normalizeGenderToPresentation(rawGender);
     return fromProfile !== 'mixed' ? fromProfile : detectPresentation(adaptedWardrobe);
   }, [rawGender, adaptedWardrobe]);
 
-  // Does this trip include formal activities? (formality >= 2)
   const tripHasFormalActivity = useMemo(
     () => trip.activities.some(a => getActivityProfile(a).formality >= 2),
     [trip.activities],
   );
 
-  // Get alternatives for the replace modal — filtered by eligibility + formality
   const replaceAlternatives = useMemo(() => {
     if (!replaceItem) return [];
     const cat = replaceItem.mainCategory;
@@ -493,7 +278,6 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       item => (item.main_category || 'Other') === cat,
     );
     let eligible = filterEligibleItems(catMatches, resolvedPresentation);
-    // If trip includes formal activities, block casual-only items from replacements
     if (tripHasFormalActivity) {
       eligible = eligible.filter(item => !inferGarmentFlags(item).isCasualOnly);
     }
@@ -646,11 +430,9 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        {/* Weather Strip */}
         <Text style={styles.sectionTitle}>Weather</Text>
-        <WeatherStrip weather={trip.weather} source={trip.weatherSource} />
+        <WeatherStrip weather={trip.weather ?? []} source={trip.weatherSource} />
 
-        {/* Warnings */}
         {warnings.length > 0 && (
           <View style={{marginTop: tokens.spacing.sm}}>
             {warnings.map((w, idx) => (
@@ -662,14 +444,12 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
           </View>
         )}
 
-        {/* Confidence Summary */}
         <ConfidenceSummary
-          weather={trip.weather}
+          weather={trip.weather ?? []}
           activities={trip.activities}
           packingList={capsule.packingList}
         />
 
-        {/* Main Looks */}
         <View style={styles.mainLooksHeader}>
           <Text style={styles.mainLooksTitle}>Your Main Looks</Text>
           <Text style={styles.mainLooksSubtitle}>
@@ -678,7 +458,6 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
         </View>
         <OutfitCarousel outfits={capsule.outfits} tripBackupKit={capsule.tripBackupKit} />
 
-        {/* Packing List */}
         <View style={{marginTop: tokens.spacing.lg}}>
           <PackingListSection
             packingList={capsule.packingList}
@@ -689,12 +468,11 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
         </View>
       </ScrollView>
 
-      {/* Replace Modal */}
       <ItemReplaceModal
         visible={!!replaceItem}
         currentItem={replaceItem}
         alternatives={replaceAlternatives}
-        locationLabel={trip.startingLocationLabel}
+        locationLabel={trip.startingLocationLabel ?? 'Home'}
         onReplace={handleReplaceItem}
         onClose={() => setReplaceItem(null)}
       />

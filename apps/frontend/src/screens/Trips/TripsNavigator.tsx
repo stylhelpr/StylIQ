@@ -1,6 +1,6 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {Trip, TripsScreen} from '../../types/trips';
-import {getTrips} from '../../lib/trips/tripsStorage';
+import {apiClient} from '../../lib/apiClient';
 import TripsHomeScreen from './TripsHomeScreen';
 import CreateTripScreen from './CreateTripScreen';
 import TripCapsuleScreen from './TripCapsuleScreen';
@@ -16,8 +16,27 @@ const TripsNavigator = ({navigate, wardrobe, userGenderPresentation}: Props) => 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
 
+  // Cache the last valid trip for capsule screen so refreshTrips() can't nuke it
+  const capsuleTripRef = useRef<Trip | null>(null);
+
   const refreshTrips = useCallback(() => {
-    getTrips().then(setTrips);
+    apiClient.get('/trips').then(res => {
+      const normalized = (res.data ?? []).map((t: any): Trip => ({
+        ...t,
+        activities: t.activities ?? [],
+        weather: t.weather ?? [],
+        capsule: t.capsule
+          ? {
+              ...t.capsule,
+              outfits: t.capsule.outfits ?? [],
+              packingList: t.capsule.packingList ?? [],
+            }
+          : null,
+      }));
+      setTrips(normalized);
+    }).catch(() => {
+      setTrips([]);
+    });
   }, []);
 
   useEffect(() => {
@@ -29,6 +48,7 @@ const TripsNavigator = ({navigate, wardrobe, userGenderPresentation}: Props) => 
   }, []);
 
   const goToHome = useCallback(() => {
+    capsuleTripRef.current = null;
     setSelectedTripId(null);
     setScreen('home');
     refreshTrips();
@@ -64,20 +84,26 @@ const TripsNavigator = ({navigate, wardrobe, userGenderPresentation}: Props) => 
           userGenderPresentation={userGenderPresentation}
         />
       );
-    case 'capsule':
-      if (!selectedTrip) {
-        goToHome();
+    case 'capsule': {
+      // Use cached trip as fallback when refreshTrips temporarily clears the list
+      if (selectedTrip) {
+        capsuleTripRef.current = selectedTrip;
+      }
+      const capsuleTrip = selectedTrip ?? capsuleTripRef.current;
+      if (!capsuleTrip) {
+        console.log('[Trips] selectedTrip null — HOLD (no auto navigation)');
         return null;
       }
       return (
         <TripCapsuleScreen
-          trip={selectedTrip}
+          trip={capsuleTrip}
           wardrobe={wardrobe}
           onBack={goToHome}
           onRefresh={refreshTrips}
           userGenderPresentation={userGenderPresentation}
         />
       );
+    }
     default:
       return null;
   }
