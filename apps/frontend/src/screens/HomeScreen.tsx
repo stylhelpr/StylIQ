@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import FastImage from 'react-native-fast-image';
-import {useCommunityPosts} from '../hooks/useCommunityApi';
+import {useCommunityPosts, useRecommendedPosts} from '../hooks/useCommunityApi';
 import type {CommunityPost} from '../types/community';
 import {fetchWeather} from '../utils/travelWeather';
 import {ensureLocationPermission} from '../utils/permissions';
@@ -605,8 +605,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     return Object.keys(prefs).length ? prefs : undefined;
   }, [styleProfile]);
 
-  // 🎯 TanStack Query: Community posts for hero section
-  const {data: communityPosts = []} = useCommunityPosts(userId ?? undefined, 'all', 10);
+  // 🎯 TanStack Query: Recommended posts for hero section (signal-based ranking)
+  const {data: communityPosts = []} = useRecommendedPosts(userId ?? undefined);
 
   const insets = useSafeAreaInsets();
   const MAP_BASE_HEIGHT = moderateScale(250); // allow more breathing room
