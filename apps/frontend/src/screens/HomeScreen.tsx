@@ -2326,7 +2326,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     alignItems: 'center',
                   }}>
                   <Text style={[globalStyles.sectionTitle, {}]}>
-                    Recommended Buys
+                    Today's Recommended Buys
                   </Text>
                     <Pressable
                     onPress={() => {
