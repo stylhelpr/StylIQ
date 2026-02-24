@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {isTablet, isLargePhone, isRegularPhone} from '../../styles/global';
 
 // Card dimensions for auto-scroll calculation
@@ -188,7 +189,8 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
   onSavedProductsChange,
 }) => {
   const userId = useUUID();
-  const [ready, setReady] = useState(false);
+  const cacheKey = userId ? `discover_products_${userId}` : null;
+  const timestampKey = userId ? `discover_fetch_ts_${userId}` : null;
   const [recommended, setRecommended] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -276,7 +278,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
     [],
   );
 
-  // Toggle save/unsave a product (thumbs up)
+  // Toggle save/unsave a product (thumbs up) — optimistic update
   const handleToggleSave = useCallback(
     async (product: Product) => {
       if (!userId || savingProductId) return;
@@ -288,12 +290,31 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
           next.delete(product.product_id);
           return next;
         });
+        setRecommended(prev =>
+          prev.map(p =>
+            p.product_id === product.product_id ? {...p, disliked: false} : p,
+          ),
+        );
         apiClient.post(`/discover/${userId}/undo-dismiss`, {
           product_id: product.product_id,
         }).catch(() => {});
       }
 
+      // Optimistic: flip saved state immediately
+      const newSaved = !product.saved;
       setSavingProductId(product.product_id);
+      setRecommended(prev =>
+        prev.map(p =>
+          p.product_id === product.product_id ? {...p, saved: newSaved} : p,
+        ),
+      );
+      if (newSaved) {
+        setLocallyUnsavedIds(prev => {
+          const next = new Set(prev);
+          next.delete(product.product_id);
+          return next;
+        });
+      }
       ReactNativeHapticFeedback.trigger('impactLight', {
         enableVibrateFallback: true,
         ignoreAndroidSystemSettings: false,
@@ -305,7 +326,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
         });
 
         const result = response.data;
-        // Update local state
+        // Reconcile with server truth
         setRecommended(prev =>
           prev.map(p =>
             p.product_id === product.product_id
@@ -314,6 +335,14 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
           ),
         );
       } catch (err) {
+        // Revert optimistic update on error
+        setRecommended(prev =>
+          prev.map(p =>
+            p.product_id === product.product_id
+              ? {...p, saved: product.saved}
+              : p,
+          ),
+        );
         console.error('Failed to toggle save:', err);
       } finally {
         setSavingProductId(null);
@@ -322,7 +351,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
     [userId, savingProductId, dislikedIds],
   );
 
-  // Toggle dislike on a product (thumbs down) — no removal
+  // Toggle dislike on a product (thumbs down) — no removal, persists disliked field
   const handleDismiss = useCallback(
     async (product: Product) => {
       ReactNativeHapticFeedback.trigger('impactLight', {
@@ -330,36 +359,40 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
         ignoreAndroidSystemSettings: false,
       });
       if (dislikedIds.has(product.product_id)) {
-        // Undo — clear disliked state on backend
+        // Undo — clear disliked state
         setDislikedIds(prev => {
           const next = new Set(prev);
           next.delete(product.product_id);
           return next;
         });
+        setRecommended(prev =>
+          prev.map(p =>
+            p.product_id === product.product_id ? {...p, disliked: false} : p,
+          ),
+        );
         if (userId) {
           apiClient.post(`/discover/${userId}/undo-dismiss`, {
             product_id: product.product_id,
           }).catch(() => {});
         }
       } else {
-        // If saved, unsave directly via API
+        // If saved, unsave optimistically
         if (product.saved && userId) {
-          try {
-            const response = await apiClient.post(`/discover/${userId}/toggle-save`, {
-              product_id: product.product_id,
-            });
-            setRecommended(prev =>
-              prev.map(p =>
-                p.product_id === product.product_id
-                  ? {...p, saved: response.data.saved}
-                  : p,
-              ),
-            );
-          } catch (err) {
-            console.error('Failed to unsave on dislike:', err);
-          }
+          setRecommended(prev =>
+            prev.map(p =>
+              p.product_id === product.product_id ? {...p, saved: false} : p,
+            ),
+          );
+          apiClient.post(`/discover/${userId}/toggle-save`, {
+            product_id: product.product_id,
+          }).catch(err => console.error('Failed to unsave on dislike:', err));
         }
         setDislikedIds(prev => new Set(prev).add(product.product_id));
+        setRecommended(prev =>
+          prev.map(p =>
+            p.product_id === product.product_id ? {...p, disliked: true} : p,
+          ),
+        );
         onDismiss?.(product);
       }
     },
@@ -435,22 +468,50 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
     onSavedProductsChange,
   ]);
 
-  // ⏱️ Initial delay for mount
+  // 💾 Load cache → check 24h freshness → conditionally fetch
   useEffect(() => {
-    const t = setTimeout(() => setReady(true), 300);
-    return () => clearTimeout(t);
-  }, []);
+    if (!userId || !cacheKey || !timestampKey) return;
 
-  // 📡 Fetch data
-  useEffect(() => {
-    if (!ready || !userId) return;
+    let cancelled = false;
+
     (async () => {
-      setLoading(true);
+      // Step 1: Load cached products instantly
+      let cacheHit = false;
       try {
-        // console.log('🛒 DiscoverCarousel: fetching /discover/' + userId);
-        const resp = await apiClient.get(`/discover/${encodeURIComponent(userId)}`);
+        const [rawProducts, rawTimestamp] = await Promise.all([
+          AsyncStorage.getItem(cacheKey),
+          AsyncStorage.getItem(timestampKey),
+        ]);
+
+        if (rawProducts && !cancelled) {
+          const items: Product[] = JSON.parse(rawProducts);
+          if (items.length > 0) {
+            setRecommended(items);
+            setDislikedIds(
+              new Set(items.filter(p => p.disliked).map(p => p.product_id)),
+            );
+            setLoading(false);
+            cacheHit = true;
+
+            // If cache is fresh (< 24h), skip API call entirely
+            const ts = rawTimestamp ? Number(rawTimestamp) : 0;
+            if (Date.now() - ts < 24 * 60 * 60 * 1000) {
+              return;
+            }
+          }
+        }
+      } catch {}
+
+      if (cancelled) return;
+
+      // Step 2: Fetch from API (no cache or stale cache)
+      if (!cacheHit) setLoading(true);
+      try {
+        const resp = await apiClient.get(
+          `/discover/${encodeURIComponent(userId)}`,
+        );
+        if (cancelled) return;
         const data = resp.data;
-        // console.log('🛒 DiscoverCarousel: raw response length:', data?.length, 'first item:', data?.[0]);
         const items: Product[] = data
           .map((p: any) => ({
             id: String(p.id),
@@ -461,21 +522,43 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
             link: p.link,
             category: p.category,
             saved: p.saved === true || p.saved === 't' || p.saved === 'true',
-            disliked: p.disliked === true || p.disliked === 't' || p.disliked === 'true',
+            disliked:
+              p.disliked === true ||
+              p.disliked === 't' ||
+              p.disliked === 'true',
           }))
           .filter((p: Product) => p.image_url?.startsWith('http'));
-        // Hydrate dislikedIds from backend state
-        setDislikedIds(new Set(items.filter(p => p.disliked).map(p => p.product_id)));
+        setDislikedIds(
+          new Set(items.filter(p => p.disliked).map(p => p.product_id)),
+        );
+        setLocallyUnsavedIds(new Set());
         setRecommended(items);
         setError(null);
+
+        // Persist fresh data + timestamp
+        await Promise.all([
+          AsyncStorage.setItem(cacheKey, JSON.stringify(items)),
+          AsyncStorage.setItem(timestampKey, String(Date.now())),
+        ]).catch(() => {});
       } catch (e: any) {
-        // console.error('🛒 DiscoverCarousel: fetch error:', e.message, e.response?.status);
-        setError(e.message || 'Failed to load');
+        if (!cancelled && !cacheHit) {
+          setError(e.message || 'Failed to load');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, [ready, userId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, cacheKey, timestampKey]);
+
+  // 💾 Persist to cache whenever recommended changes (thumbs state, etc.)
+  useEffect(() => {
+    if (!cacheKey || recommended.length === 0) return;
+    AsyncStorage.setItem(cacheKey, JSON.stringify(recommended)).catch(() => {});
+  }, [cacheKey, recommended]);
 
   // 🎬 Trigger animations whenever list changes
   useEffect(() => {
@@ -510,7 +593,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
   }, [recommended.length]);
 
   // 🪛 Loading & error states
-  if (!ready || loading) return <Text style={{padding: 16}}>Loading…</Text>;
+  if (loading) return <Text style={{padding: 16}}>Loading…</Text>;
   if (error && recommended.length === 0)
     return <Text style={{padding: 16}}>{error}</Text>;
 
