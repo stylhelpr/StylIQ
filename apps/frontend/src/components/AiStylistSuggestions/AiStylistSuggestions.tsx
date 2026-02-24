@@ -632,7 +632,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 fontWeight: tokens.fontWeight.semiBold,
                 fontSize: fontScale(tokens.fontSize.md),
               }}>
-              Wear/Save this
+              Save Outfit
             </Text>
           )}
         </TouchableOpacity>
@@ -805,7 +805,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               color: theme.colors.foreground2,
               marginBottom: moderateScale(tokens.spacing.xs),
             }}>
-            Adjust Outfit
+            Adjust Syling Choices
           </Text>
           <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
             {styleConstraints.map(c => (
@@ -1709,7 +1709,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </SwipeableCard>
 
           {/* 🧭 Subtle swipe hint */}
-          {/* <View
+          <View
             style={{
               flexDirection: 'row',
               justifyContent: 'center',
@@ -1731,7 +1731,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               }}>
               Swipe card above for 3 new outfits
             </Text>
-          </View> */}
+          </View>
 
           {/* 🔁 Secondary CTAs (with AppleTouchFeedback + haptics + responsive layout) */}
           <View
