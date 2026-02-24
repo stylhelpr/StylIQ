@@ -1,4 +1,4 @@
-import React, {useRef, useCallback, useEffect} from 'react';
+import React, {useRef, useCallback, useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
+import {useUUID} from '../../context/UUIDContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useRecommendedPosts} from '../../hooks/useCommunityApi';
 import {tokens} from '../../styles/tokens/tokens';
@@ -69,7 +70,22 @@ const RecommendedCarousel: React.FC<RecommendedCarouselProps> = ({
 }) => {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
-  const {data: posts, isLoading, error} = useRecommendedPosts();
+  const userId = useUUID();
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const [excludeIds, setExcludeIds] = useState<string[]>([]);
+  const {data: posts, isLoading, error} = useRecommendedPosts(
+    userId ?? undefined,
+    excludeIds,
+  );
+
+  // Track seen post IDs for dedup on subsequent fetches
+  useEffect(() => {
+    if (posts && posts.length > 0) {
+      for (const post of posts) {
+        seenIdsRef.current.add(post.id);
+      }
+    }
+  }, [posts]);
 
   // Animation refs
   const fadeAnims = useRef<Animated.Value[]>([]);

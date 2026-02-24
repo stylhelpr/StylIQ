@@ -76,7 +76,16 @@ const ScalePressable = ({
   );
 };
 
-// Animated icon button with scale tap feedback and floating elevation
+// Thumb button style constants
+const THUMB_SIZE = 30;
+const THUMB_ICON_SIZE = 18;
+const THUMB_BG_DEFAULT = '#000000';
+const THUMB_BG_LIKE = '#16A34A';
+const THUMB_BG_DISLIKE = '#DC2626';
+const THUMB_ICON_COLOR = '#FFFFFF';
+const THUMB_ANIM_DURATION = 160;
+
+// Animated icon button with scale tap feedback and circular background
 const AnimatedIconButton = ({
   onPress,
   iconName,
@@ -96,8 +105,8 @@ const AnimatedIconButton = ({
 
   const handlePressIn = () => {
     Animated.timing(scaleAnim, {
-      toValue: 0.92,
-      duration: 120,
+      toValue: 0.88,
+      duration: THUMB_ANIM_DURATION,
       useNativeDriver: true,
     }).start();
   };
@@ -105,7 +114,7 @@ const AnimatedIconButton = ({
   const handlePressOut = () => {
     Animated.timing(scaleAnim, {
       toValue: 1,
-      duration: 120,
+      duration: THUMB_ANIM_DURATION,
       useNativeDriver: true,
     }).start();
   };
@@ -115,23 +124,24 @@ const AnimatedIconButton = ({
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+      hitSlop={{top: 4, bottom: 4, left: 4, right: 4}}>
       <Animated.View
         style={{
-          opacity: isActive ? 1.0 : 0.7,
+          width: THUMB_SIZE,
+          height: THUMB_SIZE,
+          borderRadius: THUMB_SIZE / 2,
+          backgroundColor: isActive ? activeColor : THUMB_BG_DEFAULT,
+          alignItems: 'center',
+          justifyContent: 'center',
           transform: [{scale: scaleAnim}],
-          shadowColor: '#000',
-          shadowOpacity: 0.15,
-          shadowRadius: 6,
-          shadowOffset: {width: 0, height: 2},
         }}>
         {isLoading ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color={THUMB_ICON_COLOR} />
         ) : (
           <MaterialIcons
             name={isActive ? activeIconName : iconName}
-            size={16}
-            color={isActive ? activeColor : 'rgba(255,255,255,0.75)'}
+            size={THUMB_ICON_SIZE}
+            color={THUMB_ICON_COLOR}
           />
         )}
       </Animated.View>
@@ -547,7 +557,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                       top: 6,
                       right: 6,
                       alignItems: 'center',
-                      gap: 10,
+                      gap: 8,
                     }}>
                     {/* Thumbs up icon */}
                     <AnimatedIconButton
@@ -558,7 +568,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                       iconName="thumb-up-off-alt"
                       activeIconName="thumb-up"
                       isActive={!!item.saved}
-                      activeColor="#fff"
+                      activeColor={THUMB_BG_LIKE}
                       isLoading={savingProductId === item.product_id}
                     />
                     {/* Thumbs down icon */}
@@ -570,7 +580,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                       iconName="thumb-down-off-alt"
                       activeIconName="thumb-down"
                       isActive={dislikedIds.has(item.product_id)}
-                      activeColor="#ff4d4d"
+                      activeColor={THUMB_BG_DISLIKE}
                     />
                   </View>
                 </View>

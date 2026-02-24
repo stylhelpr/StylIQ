@@ -24,6 +24,7 @@ import {
   useFollowers,
   useFollowing,
   useFollowUser,
+  useTrackProfileVisit,
 } from '../hooks/useCommunityApi';
 import {useUUID} from '../context/UUIDContext';
 import type {FollowUser} from '../types/community';
@@ -138,6 +139,15 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
     currentUserId || '',
   );
   const followMutation = useFollowUser();
+  const trackVisit = useTrackProfileVisit();
+
+  // Track profile visit (only for other users, on mount or userId change)
+  useEffect(() => {
+    if (userId && currentUserId && userId !== currentUserId) {
+      trackVisit.mutate({visitedId: userId});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, currentUserId]);
 
   // Fetch style profile by userId (for style tags)
   const {data: styleProfile} = useQuery({

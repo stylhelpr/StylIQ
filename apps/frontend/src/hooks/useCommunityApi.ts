@@ -134,6 +134,7 @@ export function useLikePost() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['community-posts']});
+      queryClient.invalidateQueries({queryKey: ['community-recommended']});
     },
   });
 }
@@ -291,6 +292,7 @@ export function useSavePost() {
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['community-posts']});
       queryClient.invalidateQueries({queryKey: ['community-saved']});
+      queryClient.invalidateQueries({queryKey: ['community-recommended']});
     },
   });
 }
@@ -503,11 +505,18 @@ export function useSearchUsers(
  * Uses signal-based ranking: following, frequently visited, hashtags, keywords, recency, engagement.
  * Returns 5-10 posts max, 1 per author.
  */
-export function useRecommendedPosts() {
+export function useRecommendedPosts(
+  userId?: string,
+  excludeIds?: string[],
+) {
   return useQuery<CommunityPost[], Error>({
-    queryKey: ['community-recommended'],
+    queryKey: ['community-recommended', userId],
     queryFn: async () => {
-      const res = await apiClient.get(`${BASE}/posts/recommended`);
+      const params =
+        excludeIds && excludeIds.length > 0
+          ? `?exclude_ids=${excludeIds.join(',')}`
+          : '';
+      const res = await apiClient.get(`${BASE}/posts/recommended${params}`);
       return res.data;
     },
     staleTime: 60000, // 1 minute

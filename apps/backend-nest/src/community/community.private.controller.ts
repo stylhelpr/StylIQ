@@ -302,9 +302,18 @@ export class CommunityPrivateController {
    */
   @Get('posts/recommended')
   @Throttle({ default: { limit: 30, ttl: 60000 } })
-  async getRecommendedPosts(@Request() req: AuthenticatedRequest) {
+  async getRecommendedPosts(
+    @Request() req: AuthenticatedRequest,
+    @Query('exclude_ids') excludeIdsRaw?: string,
+  ) {
     const actorId = req.user.userId;
-    const posts = await this.recommendations.getRecommendedPosts(actorId);
+    const excludeIds = excludeIdsRaw
+      ? excludeIdsRaw.split(',').filter(Boolean)
+      : [];
+    const posts = await this.recommendations.getRecommendedPosts(
+      actorId,
+      excludeIds,
+    );
     return this.recommendations.formatPostsForResponse(posts, actorId);
   }
 

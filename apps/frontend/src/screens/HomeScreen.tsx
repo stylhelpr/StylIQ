@@ -2310,21 +2310,18 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
     
           {/* Recommended for You - Community Posts Carousel */}
-            {/* <Animatable.View
+            <Animatable.View
               animation="fadeInUp"
               delay={250}
               duration={700}
               useNativeDriver
               style={globalStyles.sectionScroll}>
-              <Text style={[globalStyles.sectionTitle]}>
-                Recommended Community Posts
-              </Text>
               <RecommendedCarousel
                 onOpenPost={(postId: string) => {
                   navigate('CommunityShowcaseScreen', {initialPostId: postId});
                 }}
               />
-            </Animatable.View> */}
+            </Animatable.View>
 
             {/* Discover / Recommended Items */}
             {prefs.recommendedItems && (
