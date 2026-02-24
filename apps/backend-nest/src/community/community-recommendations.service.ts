@@ -121,6 +121,16 @@ export class CommunityRecommendationsService implements OnModuleInit {
     await pool.query(`
       ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS keywords TEXT[] DEFAULT '{}'
     `);
+
+    // Recommendation impressions tracking (write-only)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS recommendation_impressions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        post_id UUID NOT NULL,
+        shown_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
   }
 
   /**
@@ -708,7 +718,22 @@ export class CommunityRecommendationsService implements OnModuleInit {
       );
     }
 
-    return finalPosts;
+    // Exploration slice: shuffle bottom 15% to introduce variety
+    if (finalPosts.length <= 5) {
+      return finalPosts;
+    }
+
+    const topCount = Math.floor(finalPosts.length * 0.85);
+    const topRanked = finalPosts.slice(0, topCount);
+    const explorePool = finalPosts.slice(topCount);
+
+    // Fisher-Yates shuffle
+    for (let i = explorePool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [explorePool[i], explorePool[j]] = [explorePool[j], explorePool[i]];
+    }
+
+    return [...topRanked, ...explorePool];
   }
 
   /**
@@ -766,5 +791,16 @@ export class CommunityRecommendationsService implements OnModuleInit {
       is_demo: false,
       created_at: post.created_at,
     }));
+  }
+
+  /**
+   * Track that a recommended post was shown to a user (write-only).
+   */
+  async trackImpression(userId: string, postId: string): Promise<void> {
+    await pool.query(
+      `INSERT INTO recommendation_impressions (user_id, post_id)
+       VALUES ($1, $2)`,
+      [userId, postId],
+    );
   }
 }

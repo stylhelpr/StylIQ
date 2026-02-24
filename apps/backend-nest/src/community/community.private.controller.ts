@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  HttpCode,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
@@ -315,6 +316,20 @@ export class CommunityPrivateController {
       excludeIds,
     );
     return this.recommendations.formatPostsForResponse(posts, actorId);
+  }
+
+  /**
+   * Track that a recommended post was shown to the user (write-only).
+   */
+  @Post('posts/recommended/impression')
+  @HttpCode(204)
+  @Throttle({ default: { limit: 120, ttl: 60000 } })
+  async trackRecommendationImpression(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { postId: string },
+  ) {
+    const actorId = req.user.userId;
+    await this.recommendations.trackImpression(actorId, body.postId);
   }
 
   /**

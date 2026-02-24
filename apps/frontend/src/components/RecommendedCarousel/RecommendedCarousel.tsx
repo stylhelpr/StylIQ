@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Dimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
@@ -16,6 +17,7 @@ import {useAppTheme} from '../../context/ThemeContext';
 import {useUUID} from '../../context/UUIDContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useRecommendedPosts} from '../../hooks/useCommunityApi';
+import {apiClient} from '../../lib/apiClient';
 import {tokens} from '../../styles/tokens/tokens';
 import {isTablet, isLargePhone, isRegularPhone} from '../../styles/global';
 import type {CommunityPost} from '../../types/community';
@@ -72,6 +74,7 @@ const RecommendedCarousel: React.FC<RecommendedCarouselProps> = ({
   const globalStyles = useGlobalStyles();
   const userId = useUUID();
   const seenIdsRef = useRef<Set<string>>(new Set());
+  const firedImpressionsRef = useRef<Set<string>>(new Set());
   const [excludeIds, setExcludeIds] = useState<string[]>([]);
   const {data: posts, isLoading, error} = useRecommendedPosts(
     userId ?? undefined,
@@ -86,6 +89,49 @@ const RecommendedCarousel: React.FC<RecommendedCarouselProps> = ({
       }
     }
   }, [posts]);
+
+  // Impression tracking: fire once per session per post when visible
+  const fireImpressions = useCallback(
+    (scrollX: number) => {
+      if (!posts) return;
+      const visible = posts.filter(p => getPostImage(p));
+      if (visible.length === 0) return;
+
+      const screenW = Dimensions.get('window').width;
+      const startIdx = Math.max(0, Math.floor(scrollX / SCROLL_INTERVAL));
+      const endIdx = Math.min(
+        visible.length - 1,
+        Math.floor((scrollX + screenW) / SCROLL_INTERVAL),
+      );
+
+      for (let i = startIdx; i <= endIdx; i++) {
+        const post = visible[i];
+        if (post && !firedImpressionsRef.current.has(post.id)) {
+          firedImpressionsRef.current.add(post.id);
+          apiClient
+            .post('/community/posts/recommended/impression', {
+              postId: post.id,
+            })
+            .catch(() => {});
+        }
+      }
+    },
+    [posts],
+  );
+
+  // Fire impressions for initially visible posts
+  useEffect(() => {
+    if (posts && posts.length > 0) {
+      fireImpressions(0);
+    }
+  }, [posts, fireImpressions]);
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      fireImpressions(event.nativeEvent.contentOffset.x);
+    },
+    [fireImpressions],
+  );
 
   // Animation refs
   const fadeAnims = useRef<Animated.Value[]>([]);
@@ -266,6 +312,7 @@ const RecommendedCarousel: React.FC<RecommendedCarouselProps> = ({
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{paddingRight: 16}}
+      onScroll={handleScroll}
       onScrollBeginDrag={handleScrollBeginDrag}
       onScrollEndDrag={handleScrollEndDrag}
       onMomentumScrollEnd={handleMomentumScrollEnd}
