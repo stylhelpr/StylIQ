@@ -162,6 +162,7 @@ type Product = {
   link: string;
   category: string;
   saved?: boolean;
+  disliked?: boolean;
 };
 
 type DiscoverCarouselProps = {
@@ -280,13 +281,16 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
     async (product: Product) => {
       if (!userId || savingProductId) return;
 
-      // Clear dislike if active
+      // Clear dislike if active (persist to backend)
       if (dislikedIds.has(product.product_id)) {
         setDislikedIds(prev => {
           const next = new Set(prev);
           next.delete(product.product_id);
           return next;
         });
+        apiClient.post(`/discover/${userId}/undo-dismiss`, {
+          product_id: product.product_id,
+        }).catch(() => {});
       }
 
       setSavingProductId(product.product_id);
@@ -326,12 +330,17 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
         ignoreAndroidSystemSettings: false,
       });
       if (dislikedIds.has(product.product_id)) {
-        // Undo — local only, no event emitted
+        // Undo — clear disliked state on backend
         setDislikedIds(prev => {
           const next = new Set(prev);
           next.delete(product.product_id);
           return next;
         });
+        if (userId) {
+          apiClient.post(`/discover/${userId}/undo-dismiss`, {
+            product_id: product.product_id,
+          }).catch(() => {});
+        }
       } else {
         // If saved, unsave directly via API
         if (product.saved && userId) {
@@ -451,10 +460,12 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
             image_url: p.image_url,
             link: p.link,
             category: p.category,
-            saved: p.saved || false,
+            saved: p.saved === true || p.saved === 't' || p.saved === 'true',
+            disliked: p.disliked === true || p.disliked === 't' || p.disliked === 'true',
           }))
           .filter((p: Product) => p.image_url?.startsWith('http'));
-        // console.log('🛒 DiscoverCarousel: filtered items count:', items.length);
+        // Hydrate dislikedIds from backend state
+        setDislikedIds(new Set(items.filter(p => p.disliked).map(p => p.product_id)));
         setRecommended(items);
         setError(null);
       } catch (e: any) {
@@ -554,10 +565,10 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                   <View
                     style={{
                       position: 'absolute',
-                      top: 6,
-                      right: 6,
+                      top: 4,
+                      right: 4,
                       alignItems: 'center',
-                      gap: 8,
+                      gap: 6,
                     }}>
                     {/* Thumbs up icon */}
                     <AnimatedIconButton

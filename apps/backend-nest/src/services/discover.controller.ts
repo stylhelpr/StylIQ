@@ -54,7 +54,15 @@ export class DiscoverController {
   @Post(':userId/dismiss')
   async dismissProduct(@Req() req, @Body('product_id') productId: string) {
     const userId = req.user.userId;
-    this.discoverService.emitItemDismissed(userId, productId);
+    await this.discoverService.emitItemDismissed(userId, productId);
+    return { success: true };
+  }
+
+  // Undo dismiss (clear disliked state)
+  @Post(':userId/undo-dismiss')
+  async undoDismissProduct(@Req() req, @Body('product_id') productId: string) {
+    const userId = req.user.userId;
+    await this.discoverService.undoItemDismissed(userId, productId);
     return { success: true };
   }
 }

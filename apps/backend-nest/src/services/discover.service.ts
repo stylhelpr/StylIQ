@@ -59,13 +59,13 @@ export interface DiscoverProduct {
   is_current?: boolean;
   enriched_color?: string | null;
   enriched_color_source?: 'ml' | 'fallback' | 'cached' | null;
+  disliked?: boolean;
   // Explanation layer (optional — won't break existing consumers)
   score_total?: number;
   score_breakdown?: Record<string, number>;
   match_reasons?: string[];
 }
 
-const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const TARGET_PRODUCTS = 10;
 const DEBUG_RECOMMENDED_BUYS = process.env.DEBUG_RECOMMENDED_BUYS === 'true';
 
@@ -892,7 +892,6 @@ export class DiscoverService {
     // If cache is "valid" but empty, we should still try to fetch.
     if (cacheValid && cached.length > 0) {
       console.log('🔥 Returning from CACHE PATH 🔥');
-      // this.log.log(`🛒 Returning ${cached.length} cached products for user ${userId} (weekly lock active - NO API CALLS)`);
       this.emitRecommendedBuysServed(userId, cached);
       return cached;
     }
@@ -938,8 +937,12 @@ export class DiscoverService {
     this.log.log(
       `Locked ${products.length} products for user ${userId} - no more API calls for 24 hours`,
     );
-    this.emitRecommendedBuysServed(userId, products);
-    return products;
+
+    // Re-read from cache so response always includes saved/disliked state from DB
+    const hydrated = await this.getCachedProducts(userId);
+    const result = hydrated.length > 0 ? hydrated : products;
+    this.emitRecommendedBuysServed(userId, result);
+    return result;
   }
 
   /**
@@ -1034,6 +1037,12 @@ export class DiscoverService {
   }
 
   async emitItemDismissed(userId: string, productId: string): Promise<void> {
+    // Persist disliked state for UI hydration on reload
+    await pool.query(
+      `UPDATE user_discover_products SET disliked = TRUE WHERE user_id = $1 AND product_id = $2`,
+      [userId, productId],
+    ).catch(err => this.log.error('[DISCOVER] disliked persist failed', err));
+
     if (!LEARNING_FLAGS.EVENTS_ENABLED) return;
     try {
       const { features } = await this.extractProductFeatures(userId, productId);
@@ -1056,40 +1065,23 @@ export class DiscoverService {
     }
   }
 
-  // Returns true if cache is still valid (within 24 hours AND profile unchanged), false otherwise
+  async undoItemDismissed(userId: string, productId: string): Promise<void> {
+    await pool.query(
+      `UPDATE user_discover_products SET disliked = FALSE WHERE user_id = $1 AND product_id = $2`,
+      [userId, productId],
+    ).catch(err => this.log.error('[DISCOVER] undo disliked failed', err));
+  }
+
+  // Returns true if today's snapshot exists (calendar-day lock — no mid-day invalidation)
   private async isCacheValid(userId: string): Promise<boolean> {
     try {
       const result = await pool.query(
-        'SELECT last_discover_refresh FROM users WHERE id = $1',
+        `SELECT 1 FROM user_discover_products
+         WHERE user_id = $1 AND is_current = TRUE AND batch_date = CURRENT_DATE
+         LIMIT 1`,
         [userId],
       );
-
-      const lastRefresh = result.rows[0]?.last_discover_refresh;
-      if (!lastRefresh) {
-        return false; // Never refreshed
-      }
-
-      const lastRefreshTime = new Date(lastRefresh).getTime();
-      const age = Date.now() - lastRefreshTime;
-
-      if (age >= TWENTY_FOUR_HOURS_MS) return false; // TTL expired
-
-      // Profile fingerprint check: invalidate if profile changed since last refresh
-      const profile = await this.getUserProfile(userId);
-      const currentFp = computeProfileFingerprint(profile);
-      const storedFpResult = await pool.query(
-        `SELECT prefs_jsonb->'discover_profile_fp' as fp FROM style_profiles WHERE user_id = $1`,
-        [userId],
-      );
-      const storedFp = storedFpResult.rows[0]?.fp;
-      if (storedFp && storedFp !== currentFp) {
-        if (DEBUG_RECOMMENDED_BUYS) {
-          console.log('DISCOVER_CACHE_INVALID_PROFILE_CHANGED', { storedFp, currentFp });
-        }
-        return false;
-      }
-
-      return true;
+      return result.rows.length > 0;
     } catch {
       return false;
     }
@@ -1106,12 +1098,13 @@ export class DiscoverService {
            udp.image_url, udp.link, udp.source, udp.category, udp.position,
            (sr.id IS NOT NULL) as saved,
            sr.saved_at,
-           udp.batch_date, udp.is_current, udp.enriched_color
+           udp.batch_date, udp.is_current, udp.enriched_color,
+           COALESCE(udp.disliked, FALSE) as disliked
          FROM user_discover_products udp
          LEFT JOIN saved_recommendations sr
            ON sr.user_id = udp.user_id AND sr.product_id = udp.product_id
-         WHERE udp.user_id = $1 AND udp.is_current = TRUE
-         ORDER BY udp.position ASC
+         WHERE udp.user_id = $1 AND udp.is_current = TRUE AND udp.batch_date = CURRENT_DATE
+         ORDER BY udp.position ASC, udp.product_id ASC
          LIMIT $2`,
         [userId, TARGET_PRODUCTS],
       );
@@ -2450,13 +2443,12 @@ export class DiscoverService {
         `ALTER TABLE user_discover_products ADD COLUMN IF NOT EXISTS enriched_color TEXT`,
       ).catch(() => {}); // Ignore if already exists or permissions issue
 
-      // Insert new products as current batch
-      const batchDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      // Insert new products as current batch (CURRENT_DATE used in SQL to avoid JS/PG timezone mismatch)
       for (const p of products) {
         await pool.query(
           `INSERT INTO user_discover_products
            (user_id, product_id, title, brand, price, price_raw, image_url, link, source, category, position, batch_date, is_current, saved, enriched_color)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, TRUE, FALSE, $13)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_DATE, TRUE, FALSE, $12)
            ON CONFLICT (user_id, product_id) DO UPDATE SET
              is_current = TRUE,
              position = EXCLUDED.position,
@@ -2474,7 +2466,6 @@ export class DiscoverService {
             p.source,
             p.category,
             p.position,
-            batchDate,
             p.enriched_color || null,
           ],
         );

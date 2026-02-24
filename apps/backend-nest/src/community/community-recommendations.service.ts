@@ -759,14 +759,14 @@ export class CommunityRecommendationsService implements OnModuleInit {
           [currentUserId, postIds],
         ),
         pool.query(
-          `SELECT followed_id FROM user_follows WHERE follower_id = $1 AND followed_id = ANY($2)`,
+          `SELECT following_id FROM user_follows WHERE follower_id = $1 AND following_id = ANY($2)`,
           [currentUserId, authorIds],
-        ),
+        ).catch(() => ({ rows: [] })),
       ]);
 
       likedSet = new Set(likedRows.rows.map((r) => r.post_id));
       savedSet = new Set(savedRows.rows.map((r) => r.post_id));
-      followedSet = new Set(followedRows.rows.map((r) => r.followed_id));
+      followedSet = new Set(followedRows.rows.map((r) => r.following_id));
     }
 
     return posts.map((post) => ({
