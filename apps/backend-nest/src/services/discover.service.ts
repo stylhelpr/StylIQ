@@ -860,6 +860,8 @@ function validateSetCoherence(
 @Injectable()
 export class DiscoverService {
   private readonly log = new Logger(DiscoverService.name);
+  private serpEmptyResultsCooldownUntil = 0;
+  private static readonly EMPTY_RESULTS_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours
 
   constructor(
     private readonly learningEvents: LearningEventsService,
@@ -903,6 +905,14 @@ export class DiscoverService {
       );
     }
 
+    // In-memory cooldown: if SerpAPI recently returned nothing, don't hammer it
+    if (Date.now() < this.serpEmptyResultsCooldownUntil) {
+      this.log.warn(
+        `SerpAPI cooldown active for ${userId} — skipping fetch`,
+      );
+      return cached;
+    }
+
     // Cache expired or never set - ONE fetch attempt, then lock for 24 hours
     this.log.log(
       `Cache expired or empty for user ${userId} - fetching fresh products`,
@@ -928,14 +938,21 @@ export class DiscoverService {
       }
     }
 
-    // ALWAYS set timestamp and save whatever we got - locks for 24 hours regardless
-    if (products.length > 0) {
-      await this.saveProducts(userId, products);
+    // If all SerpAPI paths returned nothing, set cooldown and bail out
+    if (products.length === 0) {
+      this.serpEmptyResultsCooldownUntil =
+        Date.now() + DiscoverService.EMPTY_RESULTS_COOLDOWN_MS;
+      this.log.warn(
+        `All SerpAPI queries returned 0 products for ${userId} — 2h cooldown set`,
+      );
+      return [];
     }
+
+    await this.saveProducts(userId, products);
     await this.updateRefreshTimestamp(userId);
 
     this.log.log(
-      `Locked ${products.length} products for user ${userId} - no more API calls for 24 hours`,
+      `Saved ${products.length} products for user ${userId} — cache locked until end of day`,
     );
 
     // Re-read from cache so response always includes saved/disliked state from DB
@@ -2370,6 +2387,12 @@ export class DiscoverService {
     this.log.debug(`SerpAPI query: ${query}`);
 
     const resp = await fetch(url);
+    if (resp.status === 429) {
+      this.serpEmptyResultsCooldownUntil =
+        Date.now() + DiscoverService.EMPTY_RESULTS_COOLDOWN_MS;
+      this.log.warn('SerpAPI 429 rate-limited — 2h cooldown set');
+      throw new Error('SerpAPI rate-limited (429)');
+    }
     if (!resp.ok) {
       throw new Error(`SerpAPI returned ${resp.status}`);
     }
@@ -2520,7 +2543,7 @@ export class DiscoverService {
       );
       const genderPrefix = gender === 'male' ? "men's" : "women's";
 
-      const query = `${genderPrefix} fashion clothing trending`;
+      const query = `${genderPrefix} fashion clothing`;
       const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(query)}&hl=en&gl=us&api_key=${apiKey}`;
 
       const resp = await fetch(url);
@@ -2531,7 +2554,7 @@ export class DiscoverService {
 
       const data = await resp.json();
       if (data.error) {
-        this.log.error(`SerpAPI error: ${data.error}`);
+        this.log.error(`SerpAPI error for query "${query}": ${data.error}`);
         return [];
       }
 
