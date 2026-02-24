@@ -81,6 +81,7 @@ import NoteDetailScreen from '../screens/NoteDetailScreen';
 import OutfitHistoryScreen from '../screens/OutfitHistoryScreen';
 import OutfitsByOccasionScreen from '../screens/OutfitsByOccasionScreen';
 import TripsNavigator from '../screens/Trips/TripsNavigator';
+import OutfitsScreen from '../screens/Outfits/OutfitsScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -184,7 +185,8 @@ type Screen =
   | 'SaveNote'
   | 'NoteDetail'
   | 'Closet'
-  | 'Trips';
+  | 'Trips'
+  | 'Outfits';
 
 const RootNavigator = ({
   registerNavigate,
@@ -594,6 +596,8 @@ const RootNavigator = ({
         return <SaveNoteScreen navigate={navigate} params={screenParams} />;
       case 'NoteDetail':
         return <NoteDetailScreen navigate={navigate} params={screenParams} />;
+      case 'Outfits':
+        return <OutfitsScreen navigate={navigate} />;
       case 'OutfitHistory':
         return <OutfitHistoryScreen navigate={navigate} />;
       case 'OutfitsByOccasion':

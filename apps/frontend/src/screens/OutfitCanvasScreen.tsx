@@ -312,7 +312,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     if (isDirty && placedItems.length > 0) {
       setShowDiscardModal(true);
     } else {
-      navigate('Wardrobe');
+      navigate('Outfits');
     }
   }, [isDirty, placedItems.length, navigate]);
 

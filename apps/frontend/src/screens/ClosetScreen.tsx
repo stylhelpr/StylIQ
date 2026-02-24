@@ -1390,25 +1390,7 @@ export default function ClosetScreen({navigate}: Props) {
           <Text style={[globalStyles.header, {marginBottom: 0}]}>Wardrobe</Text>
 
           <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            <AppleTouchFeedback
-              style={[
-                globalStyles.buttonPrimary,
-                {
-                  paddingHorizontal: 16,
-                  paddingVertical: 11,
-                  marginRight: 10,
-                },
-              ]}
-              hapticStyle="impactMedium"
-              onPress={() => {
-                ReactNativeHapticFeedback.trigger('notificationSuccess', {
-                  enableVibrateFallback: true,
-                  ignoreAndroidSystemSettings: false,
-                });
-                navigate('OutfitCanvas');
-              }}>
-              <Text style={globalStyles.buttonPrimaryText}>+ Build Outfit</Text>
-            </AppleTouchFeedback>
+        
 
             {/* View Mode Toggle */}
             <AppleTouchFeedback
