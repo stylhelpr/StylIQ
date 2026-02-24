@@ -108,11 +108,35 @@ export async function updateTrip(updated: Trip): Promise<boolean> {
       const items = (updated.capsule?.packingList ?? []).flatMap(g =>
         (g.items ?? []).map(i => ({wardrobeItemId: i.wardrobeItemId})),
       );
-      console.log('[FRONTEND PATCH PAYLOAD]', {
-        tripId: updated.id,
-        itemsLength: items?.length,
-        capsulePresent: !!updated.capsule,
-      });
+      if (__DEV__) {
+        console.log('[TripCapsule][SAVE_PAYLOAD]', {
+          tripId: updated.id,
+          itemsLength: items?.length,
+          capsulePresent: !!updated.capsule,
+          capsuleFingerprint: updated.capsule?.fingerprint ?? null,
+          capsuleVersion: updated.capsule?.version ?? null,
+        });
+        if (items.length === 0 && !updated.capsule) {
+          const err = new Error('[TripCapsule][WIPE_STACK]');
+          console.log('[TripCapsule][WIPE_DETECTED]', {
+            tripId: updated.id,
+            itemsLength: items.length,
+            capsulePresent: false,
+            at: new Date().toISOString(),
+          });
+          console.log(err.stack);
+        }
+      }
+
+      // GUARD: never persist an empty capsule to backend — this wipes swap data
+      // Returns false: local write succeeded but remote was intentionally skipped
+      if (items.length === 0 && !updated.capsule) {
+        if (__DEV__) {
+          console.warn('[TripCapsule] Prevented empty capsule persist', updated.id);
+        }
+        return false;
+      }
+
       await apiClient.patch(`/trips/${updated.id}/items`, {
         items,
         capsule: updated.capsule ?? null,

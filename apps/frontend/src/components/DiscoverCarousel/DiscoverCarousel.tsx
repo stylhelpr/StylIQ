@@ -10,7 +10,6 @@ import {
   Pressable,
   NativeSyntheticEvent,
   NativeScrollEvent,
-  TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -72,6 +71,69 @@ const ScalePressable = ({
       onPressOut={handlePressOut}>
       <Animated.View style={[style, {transform: [{scale: scaleAnim}]}]}>
         {children}
+      </Animated.View>
+    </Pressable>
+  );
+};
+
+// Animated icon button with scale tap feedback and floating elevation
+const AnimatedIconButton = ({
+  onPress,
+  iconName,
+  activeIconName,
+  isActive,
+  activeColor,
+  isLoading,
+}: {
+  onPress: (e: any) => void;
+  iconName: string;
+  activeIconName: string;
+  isActive: boolean;
+  activeColor: string;
+  isLoading?: boolean;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.92,
+      duration: 120,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 120,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+      <Animated.View
+        style={{
+          opacity: isActive ? 1.0 : 0.7,
+          transform: [{scale: scaleAnim}],
+          shadowColor: '#000',
+          shadowOpacity: 0.15,
+          shadowRadius: 6,
+          shadowOffset: {width: 0, height: 2},
+        }}>
+        {isLoading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <MaterialIcons
+            name={isActive ? activeIconName : iconName}
+            size={16}
+            color={isActive ? activeColor : 'rgba(255,255,255,0.75)'}
+          />
+        )}
       </Animated.View>
     </Pressable>
   );
@@ -486,48 +548,30 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                       right: 6,
                       alignItems: 'center',
                       gap: 10,
-                    
                     }}>
-                    {/* Heart icon */}
-                    <TouchableOpacity
+                    {/* Thumbs up icon */}
+                    <AnimatedIconButton
                       onPress={e => {
                         e.stopPropagation();
                         handleToggleSave(item);
                       }}
-                      style={{
-                        backgroundColor: 'rgba(0,0,0,0.85)',
-                        borderRadius: 14,
-                        padding: 5,
-                      }}
-                      hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-                      {savingProductId === item.product_id ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <MaterialIcons
-                          name="thumb-up"
-                          size={16}
-                          color={item.saved ? '#4CAF50' : '#fff'}
-                        />
-                      )}
-                    </TouchableOpacity>
-                    {/* Thumbs-down icon */}
-                    <TouchableOpacity
+                      iconName="thumb-up-off-alt"
+                      activeIconName="thumb-up"
+                      isActive={!!item.saved}
+                      activeColor="#fff"
+                      isLoading={savingProductId === item.product_id}
+                    />
+                    {/* Thumbs down icon */}
+                    <AnimatedIconButton
                       onPress={e => {
                         e.stopPropagation();
                         handleDismiss(item);
                       }}
-                      style={{
-                        backgroundColor: 'rgba(0,0,0,0.85)',
-                        borderRadius: 14,
-                        padding: 5,
-                      }}
-                      hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-                      <MaterialIcons
-                        name="thumb-down"
-                        size={16}
-                        color={dislikedIds.has(item.product_id) ? '#ff4d4d' : '#fff'}
-                      />
-                    </TouchableOpacity>
+                      iconName="thumb-down-off-alt"
+                      activeIconName="thumb-down"
+                      isActive={dislikedIds.has(item.product_id)}
+                      activeColor="#ff4d4d"
+                    />
                   </View>
                 </View>
                 <Text

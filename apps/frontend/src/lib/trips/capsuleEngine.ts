@@ -1016,6 +1016,23 @@ export function gateBackupPoolFallback(
 
 export type RebuildMode = 'AUTO' | 'FORCE';
 
+/** DEV-only deep diff for fingerprint diagnostics. */
+function __diffObjects(a: any, b: any, path: string = ''): string[] {
+  if (a === b) return [];
+  if (typeof a !== 'object' || typeof b !== 'object' || !a || !b) {
+    return [path || 'root'];
+  }
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  const diffs: string[] = [];
+  for (const key of keys) {
+    const newPath = path ? `${path}.${key}` : key;
+    if (!(key in a)) { diffs.push(newPath + ' (missing in stored)'); continue; }
+    if (!(key in b)) { diffs.push(newPath + ' (missing in computed)'); continue; }
+    diffs.push(...__diffObjects(a[key], b[key], newPath));
+  }
+  return diffs;
+}
+
 export function shouldRebuildCapsule(
   capsule: TripCapsule | undefined,
   engineVersion: number,
@@ -1038,8 +1055,31 @@ export function shouldRebuildCapsule(
   // Version mismatch → rebuild
   if (version !== engineVersion) return {rebuild: true, reason: 'VERSION_MISMATCH', mode: 'AUTO'};
 
+  // Old schema used "weather": [...] — force one-time rebuild to new weatherIntent schema
+  if (capsule.fingerprint?.includes('"weather":')) {
+    return {rebuild: true, reason: 'FINGERPRINT_SCHEMA_MIGRATION', mode: 'AUTO'};
+  }
+
   // Fingerprint mismatch → inputs changed
   if (fingerprint && capsule.fingerprint !== fingerprint) {
+    if (__DEV__) {
+      console.log('[TripCapsule][FINGERPRINT_STRINGS]', {
+        stored: capsule.fingerprint,
+        computed: fingerprint,
+      });
+      try {
+        const parsedStored = JSON.parse(capsule.fingerprint!);
+        const parsedComputed = JSON.parse(fingerprint);
+        const diffs = __diffObjects(parsedStored, parsedComputed);
+        console.log('[TripCapsule][FINGERPRINT_DIFF]', {
+          stored: parsedStored,
+          computed: parsedComputed,
+          differingPaths: diffs,
+        });
+      } catch (e) {
+        console.log('[TripCapsule][FINGERPRINT_DIFF_PARSE_ERROR]', e);
+      }
+    }
     return {rebuild: true, reason: 'FINGERPRINT_MISMATCH', mode: 'AUTO'};
   }
 
@@ -1061,21 +1101,54 @@ export function shouldRebuildCapsule(
   return {rebuild: false, reason: 'UP_TO_DATE', mode: 'AUTO'};
 }
 
+/** Canonical string-array normalization: lowercase, trim, dedupe, sort. */
+function normalizeStringArray(arr?: string[]): string[] {
+  if (!arr) return [];
+  return [...new Set(arr.map(s => s.trim().toLowerCase()).filter(Boolean))].sort();
+}
+
+/** Return a shallow copy of TripStyleHints with all internal arrays sorted. */
+function normalizeStyleHints(hints: TripStyleHints): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(hints).sort()) {
+    const val = (hints as Record<string, unknown>)[key];
+    out[key] = Array.isArray(val) ? [...val].sort() : val;
+  }
+  return out;
+}
+
 export function buildCapsuleFingerprint(
   wardrobe: TripWardrobeItem[],
-  weather: DayWeather[],
+  destination: string,
+  startDate: string,
+  endDate: string,
   activities: TripActivity[],
   location: string,
-  presentation?: Presentation,
+  _presentation?: Presentation,  // kept for call-site compat; NOT fingerprinted
   styleHints?: TripStyleHints,
 ): string {
+  const styleIntentSignature = styleHints ? {
+    fit_preferences: normalizeStringArray(styleHints.fit_preferences),
+    fabric_preferences: normalizeStringArray(styleHints.fabric_preferences),
+    preferred_brands: normalizeStringArray(styleHints.preferred_brands),
+    disliked_styles: normalizeStringArray(styleHints.disliked_styles),
+    avoid_colors: normalizeStringArray(styleHints.avoid_colors),
+    avoid_materials: normalizeStringArray(styleHints.avoid_materials),
+    avoid_patterns: normalizeStringArray(styleHints.avoid_patterns),
+  } : undefined;
+
+  // Weather intent: stable trip identity (city + dates), NOT volatile forecast data
+  // Normalize to YYYY-MM-DD to prevent ISO-string timezone drift from causing mismatches
+  const start = startDate?.slice(0, 10);
+  const end = endDate?.slice(0, 10);
+  const weatherIntent = `${destination.trim().toLowerCase()}:${start}:${end}`;
+
   return JSON.stringify({
     wardrobe: wardrobe.map(w => w.id).sort(),
-    weather: weather.map(d => `${d.date}:${d.highF}:${d.lowF}:${d.condition}`),
+    weatherIntent,
     activities: [...activities].sort(),
     location,
-    presentation: presentation || 'mixed',
-    ...(styleHints ? {styleHints} : {}),
+    ...(styleIntentSignature ? {styleIntentSignature} : {}),
   });
 }
 
@@ -5147,13 +5220,20 @@ export function buildCapsule(
   // Step 10: Build packing list
   const packingList = buildPackingList(outfits, PACKING_CATEGORY_ORDER);
 
-  // Step 11: Stamp fingerprint (includes presentation for cache invalidation)
+  // Step 11: Stamp fingerprint (canonical intent only — presentation excluded)
+  const sortedDates = weather.map(d => d.date).sort();
+  const fpDestination = destinationLabel ?? startingLocationLabel;
+  const fpStartDate = sortedDates[0] ?? '';
+  const fpEndDate = sortedDates[sortedDates.length - 1] ?? '';
   const fingerprint = buildCapsuleFingerprint(
     wardrobeItems,
-    weather,
+    fpDestination,
+    fpStartDate,
+    fpEndDate,
     activities,
     startingLocationLabel,
     presentation,
+    styleHints,
   );
 
   const buildId = generateBuildId(fingerprint);

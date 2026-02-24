@@ -71,19 +71,24 @@ type Props = {
   userGenderPresentation?: string;
 };
 
-/** DEV failsafe: buildCapsule must never be called while an old capsule exists */
-function assertCapsuleWiped(currentCapsule: TripCapsule | null, context: string) {
-  if (__DEV__ && currentCapsule) {
-    console.warn(
-      `[TripCapsule] FAILSAFE: buildCapsule called with existing capsule — invalid rebuild (${context})`,
-    );
-  }
-}
-
 const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresentation}: Props) => {
   const {theme} = useAppTheme();
   const [capsule, setCapsule] = useState<TripCapsule | null>(trip.capsule);
   const [warnings, setWarnings] = useState<CapsuleWarning[]>(trip.warnings || []);
+
+  // Phase 1B: Log loaded trip state on mount
+  useEffect(() => {
+    if (__DEV__) {
+      console.log('[TripCapsule][LOADED_TRIP]', {
+        tripId: trip.id,
+        itemsLength: trip.capsule?.packingList?.reduce((s: number, g: any) => s + (g.items?.length ?? 0), 0) ?? 0,
+        capsulePresent: !!trip.capsule,
+        capsuleFingerprint: trip.capsule?.fingerprint ?? null,
+        capsuleVersion: trip.capsule?.version ?? null,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.id]);
   const [replaceItem, setReplaceItem] = useState<TripPackingItem | null>(null);
   const [isRebuilding, setIsRebuilding] = useState(false);
 
@@ -161,7 +166,9 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       : detectPresentation(adaptedWardrobe);
     const fingerprint = buildCapsuleFingerprint(
       adaptedWardrobe,
-      trip.weather || [],
+      trip.destination,
+      trip.startDate,
+      trip.endDate,
       trip.activities,
       trip.startingLocationLabel,
       presentation,
@@ -175,9 +182,16 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
     );
 
     if (__DEV__) {
-      console.log(
-        `[TripCapsule] trip=${trip.id} capsuleVersion=${capsule?.version ?? 0} engineVersion=${CAPSULE_VERSION} mode=${mode} action=${needsRebuild ? 'REBUILD' : 'SKIP'} reason=${reason}`,
-      );
+      console.log('[TripCapsule][REBUILD_DECISION]', {
+        tripId: trip.id,
+        rebuild: needsRebuild,
+        reason,
+        mode,
+        capsuleVersion: capsule?.version ?? 0,
+        engineVersion: CAPSULE_VERSION,
+        storedFingerprint: capsule?.fingerprint ?? null,
+        computedFingerprint: fingerprint,
+      });
     }
 
     if (didRebuildRef.current) return;
@@ -192,18 +206,12 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
 
     (async () => {
       try {
-        // HARD RESET: delete old capsule before rebuilding
+        // LOCAL-ONLY wipe: clear UI state, do NOT persist null capsule to backend
         if (__DEV__) {
-          console.log('[TripCapsule] HARD RESET: deleting old capsule', trip.id);
+          console.log('[TripCapsule] LOCAL WIPE: clearing UI state', trip.id);
         }
-        const wipedTrip: Trip = {
-          ...trip,
-          capsule: null,
-          warnings: undefined,
-        };
         setCapsule(null);
         setWarnings([]);
-        await updateTrip(wipedTrip);
 
         const normalizedStart = typeof trip.startDate === 'string' ? trip.startDate.split('T')[0] : trip.startDate;
         const normalizedEnd = typeof trip.endDate === 'string' ? trip.endDate.split('T')[0] : trip.endDate;
@@ -222,7 +230,6 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
         const fsSummary = await getFashionStateSummary().catch(() => null);
 
         // Rebuild from clean state
-        assertCapsuleWiped(wipedTrip.capsule, 'auto-rebuild');
         if (__DEV__) {
           console.log('[TRIP DEBUG] sending styleHints', currentHints);
         }
@@ -252,12 +259,21 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
         setCapsule(newCapsule);
         setWarnings(newWarnings);
         const updated: Trip = {
-          ...wipedTrip,
+          ...trip,
           weather: weatherResult.days,
           weatherSource: weatherResult.source,
           capsule: newCapsule,
           warnings: newWarnings.length > 0 ? newWarnings : undefined,
         };
+        if (__DEV__) {
+          console.log('[TripCapsule][REBUILD_PERSIST]', {
+            tripId: trip.id,
+            buildId: newCapsule.build_id,
+            itemCount: newCapsule.packingList.reduce((s: number, g: any) => s + (g.items?.length ?? 0), 0),
+            fingerprint: newCapsule.fingerprint ?? null,
+            patchWillFire: true,
+          });
+        }
         await updateTrip(updated);
         onRefresh();
 
@@ -282,7 +298,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveProfile]);
+  }, [trip?.id]);
 
   const start = new Date(trip.startDate + 'T00:00:00');
   const end = new Date(trip.endDate + 'T00:00:00');
@@ -328,21 +344,12 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
           onPress: async () => {
             setIsRebuilding(true);
             try {
-              // FORCE REBUILD: hard reset — ignores version/fingerprint/dress-leak
+              // FORCE REBUILD: local-only wipe, then rebuild
               if (__DEV__) {
-                console.log(`[TripCapsule] FORCE REBUILD: deleting old capsule trip=${trip.id}`);
+                console.log(`[TripCapsule] FORCE REBUILD: local wipe trip=${trip.id}`);
               }
-              const wipedTrip: Trip = {
-                ...trip,
-                capsule: null,
-                warnings: undefined,
-              };
               setCapsule(null);
               setWarnings([]);
-              await updateTrip(wipedTrip);
-
-              // Rebuild from clean state
-              assertCapsuleWiped(wipedTrip.capsule, 'FORCE');
               const normalizedStart = typeof trip.startDate === 'string' ? trip.startDate.split('T')[0] : trip.startDate;
               const normalizedEnd = typeof trip.endDate === 'string' ? trip.endDate.split('T')[0] : trip.endDate;
               const weatherResult = await fetchRealWeather(
@@ -375,12 +382,21 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
               const newWarnings = [...(newCapsule.warnings ?? []), ...validationWarnings2];
 
               const updated: Trip = {
-                ...wipedTrip,
+                ...trip,
                 weather: weatherResult.days,
                 weatherSource: weatherResult.source,
                 capsule: newCapsule,
                 warnings: newWarnings.length > 0 ? newWarnings : undefined,
               };
+              if (__DEV__) {
+                console.log('[TripCapsule][FORCE_REBUILD_PERSIST]', {
+                  tripId: trip.id,
+                  buildId: newCapsule.build_id,
+                  itemCount: newCapsule.packingList.reduce((s: number, g: any) => s + (g.items?.length ?? 0), 0),
+                  fingerprint: newCapsule.fingerprint ?? null,
+                  patchWillFire: true,
+                });
+              }
               const saved = await updateTrip(updated);
               if (!saved) {
                 Alert.alert('Save Error', "Couldn't save rebuilt capsule. Please try again.");

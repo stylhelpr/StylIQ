@@ -753,15 +753,14 @@ describe('buildCapsule with explicit presentation', () => {
     expect(allItems.every(i => i.mainCategory !== 'Dresses')).toBe(true);
   });
 
-  it('TEST 6: buildCapsuleFingerprint includes presentation (cache invalidation)', () => {
-    const fp1 = buildCapsuleFingerprint(ambiguousWardrobe, weather, ['Casual'], 'Home', 'masculine');
-    const fp2 = buildCapsuleFingerprint(ambiguousWardrobe, weather, ['Casual'], 'Home', 'feminine');
-    const fp3 = buildCapsuleFingerprint(ambiguousWardrobe, weather, ['Casual'], 'Home');
+  it('TEST 6: presentation drift does NOT change fingerprint', () => {
+    const fp1 = buildCapsuleFingerprint(ambiguousWardrobe, 'TestCity', '2025-06-15', '2025-06-17', ['Casual'], 'Home', 'masculine');
+    const fp2 = buildCapsuleFingerprint(ambiguousWardrobe, 'TestCity', '2025-06-15', '2025-06-17', ['Casual'], 'Home', 'feminine');
+    const fp3 = buildCapsuleFingerprint(ambiguousWardrobe, 'TestCity', '2025-06-15', '2025-06-17', ['Casual'], 'Home');
 
-    // Different presentations → different fingerprints → cache invalidation
-    expect(fp1).not.toBe(fp2);
-    // No presentation → defaults to 'mixed', different from 'masculine'
-    expect(fp1).not.toBe(fp3);
+    // Presentation is NOT fingerprinted — drift must not trigger rebuild
+    expect(fp1).toBe(fp2);
+    expect(fp1).toBe(fp3);
   });
 });
 
@@ -3656,6 +3655,142 @@ describe('Canonical gate convergence', () => {
     expect(getRequiredFormalityTier(1)).toBe(0); // Sightseeing
     expect(getRequiredFormalityTier(2)).toBe(1); // Business/Dinner
     expect(getRequiredFormalityTier(3)).toBe(2); // Formal
+  });
+});
+
+// ── buildCapsuleFingerprint determinism ─────────────────────────────────────
+describe('buildCapsuleFingerprint determinism', () => {
+  const mkItem = (id: string): TripWardrobeItem => ({
+    id,
+    image_url: '',
+    name: id,
+    color: 'black',
+    main_category: 'Tops',
+    subcategory: 'T-Shirts',
+  } as TripWardrobeItem);
+
+  it('wardrobeIds order does not change fingerprint', () => {
+    const w1 = [mkItem('z-shirt'), mkItem('a-pants'), mkItem('m-shoes')];
+    const w2 = [mkItem('a-pants'), mkItem('m-shoes'), mkItem('z-shirt')];
+    const w3 = [mkItem('m-shoes'), mkItem('z-shirt'), mkItem('a-pants')];
+
+    const fp1 = buildCapsuleFingerprint(w1, 'NYC', '2025-07-01', '2025-07-03', ['Casual'], 'NYC');
+    const fp2 = buildCapsuleFingerprint(w2, 'NYC', '2025-07-01', '2025-07-03', ['Casual'], 'NYC');
+    const fp3 = buildCapsuleFingerprint(w3, 'NYC', '2025-07-01', '2025-07-03', ['Casual'], 'NYC');
+
+    expect(fp1).toBe(fp2);
+    expect(fp2).toBe(fp3);
+  });
+
+  it('activities order does not change fingerprint', () => {
+    const w = [mkItem('t1')];
+    const fp1 = buildCapsuleFingerprint(w, 'Miami', '2025-07-01', '2025-07-03', ['Business', 'Casual', 'Beach'], 'Miami');
+    const fp2 = buildCapsuleFingerprint(w, 'Miami', '2025-07-01', '2025-07-03', ['Beach', 'Business', 'Casual'], 'Miami');
+    const fp3 = buildCapsuleFingerprint(w, 'Miami', '2025-07-01', '2025-07-03', ['Casual', 'Beach', 'Business'], 'Miami');
+
+    expect(fp1).toBe(fp2);
+    expect(fp2).toBe(fp3);
+  });
+
+  it('different forecast payload does NOT change fingerprint', () => {
+    const w = [mkItem('t1')];
+    // Same city + dates, different weather data — fingerprint must be identical
+    const fp1 = buildCapsuleFingerprint(w, 'London', '2025-07-01', '2025-07-03', ['Casual'], 'London');
+    const fp2 = buildCapsuleFingerprint(w, 'London', '2025-07-01', '2025-07-03', ['Casual'], 'London');
+
+    expect(fp1).toBe(fp2);
+  });
+
+  it('changing city DOES change fingerprint', () => {
+    const w = [mkItem('t1')];
+    const fp1 = buildCapsuleFingerprint(w, 'London', '2025-07-01', '2025-07-03', ['Casual'], 'Home');
+    const fp2 = buildCapsuleFingerprint(w, 'Paris', '2025-07-01', '2025-07-03', ['Casual'], 'Home');
+
+    expect(fp1).not.toBe(fp2);
+  });
+
+  it('changing dates DOES change fingerprint', () => {
+    const w = [mkItem('t1')];
+    const fp1 = buildCapsuleFingerprint(w, 'London', '2025-07-01', '2025-07-03', ['Casual'], 'Home');
+    const fp2 = buildCapsuleFingerprint(w, 'London', '2025-08-01', '2025-08-05', ['Casual'], 'Home');
+
+    expect(fp1).not.toBe(fp2);
+  });
+
+  it('city normalization: case insensitive', () => {
+    const w = [mkItem('t1')];
+    const fp1 = buildCapsuleFingerprint(w, 'Paris', '2025-07-01', '2025-07-03', ['Casual'], 'Home');
+    const fp2 = buildCapsuleFingerprint(w, 'PARIS', '2025-07-01', '2025-07-03', ['Casual'], 'Home');
+    const fp3 = buildCapsuleFingerprint(w, ' paris ', '2025-07-01', '2025-07-03', ['Casual'], 'Home');
+
+    expect(fp1).toBe(fp2);
+    expect(fp2).toBe(fp3);
+  });
+
+  it('styleHints array order does not change fingerprint', () => {
+    const w = [mkItem('t1')];
+    const hints1: TripStyleHints = {preferred_brands: ['Nike', 'Adidas'], disliked_styles: ['cargo', 'graphic']};
+    const hints2: TripStyleHints = {preferred_brands: ['Adidas', 'Nike'], disliked_styles: ['graphic', 'cargo']};
+    // Also test different key insertion order
+    const hints3: TripStyleHints = {disliked_styles: ['graphic', 'cargo'], preferred_brands: ['Nike', 'Adidas']};
+
+    const fp1 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'mixed', hints1);
+    const fp2 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'mixed', hints2);
+    const fp3 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'mixed', hints3);
+
+    expect(fp1).toBe(fp2);
+    expect(fp2).toBe(fp3);
+  });
+
+  it('all inputs shuffled simultaneously still produces same fingerprint', () => {
+    const w1 = [mkItem('c'), mkItem('a'), mkItem('b')];
+    const w2 = [mkItem('b'), mkItem('c'), mkItem('a')];
+    const acts1: TripActivity[] = ['Beach', 'Casual', 'Business'];
+    const acts2: TripActivity[] = ['Business', 'Beach', 'Casual'];
+    const hints1: TripStyleHints = {preferred_brands: ['Zara', 'H&M'], fit_preferences: ['Slim', 'Regular']};
+    const hints2: TripStyleHints = {fit_preferences: ['Regular', 'Slim'], preferred_brands: ['H&M', 'Zara']};
+
+    const fp1 = buildCapsuleFingerprint(w1, 'Paris', '2025-07-01', '2025-07-03', acts1, 'Paris', 'feminine', hints1);
+    const fp2 = buildCapsuleFingerprint(w2, 'Paris', '2025-07-01', '2025-07-03', acts2, 'Paris', 'feminine', hints2);
+
+    expect(fp1).toBe(fp2);
+  });
+
+  it('presentation drift does NOT change fingerprint', () => {
+    const w = [mkItem('t1')];
+    const fp1 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'masculine');
+    const fp2 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'feminine');
+    const fp3 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'mixed');
+    const fp4 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC');
+
+    expect(fp1).toBe(fp2);
+    expect(fp2).toBe(fp3);
+    expect(fp3).toBe(fp4);
+  });
+
+  it('raw styleHints case/duplicate differences do NOT change fingerprint', () => {
+    const w = [mkItem('t1')];
+    const hints1: TripStyleHints = {avoid_colors: ['Pink', 'pink', 'White']};
+    const hints2: TripStyleHints = {avoid_colors: ['white', 'pink']};
+    const hints3: TripStyleHints = {avoid_colors: ['WHITE', ' Pink ', 'white']};
+
+    const fp1 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'mixed', hints1);
+    const fp2 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'mixed', hints2);
+    const fp3 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'mixed', hints3);
+
+    expect(fp1).toBe(fp2);
+    expect(fp2).toBe(fp3);
+  });
+
+  it('actual change in avoid_colors DOES change fingerprint', () => {
+    const w = [mkItem('t1')];
+    const hints1: TripStyleHints = {avoid_colors: ['pink', 'white']};
+    const hints2: TripStyleHints = {avoid_colors: ['pink', 'black']};
+
+    const fp1 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'mixed', hints1);
+    const fp2 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'mixed', hints2);
+
+    expect(fp1).not.toBe(fp2);
   });
 });
 
