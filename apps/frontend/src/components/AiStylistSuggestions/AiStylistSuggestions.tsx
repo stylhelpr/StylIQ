@@ -558,7 +558,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
         },
         body: JSON.stringify({
           user_id: contextUUID,
-          name: currentOutfit.summary || 'AI Stylist Suggestion',
+          name: (currentOutfit as any).title || currentOutfit.summary?.split(/[.!?]/)[0]?.slice(0, 60)?.trim() || 'AI Stylist Suggestion',
           top_id: topItem?.id ?? null,
           bottom_id: bottomItem?.id ?? null,
           shoes_id: shoesItem?.id ?? null,

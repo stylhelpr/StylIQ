@@ -7317,40 +7317,22 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       query: constraint,
     };
 
-    // ── DETERMINISTIC SWIPE PAGING: rotate through ranked pool instead of always top 3 ──
-    {
-      const pageSize = 3;
-      const _uid = userId ?? '';
-      const _profileDelta = (o: any) => applyStylistProfileEnhancements(o, brainCtx.styleProfile);
-      const _scoredAll = eliteOutfits.map((o, i) => {
-        const base = (scoreOutfit as any)(o, _judgeCtxStylist).total;
-        const delta = _profileDelta(o);
-        return { outfit: o, score: Math.max(0, base + delta), index: i };
-      });
-      _scoredAll.sort((a, b) => b.score - a.score || a.index - b.index);
+    // Save full elite pool BEFORE quality-floor truncation (for swipe paging).
+    // These items have passed: weather gate, avoid-color, elite scoring, style veto.
+    const _fullElitePool = [...eliteOutfits];
 
-      const currentOffset = this.visualSwipeOffset.get(_uid) ?? 0;
-      const safeOffset = currentOffset >= _scoredAll.length ? 0 : currentOffset;
-      const paged = _scoredAll.slice(safeOffset, safeOffset + pageSize);
-      const nextOffset =
-        safeOffset + pageSize >= _scoredAll.length ? 0 : safeOffset + pageSize;
-      this.visualSwipeOffset.set(_uid, nextOffset);
+    const _candidateCountStylist = eliteOutfits.length;
 
-      eliteOutfits = paged.map((p) => p.outfit);
-
+    // Defensive assertion: pool must not be empty when candidates exist
+    if (_fullElitePool.length === 0 && _candidateCountStylist > 0) {
       console.log(
         JSON.stringify({
-          _tag: 'VISUAL_SWIPE_PAGE',
-          userId: _uid,
-          offset: safeOffset,
-          nextOffset,
-          poolSize: _scoredAll.length,
-          pageReturned: eliteOutfits.length,
+          _tag: 'STYLIST_PAGING_POOL_MISMATCH',
+          candidateCount: _candidateCountStylist,
+          fullElitePoolSize: _fullElitePool.length,
         }),
       );
     }
-
-    const _candidateCountStylist = eliteOutfits.length;
     eliteOutfits = selectTopOutfitsWithQualityFloor(
       eliteOutfits,
       _judgeCtxStylist,
@@ -7376,6 +7358,102 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         topScores: eliteOutfits.map((o: any) => o.qualityScore ?? (scoreOutfit as any)(o, _judgeCtxStylist).total),
       }),
     );
+
+    // ── DETERMINISTIC SWIPE PAGING: rotate through FULL quality-approved pool ──
+    // Pages through ALL quality-eligible outfits (not just the truncated top 3)
+    // so each swipe surfaces a fresh group of 3.
+    {
+      const pageSize = 3;
+      const _uid = userId ?? '';
+      const _profileDelta = (o: any) => applyStylistProfileEnhancements(o, brainCtx.styleProfile);
+
+      // Score the FULL elite pool (pre-truncation) for ranking.
+      // No quality floor filter here — items already passed taste validation,
+      // elite scoring, avoid-color, and style veto upstream.
+      // selectTopOutfitsWithQualityFloor handles quality thresholds for its own output;
+      // paging ranks the full surviving pool for swipe rotation.
+      const _scoredAll = _fullElitePool.map((o, i) => {
+        const base = (scoreOutfit as any)(o, _judgeCtxStylist).total;
+        const delta = _profileDelta(o);
+        return { outfit: o, score: Math.max(0, base + delta), index: i };
+      });
+
+      _scoredAll.sort((a, b) => b.score - a.score || a.index - b.index);
+
+      // ── ELITE BAND DIVERSITY: deterministic secondary ordering within tight score band ──
+      {
+        const maxScore = _scoredAll.length > 0 ? _scoredAll[0].score : 0;
+        const bandThreshold = 0.05;
+        const bandSize = _scoredAll.filter(
+          (s) => maxScore - s.score <= bandThreshold,
+        ).length;
+
+        if (bandSize > 1) {
+          // Deterministic string hash: djb2
+          const djb2 = (str: string): number => {
+            let hash = 5381;
+            for (let i = 0; i < str.length; i++) {
+              hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+            }
+            return hash >>> 0; // unsigned 32-bit
+          };
+
+          // Reorder ONLY within the band using hash(userId + outfitId)
+          const bandItems = _scoredAll.slice(0, bandSize);
+          const nonBandItems = _scoredAll.slice(bandSize);
+
+          bandItems.sort((a, b) => {
+            const idA = a.outfit.id ?? `idx-${a.index}`;
+            const idB = b.outfit.id ?? `idx-${b.index}`;
+            const hashA = djb2(`${_uid}:${idA}`);
+            const hashB = djb2(`${_uid}:${idB}`);
+            return hashA - hashB;
+          });
+
+          _scoredAll.length = 0;
+          _scoredAll.push(...bandItems, ...nonBandItems);
+
+          console.log(
+            JSON.stringify({
+              _tag: 'STYLIST_ELITE_BAND_DIVERSITY',
+              maxScore,
+              bandSize,
+            }),
+          );
+        }
+      }
+
+      // ── STRICT ROTATION LIMIT: cap swipe pool to top 6 to eliminate quality drift ──
+      const ELITE_ROTATION_LIMIT = 6;
+      const _rotationPool = _scoredAll.slice(0, ELITE_ROTATION_LIMIT);
+
+      const currentOffset = this.visualSwipeOffset.get(_uid) ?? 0;
+      const safeOffset =
+        _rotationPool.length <= pageSize
+          ? 0
+          : currentOffset >= _rotationPool.length
+            ? 0
+            : currentOffset;
+      const paged = _rotationPool.slice(safeOffset, safeOffset + pageSize);
+      const nextOffset =
+        _rotationPool.length <= pageSize
+          ? 0
+          : safeOffset + pageSize >= _rotationPool.length
+            ? 0
+            : safeOffset + pageSize;
+      this.visualSwipeOffset.set(_uid, nextOffset);
+
+      eliteOutfits = paged.map((p) => p.outfit);
+
+      console.log(
+        JSON.stringify({
+          _tag: 'STYLIST_ROTATION_TOP_BAND',
+          rotationPoolSize: _rotationPool.length,
+          pageOffset: safeOffset,
+          returnedCount: eliteOutfits.length,
+        }),
+      );
+    }
 
     // ── EXPLANATION BACKFILL: ensure every returned outfit has a stylist explanation ──
     {
