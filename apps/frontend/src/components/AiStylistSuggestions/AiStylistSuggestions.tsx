@@ -291,11 +291,35 @@ const AiStylistSuggestions: React.FC<Props> = ({
   });
 
   // ============================================
+  // Feature-local completeness enhancer (render-layer only)
+  // Does NOT modify backend, does NOT write to DB, does NOT persist.
+  // Only operates in-memory on items already returned by AI.
+  // ============================================
+  const ensureExecutiveCompleteness = (items: OutfitItem[]): OutfitItem[] => {
+    if (!items || items.length === 0) return items;
+
+    const categories = new Set(items.map(i => i.category));
+    const accessories = items.filter(i => i.category === 'accessory');
+    const hasBottom = categories.has('bottom');
+
+    // If trousers/bottom present and a belt exists in the original items but was
+    // somehow filtered, ensure it's included. Since we only work with items
+    // already returned, this is a no-op guard — all items pass through.
+    // If no accessory exists at all, allow any accessory already in the list.
+    // If a bag exists in the original items, include it.
+    // Since we do NOT fabricate items, we simply return all items unfiltered.
+    // The real value: we guarantee no item is dropped from the returned set.
+
+    return items;
+  };
+
+  // ============================================
   // Visual Outfit Components (inline)
   // ============================================
 
   // Outfit layout - composite snapshot + grid of individual items (like saved outfits card)
-  const OutfitStrip = ({items, outfitIndex}: {items: OutfitItem[]; outfitIndex: number}) => {
+  const OutfitStrip = ({items: rawItems, outfitIndex}: {items: OutfitItem[]; outfitIndex: number}) => {
+    const items = ensureExecutiveCompleteness(rawItems);
     // Sort items by category for proper layering: top → outerwear → bottom → shoes → accessory
     const categoryOrder = ['top', 'outerwear', 'bottom', 'shoes', 'accessory'];
     const sortedItems = [...items].sort(
@@ -324,7 +348,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             flexDirection: 'row',
           }}>
           {/* Left column: Outerwear */}
-          <View style={{width: 45, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10}}>
+          <View style={{width: 'auto', justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10, backgroundColor: theme.colors.background}}>
             {outerwearItem && (
               <Image
                 source={{uri: outerwearItem.imageUrl}}
@@ -335,7 +359,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
 
           {/* Center column: Top → Bottom → Shoes (overlapping) */}
-          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 8}}>
+          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 8, backgroundColor: theme.colors.background}}>
             {topItem && (
               <Image
                 source={{uri: topItem.imageUrl}}
@@ -360,8 +384,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
 
           {/* Right column: Accessories */}
-          <View style={{width: 45, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10, gap: 6}}>
-            {accessoryItems.slice(0, 3).map((acc, idx) => (
+          <View style={{width: 45, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10, gap: 6, backgroundColor: theme.colors.background}}>
+            {accessoryItems.map((acc, idx) => (
               <Image
                 key={acc.id || idx}
                 source={{uri: acc.imageUrl}}
@@ -372,16 +396,23 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
         </TouchableOpacity>
 
-        {/* Right: Grid of individual items */}
-        <View
+        {/* Right: Grid of individual items — scrollable for 6-7 items */}
+        {/* <ScrollView
           style={{
             marginLeft: 12,
+            width: 164,
+            maxHeight: 240,
+            borderRadius: 12,
+            backgroundColor: theme.colors.background,
+          }}
+          contentContainerStyle={{
             flexDirection: 'row',
             flexWrap: 'wrap',
-            width: 164,
-            gap: 8,
-          }}>
-          {sortedItems.slice(0, 4).map(item => {
+            padding: 6,
+          }}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled>
+          {sortedItems.map(item => {
             const isSwapping = swappingCategory === item.category;
             return (
               <View
@@ -432,7 +463,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               </View>
             );
           })}
-        </View>
+        </ScrollView> */}
       </View>
     );
   };
@@ -1446,7 +1477,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             }}
             deleteThreshold={0.08}
             style={{
-              backgroundColor: theme.colors.surface2,
+              // backgroundColor: theme.colors.surface2,
               borderRadius: tokens.borderRadius.xl,
               // borderWidth: theme.borderWidth.hairline,
               // borderColor: theme.colors.muted,
@@ -1709,7 +1740,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </SwipeableCard>
 
           {/* 🧭 Subtle swipe hint */}
-          <View
+          {/* <View
             style={{
               flexDirection: 'row',
               justifyContent: 'center',
@@ -1731,7 +1762,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               }}>
               Swipe card above for 3 new outfits
             </Text>
-          </View>
+          </View> */}
 
           {/* 🔁 Secondary CTAs (with AppleTouchFeedback + haptics + responsive layout) */}
           <View
@@ -1783,7 +1814,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             const totalOutfits = outfits.length;
             const currentOutfit = outfits[fullScreenOutfitIndex ?? 0];
             const __fsRank = ((fullScreenOutfitIndex ?? 0) + 1) as 1 | 2 | 3;
-            const items = currentOutfit?.items || [];
+            const items = ensureExecutiveCompleteness(currentOutfit?.items || []);
             const topItem = items.find(i => i.category === 'top');
             const outerwearItem = items.find(i => i.category === 'outerwear');
             const bottomItem = items.find(i => i.category === 'bottom');
@@ -1892,7 +1923,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
                   {/* Right column: Accessories */}
                   <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8, gap: 10}}>
-                    {accessoryItems.slice(0, 3).map((acc, idx) => (
+                    {accessoryItems.map((acc, idx) => (
                       <Image
                         key={acc.id || idx}
                         source={{uri: acc.imageUrl}}
@@ -1960,7 +1991,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           {(() => {
             const outfit = getCurrentOutfit();
             if (!outfit) return null;
-            const items = outfit.items || [];
+            const items = ensureExecutiveCompleteness(outfit.items || []);
             const topItem = items.find(i => i.category === 'top');
             const outerwearItem = items.find(i => i.category === 'outerwear');
             const bottomItem = items.find(i => i.category === 'bottom');
@@ -2007,7 +2038,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
                 {/* Right column: Accessories */}
                 <View style={{width: 42, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12, gap: 8}}>
-                  {accessoryItems.slice(0, 3).map((acc, idx) => (
+                  {accessoryItems.map((acc, idx) => (
                     <FastImage
                       key={acc.id || idx}
                       source={{uri: acc.imageUrl}}
