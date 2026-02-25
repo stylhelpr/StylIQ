@@ -7634,6 +7634,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
   ): string {
     if (!temp) return 'Check local weather for best outfit choices.';
 
+    temp = Math.round(temp);
     const conditionLower = (condition || '').toLowerCase();
     const isRainy =
       conditionLower.includes('rain') || conditionLower.includes('drizzle');

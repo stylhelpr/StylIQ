@@ -222,9 +222,8 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
                     />
                   ) : null}
                   <View style={styles.itemLabel}>
-                    <Text style={styles.itemName} numberOfLines={1}>
-                      {item.name}
-                    </Text>
+                   
+                   
                   </View>
                 </View>
               ))}

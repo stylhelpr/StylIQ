@@ -18,6 +18,8 @@ import {
   getFormalityTier,
   isItemValidForActivity,
   getRequiredFormalityTier,
+  isDenimBottom,
+  shouldSuppressDenim,
 } from './capsuleEngine';
 import {TripPackingItem, TripCapsule, TripWardrobeItem, DayWeather, TripActivity, TripStyleHints} from '../../types/trips';
 
@@ -3791,6 +3793,94 @@ describe('buildCapsuleFingerprint determinism', () => {
     const fp2 = buildCapsuleFingerprint(w, 'NYC', '2025-07-01', '2025-07-01', ['Casual'], 'NYC', 'mixed', hints2);
 
     expect(fp1).not.toBe(fp2);
+  });
+});
+
+// ─── isDenimBottom ───────────────────────────────────────────────────────────
+
+describe('isDenimBottom', () => {
+  it('detects denim by material', () => {
+    expect(isDenimBottom(makeWardrobeItem({id: 'b1', main_category: 'Bottoms', material: 'Denim'}))).toBe(true);
+  });
+  it('detects jeans by subcategory', () => {
+    expect(isDenimBottom(makeWardrobeItem({id: 'b2', main_category: 'Bottoms', subcategory: 'Jeans'}))).toBe(true);
+  });
+  it('returns false for non-denim bottoms', () => {
+    expect(isDenimBottom(makeWardrobeItem({id: 'b3', main_category: 'Bottoms', subcategory: 'Trousers', material: 'Wool'}))).toBe(false);
+  });
+  it('returns false for denim outerwear (not bottoms slot)', () => {
+    expect(isDenimBottom(makeWardrobeItem({id: 'o1', main_category: 'Outerwear', material: 'Denim'}))).toBe(false);
+  });
+});
+
+// ─── shouldSuppressDenim ─────────────────────────────────────────────────────
+
+describe('shouldSuppressDenim', () => {
+  it('true for Formal + cold', () => {
+    expect(shouldSuppressDenim(['Business', 'Formal'], 'cold')).toBe(true);
+  });
+  it('true for Business + freezing', () => {
+    expect(shouldSuppressDenim(['Business', 'Casual'], 'freezing')).toBe(true);
+  });
+  it('false for Casual only + cold', () => {
+    expect(shouldSuppressDenim(['Casual', 'Sightseeing'], 'cold')).toBe(false);
+  });
+  it('false for Formal + warm', () => {
+    expect(shouldSuppressDenim(['Business', 'Formal'], 'warm')).toBe(false);
+  });
+});
+
+// ─── Denim suppression integration ──────────────────────────────────────────
+
+describe('Denim suppression — Formal + cold', () => {
+  const coldWeather: DayWeather[] = Array.from({length: 3}, (_, i) => ({
+    date: `2026-01-1${i}`,
+    dayLabel: ['Mon', 'Tue', 'Wed'][i],
+    highF: 38,
+    lowF: 25,
+    condition: 'cloudy' as const,
+    rainChance: 10,
+  }));
+
+  it('prefers non-denim trouser over jeans for Business in Formal+cold trip', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 'jeans1', name: 'Blue Jeans', main_category: 'Bottoms', subcategory: 'Jeans', material: 'Denim'}),
+      makeWardrobeItem({id: 'trouser1', name: 'Wool Trousers', main_category: 'Bottoms', subcategory: 'Trousers', material: 'Wool'}),
+      makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt'}),
+      makeWardrobeItem({id: 't2', name: 'Oxford Shirt', main_category: 'Tops', subcategory: 'Dress Shirt'}),
+      makeWardrobeItem({id: 's1', name: 'Derby Shoes', main_category: 'Shoes', subcategory: 'Derby'}),
+      makeWardrobeItem({id: 's2', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford'}),
+      makeWardrobeItem({id: 'o1', name: 'Wool Overcoat', main_category: 'Outerwear', subcategory: 'Overcoat', material: 'Wool'}),
+    ];
+    const capsule = buildCapsule(wardrobe, coldWeather, ['Business', 'Formal'], 'Home', 'masculine');
+
+    for (const outfit of capsule.outfits) {
+      const bottomItem = outfit.items.find(i => i.mainCategory === 'Bottoms');
+      if (bottomItem) {
+        expect(bottomItem.wardrobeItemId).toBe('trouser1');
+      }
+    }
+  });
+
+  it('selects denim when only denim bottoms available (fail-open)', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 'jeans1', name: 'Blue Jeans', main_category: 'Bottoms', subcategory: 'Jeans', material: 'Denim'}),
+      makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt'}),
+      makeWardrobeItem({id: 't2', name: 'Button Down', main_category: 'Tops', subcategory: 'Button Down Shirt'}),
+      makeWardrobeItem({id: 's1', name: 'Derby Shoes', main_category: 'Shoes', subcategory: 'Derby'}),
+      makeWardrobeItem({id: 'o1', name: 'Overcoat', main_category: 'Outerwear', subcategory: 'Overcoat'}),
+    ];
+    const capsule = buildCapsule(wardrobe, coldWeather, ['Business', 'Formal'], 'Home', 'masculine');
+
+    const hasBottoms = capsule.outfits.some(o => o.items.some(i => i.mainCategory === 'Bottoms'));
+    expect(hasBottoms).toBe(true);
+
+    for (const outfit of capsule.outfits) {
+      const bottomItem = outfit.items.find(i => i.mainCategory === 'Bottoms');
+      if (bottomItem) {
+        expect(bottomItem.wardrobeItemId).toBe('jeans1');
+      }
+    }
   });
 });
 

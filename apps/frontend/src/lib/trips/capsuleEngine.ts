@@ -179,6 +179,25 @@ export function isOpenFootwear(item: {name?: string; subcategory?: string}): boo
   return /\b(sandals?|flip[- ]?flops?|slides?|thongs?)\b/.test(text);
 }
 
+/** Denim bottom detection: material contains "denim" OR subcategory contains "jean"/"denim", AND item is in bottoms slot. */
+export function isDenimBottom(item: TripWardrobeItem): boolean {
+  const slot = mapMainCategoryToSlot(item.main_category);
+  if (slot !== 'bottoms') return false;
+  const mat = (item.material || '').toLowerCase();
+  const sub = (item.subcategory || '').toLowerCase();
+  return mat.includes('denim') || sub.includes('jean') || sub.includes('denim');
+}
+
+/** Returns true when denim bottoms should receive a scoring penalty: trip has Formal/Business activities AND cold/freezing climate. */
+export function shouldSuppressDenim(
+  activities: TripActivity[],
+  derivedBand: ClimateZone,
+): boolean {
+  const hasFormalOrBusiness = activities.includes('Formal') || activities.includes('Business');
+  const isColdOrFreezing = derivedBand === 'cold' || derivedBand === 'freezing';
+  return hasFormalOrBusiness && isColdOrFreezing;
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // ██  UNIVERSAL PURPOSE COMPATIBILITY
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1799,6 +1818,8 @@ const WEIGHT_SILHOUETTE = 1.35;
 const WEIGHT_COLOR_HARMONY = 1.25;
 const WEIGHT_TEXTURE_CONTRAST = 1.2;
 const WEIGHT_ROTATION = 0.75;
+/** Quality penalty for denim bottoms on Formal/Business + cold/freezing trips. ×10 in weightedPick → -30 pts. */
+const PENALTY_DENIM_SUPPRESSION = -3.0;
 
 export function aestheticBonus(
   candidate: TripWardrobeItem,
@@ -2179,6 +2200,7 @@ function validateOutfitComposition(
   climateZone: ClimateZone,
   presentation: 'masculine' | 'feminine' | 'mixed',
   beachGuardZone?: ClimateZone,
+  denimSuppressActive?: boolean,
 ): TripPackingItem[] {
   const result = [...items];
   const getFullItem = (pi: TripPackingItem) => poolLookup.get(pi.wardrobeItemId);
@@ -2214,6 +2236,15 @@ function validateOutfitComposition(
         if (_beachWarmSwapActive &&
             ((candidate.material && BEACH_WARM_HEAVY_RE.test(candidate.material)) ||
              (candidate.name && BEACH_WARM_HEAVY_RE.test(candidate.name)))) return false;
+        // Denim suppression guard: never swap a non-denim bottom → denim bottom
+        if (denimSuppressActive && originalFull && !isDenimBottom(originalFull) && isDenimBottom(candidate)) {
+          if (DEBUG_TRIPS_ENGINE) {
+            console.log('[TripsDebug][DenimSuppressionCompositionBlock]', JSON.stringify({
+              from: pi.wardrobeItemId, blockedSwapTo: candidate.id,
+            }));
+          }
+          return false;
+        }
         return isValid(candidate);
       },
     );
@@ -3256,6 +3287,7 @@ function buildOutfitForActivity(
   fashionState?: {topBrands: string[]; [key: string]: any} | null,
   formalReservation?: {shoe: TripWardrobeItem | null; trouser: TripWardrobeItem | null; top: TripWardrobeItem | null},
   tripDerivedBand?: ClimateZone,
+  denimSuppressActive?: boolean,
 ): TripPackingItem[] {
   const items: TripPackingItem[] = [];
 
@@ -3668,7 +3700,14 @@ function buildOutfitForActivity(
         penaltyApplied: coherencePen,
       }));
     }
-    const base = activityScore(item, [activity]) + activityPurposeBonus(item, activityProfile, climateZone) + aestheticBonus(item, items, poolLookup) * styleDampen + identityScore(item) * identityDampening(item) * styleDampen + warmLeisureOverride(item) + coherencePen;
+    // ── Denim suppression: penalize denim bottoms on Formal/Business + cold trips ──
+    const denimPen = (denimSuppressActive && isDenimBottom(item)) ? PENALTY_DENIM_SUPPRESSION : 0;
+    if (DEBUG_TRIPS_ENGINE && denimPen !== 0) {
+      console.log('[TripsDebug][DenimSuppressionCandidate]', JSON.stringify({
+        itemId: item.id, name: item.name, penalty: denimPen,
+      }));
+    }
+    const base = activityScore(item, [activity]) + activityPurposeBonus(item, activityProfile, climateZone) + aestheticBonus(item, items, poolLookup) * styleDampen + identityScore(item) * identityDampening(item) * styleDampen + warmLeisureOverride(item) + coherencePen + denimPen;
     const profile = deriveGarmentProfile(item);
     const purposeMul = tripPurposeMultiplier(profile.garmentPurposes, dayActivityPurposes);
     const thermalMul = tripThermalMultiplier(profile.thermal, dayWeather);
@@ -3979,7 +4018,7 @@ function buildOutfitForActivity(
   }
 
   // Apply composition validator: repair visually incoherent outfits using alternates
-  normalized = validateOutfitComposition(normalized, poolLookup, activityProfile, locationLabel, climateZone, presentation, beachGuardZone);
+  normalized = validateOutfitComposition(normalized, poolLookup, activityProfile, locationLabel, climateZone, presentation, beachGuardZone, denimSuppressActive);
 
   // ── ELITE_FORMAL_AUTHORITY_DURABILITY ──
   // Hard guarantee: if reserved formal authority items exist and wardrobe has
@@ -4344,6 +4383,14 @@ export function buildCapsule(
       minTemp: tripMinTemp,
       maxTemp: tripMaxTemp,
       derivedBand: tripDerivedBand,
+    }));
+  }
+
+  // ── Denim suppression: penalize denim bottoms for Formal/Business + cold/freezing trips ──
+  const denimSuppressActive = shouldSuppressDenim(activities, tripDerivedBand);
+  if (DEBUG_TRIPS_ENGINE && denimSuppressActive) {
+    console.log('[TripsDebug][DenimSuppression] active=true', JSON.stringify({
+      activities, derivedBand: tripDerivedBand, penalty: PENALTY_DENIM_SUPPRESSION,
     }));
   }
 
@@ -4777,6 +4824,7 @@ export function buildCapsule(
       fashionState,
       isFormalDay ? formalReservation : undefined,
       tripDerivedBand,
+      denimSuppressActive,
     );
     // ── ELITE_FORMAL_EJECT: remove reserved items after Formal day build ──
     if (isFormalDay && reservedFormalIds.size > 0) {
@@ -4843,6 +4891,7 @@ export function buildCapsule(
         fashionState,
         isFormalSupport ? formalReservation : undefined,
         tripDerivedBand,
+        denimSuppressActive,
       );
 
       // ── ELITE_FORMAL_EJECT (support): remove reserved items after Formal support build ──
