@@ -29,6 +29,9 @@ apiClient.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      // Send device timezone so backend can compute per-user batch dates
+      config.headers['x-user-timezone'] =
+        Intl.DateTimeFormat().resolvedOptions().timeZone;
     } catch (e) {
       // No token available, continue without auth header
     }

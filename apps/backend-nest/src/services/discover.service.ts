@@ -10,6 +10,57 @@ import { applyDiscoverVeto, type VetoProfile, type VetoResult } from './discover
 import { computeCuratorSignals, type CuratorProfile, type CuratorResult } from './discover-curator';
 import { runDiscoverSharedBrainGate, type BrainGateProfile } from './discover-brain-adapter';
 
+/**
+ * Compute the effective batch date for a user based on their timezone.
+ * Before 5 AM local → previous calendar day.
+ * At or after 5 AM local → current calendar day.
+ * Returns YYYY-MM-DD string suitable for SQL date comparison.
+ */
+function computeUserBatchDate(timezone: string): string {
+  try {
+    const now = new Date();
+    // Get current date parts in user's timezone
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(now);
+    const year = parts.find(p => p.type === 'year')!.value;
+    const month = parts.find(p => p.type === 'month')!.value;
+    const day = parts.find(p => p.type === 'day')!.value;
+    const localDateStr = `${year}-${month}-${day}`;
+
+    // Get current hour in user's timezone
+    const hourStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      hour12: false,
+    }).format(now);
+    const localHour = Number(hourStr);
+
+    if (localHour < 5) {
+      // Before 5 AM: use previous day
+      const yesterday = new Date(now);
+      const prevParts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(new Date(yesterday.getTime() - 24 * 60 * 60 * 1000));
+      const py = prevParts.find(p => p.type === 'year')!.value;
+      const pm = prevParts.find(p => p.type === 'month')!.value;
+      const pd = prevParts.find(p => p.type === 'day')!.value;
+      return `${py}-${pm}-${pd}`;
+    }
+
+    return localDateStr;
+  } catch {
+    // Invalid timezone — fall back to UTC date
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
 interface UserProfile {
   gender: string | null;
   preferred_brands: string[];
@@ -874,17 +925,19 @@ export class DiscoverService {
 
   // ==================== MAIN ENTRY POINT ====================
 
-  async getRecommended(userId: string): Promise<DiscoverProduct[]> {
+  async getRecommended(userId: string, timezone = 'UTC'): Promise<DiscoverProduct[]> {
     console.log('🔥🔥🔥 GET RECOMMENDED ENTERED 🔥🔥🔥');
     console.log('DEBUG_RECOMMENDED_BUYS =', process.env.DEBUG_RECOMMENDED_BUYS);
     // this.log.log(`🛒 getRecommended called for userId: ${userId}`);
 
+    const batchDate = computeUserBatchDate(timezone);
+
     // ALWAYS check cache first
-    const cached = await this.getCachedProducts(userId);
+    const cached = await this.getCachedProducts(userId, batchDate);
     const debugMode = process.env.DEBUG_RECOMMENDED_BUYS === 'true';
     const cacheValid = debugMode
       ? false
-      : await this.isCacheValid(userId);
+      : await this.isCacheValid(userId, batchDate);
 
     // this.log.log(`🛒 Cache status: valid=${cacheValid}, cached count=${cached.length}`);
 
@@ -948,15 +1001,15 @@ export class DiscoverService {
       return [];
     }
 
-    await this.saveProducts(userId, products);
+    await this.saveProducts(userId, products, batchDate);
     await this.updateRefreshTimestamp(userId);
 
     this.log.log(
-      `Saved ${products.length} products for user ${userId} — cache locked until end of day`,
+      `Saved ${products.length} products for user ${userId} — cache locked until end of day (batch ${batchDate}, tz=${timezone})`,
     );
 
     // Re-read from cache so response always includes saved/disliked state from DB
-    const hydrated = await this.getCachedProducts(userId);
+    const hydrated = await this.getCachedProducts(userId, batchDate);
     const result = hydrated.length > 0 ? hydrated : products;
     this.emitRecommendedBuysServed(userId, result);
     return result;
@@ -1090,13 +1143,14 @@ export class DiscoverService {
   }
 
   // Returns true if today's snapshot exists (calendar-day lock — no mid-day invalidation)
-  private async isCacheValid(userId: string): Promise<boolean> {
+  // batchDate is computed per-user timezone via computeUserBatchDate()
+  private async isCacheValid(userId: string, batchDate: string): Promise<boolean> {
     try {
       const result = await pool.query(
         `SELECT 1 FROM user_discover_products
-         WHERE user_id = $1 AND is_current = TRUE AND batch_date = CURRENT_DATE
+         WHERE user_id = $1 AND is_current = TRUE AND batch_date = $2::date
          LIMIT 1`,
-        [userId],
+        [userId, batchDate],
       );
       return result.rows.length > 0;
     } catch {
@@ -1106,8 +1160,10 @@ export class DiscoverService {
 
   // ==================== GET CACHED PRODUCTS ====================
 
-  private async getCachedProducts(userId: string): Promise<DiscoverProduct[]> {
+  private async getCachedProducts(userId: string, batchDate?: string): Promise<DiscoverProduct[]> {
     try {
+      // If no batchDate provided (called outside getRecommended), fall back to UTC today
+      const effectiveDate = batchDate || new Date().toISOString().slice(0, 10);
       // Join with saved_recommendations to get actual saved status
       const result = await pool.query(
         `SELECT
@@ -1120,10 +1176,11 @@ export class DiscoverService {
          FROM user_discover_products udp
          LEFT JOIN saved_recommendations sr
            ON sr.user_id = udp.user_id AND sr.product_id = udp.product_id
-         WHERE udp.user_id = $1 AND udp.is_current = TRUE AND udp.batch_date = CURRENT_DATE
+         WHERE udp.user_id = $1 AND udp.is_current = TRUE
+           AND udp.batch_date = $3::date
          ORDER BY udp.position ASC, udp.product_id ASC
          LIMIT $2`,
-        [userId, TARGET_PRODUCTS],
+        [userId, TARGET_PRODUCTS, effectiveDate],
       );
       // this.log.log(`🛒 getCachedProducts query returned ${result.rows.length} rows`);
       // if (result.rows.length > 0) {
@@ -2451,6 +2508,7 @@ export class DiscoverService {
   private async saveProducts(
     userId: string,
     products: DiscoverProduct[],
+    batchDate: string,
   ): Promise<void> {
     try {
       // Mark old batch as not current (preserve history, especially saved items)
@@ -2466,12 +2524,12 @@ export class DiscoverService {
         `ALTER TABLE user_discover_products ADD COLUMN IF NOT EXISTS enriched_color TEXT`,
       ).catch(() => {}); // Ignore if already exists or permissions issue
 
-      // Insert new products as current batch (CURRENT_DATE used in SQL to avoid JS/PG timezone mismatch)
+      // Insert new products as current batch using per-user batch date
       for (const p of products) {
         await pool.query(
           `INSERT INTO user_discover_products
            (user_id, product_id, title, brand, price, price_raw, image_url, link, source, category, position, batch_date, is_current, saved, enriched_color)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_DATE, TRUE, FALSE, $12)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::date, TRUE, FALSE, $13)
            ON CONFLICT (user_id, product_id) DO UPDATE SET
              is_current = TRUE,
              position = EXCLUDED.position,
@@ -2489,6 +2547,7 @@ export class DiscoverService {
             p.source,
             p.category,
             p.position,
+            batchDate,
             p.enriched_color || null,
           ],
         );

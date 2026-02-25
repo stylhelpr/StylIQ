@@ -11,7 +11,8 @@ export class DiscoverController {
   @Get(':userId')
   async getRecommendedByUser(@Req() req) {
     const userId = req.user.userId;
-    return this.discoverService.getRecommended(userId);
+    const timezone = req.headers['x-user-timezone'] || 'UTC';
+    return this.discoverService.getRecommended(userId, timezone);
   }
 
   // Get all saved products
