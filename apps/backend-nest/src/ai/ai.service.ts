@@ -243,6 +243,8 @@ export class AiService {
   private ttsCache = new Map<string, Buffer>();
   // 🔄 Short-term exclusion cache for visual outfit variety (per user)
   private visualExclusionCache = new Map<string, string[]>();
+  // Deterministic swipe paging: tracks offset per user for visual outfit rotation
+  private visualSwipeOffset = new Map<string, number>();
   private fashionStateService?: FashionStateService;
   private learningEventsService?: LearningEventsService;
 
@@ -7314,6 +7316,40 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       requestedDressCode: validatorCtx?.requestedDressCode,
       query: constraint,
     };
+
+    // ── DETERMINISTIC SWIPE PAGING: rotate through ranked pool instead of always top 3 ──
+    {
+      const pageSize = 3;
+      const _uid = userId ?? '';
+      const _profileDelta = (o: any) => applyStylistProfileEnhancements(o, brainCtx.styleProfile);
+      const _scoredAll = eliteOutfits.map((o, i) => {
+        const base = (scoreOutfit as any)(o, _judgeCtxStylist).total;
+        const delta = _profileDelta(o);
+        return { outfit: o, score: Math.max(0, base + delta), index: i };
+      });
+      _scoredAll.sort((a, b) => b.score - a.score || a.index - b.index);
+
+      const currentOffset = this.visualSwipeOffset.get(_uid) ?? 0;
+      const safeOffset = currentOffset >= _scoredAll.length ? 0 : currentOffset;
+      const paged = _scoredAll.slice(safeOffset, safeOffset + pageSize);
+      const nextOffset =
+        safeOffset + pageSize >= _scoredAll.length ? 0 : safeOffset + pageSize;
+      this.visualSwipeOffset.set(_uid, nextOffset);
+
+      eliteOutfits = paged.map((p) => p.outfit);
+
+      console.log(
+        JSON.stringify({
+          _tag: 'VISUAL_SWIPE_PAGE',
+          userId: _uid,
+          offset: safeOffset,
+          nextOffset,
+          poolSize: _scoredAll.length,
+          pageReturned: eliteOutfits.length,
+        }),
+      );
+    }
+
     const _candidateCountStylist = eliteOutfits.length;
     eliteOutfits = selectTopOutfitsWithQualityFloor(
       eliteOutfits,

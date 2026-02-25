@@ -182,6 +182,17 @@ export async function deleteTrip(id: string): Promise<boolean> {
   }
 }
 
+export async function clearAllTrips(): Promise<boolean> {
+  try {
+    await AsyncStorage.removeItem(TRIPS_KEY);
+    console.log('[TripsStorage] cleared all trips');
+    return true;
+  } catch (err) {
+    console.error('[TripsStorage] clearAllTrips failed:', err);
+    return false;
+  }
+}
+
 // ── Closet Locations ──
 
 export async function getClosetLocations(): Promise<ClosetLocation[]> {

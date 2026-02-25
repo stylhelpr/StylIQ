@@ -10,7 +10,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
 import {Trip} from '../../types/trips';
-import {deleteTrip} from '../../lib/trips/tripsStorage';
+import {deleteTrip, clearAllTrips} from '../../lib/trips/tripsStorage';
 import {removeTripFromIOSCalendar} from '../../utils/tripCalendarSync';
 import TripCard from '../../components/Trips/TripCard';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
@@ -24,6 +24,35 @@ type Props = {
 
 const TripsHomeScreen = ({trips, onNewTrip, onTripPress, onRefresh}: Props) => {
   const {theme} = useAppTheme();
+
+  const handleClearAll = () => {
+    Alert.alert(
+      'Clear all trips?',
+      'This will permanently remove all trips from this device.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            // Delete each trip from backend + iOS calendar
+            for (const trip of trips) {
+              try {
+                await removeTripFromIOSCalendar(trip.id);
+              } catch {}
+              try {
+                await deleteTrip(trip.id);
+              } catch {}
+            }
+            // Wipe local storage
+            await clearAllTrips();
+            onRefresh();
+            Alert.alert('Trips cleared.');
+          },
+        },
+      ],
+    );
+  };
 
   const handleDelete = (trip: Trip) => {
     Alert.alert(
@@ -65,6 +94,16 @@ const TripsHomeScreen = ({trips, onNewTrip, onTripPress, onRefresh}: Props) => {
       fontSize: 28,
       fontWeight: '800',
       color: theme.colors.foreground,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    clearBtn: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.foreground2,
     },
     newBtn: {
       flexDirection: 'row',
@@ -152,12 +191,17 @@ const TripsHomeScreen = ({trips, onNewTrip, onTripPress, onRefresh}: Props) => {
       <View style={styles.header}>
         <Text style={styles.title}>Trips</Text>
         {trips.length > 0 && (
-          <AppleTouchFeedback onPress={onNewTrip} hapticStyle="impactMedium">
-            <View style={styles.newBtn}>
-              <Icon name="add" size={18} color="#FFFFFF" />
-              <Text style={styles.newBtnText}>New Trip</Text>
-            </View>
-          </AppleTouchFeedback>
+          <View style={styles.headerActions}>
+            <AppleTouchFeedback onPress={handleClearAll} hapticStyle="impactLight">
+              <Text style={styles.clearBtn}>Clear Trips</Text>
+            </AppleTouchFeedback>
+            <AppleTouchFeedback onPress={onNewTrip} hapticStyle="impactMedium">
+              <View style={styles.newBtn}>
+                <Icon name="add" size={18} color="#FFFFFF" />
+                <Text style={styles.newBtnText}>New Trip</Text>
+              </View>
+            </AppleTouchFeedback>
+          </View>
         )}
       </View>
 
