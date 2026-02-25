@@ -190,7 +190,6 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
 }) => {
   const userId = useUUID();
   const cacheKey = userId ? `discover_products_${userId}` : null;
-  const timestampKey = userId ? `discover_fetch_ts_${userId}` : null;
   const [recommended, setRecommended] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -563,9 +562,9 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
     onSavedProductsChange,
   ]);
 
-  // 💾 Load cache → check 24h freshness → conditionally fetch
+  // 💾 Load cache → check daily freshness (after 5 AM) → conditionally fetch
   useEffect(() => {
-    if (!userId || !cacheKey || !timestampKey) return;
+    if (!userId || !cacheKey) return;
 
     let cancelled = false;
 
@@ -580,10 +579,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
       let cacheHit = false;
       let cacheFresh = false;
       try {
-        const [rawProducts, rawTimestamp] = await Promise.all([
-          AsyncStorage.getItem(cacheKey),
-          AsyncStorage.getItem(timestampKey),
-        ]);
+        const rawProducts = await AsyncStorage.getItem(cacheKey);
 
         if (rawProducts && !cancelled) {
           const items: Product[] = JSON.parse(rawProducts);
@@ -595,9 +591,20 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
             setLoading(false);
             cacheHit = true;
 
-            // If cache is fresh (< 24h), skip recommended API call
-            const ts = rawTimestamp ? Number(rawTimestamp) : 0;
-            if (Date.now() - ts < 24 * 60 * 60 * 1000) {
+            // If already fetched today (after 5 AM local), skip API call
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const now = new Date();
+            const localDateStr = now.toLocaleDateString('en-CA', {timeZone: tz}); // YYYY-MM-DD
+            const localHour = Number(
+              new Intl.DateTimeFormat('en-US', {hour: 'numeric', hour12: false, timeZone: tz}).format(now),
+            );
+            const dayKey = `discover_fetch_day_${userId}`;
+            const storedDay = await AsyncStorage.getItem(dayKey);
+            if (localHour < 5) {
+              // Before 5 AM: no new fetch allowed, prior day's data is still fresh
+              if (storedDay) cacheFresh = true;
+            } else if (storedDay === localDateStr) {
+              // After 5 AM and already fetched today
               cacheFresh = true;
             }
           }
@@ -638,10 +645,13 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
           setRecommended(items);
           setError(null);
 
-          // Persist fresh data + timestamp
+          // Persist fresh data + today's date
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const todayStr = new Date().toLocaleDateString('en-CA', {timeZone: tz});
+          const dayKey = `discover_fetch_day_${userId}`;
           await Promise.all([
             AsyncStorage.setItem(cacheKey, JSON.stringify(items)),
-            AsyncStorage.setItem(timestampKey, String(Date.now())),
+            AsyncStorage.setItem(dayKey, todayStr),
           ]).catch(() => {});
         } catch (e: any) {
           if (!cancelled && !cacheHit) {
@@ -662,7 +672,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, cacheKey, timestampKey]);
+  }, [userId, cacheKey]);
 
   // 💾 Persist to cache whenever recommended changes (thumbs state, etc.)
   useEffect(() => {
