@@ -334,62 +334,62 @@ const AiStylistSuggestions: React.FC<Props> = ({
     const accessoryItems = items.filter(i => i.category === 'accessory');
 
     return (
-      <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
-        {/* Left: Composite snapshot - all outfit items arranged */}
+      <View style={{alignItems: 'center'}}>
+        {/* Composite snapshot - full width centered */}
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => setFullScreenOutfitIndex(outfitIndex)}
           style={{
-            width: 160,
-            height: 210,
+            width: '100%',
+            height: 300,
             borderRadius: 12,
             overflow: 'hidden',
             backgroundColor: theme.colors.surface,
             flexDirection: 'row',
           }}>
           {/* Left column: Outerwear */}
-          <View style={{width: 'auto', justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10, backgroundColor: theme.colors.background}}>
+          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, backgroundColor: theme.colors.background}}>
             {outerwearItem && (
               <Image
                 source={{uri: outerwearItem.imageUrl}}
-                style={{width: 40, height: 55}}
+                style={{width: 58, height: 85}}
                 resizeMode="contain"
               />
             )}
           </View>
 
           {/* Center column: Top → Bottom → Shoes (overlapping) */}
-          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 8, backgroundColor: theme.colors.background}}>
+          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10, backgroundColor: theme.colors.background}}>
             {topItem && (
               <Image
                 source={{uri: topItem.imageUrl}}
-                style={{width: 70, height: 65, zIndex: 3}}
+                style={{width: 120, height: 110, zIndex: 3}}
                 resizeMode="contain"
               />
             )}
             {bottomItem && (
               <Image
                 source={{uri: bottomItem.imageUrl}}
-                style={{width: 70, height: 75, marginTop: -12, zIndex: 2}}
+                style={{width: 120, height: 120, marginTop: -16, zIndex: 2}}
                 resizeMode="contain"
               />
             )}
             {shoesItem && (
               <Image
                 source={{uri: shoesItem.imageUrl}}
-                style={{width: 55, height: 50, marginTop: -10, zIndex: 1}}
+                style={{width: 90, height: 80, marginTop: -14, zIndex: 1}}
                 resizeMode="contain"
               />
             )}
           </View>
 
           {/* Right column: Accessories */}
-          <View style={{width: 45, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10, gap: 6, backgroundColor: theme.colors.background}}>
+          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, gap: 8, backgroundColor: theme.colors.background}}>
             {accessoryItems.map((acc, idx) => (
               <Image
                 key={acc.id || idx}
                 source={{uri: acc.imageUrl}}
-                style={{width: 35, height: 35}}
+                style={{width: 50, height: 50}}
                 resizeMode="contain"
               />
             ))}
@@ -1792,8 +1792,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
           style={{
             flex: 1,
             backgroundColor: 'rgba(0,0,0,0.92)',
-            justifyContent: 'center',
-            alignItems: 'center',
           }}>
           {/* Close button */}
           <TouchableOpacity
@@ -1808,6 +1806,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
             <Icon name="close" size={32} color="#fff" />
           </TouchableOpacity>
 
+          <ScrollView
+            contentContainerStyle={{
+              alignItems: 'center',
+              paddingTop: 100,
+              paddingBottom: 40,
+            }}
+            showsVerticalScrollIndicator={false}>
           {/* Full screen snapshot layout - centered with rank and summary */}
           {(() => {
             const outfits = isVisualFormat(aiData) ? aiData.outfits : [];
@@ -1846,7 +1851,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             const showArrows = totalOutfits > 1;
 
             return (
-              <View style={{alignItems: 'center', justifyContent: 'center', width: '100%'}}>
+              <View style={{alignItems: 'center', width: '100%'}}>
                 {/* Rank Badge — deterministic from array position */}
                 {(fullScreenOutfitIndex ?? 0) < 3 && (
                 <View
@@ -1957,9 +1962,46 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     {currentOutfit.summary}
                   </Text>
                 )}
+
+                {/* Individual Items Grid */}
+                <View style={{
+                  width: screenWidth - 32,
+                  marginTop: 24,
+                }}>
+                  <Text style={{color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 12, opacity: 0.7}}>
+                    Items in this outfit
+                  </Text>
+                  <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 10}}>
+                    {items.map((item, idx) => (
+                      <View
+                        key={item.id || idx}
+                        style={{
+                          width: (screenWidth - 52) / 2,
+                          height: (screenWidth - 52) / 2,
+                          borderRadius: 12,
+                          overflow: 'hidden',
+                          backgroundColor: theme.colors.surface,
+                        }}>
+                        <Image
+                          source={{uri: item.imageUrl}}
+                          style={{width: '100%', height: '80%'}}
+                          resizeMode="contain"
+                        />
+                        <View style={{paddingHorizontal: 8, paddingVertical: 4}}>
+                          <Text
+                            style={{color: theme.colors.foreground, fontSize: 11, textAlign: 'center'}}
+                            numberOfLines={1}>
+                            {item.name}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
               </View>
             );
           })()}
+          </ScrollView>
         </View>
       </Modal>
 
