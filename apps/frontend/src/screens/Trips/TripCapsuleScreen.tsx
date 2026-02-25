@@ -465,6 +465,17 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
     [capsule, persistCapsule],
   );
 
+  const handleToggleBackupPacked = useCallback(
+    (wardrobeItemId: string) => {
+      if (!capsule || !capsule.tripBackupKit) return;
+      const newBackupKit = capsule.tripBackupKit.map(b =>
+        b.wardrobeItemId === wardrobeItemId ? {...b, packed: !b.packed} : b,
+      );
+      persistCapsule({...capsule, tripBackupKit: newBackupKit});
+    },
+    [capsule, persistCapsule],
+  );
+
   const handleReplaceItem = useCallback(
     (newItem: TripPackingItem) => {
       if (!capsule || !replaceItem) return;
@@ -720,6 +731,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
             packingList={capsule.packingList}
             tripBackupKit={capsule.tripBackupKit}
             onTogglePacked={handleTogglePacked}
+            onToggleBackupPacked={handleToggleBackupPacked}
             onReplaceItem={setReplaceItem}
           />
         </View>

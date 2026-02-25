@@ -11,6 +11,7 @@ type Props = {
   packingList: PackingGroup[];
   tripBackupKit?: BackupSuggestion[];
   onTogglePacked: (itemId: string) => void;
+  onToggleBackupPacked: (wardrobeItemId: string) => void;
   onReplaceItem: (item: TripPackingItem) => void;
 };
 
@@ -18,15 +19,18 @@ const PackingListSection = ({
   packingList,
   tripBackupKit,
   onTogglePacked,
+  onToggleBackupPacked,
   onReplaceItem,
 }: Props) => {
   const {theme} = useAppTheme();
 
-  const totalItems = packingList.reduce((s, g) => s + g.items.length, 0);
+  const backupCount = tripBackupKit?.length ?? 0;
+  const backupPacked = tripBackupKit?.filter(b => b.packed).length ?? 0;
+  const totalItems = packingList.reduce((s, g) => s + g.items.length, 0) + backupCount;
   const packedItems = packingList.reduce(
     (s, g) => s + g.items.filter(i => i.packed).length,
     0,
-  );
+  ) + backupPacked;
 
   const styles = StyleSheet.create({
     container: {
@@ -289,26 +293,57 @@ const PackingListSection = ({
         <View>
           <Text style={styles.backupHeader}>Backup Items</Text>
           {tripBackupKit.map(b => (
-            <View key={b.wardrobeItemId} style={styles.backupRow}>
-              <View style={styles.thumbWrap}>
-                {b.imageUrl ? (
-                  <FastImage
-                    source={{
-                      uri: b.imageUrl,
-                      priority: FastImage.priority.low,
-                    }}
-                    style={styles.thumb}
-                    resizeMode={FastImage.resizeMode.contain}
-                  />
-                ) : null}
+            <AppleTouchFeedback
+              key={b.wardrobeItemId}
+              onPress={() => onToggleBackupPacked(b.wardrobeItemId)}
+              hapticStyle="impactLight">
+              <View
+                style={[
+                  styles.itemRow,
+                  b.packed && styles.itemRowPacked,
+                ]}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    b.packed
+                      ? styles.checkboxChecked
+                      : styles.checkboxUnchecked,
+                  ]}>
+                  {b.packed && (
+                    <Icon name="check" size={16} color="#FFFFFF" />
+                  )}
+                </View>
+
+                <View
+                  style={[
+                    styles.thumbWrap,
+                    b.packed && styles.thumbPacked,
+                  ]}>
+                  {b.imageUrl ? (
+                    <FastImage
+                      source={{
+                        uri: b.imageUrl,
+                        priority: FastImage.priority.low,
+                      }}
+                      style={styles.thumb}
+                      resizeMode={FastImage.resizeMode.contain}
+                    />
+                  ) : null}
+                </View>
+
+                <View style={styles.itemInfo}>
+                  <Text
+                    style={[
+                      styles.itemName,
+                      b.packed && styles.itemNamePacked,
+                    ]}
+                    numberOfLines={1}>
+                    {b.name}
+                  </Text>
+                  <Text style={styles.backupLabel}>(backup)</Text>
+                </View>
               </View>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName} numberOfLines={1}>
-                  {b.name}
-                </Text>
-                <Text style={styles.backupLabel}>(backup)</Text>
-              </View>
-            </View>
+            </AppleTouchFeedback>
           ))}
         </View>
       )}

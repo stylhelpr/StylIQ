@@ -89,6 +89,7 @@ export type BackupSuggestion = {
   name: string;
   imageUrl: string;
   reason: string;
+  packed?: boolean;
 };
 
 export type CapsuleOutfit = {
