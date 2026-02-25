@@ -9,6 +9,74 @@ const CARD_WIDTH = Dimensions.get('window').width * 0.75;
 const THUMB_SIZE = (CARD_WIDTH - 48 - 10) / 2;
 const BACKUP_KIT_IMG = 70;
 
+/** Map activity to stylized label based on occurrence count */
+function getStylizedLabel(
+  activity: string | undefined,
+  activityIndex: number,
+  activityCount: number,
+): string {
+  const name = activity ?? 'Look';
+
+  switch (name) {
+    case 'Business':
+      if (activityCount === 1) return 'Primary Business Look';
+      return activityIndex === 0
+        ? 'Primary Business Look'
+        : `Business Look ${activityIndex + 1}`;
+    case 'Formal':
+      if (activityCount === 1) return 'Formal Evening';
+      return `Formal Option ${activityIndex + 1}`;
+    case 'Dinner':
+      if (activityCount === 1) return 'Dinner Look';
+      return activityIndex === 0
+        ? 'Dinner Look'
+        : `Dinner Option ${activityIndex + 1}`;
+    case 'Casual':
+      if (activityCount === 1) return 'Casual Look';
+      return `Casual Look ${activityIndex + 1}`;
+    case 'Beach':
+      if (activityCount === 1) return 'Beach Look';
+      return `Beach Look ${activityIndex + 1}`;
+    case 'Active':
+      if (activityCount === 1) return 'Active Look';
+      return `Active Look ${activityIndex + 1}`;
+    case 'Sightseeing':
+      if (activityCount === 1) return 'Sightseeing Look';
+      return `Sightseeing Look ${activityIndex + 1}`;
+    case 'Cold Weather':
+      if (activityCount === 1) return 'Cold Weather Look';
+      return `Cold Weather Look ${activityIndex + 1}`;
+    default:
+      if (activityCount === 1) return `${name} Look`;
+      return `${name} Look ${activityIndex + 1}`;
+  }
+}
+
+/** Compute stylized labels for all outfits based on activity grouping */
+function computeOutfitLabels(outfits: CapsuleOutfit[]): string[] {
+  // Count occurrences of each activity (only anchor outfits)
+  const activityCounts = new Map<string, number>();
+  for (const outfit of outfits) {
+    if ((outfit.type ?? 'anchor') !== 'anchor') continue;
+    const key = outfit.occasion ?? 'Look';
+    activityCounts.set(key, (activityCounts.get(key) ?? 0) + 1);
+  }
+
+  // Track running index per activity
+  const activityIndex = new Map<string, number>();
+  return outfits.map(outfit => {
+    if ((outfit.type ?? 'anchor') !== 'anchor') {
+      // Support outfits keep a simple label
+      const key = outfit.occasion ?? 'Look';
+      return `${key} Extra`;
+    }
+    const key = outfit.occasion ?? 'Look';
+    const idx = activityIndex.get(key) ?? 0;
+    activityIndex.set(key, idx + 1);
+    return getStylizedLabel(key, idx, activityCounts.get(key) ?? 1);
+  });
+}
+
 type Props = {
   outfits: CapsuleOutfit[];
   tripBackupKit?: BackupSuggestion[];
@@ -170,6 +238,8 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
     },
   });
 
+  const outfitLabels = computeOutfitLabels(outfits);
+
   if (outfits.length === 0) {
     return (
       <View style={styles.emptyCard}>
@@ -189,14 +259,14 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
         decelerationRate="fast"
         snapToInterval={CARD_WIDTH + 14}
         snapToAlignment="start">
-        {outfits.map(outfit => {
+        {outfits.map((outfit, idx) => {
           const isSupport = (outfit.type ?? 'anchor') === 'support';
           return (
           <View key={outfit.id} style={isSupport ? styles.supportCard : styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.headerRow}>
                 <Text style={styles.dayLabel}>
-                  {outfit.dayLabel}{isSupport ? ' +' : ''}
+                  {outfitLabels[idx]}{isSupport ? ' +' : ''}
                 </Text>
                 {outfit.occasion ? (
                   <View style={styles.occasionBadge}>
