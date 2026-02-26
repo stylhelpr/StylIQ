@@ -1359,6 +1359,7 @@ export default function SavedOutfitsScreen() {
                 viewRefs.current[outfit.id] = ref;
               }}
               options={{format: 'png', quality: 0.9}}>
+
               <ScalePressable
                 onPress={() => setFullScreenOutfit(outfit)}
                 style={[globalStyles.cardStyles1, {marginBottom: 12}]}>
@@ -1434,12 +1435,78 @@ export default function SavedOutfitsScreen() {
                     )}
                   </View>
 
-                  {/* ❤️ & ✏️ & 👕 Buttons */}
+        
+                  
+                </View>
+
+                {/* Two-column layout: thumbnail left, controls right */}
+                <View style={{flexDirection: 'row', marginVertical: 0}}>
+                  
+                  {/* Left column – Thumbnail */}
+                  <View style={{width: '42%'}}>
+                    {outfit.thumbnailUrl ? (
+                      <View style={{
+                        width: '100%',
+                        height: 200,
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        // borderColor: theme.colors.muted,
+                        // borderWidth: tokens.borderWidth.hairline,
+                        // backgroundColor: theme.colors.surface,
+                        marginTop: 6
+                      }}>
+                        <FastImage
+                          source={{
+                            uri: outfit.thumbnailUrl,
+                            priority: FastImage.priority.normal,
+                            cache: FastImage.cacheControl.web,
+                          }}
+                          style={{
+                            width: '100%',
+                            height: 200,
+                            borderRadius: 12,
+                          }}
+                          resizeMode={FastImage.resizeMode.contain}
+                        />
+                      </View>
+                    ) : (
+                      <View style={{flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6}}>
+                        {(outfit.allItems || [outfit.top, outfit.bottom, outfit.shoes].filter(Boolean)).map((i, idx) =>
+                          i?.image ? (
+                            <FastImage
+                              key={i.id || idx}
+                              source={{
+                                uri: i.image,
+                                priority: FastImage.priority.normal,
+                                cache: FastImage.cacheControl.web,
+                              }}
+                              style={[
+                                globalStyles.image1,
+                                {
+                                  marginRight: 2,
+                                  borderRadius: 8,
+                                  marginBottom: 4,
+                                },
+                              ]}
+                              resizeMode={FastImage.resizeMode.contain}
+                            />
+                          ) : null,
+                        )}
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Right column – Controls */}
+                  <View style={{flex: 1, marginLeft: 50}}>
+                    
+                {/* ❤️ & ✏️ & 👕 Buttons */}
                   <View
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
+                      marginBottom: 4
                     }}>
+
                     {/* ✏️ Edit */}
                     <Pressable
                       onPress={() => {
@@ -1494,6 +1561,7 @@ export default function SavedOutfitsScreen() {
                         }
                       />
                     </Pressable>
+
                     {/* 📤 Share */}
                     <Pressable
                       onPress={() => handleSharePress(outfit)}
@@ -1510,272 +1578,214 @@ export default function SavedOutfitsScreen() {
                         color={theme.colors.primary}
                       />
                     </Pressable>
-                  </View>
-                </View>
 
-                {/* 👕 Outfit Images - centered thumbnail */}
-                <View style={{alignItems: 'center', marginVertical: 10}}>
-                  {outfit.thumbnailUrl ? (
-                    <View style={{
-                      width: '100%',
-                      height: 300,
-                      borderRadius: 12,
-                      overflow: 'hidden',
-                      backgroundColor: theme.colors.surface,
-                    }}>
-                      <FastImage
-                        source={{
-                          uri: outfit.thumbnailUrl,
-                          priority: FastImage.priority.normal,
-                          cache: FastImage.cacheControl.web,
+                    {/* 👕 Mark as worn (tap to increment, long press to decrement) */}
+                      <Pressable
+                        onPress={() => {
+                          hSelect();
+                          markWornMutation.mutate({
+                            userId,
+                            outfitId: outfit.id,
+                            outfitType: outfit.type,
+                          });
                         }}
+                        onLongPress={() => {
+                          if ((outfit.timesWorn ?? 0) <= 0) return;
+                          hSelect();
+                          unmarkWornMutation.mutate({
+                            userId,
+                            outfitId: outfit.id,
+                            outfitType: outfit.type,
+                          });
+                        }}
+                        delayLongPress={500}
                         style={{
-                          width: '100%',
-                          height: 300,
-                          borderRadius: 12,
-                        }}
-                        resizeMode={FastImage.resizeMode.contain}
-                      />
-                    </View>
-                  ) : (
-                    <View style={{flexDirection: 'row', justifyContent: 'center', gap: 12}}>
-                      {(outfit.allItems || [outfit.top, outfit.bottom, outfit.shoes].filter(Boolean)).map((i, idx) =>
-                        i?.image ? (
-                          <FastImage
-                            key={i.id || idx}
-                            source={{
-                              uri: i.image,
-                              priority: FastImage.priority.normal,
-                              cache: FastImage.cacheControl.web,
-                            }}
-                            style={[
-                              globalStyles.image1,
-                              {
-                                marginRight: 2,
-                                borderRadius: 8,
-                                marginBottom: 8,
-                                marginTop: -6,
-                              },
-                            ]}
-                            resizeMode={FastImage.resizeMode.contain}
-                          />
-                        ) : null,
+                          paddingVertical: 5.5,
+                          borderRadius: 14,
+                          paddingHorizontal: 8,
+                          marginLeft: 6,
+                          backgroundColor:
+                            theme.colors.button1 ?? 'rgba(43,43,43,1)',
+                        }}>
+                        <MaterialIcons
+                          name="checkroom"
+                          size={22}
+                          color={theme.colors.buttonText1}
+                        />
+                      </Pressable>
+                  </View>
+
+                    {/* Worn & Occasion row */}
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        height: 28,
+                        // backgroundColor: 'red'
+                      }}>
+                      {(outfit.timesWorn ?? 0) > 0 && (
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            marginBottom: 8
+                          }}>
+                          <Text
+                            style={{
+                              fontSize: 16,
+                              fontWeight: '700',
+                              color: theme.colors.foreground,
+                            }}>
+                            {`Worn: `} 
+                            {outfit.timesWorn} times{' '}
+                          </Text>
+                        </View>
                       )}
                     </View>
-                  )}
+
+                    {/* Occasion Chip */}
+                        <View style={{ height: 45,}}>
+                      {outfit.occasion && OCCASION_CONFIG[outfit.occasion] && (
+                    
+                        <Pressable
+                          onPress={() => {
+                            hSelect();
+                            setEditingOutfitId(outfit.id);
+                            setEditedName(outfit.name || '');
+                            setEditedOccasion(outfit.occasion);
+                          }}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'flex-start',
+                            backgroundColor: `${
+                              OCCASION_CONFIG[outfit.occasion].color
+                            }`,
+                            paddingHorizontal: 14,
+                            paddingVertical: 9,
+                            borderRadius: 50,
+                            // marginBottom: 6,
+                            marginTop: 4
+                          }}>
+                          <MaterialIcons
+                            name={OCCASION_CONFIG[outfit.occasion].icon as any}
+                            size={14}
+                            color={theme.colors.foreground}
+                            style={{marginRight: 5}}
+                          />
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              fontWeight: '600',
+                              color: theme.colors.foreground,
+                            }}>
+                            {OCCASION_CONFIG[outfit.occasion].label}
+                          </Text>
+                        </Pressable>
+                      )}
+                          </View>
+
+                    {/* 📅 Schedule & Cancel Buttons – keep them working */}
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        // marginTop: 8,
+                        gap: 8,
+                      }}>
+                      <AppleTouchFeedback
+                        hapticStyle="impactLight"
+                        onPress={() => {
+                          setPlanningOutfitId(outfit.id);
+                          const now = new Date();
+                          setSelectedTempDate(now);
+                          setSelectedTempTime(now);
+                          setShowDatePicker(true);
+                        }}
+                        style={{
+                          backgroundColor: theme.colors.button1,
+                          borderRadius: 8,
+                          paddingVertical: 8,
+                          width: 160,
+                          marginTop: 4,
+                        }}>
+                        <Text
+                          style={{
+                            color: theme.colors.buttonText1,
+                            fontWeight: '600',
+                            fontSize: 13,
+                            textAlign: 'center'
+                          }}>
+                          Schedule This Outfit
+                        </Text>
+                      </AppleTouchFeedback>
+
+                      {outfit.plannedDate && (
+                        <AppleTouchFeedback
+                          hapticStyle="impactLight"
+                          onPress={() => {
+                            cancelPlannedOutfit(outfit.id);
+                          }}
+                          style={{
+                             marginTop: 4,
+                            paddingVertical: 8.5,
+                            width: 160,
+                            borderRadius: 8,
+                            borderColor: theme.colors.muted,
+                            borderWidth: tokens.borderWidth.hairline,
+                            // backgroundColor:
+                            //   'rgb(25, 25, 25)',
+                          }}>
+                          <Text
+                            style={{
+                            color: theme.colors.foreground,
+                            fontWeight: '600',
+                            fontSize: 13,
+                            textAlign: 'center'
+                            }}>
+                            Cancel Schedule
+                          </Text>
+                        </AppleTouchFeedback>
+                      )}
+                    </View>
+                    
+                    {/* 🏷️ Tags */}
+                    {(outfit.tags || []).length > 0 && (
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          flexWrap: 'wrap',
+                          marginTop: 8,
+                        }}>
+                        {outfit.tags?.map(tag => (
+                          <View
+                            key={tag}
+                            style={{
+                              paddingHorizontal: 10,
+                              paddingVertical: 6,
+                              backgroundColor:
+                                theme.colors.input2 ?? 'rgba(43,43,43,1)',
+                              borderRadius: 16,
+                              marginRight: 6,
+                              marginBottom: 6,
+                            }}>
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                color: theme.colors.foreground,
+                              }}>
+                              #{tag}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
                 </View>
 
                 {/* 📝 Notes */}
                 {outfit.notes?.trim() && (
                   <Text style={styles.notes}>"{outfit.notes.trim()}"</Text>
-                )}
-
-                {/* WORN COLOR */}
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                  }}>
-                  {/* Left 50% */}
-                  <View
-                    style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    }}>
-                    {/* 👕 Mark as worn (tap to increment, long press to decrement) */}
-                    <Pressable
-                      onPress={() => {
-                        hSelect();
-                        markWornMutation.mutate({
-                          userId,
-                          outfitId: outfit.id,
-                          outfitType: outfit.type,
-                        });
-                      }}
-                      onLongPress={() => {
-                        if ((outfit.timesWorn ?? 0) <= 0) return;
-                        hSelect();
-                        unmarkWornMutation.mutate({
-                          userId,
-                          outfitId: outfit.id,
-                          outfitType: outfit.type,
-                        });
-                      }}
-                      delayLongPress={500}
-                      style={{
-                        paddingVertical: 4.5,
-                        borderRadius: 8,
-                        paddingHorizontal: 12,
-                        backgroundColor:
-                          theme.colors.button1 ?? 'rgba(43,43,43,1)',
-                      }}>
-                      <MaterialIcons
-                        name="checkroom"
-                        size={22}
-                        color={theme.colors.buttonText1}
-                      />
-                    </Pressable>
-
-                    {(outfit.timesWorn ?? 0) > 0 && (
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          backgroundColor: theme.colors.surface,
-                          paddingHorizontal: 9,
-                          borderRadius: 12,
-                        }}>
-                        <Text
-                          style={{
-                            fontSize: 16,
-                            fontWeight: '700',
-                            color: theme.colors.foreground,
-                          }}>
-                          Worn:
-                          {outfit.timesWorn} x{' '}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Right 50% - Occasion Chip */}
-                  <View
-                    style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'flex-start',
-                    }}>
-                    {outfit.occasion && OCCASION_CONFIG[outfit.occasion] && (
-                      <Pressable
-                        onPress={() => {
-                          hSelect();
-                          setEditingOutfitId(outfit.id);
-                          setEditedName(outfit.name || '');
-                          setEditedOccasion(outfit.occasion);
-                        }}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          backgroundColor: `${
-                            OCCASION_CONFIG[outfit.occasion].color
-                          }`,
-                          paddingHorizontal: 14,
-                          paddingVertical: 9,
-                          borderRadius: 50,
-                        }}>
-                        <MaterialIcons
-                          name={OCCASION_CONFIG[outfit.occasion].icon as any}
-                          size={14}
-                          color={theme.colors.foreground}
-                          style={{marginRight: 5}}
-                        />
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontWeight: '600',
-                            color: theme.colors.foreground,
-                          }}>
-                          {OCCASION_CONFIG[outfit.occasion].label}
-                        </Text>
-                      </Pressable>
-                    )}
-                  </View>
-                </View>
-
-                {/* 📅 Schedule & Cancel Buttons – keep them working */}
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'flex-start',
-                    flexWrap: 'wrap',
-                    marginTop: 8,
-                  }}>
-                  <AppleTouchFeedback
-                    hapticStyle="impactLight"
-                    onPress={() => {
-                      setPlanningOutfitId(outfit.id);
-                      const now = new Date();
-                      setSelectedTempDate(now);
-                      setSelectedTempTime(now);
-                      setShowDatePicker(true);
-                    }}
-                    style={{
-                      backgroundColor: theme.colors.button1,
-                      borderRadius: 8,
-                      paddingVertical: 8,
-                      paddingHorizontal: 14,
-                      marginRight: 10,
-                    }}>
-                    <Text
-                      style={{
-                        color: theme.colors.buttonText1,
-                        fontWeight: '600',
-                        fontSize: 13,
-                      }}>
-                      Schedule This Outfit
-                    </Text>
-                  </AppleTouchFeedback>
-
-                  {outfit.plannedDate && (
-                    <AppleTouchFeedback
-                      hapticStyle="impactLight"
-                      onPress={() => {
-                        cancelPlannedOutfit(outfit.id);
-                      }}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 8.5,
-                        paddingHorizontal: 14,
-                        borderRadius: 8,
-                        marginLeft: 16,
-                        backgroundColor:
-                          theme.colors.surface3 ?? 'rgba(43,43,43,1)',
-                      }}>
-                      <Text
-                        style={{
-                          color: theme.colors.foreground,
-                          fontWeight: '600',
-                          fontSize: 13,
-                        }}>
-                        Cancel Schedule
-                      </Text>
-                    </AppleTouchFeedback>
-                  )}
-                </View>
-
-                {/* 🏷️ Tags */}
-                {(outfit.tags || []).length > 0 && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      marginTop: 8,
-                    }}>
-                    {outfit.tags?.map(tag => (
-                      <View
-                        key={tag}
-                        style={{
-                          paddingHorizontal: 10,
-                          paddingVertical: 6,
-                          backgroundColor:
-                            theme.colors.input2 ?? 'rgba(43,43,43,1)',
-                          borderRadius: 16,
-                          marginRight: 6,
-                          marginBottom: 6,
-                        }}>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: theme.colors.foreground,
-                          }}>
-                          #{tag}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
                 )}
               </ScalePressable>
             </ViewShot>
