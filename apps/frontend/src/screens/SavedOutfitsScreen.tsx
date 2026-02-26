@@ -1447,7 +1447,7 @@ export default function SavedOutfitsScreen() {
                     {outfit.thumbnailUrl ? (
                       <View style={{
                         width: '100%',
-                        height: 200,
+                        maxHeight: 195,
                         borderRadius: 12,
                         overflow: 'hidden',
                         // borderColor: theme.colors.muted,
@@ -1496,8 +1496,8 @@ export default function SavedOutfitsScreen() {
                     )}
                   </View>
 
-                  {/* Right column – Controls */}
-                  <View style={{flex: 1, marginLeft: 50}}>
+              {/* Right column – Controls */}
+              <View style={{flex: 1, marginLeft: 50, marginTop: 4}}>
                     
                 {/* ❤️ & ✏️ & 👕 Buttons */}
                   <View
@@ -1621,15 +1621,23 @@ export default function SavedOutfitsScreen() {
                         flexDirection: 'row',
                         alignItems: 'center',
                         flexWrap: 'wrap',
-                        height: 28,
-                        // backgroundColor: 'red'
+                  
                       }}>
+                        <Text
+                           style={{
+                              fontSize: 16,
+                              fontWeight: '700',
+                              color: theme.colors.foreground,
+                              marginBottom: 6
+                            }}>
+                             {`Worn: `} 
+                        </Text>
                       {(outfit.timesWorn ?? 0) > 0 && (
                         <View
                           style={{
                             flexDirection: 'row',
                             alignItems: 'center',
-                            marginBottom: 8
+                      
                           }}>
                           <Text
                             style={{
@@ -1637,7 +1645,6 @@ export default function SavedOutfitsScreen() {
                               fontWeight: '700',
                               color: theme.colors.foreground,
                             }}>
-                            {`Worn: `} 
                             {outfit.timesWorn} times{' '}
                           </Text>
                         </View>
