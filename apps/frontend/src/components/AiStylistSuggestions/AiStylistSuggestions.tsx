@@ -342,14 +342,14 @@ const AiStylistSuggestions: React.FC<Props> = ({
           style={{
             width: '100%',
             height: 300,
-            borderRadius: 12,
+            borderRadius: tokens.borderRadius.xl,
             overflow: 'hidden',
-            backgroundColor: theme.colors.surface,
+            // backgroundColor: theme.colors.surface,
             flexDirection: 'row',
-            marginVertical: 10
+            marginVertical: 12
           }}>
           {/* Left column: Outerwear */}
-          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, backgroundColor: theme.colors.background}}>
+          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, backgroundColor: theme.colors.surface2}}>
             {outerwearItem && (
               <Image
                 source={{uri: outerwearItem.imageUrl}}
@@ -360,7 +360,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
 
           {/* Center column: Top → Bottom → Shoes (overlapping) */}
-          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10, backgroundColor: theme.colors.background}}>
+          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10, backgroundColor: theme.colors.surface2}}>
             {topItem && (
               <Image
                 source={{uri: topItem.imageUrl}}
@@ -385,7 +385,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
 
           {/* Right column: Accessories */}
-          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, gap: 8, backgroundColor: theme.colors.background}}>
+          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, gap: 8, backgroundColor: theme.colors.surface2}}>
             {accessoryItems.map((acc, idx) => (
               <Image
                 key={acc.id || idx}

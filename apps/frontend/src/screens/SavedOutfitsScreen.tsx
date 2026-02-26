@@ -807,6 +807,15 @@ export default function SavedOutfitsScreen() {
 
   // 🔄 Reset all scheduling state (Close / Cancel handlers)
 
+    // Handle back button
+    const handleBack = useCallback(() => {
+      if (isDirty && placedItems.length > 0) {
+        setShowDiscardModal(true);
+      } else {
+        navigate('Outfits');
+      }
+    }, [isDirty, placedItems.length, navigate]);
+
   const resetPlanFlow = async () => {
     if (datePickerRef.current) {
       await (datePickerRef.current as any).animate(

@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo, useRef, useCallback} from 'react';
+import React, {useState, useEffect, useMemo, useRef, useCallback,} from 'react';
 import {
   View,
   Text,
@@ -158,6 +158,77 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     feedback: null as 'like' | 'dislike' | null,
     tags: [] as string[],
     reason: '',
+  });
+
+   // Styles
+  const styles = StyleSheet.create({
+    screen: {flex: 1, backgroundColor: theme.colors.background},
+    title: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.colors.foreground,
+      marginBottom: 12,
+      letterSpacing: -0.4,
+    },
+       backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: theme.colors.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 12,
+    },
+    scrollContent: {marginTop: 32, paddingBottom: 40, alignItems: 'center'},
+    chipsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+      width: '100%',
+    },
+    cardOverlay: {
+      width: '100%',
+      height: 318,
+      borderRadius: tokens.borderRadius.md,
+      overflow: 'hidden',
+      marginBottom: 16,
+      backgroundColor: '#1c1c1e',
+      elevation: 3,
+    },
+    cardImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'contain',
+    },
+    overlay: {
+      position: 'absolute',
+      bottom: 0,
+      width: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.29)',
+      paddingVertical: 10,
+    },
+    categoryPill: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      backgroundColor: theme.colors.surface3,
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+    },
+    itemName: {fontSize: 18, fontWeight: '600', color: theme.colors.foreground},
+    whyText: {
+      fontSize: 18,
+      color: theme.colors.button1,
+      marginTop: 6,
+      fontWeight: '500',
+    },
   });
 
   // ──────────────────────────────────────────────────────────────
@@ -799,6 +870,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const outerwear = apiItemToUI(outerwearApi);
   const accessories = apiItemToUI(accessoriesApi);
 
+    // Handle back button
+    const handleBack = useCallback(() => {
+        navigate('Outfits');
+    }, [navigate]);
+
   const hasOutfit = useMemo(() => {
     const o: any = current;
     const items = Array.isArray(o?.outfits?.[0]?.items)
@@ -893,69 +969,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   )
     .map((it: any) => it?.id)
     .filter(Boolean);
-
-  // Styles
-  const styles = StyleSheet.create({
-    screen: {flex: 1, backgroundColor: theme.colors.background},
-    title: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: theme.colors.foreground,
-      marginBottom: 12,
-      letterSpacing: -0.4,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
-    },
-    scrollContent: {marginTop: 32, paddingBottom: 40, alignItems: 'center'},
-    chipsRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 12,
-      width: '100%',
-    },
-    cardOverlay: {
-      width: '100%',
-      height: 318,
-      borderRadius: tokens.borderRadius.md,
-      overflow: 'hidden',
-      marginBottom: 16,
-      backgroundColor: '#1c1c1e',
-      elevation: 3,
-    },
-    cardImage: {
-      width: '100%',
-      height: '100%',
-      resizeMode: 'contain',
-    },
-    overlay: {
-      position: 'absolute',
-      bottom: 0,
-      width: '100%',
-      backgroundColor: 'rgba(0, 0, 0, 0.29)',
-      paddingVertical: 10,
-    },
-    categoryPill: {
-      position: 'absolute',
-      top: 10,
-      left: 10,
-      backgroundColor: theme.colors.surface3,
-      paddingVertical: 4,
-      paddingHorizontal: 10,
-      borderRadius: 999,
-    },
-    itemName: {fontSize: 18, fontWeight: '600', color: theme.colors.foreground},
-    whyText: {
-      fontSize: 18,
-      color: theme.colors.button1,
-      marginTop: 6,
-      fontWeight: '500',
-    },
-  });
 
   const renderCard = (
     label: string,
@@ -1112,7 +1125,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           backgroundColor: theme.colors.background, // same tone as old nav
         }}
       />
-      
+
+    
       <View
           style={{
             flexDirection: 'row',
@@ -1120,6 +1134,17 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             paddingLeft: moderateScale(tokens.spacing.sm),
             marginBottom: 10
           }}>
+            <TouchableOpacity
+              style={[styles.backButton, {marginRight: 16}]}
+              onPress={handleBack}
+              activeOpacity={0.7}>
+              <MaterialIcons
+                name="arrow-back"
+                size={24}
+                color={theme.colors.foreground}
+              />
+            </TouchableOpacity>
+
           <Image
             source={require('../assets/images/Styla1.png')}
             style={{
@@ -1132,6 +1157,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             }}
             resizeMode="cover"
           />
+          
           <Text style={[globalStyles.header, {paddingLeft: 0}]}>Styla -AI Outfit Studio</Text>
         </View>
 
