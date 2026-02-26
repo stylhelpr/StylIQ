@@ -346,6 +346,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             overflow: 'hidden',
             backgroundColor: theme.colors.surface,
             flexDirection: 'row',
+            marginVertical: 10
           }}>
           {/* Left column: Outerwear */}
           <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, backgroundColor: theme.colors.background}}>
@@ -396,74 +397,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
         </TouchableOpacity>
 
-        {/* Right: Grid of individual items — scrollable for 6-7 items */}
-        {/* <ScrollView
-          style={{
-            marginLeft: 12,
-            width: 164,
-            maxHeight: 240,
-            borderRadius: 12,
-            backgroundColor: theme.colors.background,
-          }}
-          contentContainerStyle={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            padding: 6,
-          }}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled>
-          {sortedItems.map(item => {
-            const isSwapping = swappingCategory === item.category;
-            return (
-              <View
-                key={item.id}
-                style={{
-                  width: 75,
-                  height: 75,
-                  borderRadius: tokens.borderRadius.sm,
-                  overflow: 'hidden',
-                  borderWidth: isSwapping ? 2 : theme.borderWidth.hairline,
-                  borderColor: isSwapping ? theme.colors.button1 : theme.colors.surfaceBorder,
-                  backgroundColor: theme.colors.surface2,
-                }}>
-                {isSwapping ? (
-                  <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-                    <ActivityIndicator size="small" color={theme.colors.button1} />
-                  </View>
-                ) : (
-                  <>
-                    <Image
-                      source={{uri: item.imageUrl}}
-                      style={{width: '100%', height: '100%'}}
-                      resizeMode="contain"
-                    />
-                    <View
-                      style={{
-                        position: 'absolute',
-                        bottom: 2,
-                        left: 2,
-                        right: 2,
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        borderRadius: 3,
-                        paddingVertical: 1,
-                        paddingHorizontal: 2,
-                      }}>
-                      <Text
-                        style={{
-                          color: '#fff',
-                          fontSize: fontScale(8),
-                          textAlign: 'center',
-                        }}
-                        numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                    </View>
-                  </>
-                )}
-              </View>
-            );
-          })}
-        </ScrollView> */}
       </View>
     );
   };
@@ -488,7 +421,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           paddingVertical: 2,
           borderRadius: tokens.borderRadius.sm,
           alignSelf: 'flex-start',
-          marginBottom: moderateScale(tokens.spacing.xs),
+          // marginBottom: moderateScale(tokens.spacing.xs),
         }}>
         <Text
           style={{
@@ -1326,9 +1259,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
     <SafeAreaView
       edges={['left', 'right']} // ✅ disables top & bottom padding
       style={{flex: 1}}>
-      {/* <Text style={[globalStyles.sectionTitle, {paddingHorizontal: 22}]}>
-        Suggestions
-      </Text> */}
+
       <ScrollView
         ref={containerRef}
         showsVerticalScrollIndicator={false}
@@ -1339,7 +1270,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           duration={700}
           useNativeDriver
           style={[
-            globalStyles.cardStyles5,
+            globalStyles.cardStyles6,
             {
               // backgroundColor: theme.colors.surface,
               // borderWidth: theme.borderWidth.hairline,
@@ -1352,7 +1283,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              marginBottom: moderateScale(tokens.spacing.xsm),
+              padding: 10
+              // marginBottom: moderateScale(tokens.spacing.xxs),
             }}>
             <View
               style={{
@@ -1387,68 +1319,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
              Styla - What to Wear Today
             </Text>
 
-            {/* Status dot: pulsing green when Auto, grey outline when Manual */}
-            {/* {isAutoMode ? (
-              <Animatable.View
-                animation={{
-                  0: {scale: 1, opacity: 0.7},
-                  0.5: {scale: 1.3, opacity: 1},
-                  1: {scale: 1, opacity: 0.7},
-                }}
-                iterationCount="infinite"
-                duration={1500}
-                easing="ease-in-out"
-                useNativeDriver
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: '#34C759',
-                  marginLeft: moderateScale(tokens.spacing.xs),
-                }}
-              />
-            ) : (
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  borderWidth: 1.5,
-                  borderColor: theme.colors.muted,
-                  backgroundColor: 'transparent',
-                  marginLeft: moderateScale(tokens.spacing.xs),
-                }}
-              />
-            )} */}
           </View>
-
-          {/* 🧠 Manual / Auto Switch */}
-          {/* <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: moderateScale(tokens.spacing.sm2),
-            }}>
-            <Text
-              style={{
-                color: theme.colors.foreground2,
-                // fontSize: fontScale(tokens.fontSize.sm),
-                fontSize: fontScale(tokens.fontSize.base),
-                marginTop: moderateScale(tokens.spacing.nano),
-              }}>
-              {isAutoMode ? 'Mode: Automatic' : 'Mode: Manual'}
-            </Text>
-            <Switch
-              value={isAutoMode}
-              onValueChange={setIsAutoMode}
-              trackColor={{
-                false: theme.colors.muted,
-                true: theme.colors.button1,
-              }}
-              ios_backgroundColor={theme.colors.muted}
-            />
-          </View> */}
 
           {/* 💬 Suggestion Card ( c zone) */}
           <SwipeableCard
@@ -1481,7 +1352,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
               borderRadius: tokens.borderRadius.xl,
               // borderWidth: theme.borderWidth.hairline,
               // borderColor: theme.colors.muted,
-              padding: moderateScale(tokens.spacing.sm),
+              paddingHorizontal: moderateScale(tokens.spacing.md),
+              //  paddingVertical: moderateScale(tokens.spacing.sm),
             }}>
             {loading && (
               <ActivityIndicator
@@ -1500,7 +1372,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                       fontSize: fontScale(tokens.fontSize.xs),
                       color: theme.colors.foreground2,
                       marginBottom: moderateScale(tokens.spacing.xs),
-                      paddingHorizontal: moderateScale(tokens.spacing.xxs),
+                      // paddingHorizontal: moderateScale(tokens.spacing.xxs),
                     }}>
                     {aiData.weatherSummary}
                   </Text>
@@ -1520,9 +1392,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     fontSize: fontScale(tokens.fontSize.md),
                     fontWeight: tokens.fontWeight.semiBold,
                     color: theme.colors.foreground,
-                    lineHeight: 22,
-                    marginTop: moderateScale(tokens.spacing.xs),
-                    marginBottom: moderateScale(tokens.spacing.xs),
+                    // lineHeight: 22,
+                    // marginTop: moderateScale(tokens.spacing.xs),
+                    // marginBottom: moderateScale(tokens.spacing.xs),
                     paddingHorizontal: moderateScale(tokens.spacing.xxs),
                   }}
                   numberOfLines={1}>
@@ -1532,60 +1404,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 {/* Action Buttons */}
                 <ActionButtons />
 
-                {/* Expandable reasoning */}
-                {/* {getCurrentOutfit()?.reasoning && (
-                  <Animatable.View
-                    animation="fadeIn"
-                    duration={250}
-                    style={{
-                      overflow: 'hidden',
-                      maxHeight: isExpanded ? 500 : 0,
-                      marginTop: moderateScale(tokens.spacing.sm),
-                    }}>
-                    <Text
-                      style={{
-                        fontSize: fontScale(tokens.fontSize.sm),
-                        color: theme.colors.foreground2,
-                        fontStyle: 'italic',
-                        lineHeight: 18,
-                        paddingHorizontal: moderateScale(tokens.spacing.xxs),
-                      }}>
-                      {getCurrentOutfit()?.reasoning}
-                    </Text>
-                  </Animatable.View>
-                )} */}
-
-                {/* Collapse/Expand toggle for reasoning */}
-                {/* {getCurrentOutfit()?.reasoning && (
-                  <Pressable
-                    onPress={toggleExpanded}
-                    style={{
-                      alignItems: 'center',
-                      paddingVertical: moderateScale(tokens.spacing.xsm),
-                      flexDirection: 'row',
-                      justifyContent: 'center',
-                    }}>
-                    <Text
-                      style={{
-                        color: theme.colors.button1,
-                        fontSize: fontScale(tokens.fontSize.base),
-                        marginRight: moderateScale(tokens.spacing.xxs),
-                      }}>
-                      {isExpanded ? 'Hide details' : 'Why this outfit?'}
-                    </Text>
-                    <Animatable.View
-                      duration={250}
-                      style={{
-                        transform: [{rotate: isExpanded ? '180deg' : '0deg'}],
-                      }}>
-                      <Icon
-                        name="expand-more"
-                        size={24}
-                        color={theme.colors.button1}
-                      />
-                    </Animatable.View>
-                  </Pressable>
-                )} */}
               </>
             )}
 
@@ -1738,31 +1556,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
               </Text>
             )}
           </SwipeableCard>
-
-          {/* 🧭 Subtle swipe hint */}
-          {/* <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
-              marginTop: moderateScale(tokens.spacing.md2),
-              opacity: 0.6,
-              marginRight: moderateScale(tokens.spacing.md2),
-              marginBottom: -22
-            }}>
-            <Icon
-              name="chevron-left"
-              size={35}
-              color={theme.colors.foreground}
-              style={{marginTop: -7.5}}
-            />
-            <Text
-              style={{
-                color: theme.colors.foreground,
-                fontSize: fontScale(tokens.fontSize.md),
-              }}>
-              Swipe card above for 3 new outfits
-            </Text>
-          </View> */}
 
           {/* 🔁 Secondary CTAs (with AppleTouchFeedback + haptics + responsive layout) */}
           <View
@@ -1946,22 +1739,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   </TouchableOpacity>
                 </View>
 
-                {/* Outfit Description — always render under images */}
-                {currentOutfit?.summary && (
-                  <Text
-                    style={{
-                      color: '#fff',
-                      fontSize: 14,
-                      fontWeight: '400',
-                      textAlign: 'center',
-                      marginTop: 20,
-                      paddingHorizontal: 24,
-                      opacity: 0.85,
-                      lineHeight: 20,
-                    }}>
-                    {currentOutfit.summary}
-                  </Text>
-                )}
 
                 {/* Individual Items Grid */}
                 <View style={{
@@ -1982,12 +1759,14 @@ const AiStylistSuggestions: React.FC<Props> = ({
                           overflow: 'hidden',
                           backgroundColor: theme.colors.surface,
                         }}>
-                        <Image
-                          source={{uri: item.imageUrl}}
-                          style={{width: '100%', height: '80%'}}
-                          resizeMode="contain"
-                        />
-                        <View style={{paddingHorizontal: 8, paddingVertical: 4}}>
+                        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10}}>
+                          <Image
+                            source={{uri: item.imageUrl}}
+                            style={{width: 150, height: 150}}
+                            resizeMode="contain"
+                          />
+                        </View>
+                        <View style={{paddingHorizontal: 8, paddingBottom: 8}}>
                           <Text
                             style={{color: theme.colors.foreground, fontSize: 11, textAlign: 'center'}}
                             numberOfLines={1}>
@@ -1998,6 +1777,25 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     ))}
                   </View>
                 </View>
+
+                {/* Outfit Description — always render under images */}
+                {currentOutfit?.summary && (
+                  <Text
+                    style={{
+                      color: '#fff',
+                      fontSize: 14,
+                      fontWeight: '400',
+                      textAlign: 'center',
+                      marginTop: 20,
+                      paddingHorizontal: 24,
+                      opacity: 0.85,
+                      lineHeight: 20,
+                    }}>
+                    {currentOutfit.summary}
+                  </Text>
+                )}
+
+
               </View>
             );
           })()}

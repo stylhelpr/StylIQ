@@ -349,6 +349,21 @@ export const createGlobalStyles = (theme: Theme) =>
       // elevation: 5,
     },
 
+    cardStyles6: {
+      // paddingVertical: isTablet ? 8 : isLargePhone ? 8 : isRegularPhone ? 8 : 8,
+      // paddingHorizontal: isTablet ? 20 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.surfaceBorder,
+      borderRadius: tokens.borderRadius.xxxl,
+       backgroundColor: theme.colors.surface,
+
+      // shadowColor: '#000',
+      // shadowOffset: {width: 4, height: 4},
+      // shadowOpacity: 0.3,
+      // shadowRadius: 7,
+      // elevation: 5,
+    },
+
     newsCard1: {
       paddingVertical: isTablet
         ? 14
