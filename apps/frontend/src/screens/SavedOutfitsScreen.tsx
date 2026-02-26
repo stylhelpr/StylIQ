@@ -2974,236 +2974,215 @@ export default function SavedOutfitsScreen() {
         </Pressable>
       </Modal>
 
-      {/* 🖼 Full-Screen Outfit Modal — IMMERSIVE VERSION */}
+      {/* 🖼 Full-Screen Outfit Modal — matches AI Stylist detail view */}
       <Modal
         visible={!!fullScreenOutfit}
         transparent
-        animationType="slide"
-        presentationStyle="overFullScreen"
-        statusBarTranslucent
-        onDismiss={() => translateY.setValue(0)}
+        animationType="fade"
         onRequestClose={() => setFullScreenOutfit(null)}>
-        <SafeAreaView
-          style={{flex: 1, backgroundColor: 'transparent'}}
-          edges={[]}>
-          <Animated.View
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.92)',
+          }}>
+          {/* Close button */}
+          <TouchableOpacity
+            onPress={() => setFullScreenOutfit(null)}
             style={{
-              flex: 1,
-              backgroundColor: '#000',
-              transform: [{translateY}],
-              width: '100%',
-              height: '100%',
-              marginTop: 60,
+              position: 'absolute',
+              top: 60,
+              right: 20,
+              zIndex: 10,
+              padding: 10,
             }}>
-            {/* Backdrop */}
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {backgroundColor: theme.colors.background},
-              ]}
-            />
+            <MaterialIcons name="close" size={32} color="#fff" />
+          </TouchableOpacity>
 
-            {/* Close Button ABOVE gesture zone */}
-            <TouchableOpacity
-              style={{
-                position: 'absolute',
-                top: 11,
-                right: 18,
-                zIndex: 20,
-                borderRadius: 20,
-                borderWidth: tokens.borderWidth.hairline,
-                borderColor: theme.colors.muted,
-                paddingHorizontal: 8,
-                paddingVertical: 6,
-              }}
-              onPress={handleClose}
-              hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
-              <Text style={{color: theme.colors.foreground, fontSize: 20}}>
-                X
-              </Text>
-            </TouchableOpacity>
+          <ScrollView
+            contentContainerStyle={{
+              alignItems: 'center',
+              paddingTop: 100,
+              paddingBottom: 40,
+            }}
+            showsVerticalScrollIndicator={false}>
+          {(() => {
+            if (!fullScreenOutfit) return null;
+            const topItem = fullScreenOutfit.top;
+            const bottomItem = fullScreenOutfit.bottom;
+            const shoesItem = fullScreenOutfit.shoes;
+            const knownIds = new Set(
+              [topItem?.id, bottomItem?.id, shoesItem?.id].filter(Boolean),
+            );
+            const extraItems = (fullScreenOutfit.allItems || []).filter(
+              i => !knownIds.has(i.id),
+            );
+            const allItems =
+              fullScreenOutfit.allItems ||
+              [topItem, bottomItem, shoesItem].filter(Boolean);
+            const screenWidth = Dimensions.get('window').width;
 
-            {/* Swipe Gesture Zone */}
-            <View
-              {...panResponder.panHandlers}
-              style={{
-                position: 'absolute',
-                top: 45,
-                height: 80,
-                width: '100%',
-                zIndex: 999,
-              }}
-              onStartShouldSetResponder={() => true}
-            />
+            return (
+              <View style={{alignItems: 'center', width: '100%'}}>
+                {/* Outfit Title */}
+                <Text style={{color: '#fff', fontSize: 16, fontWeight: '600', textAlign: 'center', marginBottom: 16, paddingHorizontal: 32}} numberOfLines={1}>
+                  {fullScreenOutfit.name || 'Outfit'}
+                </Text>
 
-            {/* Outfit Scroll Content */}
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              style={{flex: 1, width: '100%'}}
-              contentContainerStyle={{
-                paddingBottom: 180,
-                alignItems: 'center',
-                paddingHorizontal: 24,
-              }}>
-              {/* Outfit Name */}
-              <Animatable.Text
-                animation="fadeInDown"
-                delay={200}
-                duration={700}
-                style={{
-                  fontSize: 28,
-                  fontWeight: '800',
-                  color: theme.colors.foreground,
-                  textAlign: 'center',
-                  marginTop: 25,
-                  marginBottom: 20,
-                  letterSpacing: 0.5,
-                }}>
-                {fullScreenOutfit?.name || 'Unnamed Outfit'}
-              </Animatable.Text>
-
-              {/* Snapshot Image (Canvas Outfits) - Show first if available */}
-              {fullScreenOutfit?.thumbnailUrl && (
-                <Animatable.View
-                  animation="fadeInUp"
-                  delay={300}
-                  duration={800}
+                {/* Outfit Card — composite layout */}
+                <View
                   style={{
-                    width: '100%',
-                    maxWidth: 400,
-                    marginBottom: 28,
+                    width: screenWidth - 16,
+                    borderRadius: 24,
+                    backgroundColor: theme.colors.surface,
+                    flexDirection: 'row',
+                    paddingVertical: 12,
                     alignItems: 'center',
+                    justifyContent: 'center',
                   }}>
-                  <FastImage
-                    source={{
-                      uri: fullScreenOutfit.thumbnailUrl,
-                      priority: FastImage.priority.high,
-                      cache: FastImage.cacheControl.web,
-                    }}
-                    style={{
-                      width: '100%',
-                      height: 450,
-                      borderRadius: 20,
-                      borderWidth: tokens.borderWidth.hairline,
-                      borderColor: theme.colors.muted,
-                    }}
-                    resizeMode={FastImage.resizeMode.contain}
-                  />
+                  {/* Left column: first extra item (outerwear) */}
+                  <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8}}>
+                    {extraItems.length > 0 && extraItems[0]?.image && (
+                      <Image
+                        source={{uri: extraItems[0].image}}
+                        style={{width: 80, height: 130}}
+                        resizeMode="contain"
+                      />
+                    )}
+                  </View>
+
+                  {/* Center column: Top → Bottom → Shoes (overlapping) */}
+                  <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 6}}>
+                    {topItem?.image && (
+                      <Image
+                        source={{uri: topItem.image}}
+                        style={{width: 200, height: 190, zIndex: 3}}
+                        resizeMode="contain"
+                      />
+                    )}
+                    {bottomItem?.image && (
+                      <Image
+                        source={{uri: bottomItem.image}}
+                        style={{width: 200, height: 220, marginTop: -42, zIndex: 2}}
+                        resizeMode="contain"
+                      />
+                    )}
+                    {shoesItem?.image && (
+                      <Image
+                        source={{uri: shoesItem.image}}
+                        style={{width: 160, height: 145, marginTop: -32, zIndex: 1}}
+                        resizeMode="contain"
+                      />
+                    )}
+                  </View>
+
+                  {/* Right column: remaining extras (accessories) */}
+                  <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8, gap: 10}}>
+                    {extraItems.slice(1).map((acc, idx) =>
+                      acc?.image ? (
+                        <Image
+                          key={acc.id || idx}
+                          source={{uri: acc.image}}
+                          style={{width: 80, height: 80}}
+                          resizeMode="contain"
+                        />
+                      ) : null,
+                    )}
+                  </View>
+                </View>
+
+                {/* Individual Items Grid */}
+                <View style={{
+                  width: screenWidth - 32,
+                  marginTop: 24,
+                }}>
+                  <Text style={{color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 12, opacity: 0.7}}>
+                    Items in this outfit
+                  </Text>
+                  <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 10}}>
+                    {allItems.map((item, idx) => (
+                      <View
+                        key={item.id || idx}
+                        style={{
+                          width: (screenWidth - 52) / 2,
+                          height: (screenWidth - 52) / 2,
+                          borderRadius: 12,
+                          overflow: 'hidden',
+                          backgroundColor: theme.colors.surface,
+                        }}>
+                        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10}}>
+                          <Image
+                            source={{uri: item.image}}
+                            style={{width: 150, height: 150}}
+                            resizeMode="contain"
+                          />
+                        </View>
+                        <View style={{paddingHorizontal: 8, paddingBottom: 8}}>
+                          <Text
+                            style={{color: theme.colors.foreground, fontSize: 11, textAlign: 'center'}}
+                            numberOfLines={1}>
+                            {item.name}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Notes */}
+                {fullScreenOutfit.notes?.trim() && (
                   <Text
                     style={{
-                      color: 'rgba(255,255,255,0.85)',
+                      color: '#fff',
                       fontSize: 14,
-                      fontWeight: '500',
-                      marginTop: 10,
+                      fontWeight: '400',
                       textAlign: 'center',
+                      marginTop: 20,
+                      paddingHorizontal: 24,
+                      opacity: 0.85,
+                      lineHeight: 20,
                     }}>
-                    Full Outfit
+                    {fullScreenOutfit.notes.trim()}
                   </Text>
-                </Animatable.View>
-              )}
+                )}
 
-              {/* Individual Outfit Items - Using FastImage */}
-              {(fullScreenOutfit?.allItems || [fullScreenOutfit?.top, fullScreenOutfit?.bottom, fullScreenOutfit?.shoes].filter(Boolean)).map(
-                (i, idx) =>
-                  i?.image && (
-                    <Animatable.View
-                      key={i?.id || idx}
-                      animation="fadeInUp"
-                      delay={fullScreenOutfit?.thumbnailUrl ? 500 + idx * 200 : 300 + idx * 200}
-                      duration={800}
-                      style={{
-                        width: '100%',
-                        maxWidth: 400,
-                        marginBottom: 28,
-                        alignItems: 'center',
-                      }}>
-                      <FastImage
-                        source={{
-                          uri: i.image,
-                          priority: FastImage.priority.high,
-                          cache: FastImage.cacheControl.web,
-                        }}
+                {/* Tags */}
+                {fullScreenOutfit.tags?.length ? (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      justifyContent: 'center',
+                      marginTop: 24,
+                    }}>
+                    {fullScreenOutfit.tags.map(tag => (
+                      <View
+                        key={tag}
                         style={{
-                          width: '100%',
-                          height: 400,
+                          backgroundColor: 'rgba(255,255,255,0.1)',
                           borderRadius: 20,
-                          borderWidth: tokens.borderWidth.hairline,
-                          borderColor: theme.colors.muted,
-                        }}
-                        resizeMode={FastImage.resizeMode.contain}
-                      />
-                      {i.name && (
+                          paddingHorizontal: 14,
+                          paddingVertical: 6,
+                          margin: 6,
+                        }}>
                         <Text
                           style={{
-                            color: 'rgba(255,255,255,0.85)',
+                            color: '#fff',
                             fontSize: 14,
-                            fontWeight: '500',
-                            marginTop: 10,
-                            textAlign: 'center',
+                            fontWeight: '600',
+                            letterSpacing: 0.2,
                           }}>
-                          {i.name}
+                          #{tag}
                         </Text>
-                      )}
-                    </Animatable.View>
-                  ),
-              )}
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
 
-              {/* Notes */}
-              {fullScreenOutfit?.notes?.trim() && (
-                <Animatable.Text
-                  animation="fadeInUp"
-                  delay={700}
-                  duration={800}
-                  style={{
-                    fontStyle: 'italic',
-                    fontSize: 16,
-                    color: 'rgba(255,255,255,0.9)',
-                    textAlign: 'center',
-                    marginTop: 10,
-                    lineHeight: 22,
-                  }}>
-                  "{fullScreenOutfit.notes.trim()}"
-                </Animatable.Text>
-              )}
-
-              {/* Tags */}
-              {fullScreenOutfit?.tags?.length ? (
-                <Animatable.View
-                  animation="fadeInUp"
-                  delay={900}
-                  duration={800}
-                  style={{
-                    flexDirection: 'row',
-                    flexWrap: 'wrap',
-                    justifyContent: 'center',
-                    marginTop: 24,
-                  }}>
-                  {fullScreenOutfit.tags.map(tag => (
-                    <View
-                      key={tag}
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.1)',
-                        borderRadius: 20,
-                        paddingHorizontal: 14,
-                        paddingVertical: 6,
-                        margin: 6,
-                      }}>
-                      <Text
-                        style={{
-                          color: '#fff',
-                          fontSize: 14,
-                          fontWeight: '600',
-                          letterSpacing: 0.2,
-                        }}>
-                        #{tag}
-                      </Text>
-                    </View>
-                  ))}
-                </Animatable.View>
-              ) : null}
-            </ScrollView>
-          </Animated.View>
-        </SafeAreaView>
+              </View>
+            );
+          })()}
+          </ScrollView>
+        </View>
       </Modal>
 
       {/* Scroll-to-top button */}
