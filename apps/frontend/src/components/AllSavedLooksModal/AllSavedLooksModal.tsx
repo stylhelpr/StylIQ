@@ -510,7 +510,7 @@ export default function AllSavedLooksModal({
           <View
             style={{
               paddingHorizontal: 10,
-              paddingVertical: 10,
+              paddingVertical: 6,
               borderTopWidth: StyleSheet.hairlineWidth,
               borderTopColor: theme.colors.surfaceBorder,
               backgroundColor: theme.colors.surface,

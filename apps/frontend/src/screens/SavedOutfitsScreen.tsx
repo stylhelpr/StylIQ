@@ -1449,7 +1449,7 @@ export default function SavedOutfitsScreen() {
                     {outfit.thumbnailUrl ? (
                       <View style={{
                         width: '100%',
-                        height: 190,
+                        height: 185,
                         borderRadius: 12,
                         overflow: 'hidden',
                         marginTop: 6

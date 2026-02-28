@@ -279,7 +279,7 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
               </Text>
             </View>
             <View style={styles.grid}>
-              {outfit.items.slice(0, 6).map(item => (
+              {outfit.items.map(item => (
                 <View key={item.id} style={styles.thumbWrap}>
                   {item.imageUrl ? (
                     <FastImage
