@@ -86,6 +86,9 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
   const [nextZIndex, setNextZIndex] = useState(2);
   const [isDirty, setIsDirty] = useState(false);
 
+  // Grid overlay state
+  const [showGrid, setShowGrid] = useState(false);
+
   // Modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
@@ -594,6 +597,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
           <OutfitCanvas
             placedItems={placedItems}
             selectedItemId={selectedItemId}
+            showGrid={showGrid}
             onSelectItem={setSelectedItemId}
             onDeselectItem={() => setSelectedItemId(null)}
             onUpdateItem={handleUpdateItem}
@@ -602,6 +606,29 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
             onRemoveItem={handleRemoveItem}
           />
         </ViewShot>
+
+        {/* Grid toggle — outside ViewShot so it won't appear in snapshots */}
+        <TouchableOpacity
+          onPress={() => setShowGrid(prev => !prev)}
+          activeOpacity={0.7}
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 9999,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: showGrid ? `${theme.colors.primary}33` : `${theme.colors.surface}CC`,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <MaterialIcons
+            name="grid-on"
+            size={18}
+            color={showGrid ? theme.colors.primary : theme.colors.foreground}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Item Drawer */}

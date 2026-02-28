@@ -1,5 +1,5 @@
 import React, {useState, useCallback} from 'react';
-import {StyleSheet, LayoutChangeEvent, Pressable} from 'react-native';
+import {StyleSheet, LayoutChangeEvent, Pressable, View} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {useAppTheme} from '../../context/ThemeContext';
 import CanvasItem, {CanvasItemData} from './CanvasItem';
@@ -8,6 +8,7 @@ import ItemContextMenu from './ItemContextMenu';
 type Props = {
   placedItems: CanvasItemData[];
   selectedItemId: string | null;
+  showGrid?: boolean;
   onSelectItem: (id: string) => void;
   onDeselectItem: () => void;
   onUpdateItem: (id: string, updates: Partial<CanvasItemData>) => void;
@@ -19,6 +20,7 @@ type Props = {
 export default function OutfitCanvas({
   placedItems,
   selectedItemId,
+  showGrid = false,
   onSelectItem,
   onDeselectItem,
   onUpdateItem,
@@ -116,6 +118,16 @@ export default function OutfitCanvas({
               onLongPress={() => handleLongPress(item.id)}
             />
           ))}
+
+        {showGrid && (
+          <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+            <View style={{position: 'absolute', left: '33.333%', top: 0, width: 1, height: '100%', backgroundColor: `${theme.colors.primary}1A`}} />
+            <View style={{position: 'absolute', left: '66.666%', top: 0, width: 1, height: '100%', backgroundColor: `${theme.colors.primary}1A`}} />
+            <View style={{position: 'absolute', top: '33.333%', left: 0, height: 1, width: '100%', backgroundColor: `${theme.colors.primary}1A`}} />
+            <View style={{position: 'absolute', top: '66.666%', left: 0, height: 1, width: '100%', backgroundColor: `${theme.colors.primary}1A`}} />
+          </View>
+        )}
+
       </Pressable>
 
       <ItemContextMenu

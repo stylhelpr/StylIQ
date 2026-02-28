@@ -1449,17 +1449,17 @@ export default function SavedOutfitsScreen() {
                     {outfit.thumbnailUrl ? (
                       <View style={{
                         width: '100%',
-                        height: 200,
+                        height: 190,
                         borderRadius: 12,
                         overflow: 'hidden',
                         marginTop: 6
                       }}>
                         <View style={{
                           flex: 1,
-                          padding: 2,
-                          borderWidth: 1,
-                          borderColor: `${theme.colors.primary}1F`,
-                          borderRadius: 10,
+                          // padding: 2,
+                          // borderWidth: 1,
+                          // borderColor: `${theme.colors.primary}1F`,
+                          // borderRadius: 10,
                         }}>
                           <FastImage
                             source={{
@@ -1838,7 +1838,7 @@ export default function SavedOutfitsScreen() {
   const GRID_VISIBLE_ROWS = 3;
   const GRID_NAME_HEIGHT = 35; // text + padding
   // Available height for grid = screen minus header/sort/chips/nav (~280px approx)
-  const GRID_AVAILABLE_HEIGHT = Dimensions.get('window').height - 300;
+  const GRID_AVAILABLE_HEIGHT = Dimensions.get('window').height - 0;
   const GRID_ROW_HEIGHT = Math.floor(
     (GRID_AVAILABLE_HEIGHT - GRID_GAP * (GRID_VISIBLE_ROWS - 1)) /
       GRID_VISIBLE_ROWS,
@@ -1872,10 +1872,10 @@ export default function SavedOutfitsScreen() {
           {thumbUri ? (
             <View style={{
               height: GRID_IMAGE_HEIGHT,
-              padding: 2,
-              borderWidth: 1,
-              borderColor: `${theme.colors.primary}1F`,
-              borderRadius: 14,
+              padding: 4,
+              // borderWidth: tokens.borderWidth.hairline,
+              // borderColor: `${theme.colors.primary}1F`,
+              // borderRadius: 14,
             }}>
               <FastImage
                 source={{
@@ -1913,9 +1913,9 @@ export default function SavedOutfitsScreen() {
             ellipsizeMode="tail"
             style={{
               fontSize: 13,
-              fontWeight: '600',
+              fontWeight: '500',
               color: theme.colors.foreground,
-              paddingHorizontal: 10,
+              paddingHorizontal: 12,
               paddingVertical: 9,
             }}>
             {outfit.name?.trim() || 'Unnamed Outfit'}
