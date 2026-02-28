@@ -1511,7 +1511,7 @@ export default function SavedOutfitsScreen() {
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
-                      marginBottom: 4
+                      marginBottom: 2
                     }}>
 
                     {/* ✏️ Edit */}
@@ -1635,7 +1635,7 @@ export default function SavedOutfitsScreen() {
                               fontSize: 16,
                               fontWeight: '700',
                               color: theme.colors.foreground,
-                              marginBottom: 6
+                              marginBottom: 4
                             }}>
                              {`Worn: `} 
                         </Text>
@@ -1659,9 +1659,9 @@ export default function SavedOutfitsScreen() {
                     </View>
 
                     {/* Occasion Chip */}
-                        <View style={{ height: 45,}}>
+                        <View style={{ height: 45, alignItems: 'flex-start',}}>
                       {outfit.occasion && OCCASION_CONFIG[outfit.occasion] && (
-                    
+
                         <Pressable
                           onPress={() => {
                             hSelect();
@@ -1671,14 +1671,14 @@ export default function SavedOutfitsScreen() {
                           }}
                           style={{
                             flexDirection: 'row',
-                            alignItems: 'flex-start',
+                            alignItems: 'center',
+                            alignSelf: 'flex-start',
                             backgroundColor: `${
                               OCCASION_CONFIG[outfit.occasion].color
                             }`,
                             paddingHorizontal: 14,
                             paddingVertical: 9,
                             borderRadius: 50,
-                            // marginBottom: 6,
                             marginTop: 4
                           }}>
                           <MaterialIcons
@@ -1721,7 +1721,7 @@ export default function SavedOutfitsScreen() {
                           borderRadius: 8,
                           paddingVertical: 8,
                           width: 160,
-                          marginTop: 4,
+                          marginTop: 2,
                         }}>
                         <Text
                           style={{
