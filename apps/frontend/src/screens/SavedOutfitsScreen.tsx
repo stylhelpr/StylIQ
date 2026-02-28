@@ -807,14 +807,7 @@ export default function SavedOutfitsScreen() {
 
   // 🔄 Reset all scheduling state (Close / Cancel handlers)
 
-    // Handle back button
-    const handleBack = useCallback(() => {
-      if (isDirty && placedItems.length > 0) {
-        setShowDiscardModal(true);
-      } else {
-        navigate('Outfits');
-      }
-    }, [isDirty, placedItems.length, navigate]);
+  
 
   const resetPlanFlow = async () => {
     if (datePickerRef.current) {
@@ -1456,27 +1449,32 @@ export default function SavedOutfitsScreen() {
                     {outfit.thumbnailUrl ? (
                       <View style={{
                         width: '100%',
-                        maxHeight: 195,
+                        height: 200,
                         borderRadius: 12,
                         overflow: 'hidden',
-                        // borderColor: theme.colors.muted,
-                        // borderWidth: tokens.borderWidth.hairline,
-                        // backgroundColor: theme.colors.surface,
                         marginTop: 6
                       }}>
-                        <FastImage
-                          source={{
-                            uri: outfit.thumbnailUrl,
-                            priority: FastImage.priority.normal,
-                            cache: FastImage.cacheControl.web,
-                          }}
-                          style={{
-                            width: '100%',
-                            height: 200,
-                            borderRadius: 12,
-                          }}
-                          resizeMode={FastImage.resizeMode.contain}
-                        />
+                        <View style={{
+                          flex: 1,
+                          padding: 2,
+                          borderWidth: 1,
+                          borderColor: `${theme.colors.primary}1F`,
+                          borderRadius: 10,
+                        }}>
+                          <FastImage
+                            source={{
+                              uri: outfit.thumbnailUrl,
+                              priority: FastImage.priority.normal,
+                              cache: FastImage.cacheControl.web,
+                            }}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: 8,
+                            }}
+                            resizeMode={FastImage.resizeMode.contain}
+                          />
+                        </View>
                       </View>
                     ) : (
                       <View style={{flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6}}>
@@ -1872,19 +1870,28 @@ export default function SavedOutfitsScreen() {
             borderColor: theme.colors.surfaceBorder,
           }}>
           {thumbUri ? (
-            <FastImage
-              source={{
-                uri: thumbUri,
-                priority: FastImage.priority.normal,
-                cache: FastImage.cacheControl.web,
-              }}
-              style={{
-                width: '100%',
-                height: GRID_IMAGE_HEIGHT,
-                backgroundColor: theme.colors.surface,
-              }}
-              resizeMode={FastImage.resizeMode.contain}
-            />
+            <View style={{
+              height: GRID_IMAGE_HEIGHT,
+              padding: 2,
+              borderWidth: 1,
+              borderColor: `${theme.colors.primary}1F`,
+              borderRadius: 14,
+            }}>
+              <FastImage
+                source={{
+                  uri: thumbUri,
+                  priority: FastImage.priority.normal,
+                  cache: FastImage.cacheControl.web,
+                }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 12,
+                }}
+                resizeMode={FastImage.resizeMode.contain}
+              />
+            </View>
           ) : (
             <View
               style={{

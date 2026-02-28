@@ -538,6 +538,7 @@ export default function AllSavedLooksModal({
                   paddingVertical: 9,
                   opacity: loading ? 0.6 : 1,
                   marginRight: 10,
+                  backgroundColor: 'black'
                 }}>
                 <Text
                   style={{
