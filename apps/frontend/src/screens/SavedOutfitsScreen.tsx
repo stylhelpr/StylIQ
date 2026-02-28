@@ -3019,66 +3019,79 @@ export default function SavedOutfitsScreen() {
                   {fullScreenOutfit.name || 'Outfit'}
                 </Text>
 
-                {/* Outfit Card — composite layout */}
+                {/* Outfit Card — snapshot or composite fallback */}
                 <View
                   style={{
                     width: screenWidth - 16,
                     borderRadius: 24,
                     backgroundColor: theme.colors.surface,
-                    flexDirection: 'row',
-                    paddingVertical: 12,
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    overflow: 'hidden',
                   }}>
-                  {/* Left column: first extra item (outerwear) */}
-                  <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8}}>
-                    {extraItems.length > 0 && extraItems[0]?.image && (
-                      <Image
-                        source={{uri: extraItems[0].image}}
-                        style={{width: 80, height: 130}}
-                        resizeMode="contain"
-                      />
-                    )}
-                  </View>
+                  {fullScreenOutfit.thumbnailUrl ? (
+                    <Image
+                      source={{uri: fullScreenOutfit.thumbnailUrl}}
+                      style={{width: '100%', aspectRatio: 1}}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        paddingVertical: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                      {/* Left column: first extra item (outerwear) */}
+                      <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8}}>
+                        {extraItems.length > 0 && extraItems[0]?.image && (
+                          <Image
+                            source={{uri: extraItems[0].image}}
+                            style={{width: 80, height: 130}}
+                            resizeMode="contain"
+                          />
+                        )}
+                      </View>
 
-                  {/* Center column: Top → Bottom → Shoes (overlapping) */}
-                  <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 6}}>
-                    {topItem?.image && (
-                      <Image
-                        source={{uri: topItem.image}}
-                        style={{width: 200, height: 190, zIndex: 3}}
-                        resizeMode="contain"
-                      />
-                    )}
-                    {bottomItem?.image && (
-                      <Image
-                        source={{uri: bottomItem.image}}
-                        style={{width: 200, height: 220, marginTop: -42, zIndex: 2}}
-                        resizeMode="contain"
-                      />
-                    )}
-                    {shoesItem?.image && (
-                      <Image
-                        source={{uri: shoesItem.image}}
-                        style={{width: 160, height: 145, marginTop: -32, zIndex: 1}}
-                        resizeMode="contain"
-                      />
-                    )}
-                  </View>
+                      {/* Center column: Top → Bottom → Shoes (overlapping) */}
+                      <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 6}}>
+                        {topItem?.image && (
+                          <Image
+                            source={{uri: topItem.image}}
+                            style={{width: 200, height: 190, zIndex: 3}}
+                            resizeMode="contain"
+                          />
+                        )}
+                        {bottomItem?.image && (
+                          <Image
+                            source={{uri: bottomItem.image}}
+                            style={{width: 200, height: 220, marginTop: -42, zIndex: 2}}
+                            resizeMode="contain"
+                          />
+                        )}
+                        {shoesItem?.image && (
+                          <Image
+                            source={{uri: shoesItem.image}}
+                            style={{width: 160, height: 145, marginTop: -32, zIndex: 1}}
+                            resizeMode="contain"
+                          />
+                        )}
+                      </View>
 
-                  {/* Right column: remaining extras (accessories) */}
-                  <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8, gap: 10}}>
-                    {extraItems.slice(1).map((acc, idx) =>
-                      acc?.image ? (
-                        <Image
-                          key={acc.id || idx}
-                          source={{uri: acc.image}}
-                          style={{width: 80, height: 80}}
-                          resizeMode="contain"
-                        />
-                      ) : null,
-                    )}
-                  </View>
+                      {/* Right column: remaining extras (accessories) */}
+                      <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8, gap: 10}}>
+                        {extraItems.slice(1).map((acc, idx) =>
+                          acc?.image ? (
+                            <Image
+                              key={acc.id || idx}
+                              source={{uri: acc.image}}
+                              style={{width: 80, height: 80}}
+                              resizeMode="contain"
+                            />
+                          ) : null,
+                        )}
+                      </View>
+                    </View>
+                  )}
                 </View>
 
                 {/* Individual Items Grid */}
