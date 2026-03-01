@@ -332,41 +332,7 @@ const HeroCarousel = React.memo(
             borderRadius: tokens.borderRadius.lg,
             opacity: heroFadeAnim,
           }}>
-          {isComposite && heroPost ? (
-            // 2x2 Grid for composite outfits
-            <View style={{flex: 1, flexDirection: 'column', borderRadius: tokens.borderRadius.lg, overflow: 'hidden'}}>
-              <View style={{flex: 1, flexDirection: 'row'}}>
-                <FastImage
-                  source={{uri: heroPost.top_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                  style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#ffffff'}}
-                  resizeMode={FastImage.resizeMode.contain}
-                />
-                <FastImage
-                  source={{uri: heroPost.bottom_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                  style={{flex: 1, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#ffffff'}}
-                  resizeMode={FastImage.resizeMode.contain}
-                />
-              </View>
-              <View style={{flex: 1, flexDirection: 'row'}}>
-                {heroPost.shoes_image ? (
-                  <FastImage
-                    source={{uri: heroPost.shoes_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                    style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}}
-                    resizeMode={FastImage.resizeMode.contain}
-                  />
-                ) : <View style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}} />}
-                {heroPost.accessory_image ? (
-                  <FastImage
-                    source={{uri: heroPost.accessory_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                    style={{flex: 1, backgroundColor: '#F5F5F5'}}
-                    resizeMode={FastImage.resizeMode.contain}
-                  />
-                ) : <View style={{flex: 1, backgroundColor: '#F5F5F5'}} />}
-              </View>
-            </View>
-          ) : (
-            // Single image
-            <FastImage
+          <FastImage
               source={{
                 uri: heroImageUrl,
                 priority: FastImage.priority.high,
@@ -380,7 +346,6 @@ const HeroCarousel = React.memo(
               }}
               resizeMode={FastImage.resizeMode.contain}
             />
-          )}
         </Animated.View>
 
         {/* Light tinted overlay for better text visibility */}
@@ -2855,58 +2820,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                     {look.image_url ? (
                                       <Image
                                         source={{uri: look.image_url}}
-                                        style={{width: 130, height: 130}}
-                                        resizeMode="cover"
+                                        style={{width: 130, height: 130, backgroundColor: '#F5F5F5'}}
+                                        resizeMode="contain"
                                       />
-                                    ) : (
-                                      <>
-                                        <View
-                                          style={{
-                                            flexDirection: 'row',
-                                            height: 65,
-                                          }}>
-                                          <Image
-                                            source={{uri: look.top_image}}
-                                            style={{width: 65, height: 65, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#ffffff'}}
-                                            resizeMode="contain"
-                                          />
-                                          <Image
-                                            source={{uri: look.bottom_image}}
-                                            style={{width: 65, height: 65, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#ffffff'}}
-                                            resizeMode="contain"
-                                          />
-                                        </View>
-                                        <View
-                                          style={{
-                                            flexDirection: 'row',
-                                            height: 65,
-                                          }}>
-                                          <Image
-                                            source={{uri: look.shoes_image}}
-                                            style={{width: 65, height: 65, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}}
-                                            resizeMode="contain"
-                                          />
-                                          <View
-                                            style={{
-                                              width: 65,
-                                              height: 65,
-                                              backgroundColor: '#F5F5F5',
-                                              justifyContent: 'center',
-                                              alignItems: 'center',
-                                            }}>
-                                            <Text
-                                              style={{
-                                                color: '#000',
-                                                fontSize: 8,
-                                                fontWeight: '800',
-                                                letterSpacing: 1,
-                                              }}>
-                                              StylHelpr
-                                            </Text>
-                                          </View>
-                                        </View>
-                                      </>
-                                    )}
+                                    ) : null}
                                     <Pressable
                                       onPress={() => {
                                         Alert.alert(

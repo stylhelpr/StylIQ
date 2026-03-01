@@ -639,6 +639,7 @@ export default function SavedOutfitsScreen() {
         communityDescription || pendingShareOutfit.name || 'My outfit';
       // Note: userId is extracted from JWT token on backend, not sent in body
       await createPostMutation.mutateAsync({
+        imageUrl: pendingShareOutfit.thumbnailUrl || undefined,
         topImage: pendingShareOutfit.top?.image,
         bottomImage: pendingShareOutfit.bottom?.image,
         shoesImage: pendingShareOutfit.shoes?.image,
