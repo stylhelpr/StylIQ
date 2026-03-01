@@ -147,30 +147,27 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
       paddingBottom: 16,
       gap: 10,
     },
+    thumbCell: {
+      width: THUMB_SIZE,
+    },
     thumbWrap: {
       width: THUMB_SIZE,
       height: THUMB_SIZE,
       borderRadius: tokens.borderRadius.md,
-      backgroundColor: theme.colors.surface2,
+      // backgroundColor: theme.colors.surface2,
+      backgroundColor: theme.colors.imageBackground,
       overflow: 'hidden',
     },
     thumb: {
       width: '100%',
       height: '100%',
     },
-    itemLabel: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      backgroundColor: 'rgba(0,0,0,0.45)',
-      paddingHorizontal: 6,
-      paddingVertical: 3,
-    },
     itemName: {
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: '600',
-      color: '#FFFFFF',
+      color: theme.colors.foreground,
+      marginTop: 4,
+      paddingHorizontal: 2,
     },
     emptyCard: {
       width: CARD_WIDTH,
@@ -210,13 +207,13 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
     },
     backupKitDivider: {
       height: tokens.borderWidth.hairline,
-      backgroundColor: theme.colors.surfaceBorder,
+      backgroundColor: theme.colors.muted,
     },
     backupKitImage: {
       width: BACKUP_KIT_IMG,
       height: BACKUP_KIT_IMG,
-      borderRadius: tokens.borderRadius.md,
-      backgroundColor: theme.colors.surface2,
+      borderRadius: tokens.borderRadius.sm,
+      backgroundColor: theme.colors.imageBackground,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
     },
@@ -280,21 +277,24 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
             </View>
             <View style={styles.grid}>
               {outfit.items.map(item => (
-                <View key={item.id} style={styles.thumbWrap}>
-                  {item.imageUrl ? (
-                    <FastImage
-                      source={{
-                        uri: item.imageUrl,
-                        priority: FastImage.priority.normal,
-                      }}
-                      style={styles.thumb}
-                      resizeMode={FastImage.resizeMode.contain}
-                    />
-                  ) : null}
-                  <View style={styles.itemLabel}>
-                   
-                   
+                <View key={item.id} style={styles.thumbCell}>
+                  <View style={styles.thumbWrap}>
+                    {item.imageUrl ? (
+                      <FastImage
+                        source={{
+                          uri: item.imageUrl,
+                          priority: FastImage.priority.normal,
+                        }}
+                        style={styles.thumb}
+                        resizeMode={FastImage.resizeMode.contain}
+                      />
+                    ) : null}
                   </View>
+                  <Text
+                    style={styles.itemName}
+                    numberOfLines={1}>
+                    {item.name}
+                  </Text>
                 </View>
               ))}
             </View>

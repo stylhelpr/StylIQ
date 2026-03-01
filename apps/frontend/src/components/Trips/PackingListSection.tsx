@@ -90,11 +90,12 @@ const PackingListSection = ({
       borderColor: theme.colors.surfaceBorder,
     },
     thumbWrap: {
-      width: 48,
-      height: 48,
+      width: 62,
+      height: 62,
       borderRadius: 8,
-      backgroundColor: theme.colors.surface2,
+      backgroundColor: theme.colors.imageBackground,
       overflow: 'hidden',
+      padding: 4
     },
     thumbPacked: {
       opacity: 0.4,
@@ -126,7 +127,7 @@ const PackingListSection = ({
       height: 10,
       borderRadius: 5,
       borderWidth: 0.5,
-      borderColor: 'rgba(128,128,128,0.3)',
+      borderColor: 'rgb(255, 255, 255)',
     },
     locationBadge: {
       flexDirection: 'row',
@@ -134,7 +135,7 @@ const PackingListSection = ({
       gap: 3,
     },
     locationText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '500',
       color: theme.colors.foreground2,
     },
@@ -251,21 +252,23 @@ const PackingListSection = ({
                     numberOfLines={1}>
                     {item.name}
                   </Text>
+
                   <View style={styles.itemMeta}>
-                    {item.color && (
+                    {/* {item.color && (
                       <View
                         style={[
                           styles.colorDot,
                           {backgroundColor: item.color},
                         ]}
                       />
-                    )}
+                    )} */}
                     <View style={styles.locationBadge}>
                       <Icon
                         name="place"
-                        size={11}
-                        color={theme.colors.foreground2}
+                        size={15}
+                        color={'green'}
                       />
+
                       <Text style={styles.locationText}>
                         {item.locationLabel}
                       </Text>

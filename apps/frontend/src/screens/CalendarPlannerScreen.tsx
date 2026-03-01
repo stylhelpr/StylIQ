@@ -347,8 +347,8 @@ function SwipeableOutfitCard({
     thumb: {
       width: 68,
       height: 68,
-      borderRadius: 12,
-      backgroundColor: theme.colors.surface,
+      borderRadius: tokens.borderRadius.sm,
+      backgroundColor: theme.colors.imageBackground,
       padding: 4
     },
   });

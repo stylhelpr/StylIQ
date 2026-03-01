@@ -251,7 +251,7 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
       borderRadius: 10,
       overflow: 'hidden',
       // backgroundColor: theme.colors.surface,
-      backgroundColor: '#ffffff',
+      backgroundColor: theme.colors.imageBackground,
       borderWidth: 1,
       borderColor: theme.colors.surfaceBorder || 'rgba(0,0,0,0.1)',
     },

@@ -1475,7 +1475,7 @@ export default function SavedOutfitsScreen() {
                       }}>
                         <View style={{
                           flex: 1,
-                           backgroundColor: '#f7f7f7',
+                           backgroundColor: theme.colors.imageBackground,
                           // padding: 2,
                           // borderWidth: 1,
                           // borderColor: `${theme.colors.primary}1F`,
@@ -1926,7 +1926,7 @@ export default function SavedOutfitsScreen() {
                 style={{
                   width: '100%',
                   height: '100%',
-                  backgroundColor: '#f7f7f7',
+                  backgroundColor: theme.colors.imageBackground,
                   borderTopLeftRadius: 12,
                   borderTopRightRadius: 12,
                 }}
@@ -3065,7 +3065,7 @@ export default function SavedOutfitsScreen() {
                   style={{
                     width: screenWidth - 16,
                     borderRadius: 24,
-                     backgroundColor: '#f7f7f7',
+                     backgroundColor: theme.colors.imageBackground,
                     overflow: 'hidden',
                   }}>
                   {fullScreenOutfit.thumbnailUrl ? (
@@ -3152,7 +3152,7 @@ export default function SavedOutfitsScreen() {
                           height: (screenWidth - 52) / 2,
                           borderRadius: 12,
                           overflow: 'hidden',
-                          backgroundColor: '#f7f7f7',
+                          backgroundColor: theme.colors.imageBackground,
                         }}>
                         <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10}}>
                           <Image

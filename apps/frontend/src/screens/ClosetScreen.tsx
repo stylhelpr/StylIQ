@@ -992,7 +992,7 @@ export default function ClosetScreen({navigate}: Props) {
       return (
         <View style={styles.itemContainer}>
           <ScalePressable
-            style={[globalStyles.outfitCard4,  {backgroundColor: '#e5e1de'}]}
+            style={[globalStyles.outfitCard4,  {backgroundColor: theme.colors.imageBackground}]}
             onPress={() => {
               if (isDemo) {
                 // For demo items, navigate to AddItem to encourage adding real items
@@ -1191,7 +1191,7 @@ export default function ClosetScreen({navigate}: Props) {
       return (
         <View style={{width: HORIZ_CARD_WIDTH, marginRight: 10}}>
           <ScalePressable
-            style={[globalStyles.outfitCard5, {width: HORIZ_CARD_WIDTH, backgroundColor: '#e5e1de'}]}
+            style={[globalStyles.outfitCard5, {width: HORIZ_CARD_WIDTH, backgroundColor: theme.colors.imageBackground}]}
             onPress={() => {
               if (isDemo) {
                 navigate('AddItem');

@@ -757,7 +757,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                 <View style={{position: 'relative', width: '100%'}}>
                   <Image
                     source={{uri: item.image_url}}
-                    style={[globalStyles.image7, {backgroundColor: '#e5e1de'}]}
+                    style={[globalStyles.image7, {backgroundColor: theme.colors.imageBackground}]}
                     resizeMode="contain"
                     //  resizeMode="cover"
                     onError={() =>
