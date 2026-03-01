@@ -102,7 +102,7 @@ function ProductCard({
         marginBottom: 12,
         marginRight: small ? 4 : 0,
         // backgroundColor: theme.colors.surface,
-        // borderRadius: tokens.borderRadius.sm,
+        borderRadius: tokens.borderRadius.sm,
         overflow: 'hidden',
       }}>
       {item.image ? (

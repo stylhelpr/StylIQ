@@ -719,7 +719,7 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                             <Image
                               source={{uri: look.image_url}}
                               style={{width: 130, height: 130, backgroundColor: '#F5F5F5'}}
-                              resizeMode="contain"
+                              resizeMode="cover"
                             />
                           ) : null}
                         </View>

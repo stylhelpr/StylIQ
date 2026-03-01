@@ -2826,7 +2826,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                       <Image
                                         source={{uri: look.image_url}}
                                         style={{width: 130, height: 130, backgroundColor: '#F5F5F5'}}
-                                        resizeMode="contain"
+                                        resizeMode="cover"
                                       />
                                     ) : null}
                                     <Pressable

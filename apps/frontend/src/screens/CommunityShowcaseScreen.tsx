@@ -1531,12 +1531,13 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
     postDetailImageContainer: {
       justifyContent: 'flex-start',
       alignItems: 'center',
-      paddingVertical: 4,
+      // paddingVertical: 4,
+      backgroundColor: theme.colors.imageBackground
     },
     postDetailImage: {
-      width: SCREEN_WIDTH - 4,
-      height: SCREEN_WIDTH * 1.25,
-      borderRadius: 16,
+      width: SCREEN_WIDTH - 3,
+      height: SCREEN_WIDTH * 1.28,
+      // borderRadius: 16,
     },
     postDetailCompositeContainer: {
       width: SCREEN_WIDTH - 16,
@@ -1675,7 +1676,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
               borderRadius: tokens.borderRadius.lg,
               backgroundColor: theme.colors.imageBackground,
             }}
-            resizeMode={FastImage.resizeMode.cover}
+            resizeMode={FastImage.resizeMode.contain}
           />
         </Animated.View>
 
@@ -1843,7 +1844,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                 cache: FastImage.cacheControl.immutable,
               }}
               style={styles.cardImage}
-              resizeMode={FastImage.resizeMode.contain}
+              resizeMode={FastImage.resizeMode.cover}
             />
             
             <View style={styles.cardOverlayContainer}>
@@ -3012,82 +3013,15 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
 
                 {/* Image */}
                 <View style={styles.postDetailImageContainer}>
-                  {detailPost.top_image && detailPost.bottom_image ? (
-                    // Composite 2x2 grid
-                    <View style={styles.postDetailCompositeContainer}>
-                      <View style={{flexDirection: 'row', flex: 1}}>
-                        <View
-                          style={[styles.postDetailCompositeCell, {flex: 1}]}>
-                          {detailPost.top_image && (
-                            <FastImage
-                              source={{
-                                uri: detailPost.top_image,
-                                priority: FastImage.priority.high,
-                                cache: FastImage.cacheControl.immutable,
-                              }}
-                              style={{width: '100%', height: '100%'}}
-                              resizeMode={FastImage.resizeMode.contain}
-                            />
-                          )}
-                        </View>
-                        <View
-                          style={[styles.postDetailCompositeCell, {flex: 1}]}>
-                          {detailPost.bottom_image && (
-                            <FastImage
-                              source={{
-                                uri: detailPost.bottom_image,
-                                priority: FastImage.priority.high,
-                                cache: FastImage.cacheControl.immutable,
-                              }}
-                              style={{width: '100%', height: '100%'}}
-                              resizeMode={FastImage.resizeMode.contain}
-                            />
-                          )}
-                        </View>
-                      </View>
-                      <View style={{flexDirection: 'row', flex: 1}}>
-                        <View
-                          style={[styles.postDetailCompositeCell, {flex: 1}]}>
-                          {detailPost.shoes_image && (
-                            <FastImage
-                              source={{
-                                uri: detailPost.shoes_image,
-                                priority: FastImage.priority.high,
-                                cache: FastImage.cacheControl.immutable,
-                              }}
-                              style={{width: '100%', height: '100%'}}
-                              resizeMode={FastImage.resizeMode.contain}
-                            />
-                          )}
-                        </View>
-                        <View
-                          style={[styles.postDetailCompositeCell, {flex: 1}]}>
-                          {detailPost.accessory_image && (
-                            <FastImage
-                              source={{
-                                uri: detailPost.accessory_image,
-                                priority: FastImage.priority.high,
-                                cache: FastImage.cacheControl.immutable,
-                              }}
-                              style={{width: '100%', height: '100%'}}
-                              resizeMode={FastImage.resizeMode.contain}
-                            />
-                          )}
-                        </View>
-                      </View>
-                    </View>
-                  ) : (
-                    // Single image
-                    <FastImage
-                      source={{
-                        uri: detailPost.image_url || detailPost.top_image || '',
-                        priority: FastImage.priority.high,
-                        cache: FastImage.cacheControl.immutable,
-                      }}
-                      style={styles.postDetailImage}
-                      resizeMode={FastImage.resizeMode.contain}
-                    />
-                  )}
+                  <FastImage
+                    source={{
+                      uri: detailPost.image_url || detailPost.top_image || '',
+                      priority: FastImage.priority.high,
+                      cache: FastImage.cacheControl.immutable,
+                    }}
+                    style={styles.postDetailImage}
+                    resizeMode={FastImage.resizeMode.contain}
+                  />
                 </View>
 
                 {/* Footer */}
