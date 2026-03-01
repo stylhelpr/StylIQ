@@ -382,53 +382,52 @@ export default function SavedRecommendationsModal({
                   fontWeight: '500',
                   fontSize: 12,
                 }}>
-                Shop Now
+                Buy Now
               </Text>
             </TouchableOpacity>
           </View>
 
-          {product.brand && (
-            <View
+          <View style={{minHeight: 102}}>
+            <Text
               style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
                 paddingHorizontal: 10,
                 paddingTop: 8,
+                color: theme.colors.foreground,
+                fontWeight: '700',
+                fontSize: 12,
+                lineHeight: 16,
+              }}
+                numberOfLines={1}>
+              {product.brand ?? ''}
+            </Text>
+
+            <Text
+              style={{
+                paddingHorizontal: 12,
+                marginTop: 8,
+                color: theme.colors.foreground,
+                fontWeight: '400',
+                fontSize: 13,
+                lineHeight: 18,
+              }}
+              numberOfLines={2}>
+              {product.title ?? ''}
+            </Text>
+
+            <Text
+              style={{
+                paddingHorizontal: 12,
+                marginTop: 'auto',
+                paddingTop: 4,
+                marginBottom: 10,
+                color: theme.colors.primary,
+                fontWeight: '600',
+                fontSize: 14,
+                lineHeight: 20,
               }}>
-              <Text
-                style={{
-                  color: theme.colors.foreground,
-                  fontWeight: '700',
-                  fontSize: 12,
-                }}>
-                {product.brand}
-              </Text>
-            </View>
-          )}
-
-          <Text
-            style={{
-              paddingHorizontal: 12,
-              marginTop: 8,
-              color: theme.colors.foreground,
-              fontWeight: '400',
-              fontSize: 13,
-            }}
-            numberOfLines={2}>
-            {product.title}
-          </Text>
-
-          <Text
-            style={{
-              paddingHorizontal: 12,
-              marginTop: 4,
-              marginBottom: 10,
-              color: theme.colors.primary,
-              fontWeight: '600',
-              fontSize: 14,
-            }}>
-            {product.price_raw || (product.price ? `$${product.price}` : '')}
-          </Text>
+              {product.price_raw || (product.price ? `$${product.price}` : '')}
+            </Text>
+          </View>
         </View>
       );
     },
