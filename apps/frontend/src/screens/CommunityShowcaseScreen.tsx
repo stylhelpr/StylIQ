@@ -1033,9 +1033,8 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
       width: CARD_WIDTH,
       height: CARD_HEIGHT,
       marginBottom: moderateScale(tokens.spacing.sm),
-      borderRadius: tokens.borderRadius.xl,
+      borderRadius: tokens.borderRadius.sm,
       overflow: 'hidden',
-      backgroundColor: theme.colors.muted,
     },
     cardImage: {
       width: '100%',
@@ -1055,8 +1054,8 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
       left: 0,
       right: 0,
       bottom: 0,
-      borderBottomLeftRadius: tokens.borderRadius.md,
-      borderBottomRightRadius: tokens.borderRadius.md,
+      borderBottomLeftRadius: tokens.borderRadius.sm,
+      borderBottomRightRadius: tokens.borderRadius.sm,
     },
     cardContent: {
       paddingHorizontal: 6,
@@ -1635,7 +1634,6 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
         ? displayedPosts[currentImageIndex % displayedPosts.length]
         : null;
     const mockPost = MOCK_POSTS[currentImageIndex % MOCK_POSTS.length];
-    const isComposite = heroPost?.top_image && heroPost?.bottom_image;
     const heroImageUrl = heroPost?.image_url || heroPost?.top_image || mockPost.imageUrl;
     const heroUserName = heroPost?.user_name || mockPost.userName;
     const heroUserAvatar = heroPost?.user_avatar || mockPost.userAvatar;
@@ -1665,53 +1663,20 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
             borderRadius: tokens.borderRadius.lg,
             opacity: fadeAnim,
           }}>
-          {isComposite && heroPost ? (
-            // 2x2 Grid for composite outfits
-            <View style={{flex: 1, flexDirection: 'column', borderRadius: tokens.borderRadius.lg, overflow: 'hidden'}}>
-              <View style={{flex: 1, flexDirection: 'row'}}>
-                <FastImage
-                  source={{uri: heroPost.top_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                  style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#ffffff'}}
-                  resizeMode={FastImage.resizeMode.cover}
-                />
-                <FastImage
-                  source={{uri: heroPost.bottom_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                  style={{flex: 1, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#ffffff'}}
-                  resizeMode={FastImage.resizeMode.cover}
-                />
-              </View>
-              <View style={{flex: 1, flexDirection: 'row'}}>
-                {heroPost.shoes_image ? (
-                  <FastImage
-                    source={{uri: heroPost.shoes_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                    style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}}
-                    resizeMode={FastImage.resizeMode.cover}
-                  />
-                ) : <View style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}} />}
-                {heroPost.accessory_image ? (
-                  <FastImage
-                    source={{uri: heroPost.accessory_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                    style={{flex: 1, backgroundColor: '#F5F5F5'}}
-                    resizeMode={FastImage.resizeMode.cover}
-                  />
-                ) : <View style={{flex: 1, backgroundColor: '#F5F5F5'}} />}
-              </View>
-            </View>
-          ) : (
-            <FastImage
-              source={{
-                uri: heroImageUrl,
-                priority: FastImage.priority.high,
-                cache: FastImage.cacheControl.immutable,
-              }}
-              style={{
-                width: '100%',
-                height: '100%',
-                borderRadius: tokens.borderRadius.lg,
-              }}
-              resizeMode={FastImage.resizeMode.cover}
-            />
-          )}
+          <FastImage
+            source={{
+              uri: heroImageUrl,
+              priority: FastImage.priority.high,
+              cache: FastImage.cacheControl.immutable,
+            }}
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: tokens.borderRadius.lg,
+              backgroundColor: theme.colors.imageBackground,
+            }}
+            resizeMode={FastImage.resizeMode.cover}
+          />
         </Animated.View>
 
         {/* Light tinted overlay for better text visibility */}
@@ -1854,7 +1819,6 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
   const renderPostCard = useCallback(
     (post: CommunityPost, index: number) => {
       const liked = isPostLiked(post);
-      const hasCompositeImages = post.top_image && post.bottom_image;
       // Use || to treat empty strings as falsy
       const imageUri =
         post.image_url ||
@@ -1871,81 +1835,17 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
           <AppleTouchFeedback
             hapticStyle="none"
             onPress={() => openPostDetailModal(post)}
-            style={styles.card}>
-            {hasCompositeImages ? (
-              // 2x2 Grid Composite
-              <View style={[styles.cardImage, {flexDirection: 'column'}]}>
-                {/* Row 1 */}
-                <View style={{flexDirection: 'row', flex: 1}}>
-                  <View style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#ffffff'}}>
-                    {post.top_image && (
-                      <FastImage
-                        source={{
-                          uri: post.top_image,
-                          priority: FastImage.priority.normal,
-                          cache: FastImage.cacheControl.immutable,
-                        }}
-                        style={{width: '100%', height: '100%'}}
-                        resizeMode={FastImage.resizeMode.cover}
-                      />
-                    )}
-                  </View>
-                  <View style={{flex: 1, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#ffffff'}}>
-                    {post.bottom_image && (
-                      <FastImage
-                        source={{
-                          uri: post.bottom_image,
-                          priority: FastImage.priority.normal,
-                          cache: FastImage.cacheControl.immutable,
-                        }}
-                        style={{width: '100%', height: '100%'}}
-                        resizeMode={FastImage.resizeMode.cover}
-                      />
-                    )}
-                  </View>
-                </View>
-                {/* Row 2 */}
-                <View style={{flexDirection: 'row', flex: 1}}>
-                  <View style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}}>
-                    {post.shoes_image && (
-                      <FastImage
-                        source={{
-                          uri: post.shoes_image,
-                          priority: FastImage.priority.normal,
-                          cache: FastImage.cacheControl.immutable,
-                        }}
-                        style={{width: '100%', height: '100%'}}
-                        resizeMode={FastImage.resizeMode.cover}
-                      />
-                    )}
-                  </View>
-                  <View style={{flex: 1, backgroundColor: '#F5F5F5'}}>
-                    {post.accessory_image && (
-                      <FastImage
-                        source={{
-                          uri: post.accessory_image,
-                          priority: FastImage.priority.normal,
-                          cache: FastImage.cacheControl.immutable,
-                        }}
-                        style={{width: '100%', height: '100%'}}
-                        resizeMode={FastImage.resizeMode.cover}
-                      />
-                    )}
-                  </View>
-                </View>
-              </View>
-            ) : (
-              // Single image
-              <FastImage
-                source={{
-                  uri: imageUri || '',
-                  priority: FastImage.priority.normal,
-                  cache: FastImage.cacheControl.immutable,
-                }}
-                style={styles.cardImage}
-                resizeMode={FastImage.resizeMode.cover}
-              />
-            )}
+            style={[styles.card, {backgroundColor: theme.colors.imageBackground}]}>
+            <FastImage
+              source={{
+                uri: imageUri || '',
+                priority: FastImage.priority.normal,
+                cache: FastImage.cacheControl.immutable,
+              }}
+              style={styles.cardImage}
+              resizeMode={FastImage.resizeMode.contain}
+            />
+            
             <View style={styles.cardOverlayContainer}>
               <LinearGradient
                 colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']}
@@ -3126,7 +3026,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                                 cache: FastImage.cacheControl.immutable,
                               }}
                               style={{width: '100%', height: '100%'}}
-                              resizeMode={FastImage.resizeMode.cover}
+                              resizeMode={FastImage.resizeMode.contain}
                             />
                           )}
                         </View>
@@ -3140,7 +3040,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                                 cache: FastImage.cacheControl.immutable,
                               }}
                               style={{width: '100%', height: '100%'}}
-                              resizeMode={FastImage.resizeMode.cover}
+                              resizeMode={FastImage.resizeMode.contain}
                             />
                           )}
                         </View>
@@ -3156,7 +3056,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                                 cache: FastImage.cacheControl.immutable,
                               }}
                               style={{width: '100%', height: '100%'}}
-                              resizeMode={FastImage.resizeMode.cover}
+                              resizeMode={FastImage.resizeMode.contain}
                             />
                           )}
                         </View>
@@ -3170,7 +3070,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                                 cache: FastImage.cacheControl.immutable,
                               }}
                               style={{width: '100%', height: '100%'}}
-                              resizeMode={FastImage.resizeMode.cover}
+                              resizeMode={FastImage.resizeMode.contain}
                             />
                           )}
                         </View>

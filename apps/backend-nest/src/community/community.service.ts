@@ -228,8 +228,15 @@ export class CommunityService implements OnModuleInit {
   }
 
   private async seedDemoPosts() {
+    // Guard: skip if ANY posts exist (user or demo) to prevent duplicate seeding
     const countRes = await pool.query('SELECT COUNT(*) FROM community_posts');
     if (parseInt(countRes.rows[0].count) > 0) return;
+
+    // Double-check: also skip if demo posts specifically already exist
+    const demoRes = await pool.query(
+      "SELECT COUNT(*) FROM community_posts WHERE is_demo = true",
+    );
+    if (parseInt(demoRes.rows[0].count) > 0) return;
 
     const demoPosts = [
       {
@@ -532,7 +539,14 @@ export class CommunityService implements OnModuleInit {
       ? [limit, offset, currentUserId]
       : [limit, offset];
     const res = await pool.query(query, params);
-    return res.rows;
+
+    // Deduplicate by post ID (preserves original ordering)
+    const seen = new Set<string>();
+    return res.rows.filter((row: any) => {
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    });
   }
 
   /**
@@ -697,7 +711,14 @@ export class CommunityService implements OnModuleInit {
       : [searchPattern, query.toLowerCase(), limit];
 
     const res = await pool.query(sqlQuery, params);
-    return res.rows;
+
+    // Deduplicate by post ID (preserves original ordering)
+    const seen = new Set<string>();
+    return res.rows.filter((row: any) => {
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    });
   }
 
   async getPostById(postId: string, currentUserId?: string) {
@@ -1288,7 +1309,14 @@ export class CommunityService implements OnModuleInit {
       LIMIT $2 OFFSET $3`,
       [userId, limit, offset],
     );
-    return res.rows;
+
+    // Deduplicate by post ID (preserves original ordering)
+    const seen = new Set<string>();
+    return res.rows.filter((row: any) => {
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    });
   }
 
   async getPostsByUser(
