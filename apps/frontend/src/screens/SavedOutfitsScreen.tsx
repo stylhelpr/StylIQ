@@ -1997,42 +1997,13 @@ export default function SavedOutfitsScreen() {
               height: SHARE_SIZE + 80,
               backgroundColor: '#F5F5F5',
             }}>
-            {/* 2x2 Grid */}
-            {/* Row 1 */}
-            <View style={{flexDirection: 'row', height: SHARE_CELL}}>
-              <View style={{width: SHARE_CELL, height: SHARE_CELL, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#000'}}>
-                <Image
-                  source={{uri: shareOutfit.top?.image}}
-                  style={{width: '100%', height: '100%'}}
-                  resizeMode="cover"
-                />
-              </View>
-              <View style={{width: SHARE_CELL, height: SHARE_CELL, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#000'}}>
-                <Image
-                  source={{uri: shareOutfit.bottom?.image}}
-                  style={{width: '100%', height: '100%'}}
-                  resizeMode="cover"
-                />
-              </View>
-            </View>
-            {/* Row 2 */}
-            <View style={{flexDirection: 'row', height: SHARE_CELL}}>
-              <View style={{width: SHARE_CELL, height: SHARE_CELL, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#000'}}>
-                <Image
-                  source={{uri: shareOutfit.shoes?.image}}
-                  style={{width: '100%', height: '100%'}}
-                  resizeMode="cover"
-                />
-              </View>
-              {/* Plain off-white cell */}
-              <View
-                style={{
-                  width: SHARE_CELL,
-                  height: SHARE_CELL,
-                  backgroundColor: '#F5F5F5',
-                }}
-              />
-            </View>
+              
+            {/* Full outfit composite image */}
+            <Image
+              source={{uri: shareOutfit.thumbnailUrl || shareOutfit.top?.image || shareOutfit.allItems?.[0]?.image}}
+              style={{width: 400, height: 400, padding: 4, backgroundColor: theme.colors.imageBackground}}
+              resizeMode="contain"
+            />
 
             {/* Center watermark with tinted overlay */}
             <View
