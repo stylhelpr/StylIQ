@@ -680,7 +680,7 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
               animation="fadeInUpBig"
               delay={1900}
               style={globalStyles.sectionScroll}>
-              <Text style={[globalStyles.sectionTitle]}>Shared Looks</Text>
+              <Text style={[globalStyles.sectionTitle]}>Your Shared Styles</Text>
               {sharedLooks.length === 0 ? (
                 <Text style={globalStyles.missingDataMessage1}>
                   No shared looks yet.
@@ -710,50 +710,10 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                           {look.image_url ? (
                             <Image
                               source={{uri: look.image_url}}
-                              style={{width: 130, height: 130}}
-                              resizeMode="cover"
+                              style={{width: 130, height: 130, backgroundColor: '#F5F5F5'}}
+                              resizeMode="contain"
                             />
-                          ) : (
-                            <>
-                              <View style={{flexDirection: 'row', height: 65}}>
-                                <Image
-                                  source={{uri: look.top_image}}
-                                  style={{width: 65, height: 65}}
-                                  resizeMode="cover"
-                                />
-                                <Image
-                                  source={{uri: look.bottom_image}}
-                                  style={{width: 65, height: 65}}
-                                  resizeMode="cover"
-                                />
-                              </View>
-                              <View style={{flexDirection: 'row', height: 65}}>
-                                <Image
-                                  source={{uri: look.shoes_image}}
-                                  style={{width: 65, height: 65}}
-                                  resizeMode="cover"
-                                />
-                                <View
-                                  style={{
-                                    width: 65,
-                                    height: 65,
-                                    backgroundColor: '#000',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                  }}>
-                                  <Text
-                                    style={{
-                                      color: '#fff',
-                                      fontSize: 8,
-                                      fontWeight: '800',
-                                      letterSpacing: 1,
-                                    }}>
-                                    StylHelpr
-                                  </Text>
-                                </View>
-                              </View>
-                            </>
-                          )}
+                          ) : null}
                         </View>
                         {/* Look description */}
                         <Animatable.View
