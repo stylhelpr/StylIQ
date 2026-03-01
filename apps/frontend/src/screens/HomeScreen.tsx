@@ -346,7 +346,7 @@ const HeroCarousel = React.memo(
                 borderRadius: tokens.borderRadius.lg,
                 backgroundColor: '#e5e1de'
               }}
-              resizeMode={FastImage.resizeMode.contain}
+              resizeMode={FastImage.resizeMode.cover}
             />
         </Animated.View>
 

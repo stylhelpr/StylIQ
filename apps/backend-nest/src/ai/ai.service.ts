@@ -4818,7 +4818,7 @@ Output valid JSON only:
       "id": "outfit-1",
       "rank": 1,
       "title": "Short creative outfit name (3-6 words, e.g. 'Relaxed Weekend Layers')",
-      "summary": "Short, confident vibe (max 80 chars)",
+      "summary": "2-4 sentence professional stylist explanation (120-220 chars). Reference silhouette, color harmony, and occasion suitability. No emojis. No markdown. No bullet points. No system labels.",
       "reasoning": "WHY this works — 1-2 sentences, reference weather/context",
       "itemIds": ["item-id-1", "item-id-2", "item-id-3"]
     },

@@ -82,6 +82,27 @@ type AiSuggestionResponseV2 = {
 // Union type for handling both formats
 type AiSuggestionData = AiSuggestionResponse | AiSuggestionResponseV2;
 
+// Local normalizer — ensures every AI Stylist outfit has a renderable summary
+function normalizeStylistOutfit(outfit: OutfitSuggestion): OutfitSuggestion {
+  const summary =
+    typeof outfit.summary === 'string' && outfit.summary.trim().length > 0
+      ? outfit.summary
+      : ' ';
+  return {...outfit, summary};
+}
+
+function normalizeStylistData(data: AiSuggestionData): AiSuggestionData {
+  if ('outfits' in data && Array.isArray((data as any).outfits)) {
+    return {
+      ...data,
+      outfits: (data as AiSuggestionResponseV2).outfits.map(
+        normalizeStylistOutfit,
+      ),
+    };
+  }
+  return data;
+}
+
 // 🕐 Cooldown windows
 const NOTIFICATION_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h notification interval
 const FETCH_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2h re-fetch cooldown
@@ -855,7 +876,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
       });
 
       if (!res.ok) throw new Error('Failed to fetch suggestion');
-      const data: AiSuggestionData = await res.json();
+      const data: AiSuggestionData = normalizeStylistData(await res.json());
 
       // 1️⃣ Update UI immediately
       setAiData(data);
@@ -986,7 +1007,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
       });
 
       if (!res.ok) throw new Error('Failed to swap item');
-      const data: AiSuggestionData = await res.json();
+      const data: AiSuggestionData = normalizeStylistData(await res.json());
 
       // Emit learning signal for tweak/constraint
       emitHomeSignal('STYLE_CONSTRAINT_SIGNAL', undefined, {
@@ -1101,7 +1122,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           const isStaleWeather = currentTemp != null && cachedTemp != null && Math.abs(currentTemp - cachedTemp) > 15;
 
           if (!isStaleDate && !isStaleWeather) {
-            setAiData(parsed);
+            setAiData(normalizeStylistData(parsed));
 
             // restore refs for cooldown checks
             if (parsed?.suggestion) {
@@ -1211,7 +1232,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           fetchSuggestion('initial');
           lastFetchTimeRef.current = now;
         } else {
-          setAiData(parsed);
+          setAiData(normalizeStylistData(parsed));
           // Update ref with summary text for both formats
           const summaryText = isVisualFormat(parsed)
             ? parsed.outfits[0]?.summary
@@ -1779,21 +1800,19 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 </View>
 
                 {/* Outfit Description — always render under images */}
-                {currentOutfit?.summary && (
-                  <Text
-                    style={{
-                      color: '#fff',
-                      fontSize: 14,
-                      fontWeight: '400',
-                      textAlign: 'center',
-                      marginTop: 20,
-                      paddingHorizontal: 24,
-                      opacity: 0.85,
-                      lineHeight: 20,
-                    }}>
-                    {currentOutfit.summary}
-                  </Text>
-                )}
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontSize: 14,
+                    fontWeight: '400',
+                    textAlign: 'center',
+                    marginTop: 20,
+                    paddingHorizontal: 24,
+                    opacity: 0.85,
+                    lineHeight: 20,
+                  }}>
+                  {currentOutfit?.summary ?? ' '}
+                </Text>
 
 
               </View>
