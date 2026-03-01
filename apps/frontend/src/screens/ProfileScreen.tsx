@@ -39,6 +39,7 @@ import {
 import type {FollowUser} from '../types/community';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {getAccessToken} from '../utils/auth';
+import SharedLookDetailModal from '../components/SavedLookModal/SharedLookDetailModal';
 
 const screenWidth = Dimensions.get('window').width;
 const STORAGE_KEY = (uid: string) => `profile_picture:${uid}`;
@@ -99,6 +100,8 @@ export default function ProfileScreen({navigate}: Props) {
   const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(
     new Set(),
   );
+  const [isSharedLookModalVisible, setIsSharedLookModalVisible] = useState(false);
+  const [selectedSharedLook, setSelectedSharedLook] = useState<any>(null);
   const [bio, setBio] = useState<string>('');
   const [followListModal, setFollowListModal] = useState<
     'followers' | 'following' | null
@@ -746,7 +749,8 @@ export default function ProfileScreen({navigate}: Props) {
                   style={[globalStyles.outfitCard, {width: 131}]}>
                   <Pressable
                     onPress={() => {
-                      // Could navigate to look detail or show preview
+                      setSelectedSharedLook(look);
+                      setIsSharedLookModalVisible(true);
                     }}
                     style={{alignItems: 'center'}}>
                     {/* Card - single image or 2x2 grid */}
@@ -1053,6 +1057,14 @@ export default function ProfileScreen({navigate}: Props) {
           )}
         </View>
       </Modal>
+      <SharedLookDetailModal
+        visible={isSharedLookModalVisible}
+        look={selectedSharedLook}
+        onClose={() => {
+          setIsSharedLookModalVisible(false);
+          setSelectedSharedLook(null);
+        }}
+      />
     </ScrollView>
     // </GradientBackground>
   );

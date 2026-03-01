@@ -10,6 +10,7 @@ import {
   Easing,
   Modal,
   Pressable,
+  Dimensions,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import FastImage from 'react-native-fast-image';
@@ -65,6 +66,7 @@ import {useCreatePost} from '../hooks/useCommunityApi';
 import {BlurView} from '@react-native-community/blur';
 import PersonalizedShopModal from '../components/PersonalizedShopModal/PersonalizedShopModal';
 import VisualRecreateModal from '../components/VisualRecreateModal/VisualRecreateModal';
+import SharedLookDetailModal from '../components/SavedLookModal/SharedLookDetailModal';
 import RecreatedLookScreen from './RecreatedLookScreen';
 import {Camera} from 'react-native-vision-camera';
 import {useResponsive} from '../hooks/useResponsive';
@@ -935,6 +937,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(
     new Set(),
   );
+  const [isSharedLookModalVisible, setIsSharedLookModalVisible] = useState(false);
+  const [selectedSharedLook, setSelectedSharedLook] = useState<any>(null);
 
   // Load hasEverHadRealContent flags from AsyncStorage
   useEffect(() => {
@@ -2807,7 +2811,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 style={[globalStyles.outfitCard]}>
                                 <Pressable
                                   onPress={() => {
-                                    // Could navigate to look detail or show preview
+                                    setSelectedSharedLook(look);
+                                    setIsSharedLookModalVisible(true);
                                   }}
                                   style={{
                                     width: 130,
@@ -3423,6 +3428,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </Pressable>
               </KeyboardAvoidingView>
             </Modal>
+            
+            <SharedLookDetailModal
+              visible={isSharedLookModalVisible}
+              look={selectedSharedLook}
+              onClose={() => {
+                setIsSharedLookModalVisible(false);
+                setSelectedSharedLook(null);
+              }}
+            />
           </Animated.ScrollView>
         </View>
       </LinearGradientWrapper>

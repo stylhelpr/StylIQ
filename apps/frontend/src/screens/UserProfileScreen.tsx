@@ -29,6 +29,7 @@ import {
 import {useUUID} from '../context/UUIDContext';
 import type {FollowUser} from '../types/community';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import SharedLookDetailModal from '../components/SavedLookModal/SharedLookDetailModal';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -94,6 +95,8 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
 
   const [sharedLooks, setSharedLooks] = useState<SharedLook[]>([]);
   const [favoriteBrands, setFavoriteBrands] = useState<string[]>([]);
+  const [isSharedLookModalVisible, setIsSharedLookModalVisible] = useState(false);
+  const [selectedSharedLook, setSelectedSharedLook] = useState<any>(null);
   const [followListModal, setFollowListModal] = useState<
     'followers' | 'following' | null
   >(null);
@@ -697,7 +700,12 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                       delay={1700 + index * 120}
                       useNativeDriver
                       style={[globalStyles.outfitCard, {width: 131}]}>
-                      <Pressable style={{alignItems: 'center'}}>
+                      <Pressable
+                        onPress={() => {
+                          setSelectedSharedLook(look);
+                          setIsSharedLookModalVisible(true);
+                        }}
+                        style={{alignItems: 'center'}}>
                         {/* Card - single image or 2x2 grid */}
                         <View
                           style={{
@@ -923,6 +931,14 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
           )}
         </View>
       </Modal>
+      <SharedLookDetailModal
+        visible={isSharedLookModalVisible}
+        look={selectedSharedLook}
+        onClose={() => {
+          setIsSharedLookModalVisible(false);
+          setSelectedSharedLook(null);
+        }}
+      />
     </View>
   );
 }
