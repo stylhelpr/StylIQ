@@ -88,7 +88,7 @@ export default function OutfitCanvas({
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.colors.surface,
+       backgroundColor: '#f7f7f7'
     },
     canvas: {
       flex: 1,

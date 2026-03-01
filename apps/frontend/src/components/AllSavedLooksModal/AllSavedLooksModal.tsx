@@ -428,6 +428,7 @@ export default function AllSavedLooksModal({
             marginHorizontal: 1,
             backgroundColor: theme.colors.surface,
             overflow: 'hidden',
+             borderRadius: tokens.borderRadius.sm
           }}>
           <View
             style={{
@@ -501,7 +502,7 @@ export default function AllSavedLooksModal({
               color: theme.colors.foreground,
               fontWeight: '400',
               fontSize: 13,
-              textTransform: 'uppercase',
+              // textTransform: 'uppercase',
             }}
             numberOfLines={1}>
             {look.name || 'Unnamed Look'}

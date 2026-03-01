@@ -520,6 +520,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     },
     canvasContainer: {
       flex: 1,
+      
     },
   });
 

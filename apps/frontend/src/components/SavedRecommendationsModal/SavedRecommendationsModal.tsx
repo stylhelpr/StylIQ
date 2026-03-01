@@ -297,6 +297,7 @@ export default function SavedRecommendationsModal({
             marginHorizontal: 1,
             backgroundColor: theme.colors.surface,
             overflow: 'hidden',
+             borderRadius: tokens.borderRadius.sm
           }}>
           <View
             style={{

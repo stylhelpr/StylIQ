@@ -1445,7 +1445,7 @@ export default function SavedOutfitsScreen() {
                 <View style={{flexDirection: 'row', marginVertical: 0}}>
                   
                   {/* Left column – Thumbnail */}
-                  <View style={{width: '42%'}}>
+                  <View style={{width: '46%'}}>
                     {outfit.thumbnailUrl ? (
                       <View style={{
                         width: '100%',
@@ -1456,6 +1456,7 @@ export default function SavedOutfitsScreen() {
                       }}>
                         <View style={{
                           flex: 1,
+                           backgroundColor: '#f7f7f7',
                           // padding: 2,
                           // borderWidth: 1,
                           // borderColor: `${theme.colors.primary}1F`,
@@ -1504,7 +1505,7 @@ export default function SavedOutfitsScreen() {
                   </View>
 
               {/* Right column – Controls */}
-              <View style={{flex: 1, marginLeft: 50, marginTop: 4}}>
+              <View style={{flex: 1, marginLeft: 30, marginTop: 4}}>
                     
                 {/* ❤️ & ✏️ & 👕 Buttons */}
                   <View
@@ -1838,7 +1839,7 @@ export default function SavedOutfitsScreen() {
   const GRID_VISIBLE_ROWS = 3;
   const GRID_NAME_HEIGHT = 35; // text + padding
   // Available height for grid = screen minus header/sort/chips/nav (~280px approx)
-  const GRID_AVAILABLE_HEIGHT = Dimensions.get('window').height - 0;
+  const GRID_AVAILABLE_HEIGHT = Dimensions.get('window').height -150;
   const GRID_ROW_HEIGHT = Math.floor(
     (GRID_AVAILABLE_HEIGHT - GRID_GAP * (GRID_VISIBLE_ROWS - 1)) /
       GRID_VISIBLE_ROWS,
@@ -1863,16 +1864,16 @@ export default function SavedOutfitsScreen() {
             width: GRID_ITEM_WIDTH,
             height: GRID_ROW_HEIGHT,
             marginBottom: GRID_GAP,
-            borderRadius: 16,
+            borderRadius: tokens.borderRadius.sm,
             overflow: 'hidden',
-            backgroundColor: theme.colors.surface,
+            backgroundColor: theme.colors.surface3,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: theme.colors.surfaceBorder,
           }}>
           {thumbUri ? (
             <View style={{
               height: GRID_IMAGE_HEIGHT,
-              padding: 4,
+              // padding: 4,
               // borderWidth: tokens.borderWidth.hairline,
               // borderColor: `${theme.colors.primary}1F`,
               // borderRadius: 14,
@@ -1886,8 +1887,9 @@ export default function SavedOutfitsScreen() {
                 style={{
                   width: '100%',
                   height: '100%',
-                  backgroundColor: theme.colors.surface,
-                  borderRadius: 12,
+                  backgroundColor: '#f7f7f7',
+                  borderTopLeftRadius: 12,
+                  borderTopRightRadius: 12,
                 }}
                 resizeMode={FastImage.resizeMode.contain}
               />
@@ -1915,8 +1917,8 @@ export default function SavedOutfitsScreen() {
               fontSize: 13,
               fontWeight: '500',
               color: theme.colors.foreground,
-              paddingHorizontal: 12,
-              paddingVertical: 9,
+              paddingHorizontal: 10,
+              paddingVertical: 10,
             }}>
             {outfit.name?.trim() || 'Unnamed Outfit'}
           </Text>
@@ -3024,7 +3026,7 @@ export default function SavedOutfitsScreen() {
                   style={{
                     width: screenWidth - 16,
                     borderRadius: 24,
-                    backgroundColor: theme.colors.surface,
+                     backgroundColor: '#f7f7f7',
                     overflow: 'hidden',
                   }}>
                   {fullScreenOutfit.thumbnailUrl ? (
@@ -3111,7 +3113,7 @@ export default function SavedOutfitsScreen() {
                           height: (screenWidth - 52) / 2,
                           borderRadius: 12,
                           overflow: 'hidden',
-                          backgroundColor: theme.colors.surface,
+                          backgroundColor: '#f7f7f7',
                         }}>
                         <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10}}>
                           <Image
@@ -3120,9 +3122,9 @@ export default function SavedOutfitsScreen() {
                             resizeMode="contain"
                           />
                         </View>
-                        <View style={{paddingHorizontal: 8, paddingBottom: 8}}>
+                        <View style={{paddingHorizontal: 8, paddingVertical: 8, backgroundColor: theme.colors.surface3}}>
                           <Text
-                            style={{color: theme.colors.foreground, fontSize: 11, textAlign: 'center'}}
+                            style={{color: theme.colors.foreground, fontSize: 11, textAlign: 'left', fontWeight: 'semibold'}}
                             numberOfLines={1}>
                             {item.name}
                           </Text>

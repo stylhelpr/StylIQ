@@ -349,7 +349,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             marginVertical: 12
           }}>
           {/* Left column: Outerwear */}
-          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, backgroundColor: theme.colors.surface2}}>
+          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, backgroundColor: '#f7f7f7'}}>
             {outerwearItem && (
               <Image
                 source={{uri: outerwearItem.imageUrl}}
@@ -360,7 +360,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
 
           {/* Center column: Top → Bottom → Shoes (overlapping) */}
-          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10, backgroundColor: theme.colors.surface2}}>
+          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10, backgroundColor: '#f7f7f7'}}>
             {topItem && (
               <Image
                 source={{uri: topItem.imageUrl}}
@@ -385,7 +385,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
 
           {/* Right column: Accessories */}
-          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, gap: 8, backgroundColor: theme.colors.surface2}}>
+          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, gap: 8, backgroundColor: '#f7f7f7'}}>
             {accessoryItems.map((acc, idx) => (
               <Image
                 key={acc.id || idx}
@@ -1671,7 +1671,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   style={{
                     width: screenWidth - 16,
                     borderRadius: 24,
-                    backgroundColor: theme.colors.surface,
+                    backgroundColor: '#f7f7f7',
                     flexDirection: 'row',
                     paddingVertical: 12,
                     alignItems: 'center',
@@ -1684,7 +1684,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   </TouchableOpacity>
 
                   {/* Left column: Outerwear */}
-                  <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8}}>
+                  <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8, }}>
                     {outerwearItem && (
                       <Image
                         source={{uri: outerwearItem.imageUrl}}
@@ -1757,7 +1757,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                           height: (screenWidth - 52) / 2,
                           borderRadius: 12,
                           overflow: 'hidden',
-                          backgroundColor: theme.colors.surface,
+                           backgroundColor: '#f7f7f7',
                         }}>
                         <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10}}>
                           <Image
@@ -1766,9 +1766,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
                             resizeMode="contain"
                           />
                         </View>
-                        <View style={{paddingHorizontal: 8, paddingBottom: 8}}>
+                        <View style={{paddingHorizontal: 8, paddingVertical: 8, paddingBottom: 8,  backgroundColor: theme.colors.surface3,}}>
                           <Text
-                            style={{color: theme.colors.foreground, fontSize: 11, textAlign: 'center'}}
+                            style={{color: theme.colors.foreground, fontSize: 11, textAlign: 'left', fontWeight: 'semibold'}}
                             numberOfLines={1}>
                             {item.name}
                           </Text>

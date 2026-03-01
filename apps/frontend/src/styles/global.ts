@@ -661,10 +661,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 16
         : isLargePhone
-          ? 12
+          ? 8
           : isRegularPhone
-            ? 12
-            : 12,
+            ? 8
+            : 8,
     },
     labelContainer2: {
       paddingHorizontal: isTablet
@@ -1114,10 +1114,10 @@ export const createGlobalStyles = (theme: Theme) =>
       alignItems: 'flex-start',
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
-      borderRadius: tokens.borderRadius.lg,
-      // borderRadius: tokens.borderRadius.sm,
-      borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.surfaceBorder,
+      // borderRadius: tokens.borderRadius.lg,
+      borderRadius: tokens.borderRadius.sm,
+      // borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.surfaceBorder,
     },
 
        outfitCard5: {
@@ -1126,10 +1126,10 @@ export const createGlobalStyles = (theme: Theme) =>
       alignItems: 'flex-start',
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
-      borderRadius: tokens.borderRadius.lg,
-      // borderRadius: tokens.borderRadius.sm,
-      borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.surfaceBorder,
+      // borderRadius: tokens.borderRadius.lg,
+      borderRadius: tokens.borderRadius.sm,
+      // borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.surfaceBorder,
     },
 
 

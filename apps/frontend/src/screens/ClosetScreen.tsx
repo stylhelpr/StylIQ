@@ -53,7 +53,7 @@ const ITEM_WIDTH = (SCREEN_WIDTH - ITEM_SPACING * 3) / NUM_COLUMNS;
 const ITEM_HEIGHT = ITEM_WIDTH * 1.3;
 
 // Horizontal sections view card sizing
-const HORIZ_CARD_WIDTH = 140;
+const HORIZ_CARD_WIDTH = 160;
 const HORIZ_CARD_HEIGHT = 100;
 
 // Animated pressable with scale effect for images
@@ -895,7 +895,7 @@ export default function ClosetScreen({navigate}: Props) {
     imageSlot: {
       width: '60%',            // 🔴 capped width
       height: 110,             // 🔴 capped height
-      // backgroundColor: '#FFF',
+      // backgroundColor: '#e6e6e6',
       borderRadius: 12,
       overflow: 'hidden',
       justifyContent: 'center',
@@ -917,7 +917,7 @@ export default function ClosetScreen({navigate}: Props) {
     horizImageSlot: {
       width: '50%',              // capped width
       height: HORIZ_CARD_HEIGHT, // reuse your constant
-      // backgroundColor: '#FFF',
+      // backgroundColor: '#e6e6e6',
       borderRadius: 10,
       overflow: 'hidden',
       justifyContent: 'center',
@@ -927,7 +927,6 @@ export default function ClosetScreen({navigate}: Props) {
       width: '100%',
       height: '100%',
     },
-
   });
 
   const openSubmenu = (view: 'filter' | 'sort') => {
@@ -993,7 +992,7 @@ export default function ClosetScreen({navigate}: Props) {
       return (
         <View style={styles.itemContainer}>
           <ScalePressable
-            style={globalStyles.outfitCard4}
+            style={[globalStyles.outfitCard4,  {backgroundColor: '#e5e1de'}]}
             onPress={() => {
               if (isDemo) {
                 // For demo items, navigate to AddItem to encourage adding real items
@@ -1087,7 +1086,7 @@ export default function ClosetScreen({navigate}: Props) {
             )}
 
             {/* Labels */}
-            <View style={globalStyles.labelContainer}>
+            <View style={[globalStyles.labelContainer, {backgroundColor: theme.colors.surface3, width: '100%', height: 'auto'}]}>
               <Text
                 style={[globalStyles.cardLabel]}
                 numberOfLines={1}
@@ -1192,7 +1191,7 @@ export default function ClosetScreen({navigate}: Props) {
       return (
         <View style={{width: HORIZ_CARD_WIDTH, marginRight: 10}}>
           <ScalePressable
-            style={[globalStyles.outfitCard5, {width: HORIZ_CARD_WIDTH}]}
+            style={[globalStyles.outfitCard5, {width: HORIZ_CARD_WIDTH, backgroundColor: '#e5e1de'}]}
             onPress={() => {
               if (isDemo) {
                 navigate('AddItem');
@@ -1286,7 +1285,7 @@ export default function ClosetScreen({navigate}: Props) {
             )}
 
             {/* Labels */}
-            <View style={globalStyles.labelContainer}>
+            <View style={[globalStyles.labelContainer, {backgroundColor: theme.colors.surface3, width: '100%'}]}>
               <Text
                 style={[globalStyles.cardLabel]}
                 numberOfLines={1}
