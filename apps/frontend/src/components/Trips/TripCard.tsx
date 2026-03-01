@@ -47,8 +47,10 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
   const dateRange = `${formatDate(start)} – ${formatDate(end)}`;
 
   const numOutfits = trip.capsule?.outfits?.length ?? 0;
+  const backupCount = trip.capsule?.tripBackupKit?.length ?? 0;
   const numItems =
-    (trip.capsule?.packingList ?? []).reduce((sum, g) => sum + (g.items?.length ?? 0), 0);
+    (trip.capsule?.packingList ?? []).reduce((sum, g) => sum + (g.items?.length ?? 0), 0)
+    + backupCount;
   const capsuleStatus = trip.capsule
     ? `${numOutfits} looks · ${numItems} items`
     : 'No capsule yet';
