@@ -817,7 +817,8 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                       marginBottom: 8,
                       marginTop: 4,
                     },
-                  ]}>
+                  ]}
+                     numberOfLines={1}>
                   {item.brand || 'Brand'}
                 </Text>
               </ScalePressable>

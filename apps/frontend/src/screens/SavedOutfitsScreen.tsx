@@ -1216,7 +1216,7 @@ export default function SavedOutfitsScreen() {
                     alignItems: 'center',
                     justifyContent: 'flex-start',
                   }}>
-                  {outfit.occasion && OCCASION_CONFIG[outfit.occasion] && (
+                  {outfit.occasion && OCCASION_CONFIG[outfit.occasion] ? (
                     <View
                       style={{
                         flexDirection: 'row',
@@ -1239,6 +1239,25 @@ export default function SavedOutfitsScreen() {
                           color: theme.colors.foreground,
                         }}>
                         {OCCASION_CONFIG[outfit.occasion].label}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: theme.colors.surface3,
+                        paddingHorizontal: 14,
+                        paddingVertical: 9,
+                        borderRadius: 50,
+                      }}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: '600',
+                          color: theme.colors.foreground3,
+                        }}>
+                        ✕ None
                       </Text>
                     </View>
                   )}
@@ -1661,8 +1680,7 @@ export default function SavedOutfitsScreen() {
 
                     {/* Occasion Chip */}
                         <View style={{ height: 45, alignItems: 'flex-start',}}>
-                      {outfit.occasion && OCCASION_CONFIG[outfit.occasion] && (
-
+                      {outfit.occasion && OCCASION_CONFIG[outfit.occasion] ? (
                         <Pressable
                           onPress={() => {
                             hSelect();
@@ -1697,6 +1715,27 @@ export default function SavedOutfitsScreen() {
                             {OCCASION_CONFIG[outfit.occasion].label}
                           </Text>
                         </Pressable>
+                      ) : (
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            alignSelf: 'flex-start',
+                            backgroundColor: theme.colors.surface3,
+                            paddingHorizontal: 14,
+                            paddingVertical: 9,
+                            borderRadius: 50,
+                            marginTop: 4,
+                          }}>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              fontWeight: '600',
+                              color: theme.colors.foreground3,
+                            }}>
+                            ✕ None
+                          </Text>
+                        </View>
                       )}
                           </View>
 
@@ -2421,11 +2460,11 @@ export default function SavedOutfitsScreen() {
                     paddingVertical: 8,
                     borderRadius: 16,
                     backgroundColor: !editedOccasion
-                      ? theme.colors.primary
+                      ? '#000'
                       : theme.colors.surface3,
                     borderWidth: 1,
                     borderColor: !editedOccasion
-                      ? theme.colors.primary
+                      ? '#000'
                       : theme.colors.surfaceBorder,
                   }}>
                   <MaterialIcons
