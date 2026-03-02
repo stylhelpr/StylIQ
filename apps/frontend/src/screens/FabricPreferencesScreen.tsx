@@ -40,6 +40,32 @@ const defaultFabrics = [
   'Corduroy',
 ];
 
+const AVOID_MATERIAL_OPTIONS = [
+  'Cotton',
+  'Linen',
+  'Wool',
+  'Cashmere',
+  'Silk',
+  'Denim',
+  'Leather',
+  'Suede',
+  'Polyester',
+  'Nylon',
+  'Fleece',
+  'Jersey',
+  'Tweed',
+  'Velvet',
+  'Corduroy',
+  'Faux Fur',
+  'Latex',
+];
+
+const CARE_TOLERANCE_OPTIONS = [
+  'Easy care only',
+  'Some special care ok',
+  'Any care routine ok',
+];
+
 export default function FabricPreferencesScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
@@ -47,6 +73,14 @@ export default function FabricPreferencesScreen({navigate}: Props) {
   const [selected, setSelected] = useState<string[]>([]);
   const [customFabrics, setCustomFabrics] = useState<string[]>([]);
   const [newFabric, setNewFabric] = useState('');
+
+  // avoid_materials state
+  const [avoidSelected, setAvoidSelected] = useState<string[]>([]);
+  const [customAvoidFabrics, setCustomAvoidFabrics] = useState<string[]>([]);
+  const [newAvoidFabric, setNewAvoidFabric] = useState('');
+
+  // care_tolerance state
+  const [careTolerance, setCareTolerance] = useState('');
 
   const insets = useSafeAreaInsets();
 
@@ -80,6 +114,19 @@ export default function FabricPreferencesScreen({navigate}: Props) {
       );
       setCustomFabrics(prev => Array.from(new Set([...prev, ...customOnly])));
     }
+
+    // avoid_materials hydration
+    if (Array.isArray(styleProfile?.avoid_materials)) {
+      setAvoidSelected(styleProfile.avoid_materials);
+      const customOnly = styleProfile.avoid_materials.filter(
+        (f: string) =>
+          !AVOID_MATERIAL_OPTIONS.map(x => x.toLowerCase()).includes(f.toLowerCase()),
+      );
+      setCustomAvoidFabrics(prev => Array.from(new Set([...prev, ...customOnly])));
+    }
+
+    // care_tolerance hydration
+    if (styleProfile?.care_tolerance) setCareTolerance(styleProfile.care_tolerance);
   }, [styleProfile]);
 
   const toggleSelection = async (label: string) => {
@@ -122,6 +169,52 @@ export default function FabricPreferencesScreen({navigate}: Props) {
       setNewFabric('');
       Keyboard.dismiss();
       h('impactLight');
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const toggleAvoidMaterial = async (label: string) => {
+    h('impactLight');
+    const updated = avoidSelected.includes(label)
+      ? avoidSelected.filter(item => item !== label)
+      : [...avoidSelected, label];
+    setAvoidSelected(updated);
+    try {
+      updateProfile('avoid_materials', updated);
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const handleAddAvoidFabric = async () => {
+    const trimmed = newAvoidFabric.trim();
+    if (!trimmed) return;
+    const all = [...AVOID_MATERIAL_OPTIONS, ...customAvoidFabrics];
+    if (all.some(f => f.toLowerCase() === trimmed.toLowerCase())) {
+      setNewAvoidFabric('');
+      Keyboard.dismiss();
+      return;
+    }
+    const updatedCustom = [...customAvoidFabrics, trimmed];
+    const updatedSelected = [...avoidSelected, trimmed];
+    setCustomAvoidFabrics(updatedCustom);
+    setAvoidSelected(updatedSelected);
+    try {
+      updateProfile('avoid_materials', updatedSelected);
+      setNewAvoidFabric('');
+      Keyboard.dismiss();
+      h('impactLight');
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const handleCareTolerance = (value: string) => {
+    h('impactLight');
+    setCareTolerance(value);
+    try {
+      updateProfile('care_tolerance', value);
     } catch {
       h('notificationError');
     }
@@ -190,6 +283,61 @@ export default function FabricPreferencesScreen({navigate}: Props) {
               onBlur={handleAddFabric}
               returnKeyType="done"
             />
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Materials to always avoid:
+          </Text>
+
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md, paddingBottom: 20},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {[...AVOID_MATERIAL_OPTIONS, ...customAvoidFabrics].map(fabric => (
+                <Chip
+                  key={fabric}
+                  label={fabric}
+                  selected={avoidSelected.includes(fabric)}
+                  onPress={() => toggleAvoidMaterial(fabric)}
+                />
+              ))}
+            </View>
+
+            <TextInput
+              placeholder="Add a custom material to avoid"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={newAvoidFabric}
+              onChangeText={setNewAvoidFabric}
+              onSubmitEditing={handleAddAvoidFabric}
+              onBlur={handleAddAvoidFabric}
+              returnKeyType="done"
+            />
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Care tolerance:
+          </Text>
+
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {CARE_TOLERANCE_OPTIONS.map(opt => (
+                <Chip
+                  key={opt}
+                  label={opt}
+                  selected={careTolerance === opt}
+                  onPress={() => handleCareTolerance(opt)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

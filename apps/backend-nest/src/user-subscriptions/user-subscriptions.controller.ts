@@ -31,10 +31,7 @@ export class UserSubscriptionsController {
   }
 
   @Put(':user_id')
-  update(
-    @Req() req,
-    @Body() dto: UpdateUserSubscriptionDto,
-  ) {
+  update(@Req() req, @Body() dto: UpdateUserSubscriptionDto) {
     const userId = req.user.userId;
     return this.service.update(userId, dto);
   }

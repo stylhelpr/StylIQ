@@ -8,6 +8,7 @@ import {
   Animated,
   PanResponder,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import {WebView} from 'react-native-webview';
 import {
@@ -31,11 +32,17 @@ export default function ReaderModal({
   url,
   title,
   onClose,
+  productSaved,
+  onToggleSave,
+  savingProduct,
 }: {
   visible: boolean;
   url?: string;
   title?: string;
   onClose: () => void;
+  productSaved?: boolean;
+  onToggleSave?: () => void;
+  savingProduct?: boolean;
 }) {
   const translateY = useRef(new Animated.Value(0)).current;
   const backdropRef = useRef<any>(null);
@@ -95,6 +102,16 @@ export default function ReaderModal({
       borderColor: theme.colors.muted,
       padding: 6,
     },
+    heartIcon: {
+      position: 'absolute',
+      top: 80,
+      left: 18,
+      zIndex: 20,
+      backgroundColor: 'white',
+      borderRadius: 50,
+      padding: 8,
+      borderWidth: tokens.borderWidth.hairline,
+    },
     gestureZone: {
       position: 'absolute',
       top: 56,
@@ -120,7 +137,7 @@ export default function ReaderModal({
       fontSize: 17,
       flex: 1,
       textAlign: 'left',
-      paddingRight: 50, // Leave space for close icon
+      paddingRight: 90, // Leave space for heart and close icons
     },
   });
 
@@ -174,7 +191,25 @@ export default function ReaderModal({
               height: '100%',
             },
           ]}>
-          {/* ❌ Floating close button ABOVE gesture zone */}
+          {/* Heart save button (only shown for products) */}
+          {onToggleSave && (
+            <TouchableOpacity
+              style={styles.heartIcon}
+              onPress={onToggleSave}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+              {savingProduct ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <MaterialIcons
+                  name={productSaved ? 'favorite' : 'favorite-border'}
+                  size={22}
+                  color={productSaved ? '#ff4d6d' : '#black'}
+                />
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* Floating close button */}
           <TouchableOpacity
             style={[styles.closeIcon]}
             onPress={handleClose}

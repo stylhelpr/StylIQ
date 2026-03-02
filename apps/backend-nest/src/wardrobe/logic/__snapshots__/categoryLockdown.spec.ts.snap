@@ -1,0 +1,116 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Category Lockdown - Canonical Source Completeness Mapping Snapshots MAIN_CATEGORY_TO_SLOT snapshot 1`] = `
+{
+  "Accessories": "accessories",
+  "Activewear": "activewear",
+  "Bags": "accessories",
+  "Bottoms": "bottoms",
+  "Costumes": "other",
+  "Dresses": "dresses",
+  "Formalwear": "dresses",
+  "Headwear": "accessories",
+  "Jewelry": "accessories",
+  "Loungewear": "other",
+  "Maternity": "other",
+  "Other": "other",
+  "Outerwear": "outerwear",
+  "Shoes": "shoes",
+  "Skirts": "bottoms",
+  "Sleepwear": "other",
+  "Swimwear": "swimwear",
+  "Tops": "tops",
+  "TraditionalWear": "dresses",
+  "Undergarments": "undergarments",
+  "Unisex": "other",
+}
+`;
+
+exports[`Category Lockdown - Canonical Source Completeness Mapping Snapshots PLAN_CATEGORY_TO_SLOT snapshot 1`] = `
+{
+  "Accessories": "accessories",
+  "Activewear": "activewear",
+  "Bottoms": "bottoms",
+  "Dresses": "dresses",
+  "Other": "other",
+  "Outerwear": "outerwear",
+  "Shoes": "shoes",
+  "Swimwear": "swimwear",
+  "Tops": "tops",
+  "Undergarments": "undergarments",
+}
+`;
+
+exports[`Category Lockdown - Canonical Source Completeness Mapping Snapshots SLOT_TO_PINECONE_FILTER snapshot 1`] = `
+{
+  "accessories": {
+    "main_category": {
+      "$in": [
+        "Accessories",
+        "Bags",
+        "Headwear",
+        "Jewelry",
+      ],
+    },
+  },
+  "activewear": {
+    "main_category": {
+      "$eq": "Activewear",
+    },
+  },
+  "bottoms": {
+    "main_category": {
+      "$in": [
+        "Bottoms",
+        "Skirts",
+      ],
+    },
+  },
+  "dresses": {
+    "main_category": {
+      "$in": [
+        "Dresses",
+        "Formalwear",
+        "TraditionalWear",
+      ],
+    },
+  },
+  "other": {
+    "main_category": {
+      "$in": [
+        "Loungewear",
+        "Sleepwear",
+        "Maternity",
+        "Unisex",
+        "Costumes",
+        "Other",
+      ],
+    },
+  },
+  "outerwear": {
+    "main_category": {
+      "$eq": "Outerwear",
+    },
+  },
+  "shoes": {
+    "main_category": {
+      "$eq": "Shoes",
+    },
+  },
+  "swimwear": {
+    "main_category": {
+      "$eq": "Swimwear",
+    },
+  },
+  "tops": {
+    "main_category": {
+      "$eq": "Tops",
+    },
+  },
+  "undergarments": {
+    "main_category": {
+      "$eq": "Undergarments",
+    },
+  },
+}
+`;

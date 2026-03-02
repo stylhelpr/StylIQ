@@ -428,12 +428,14 @@ export default function AllSavedLooksModal({
             marginHorizontal: 1,
             backgroundColor: theme.colors.surface,
             overflow: 'hidden',
+             borderRadius: tokens.borderRadius.sm
           }}>
           <View
             style={{
               width: '100%',
               aspectRatio: 3 / 4,
               backgroundColor: theme.colors.surface,
+              //  backgroundColor: 'white',
             }}>
             {imageUri ? (
               <FastImage
@@ -500,7 +502,7 @@ export default function AllSavedLooksModal({
               color: theme.colors.foreground,
               fontWeight: '400',
               fontSize: 13,
-              textTransform: 'uppercase',
+              // textTransform: 'uppercase',
             }}
             numberOfLines={1}>
             {look.name || 'Unnamed Look'}
@@ -509,7 +511,7 @@ export default function AllSavedLooksModal({
           <View
             style={{
               paddingHorizontal: 10,
-              paddingVertical: 10,
+              paddingVertical: 6,
               borderTopWidth: StyleSheet.hairlineWidth,
               borderTopColor: theme.colors.surfaceBorder,
               backgroundColor: theme.colors.surface,
@@ -537,6 +539,7 @@ export default function AllSavedLooksModal({
                   paddingVertical: 9,
                   opacity: loading ? 0.6 : 1,
                   marginRight: 10,
+                  backgroundColor: 'black'
                 }}>
                 <Text
                   style={{
@@ -656,7 +659,7 @@ export default function AllSavedLooksModal({
                     marginTop: 4,
                   },
                 ]}>
-                SAVED INPSIRED STYLES
+                SAVED INPSIRING STYLES
               </Text>
             </View>
 

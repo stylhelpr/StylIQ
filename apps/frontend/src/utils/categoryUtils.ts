@@ -131,6 +131,22 @@ export function getInferredCategory(name: string): {
   if (lower.includes('dress pant'))
     return {main: 'Formalwear', sub: 'Dress Pants'};
 
+  // --- Dresses (unambiguous compound keywords only) ---
+  if (lower.includes('wrap dress'))
+    return {main: 'Dresses', sub: 'Wrap Dresses'};
+  if (lower.includes('midi dress'))
+    return {main: 'Dresses', sub: 'Midi Dresses'};
+  if (lower.includes('maxi dress'))
+    return {main: 'Dresses', sub: 'Maxi Dresses'};
+  if (lower.includes('mini dress'))
+    return {main: 'Dresses', sub: 'Mini Dresses'};
+  if (lower.includes('shirt dress'))
+    return {main: 'Dresses', sub: 'Shirt Dresses'};
+  if (lower.includes('cocktail dress'))
+    return {main: 'Dresses', sub: 'Cocktail Dresses'};
+  if (lower.includes('sundress'))
+    return {main: 'Dresses', sub: 'Casual Dresses'};
+
   // --- Loungewear / Sleepwear / Swimwear / Maternity / Unisex / Traditional ---
   if (lower.includes('pajama')) return {main: 'Sleepwear', sub: 'Pajamas'};
   if (lower.includes('robe')) return {main: 'Sleepwear', sub: 'Robes'};
@@ -153,7 +169,7 @@ export function getInferredCategory(name: string): {
     return {main: 'Unisex', sub: 'Utility Vests'};
   if (lower.includes('costume')) return {main: 'Costumes', sub: 'Costumes'};
   if (lower.includes('cultural'))
-    return {main: 'Traditional Wear', sub: 'Cultural Attire'};
+    return {main: 'TraditionalWear', sub: 'Cultural Attire'};
 
   return null;
 }

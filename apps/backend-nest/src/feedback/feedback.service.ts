@@ -1,11 +1,22 @@
 // apps/backend-nest/src/feedback/feedback.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { RateFeedbackDto } from './dto/rate-feedback.dto';
 import { pool } from '../db/pool';
+import { LearningEventsService } from '../learning/learning-events.service';
+import { FashionStateService } from '../learning/fashion-state.service';
+import { LEARNING_FLAGS } from '../config/feature-flags';
+import { extractOutfitFeatures } from '../learning/extract-outfit-features';
 
 @Injectable()
 export class FeedbackService {
+  private readonly logger = new Logger(FeedbackService.name);
+
+  constructor(
+    private readonly learningEvents: LearningEventsService,
+    private readonly fashionStateService: FashionStateService,
+  ) {}
+
   async rate(dto: RateFeedbackDto) {
     const { user_id, outfit_id, rating, notes, item_ids = [], outfit } = dto;
     const numeric = rating === 'like' ? 1 : -1;
@@ -55,6 +66,30 @@ export class FeedbackService {
                updated_at = now();`,
         [user_id, id, numeric * 2],
       );
+    }
+
+    // Emit OUTFIT_RATED learning event + inline recompute
+    if (LEARNING_FLAGS.EVENTS_ENABLED) {
+      const isPositive = rating === 'like';
+      try {
+        const features = await extractOutfitFeatures(outfit_id);
+        await this.learningEvents.logEvent({
+          userId: user_id,
+          eventType: isPositive ? 'OUTFIT_RATED_POSITIVE' : 'OUTFIT_RATED_NEGATIVE',
+          entityType: 'outfit',
+          entityId: outfit_id,
+          signalPolarity: isPositive ? 1 : -1,
+          signalWeight: 0.6,
+          extractedFeatures: features,
+          sourceFeature: 'outfits',
+          clientEventId: `outfit_rated:${user_id}:${outfit_id}:${rating}`,
+        });
+        this.fashionStateService
+          .computeAndSaveState(user_id)
+          .catch(err => this.logger.error('[LEARNING INLINE] recompute failed', err));
+      } catch (err) {
+        this.logger.error('[LEARNING] outfit rated event failed', err);
+      }
     }
 
     return { ok: true };

@@ -2,6 +2,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateStyleProfileDto } from './dto/update-style-profile.dto';
 import { pool } from '../db/pool';
+import { ALLOWED_COLUMNS } from './style-profile.constants';
 
 @Injectable()
 export class StyleProfileService {
@@ -35,10 +36,30 @@ export class StyleProfileService {
     return profileRes.rows[0];
   }
 
+  // Columns that affect discover recommendations — changes trigger cache invalidation
+  private static readonly DISCOVER_RELEVANT_COLUMNS = new Set([
+    'preferred_brands', 'color_preferences', 'disliked_styles', 'style_preferences',
+    'fit_preferences', 'avoid_colors', 'avoid_materials', 'avoid_patterns',
+    'budget_min', 'budget_max', 'body_type', 'silhouette_preference', 'formality_floor',
+    'coverage_no_go', 'walkability_requirement',
+  ]);
+
   async updateProfile(userId: string, dto: UpdateStyleProfileDto) {
     const filteredEntries = Object.entries(dto).filter(
-      ([, val]) => val !== null && val !== undefined,
+      ([key, val]) =>
+        val !== null && val !== undefined && ALLOWED_COLUMNS.has(key),
     );
+
+    // One-way color sync: keep favorite_colors in sync with color_preferences
+    const colorPrefEntry = filteredEntries.find(
+      ([k]) => k === 'color_preferences',
+    );
+    if (
+      colorPrefEntry &&
+      !filteredEntries.find(([k]) => k === 'favorite_colors')
+    ) {
+      filteredEntries.push(['favorite_colors', colorPrefEntry[1]]);
+    }
 
     if (filteredEntries.length === 0) {
       console.warn('⚠️ No valid fields to update.');
@@ -47,7 +68,13 @@ export class StyleProfileService {
 
     const keys = filteredEntries.map(([key]) => key);
     const values = filteredEntries.map(([, val]) => val);
-    const setClause = keys.map((key, i) => `${key} = $${i + 2}`).join(', ');
+    const setClause = keys
+      .map((key, i) =>
+        key === 'prefs_jsonb'
+          ? `prefs_jsonb = COALESCE(style_profiles.prefs_jsonb, '{}'::jsonb) || $${i + 2}::jsonb`
+          : `${key} = $${i + 2}`,
+      )
+      .join(', ');
 
     const query = `
       INSERT INTO style_profiles (user_id, ${keys.join(', ')})
@@ -58,6 +85,20 @@ export class StyleProfileService {
     `;
 
     const result = await pool.query(query, [userId, ...values]);
+
+    // Invalidate discover cache if any recommendation-relevant column changed
+    const touchesDiscover = keys.some(k =>
+      StyleProfileService.DISCOVER_RELEVANT_COLUMNS.has(k),
+    );
+    if (touchesDiscover) {
+      await pool
+        .query(
+          'UPDATE users SET last_discover_refresh = NULL WHERE id = $1',
+          [userId],
+        )
+        .catch(() => {}); // non-critical
+    }
+
     return result.rows[0];
   }
 

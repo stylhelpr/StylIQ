@@ -201,21 +201,20 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
                 isActive={current === 'Home'}
               />
                  <TabButton
+                icon="auto-awesome"
+                label="OUTFITS"
+                onPress={() => current !== 'Outfits' && navigate('Outfits')}
+                isActive={current === 'Outfits'}
+              />
+                 <TabButton
                 icon="style"
                 label="WARDROBE"
                 onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
                 isActive={current === 'Wardrobe'}
               />
-              <TabButton
-                icon="auto-awesome"
-                label="AI OUTFIT"
-                onPress={() => current !== 'Outfit' && navigate('Outfit')}
-                isActive={current === 'Outfit'}
-              />
-              
                  <TabButton
                 icon="checkroom"
-                label="OUTFITS"
+                label="SAVED"
                 onPress={() =>
                   current !== 'SavedOutfits' && navigate('SavedOutfits')
                 }
@@ -223,14 +222,20 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               />
               <TabButton
                 icon="group"
-                label="COMMUNITY"
+                label="STYLE FEED"
                 onPress={() =>
                   current !== 'CommunityShowcaseScreen' &&
                   navigate('CommunityShowcaseScreen')
                 }
                 isActive={current === 'CommunityShowcaseScreen'}
               />
-           
+              {/* <TabButton
+                icon="card-travel"
+                label="TRIPS"
+                onPress={() => current !== 'Trips' && navigate('Trips')}
+                isActive={current === 'Trips'}
+              /> */}
+
             </LiquidGlassView>
           </Animated.View>
         ) : (
@@ -254,14 +259,14 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               />
           <TabButton
                 icon="auto-awesome"
-                label="AI OUTFIT"
-                onPress={() => current !== 'Outfit' && navigate('Outfit')}
-                isActive={current === 'Outfit'}
+                label="OUTFITS"
+                onPress={() => current !== 'Outfits' && navigate('Outfits')}
+                isActive={current === 'Outfits'}
               />
-           
+
                 <TabButton
                 icon="checkroom"
-                label="OUTFITS"
+                label="SAVED"
                 onPress={() =>
                   current !== 'SavedOutfits' && navigate('SavedOutfits')
                 }
@@ -269,13 +274,19 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               />
               <TabButton
                 icon="group"
-                label="COMMUNITY"
+                label="STYLE FEED"
                 onPress={() =>
                   current !== 'CommunityShowcaseScreen' &&
                   navigate('CommunityShowcaseScreen')
                 }
                 isActive={current === 'CommunityShowcaseScreen'}
               />
+              {/* <TabButton
+                icon="card-travel"
+                label="TRIPS"
+                onPress={() => current !== 'Trips' && navigate('Trips')}
+                isActive={current === 'Trips'}
+              /> */}
           </View>
         )}
       </SafeAreaView>

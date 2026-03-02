@@ -1,5 +1,24 @@
-import { IsString, IsOptional, IsNumber, IsArray, IsObject, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsArray,
+  IsObject,
+  IsBoolean,
+  IsIn,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
+import {
+  FORMALITY_FLOOR_VALUES,
+  WALKABILITY_REQUIREMENT_VALUES,
+  SILHOUETTE_PREFERENCE_VALUES,
+  CARE_TOLERANCE_VALUES,
+  METAL_PREFERENCE_VALUES,
+  CONTRAST_PREFERENCE_VALUES,
+  FOOTWEAR_COMFORT_VALUES,
+  FOOT_WIDTH_VALUES,
+  TREND_APPETITE_VALUES,
+} from '../style-profile.constants';
 
 export class UpdateStyleProfileDto {
   // Appearance
@@ -170,6 +189,7 @@ export class UpdateStyleProfileDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(TREND_APPETITE_VALUES)
   trend_appetite?: string;
 
   // Goals & Notes
@@ -196,4 +216,73 @@ export class UpdateStyleProfileDto {
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   is_style_profile_complete?: boolean;
+
+  // ── P0: Hard constraints ──
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  coverage_no_go?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  avoid_colors?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  avoid_materials?: string[];
+
+  @IsOptional()
+  @IsString()
+  @IsIn(FORMALITY_FLOOR_VALUES)
+  formality_floor?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(WALKABILITY_REQUIREMENT_VALUES)
+  walkability_requirement?: string;
+
+  // ── P1: Preference granularity ──
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  pattern_preferences?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  avoid_patterns?: string[];
+
+  @IsOptional()
+  @IsString()
+  @IsIn(SILHOUETTE_PREFERENCE_VALUES)
+  silhouette_preference?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(CARE_TOLERANCE_VALUES)
+  care_tolerance?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(METAL_PREFERENCE_VALUES)
+  metal_preference?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(CONTRAST_PREFERENCE_VALUES)
+  contrast_preference?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(FOOTWEAR_COMFORT_VALUES)
+  footwear_comfort?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(FOOT_WIDTH_VALUES)
+  foot_width?: string;
 }

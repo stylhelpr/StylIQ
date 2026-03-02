@@ -28,7 +28,17 @@ export class StyleProfilesService {
   }
 
   async updateMeasurements(userId: string, dto: UpdateStyleProfileDto) {
-    const { chest, waist, hip, shoulder_width, inseam, height, weight, shoe_size, all_measurements } = dto;
+    const {
+      chest,
+      waist,
+      hip,
+      shoulder_width,
+      inseam,
+      height,
+      weight,
+      shoe_size,
+      all_measurements,
+    } = dto;
 
     const result = await pool.query(
       `
@@ -47,7 +57,18 @@ export class StyleProfilesService {
       WHERE user_id = $10
       RETURNING *;
       `,
-      [chest, waist, hip, shoulder_width, inseam, height, weight, shoe_size, all_measurements ? JSON.stringify(all_measurements) : null, userId],
+      [
+        chest,
+        waist,
+        hip,
+        shoulder_width,
+        inseam,
+        height,
+        weight,
+        shoe_size,
+        all_measurements ? JSON.stringify(all_measurements) : null,
+        userId,
+      ],
     );
 
     return result.rows[0];

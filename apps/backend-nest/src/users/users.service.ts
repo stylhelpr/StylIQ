@@ -47,7 +47,10 @@ export class UsersService {
       return res.rows[0];
     } catch (error) {
       // Log error type only, not user data
-      console.error('🔥 ERROR CREATING USER:', error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        '🔥 ERROR CREATING USER:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       throw error;
     }
   }
@@ -69,13 +72,18 @@ export class UsersService {
 
     let user = existing.rows[0];
 
-    console.log('[UsersService.sync] EXISTING USER:', user ? {
-      id: user.id,
-      auth0_sub: user.auth0_sub,
-      email: user.email,
-      first_name: user.first_name,
-      last_name: user.last_name,
-    } : 'NOT FOUND - WILL CREATE NEW USER');
+    console.log(
+      '[UsersService.sync] EXISTING USER:',
+      user
+        ? {
+            id: user.id,
+            auth0_sub: user.auth0_sub,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+          }
+        : 'NOT FOUND - WILL CREATE NEW USER',
+    );
 
     if (user) {
       // EXISTING USER: Only update email (for account recovery purposes)

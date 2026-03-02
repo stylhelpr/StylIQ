@@ -17,10 +17,12 @@ import { CreateWardrobeItemDto } from './dto/create-wardrobe-item.dto';
 import { UpdateWardrobeItemDto } from './dto/update-wardrobe-item.dto';
 import { DeleteItemDto } from './dto/delete-item.dto';
 import { VertexService } from '../vertex/vertex.service';
+import { randomUUID } from 'crypto';
 import {
   AnalyzeImageRequestDto,
   AnalyzeImageResponseDto,
 } from './dto/analyze-image.dto';
+import { GenerateOutfitsDto } from './dto/generate-outfits.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SkipThrottle } from '@nestjs/throttler';
 import { Storage } from '@google-cloud/storage';
@@ -70,6 +72,23 @@ function normalizeUserStyle(
 
   // Pass through dressBias if provided (already correct union on the type)
   if (input.dressBias) out.dressBias = input.dressBias;
+
+  // Forward approved style-profile signals for Studio LLM prompt
+  const styleKeywords = asArr(input.styleKeywords ?? input.style_keywords);
+  const fitPreferences = asArr(input.fitPreferences ?? input.fit_preferences);
+  const fabricPreferences = asArr(
+    input.fabricPreferences ?? input.fabric_preferences,
+  );
+  const stylePreferences = asArr(
+    input.stylePreferences ?? input.style_preferences,
+  );
+  const occasions = asArr(input.occasions);
+  if (styleKeywords?.length) out.styleKeywords = styleKeywords;
+  if (fitPreferences?.length) out.fitPreferences = fitPreferences;
+  if (fabricPreferences?.length) out.fabricPreferences = fabricPreferences;
+  if (stylePreferences?.length) out.stylePreferences = stylePreferences;
+  if (occasions?.length) out.occasions = occasions;
+  if (input.climate) out.climate = String(input.climate).trim();
 
   return Object.keys(out).length ? out : undefined;
 }
@@ -134,70 +153,133 @@ export class WardrobeController {
   }
 
   @Post('search-hybrid')
-  searchHybrid(@Req() req, @Body() b: { q?: string; gcs_uri?: string; topK?: number }) {
+  searchHybrid(
+    @Req() req,
+    @Body() b: { q?: string; gcs_uri?: string; topK?: number },
+  ) {
     return this.service.searchHybrid(req.user.userId, b.q, b.gcs_uri, b.topK);
   }
 
   @Post('outfits')
-  generateOutfits(
-    @Req() req,
-    @Body()
-    body: {
-      query: string;
-      topK?: number;
-      style_profile?: any;
-      weather?: import('./logic/weather').WeatherContext;
-      useWeather?: boolean;
-      useFeedback?: boolean;
-      weights?: import('./logic/scoring').ContextWeights;
-      styleAgent?: 'agent1' | 'agent2' | 'agent3';
-      session_id?: string;
-      refinementPrompt?: string;
-      lockedItemIds?: string[];
-      useFastMode?: boolean; // NEW: Use fast architecture (Flash + backend retrieval)
-    },
-  ) {
+  async generateOutfits(@Req() req, @Body() body: GenerateOutfitsDto) {
     const userId = req.user.userId;
     const weatherArg = body.useWeather === false ? undefined : body.weather;
     const userStyle = normalizeUserStyle(body.style_profile);
 
-    console.log('🚀 [OUTFITS] useFastMode:', body.useFastMode);
-    console.log('🚀 [OUTFITS] refinementPrompt:', body.refinementPrompt);
-    console.log('🚀 [OUTFITS] original query:', body.query);
+    // console.log('🚀 [OUTFITS] useFastMode:', body.useFastMode);
+    // console.log('🚀 [OUTFITS] refinementPrompt:', body.refinementPrompt);
+    // console.log('🚀 [OUTFITS] original query:', body.query);
 
-    // Use fast mode if explicitly requested
-    if (body.useFastMode) {
+    const requestId = randomUUID();
+
+    if (process.env.DEBUG_STUDIO === 'true') {
+      const mode = body.useFastMode && !body.aaaaMode ? 'FAST' : 'SLOW';
+      console.log(
+        `🎯 [Studio] mode=${mode} reqId=${requestId} handler=generateOutfits`,
+      );
+    }
+
+    // ── SWAP FAST PATH: detect "Replace ONLY the {slot}" swap requests ──
+    // Routes to deterministic recomposition (~100ms) instead of full LLM (~50s)
+    const swapMatch = body.refinementPrompt?.match(
+      /^Replace ONLY the (top|bottom|shoes|outerwear|accessories)\b/i,
+    );
+    const locked = body.lockedItemIds ?? [];
+
+    // ── LEARNING ACCEPT: pure logging, no generation ──
+    if ((body as any).learning_accept === true && locked.length >= 2) {
+      return this.service.mutateOutfit(userId, {
+        currentItemIds: locked,
+        refinementPrompt: '',
+        weather: weatherArg,
+        requestId,
+        learning_accept: true,
+      } as any);
+    }
+
+    if (
+      swapMatch &&
+      locked.length >= 2 &&
+      body.useFastMode &&
+      !body.aaaaMode
+    ) {
+      const swapSlot = swapMatch[1].toLowerCase();
+      const newItemId = locked[locked.length - 1];
+      const keptItemIds = locked.slice(0, -1);
+
+      console.log(`⚡ [SWAP] Detected swap request: slot=${swapSlot} newItem=${newItemId} kept=${keptItemIds.length}`);
+
+      const swapResult = await this.service.recomposeOutfitSlot(userId, {
+        outfitItems: keptItemIds.map((id) => ({ id })),
+        swapSlot,
+        newItemId,
+        weather: weatherArg,
+        requestId,
+      });
+
+      // If recompose succeeds, return it; otherwise fall through to full generation
+      if (swapResult) return swapResult;
+      console.log('⚡ [SWAP] recomposeOutfitSlot returned null, falling through to full generation');
+    }
+
+    // ── REFINE FAST PATH: detect natural language slot refinements ──
+    // "Keep the shirt and slacks but give me brown shoes instead"
+    // Routes to deterministic mutation (~200ms) instead of full LLM (~50s)
+    const isRefineCandidate = !swapMatch && !!body.refinementPrompt && locked.length >= 2 && !!body.useFastMode && !body.aaaaMode;
+    // console.log(`REFINE_ROUTE_CHECK { reason: "swapMatch=${!!swapMatch} refinementPrompt=${!!body.refinementPrompt} locked=${locked.length} fastMode=${!!body.useFastMode} aaaaMode=${!!body.aaaaMode} => ${isRefineCandidate}" }`);
+
+    if (isRefineCandidate) {
+      console.log(`REFINE_ROUTE_ENTERED { reason: "prompt=${body.refinementPrompt} lockedCount=${locked.length}" }`);
+
+      const mutateResult = await this.service.mutateOutfit(userId, {
+        currentItemIds: locked,
+        refinementPrompt: body.refinementPrompt!, // guarded by isRefineCandidate check
+        weather: weatherArg,
+        requestId,
+      });
+
+      if (mutateResult) return mutateResult;
+      // mutateOutfit already logged MUTATE_OUTFIT_NULL with reason
+    }
+
+    // aaaaMode forces standard mode (overrides useFastMode)
+    // Use fast mode if explicitly requested (and not aaaaMode)
+    if (body.useFastMode && !body.aaaaMode) {
+      if (body.refinementPrompt) {
+        // console.log(`FALLBACK_TO_GENERATE_OUTFITS_FAST { reason: "refine attempted but mutateOutfit returned null or refine gate failed, falling through to LLM generation" }`);
+      }
+
       // If there's a refinement prompt, append it to the query
       const queryWithRefinement = body.refinementPrompt
         ? `${body.query}. IMPORTANT REFINEMENT: User specifically requested: "${body.refinementPrompt}". You MUST incorporate this into ALL outfits.`
         : body.query;
 
-      console.log('🚀 [OUTFITS] queryWithRefinement:', queryWithRefinement);
+      // console.log('🚀 [OUTFITS] queryWithRefinement:', queryWithRefinement);
 
       return this.service.generateOutfitsFast(userId, queryWithRefinement, {
         userStyle,
         weather: weatherArg,
         styleAgent: body.styleAgent,
         lockedItemIds: body.lockedItemIds ?? [],
+        requestId,
       });
     }
 
-    return this.service.generateOutfits(
-      userId,
-      body.query,
-      body.topK || 5,
-      {
-        userStyle,
-        weather: weatherArg,
-        weights: body.weights,
-        useWeather: body.useWeather ?? true,
-        useFeedback: body.useFeedback,
-        styleAgent: body.styleAgent,
-        sessionId: body.session_id || (body as any).sessionId,
-        refinementPrompt: body.refinementPrompt,
-        lockedItemIds: body.lockedItemIds ?? [],
-      },
-    );
+    return this.service.generateOutfits(userId, body.query, body.topK || 5, {
+      userStyle,
+      weather: weatherArg,
+      weights: body.weights as
+        | import('./logic/scoring').ContextWeights
+        | undefined,
+      useWeather: body.useWeather ?? true,
+      useFeedback: body.useFeedback,
+      styleAgent: body.styleAgent,
+      sessionId: body.session_id || (body as any).sessionId,
+      refinementPrompt: body.refinementPrompt,
+      lockedItemIds: body.lockedItemIds ?? [],
+      requestId,
+      aaaaMode: body.aaaaMode,
+    });
   }
 
   /**
@@ -226,6 +308,7 @@ export class WardrobeController {
       weather: body.weather,
       styleAgent: body.styleAgent,
       lockedItemIds: body.lockedItemIds ?? [],
+      requestId: randomUUID(),
     });
   }
 
@@ -252,50 +335,65 @@ export class WardrobeController {
       name?: string;
     },
   ) {
-    const draft = dto.gsutil_uri
-      ? await this.vertex.analyzeImage(dto.gsutil_uri)
-      : {};
+    // Run AI analysis and garment segmentation in parallel (independent I/O)
+    const [draft, bgResult] = await Promise.all([
+      dto.gsutil_uri
+        ? this.vertex.analyzeImage(dto.gsutil_uri)
+        : Promise.resolve({}),
+      dto.object_key
+        ? (async () => {
+            console.log('[GarmentSegmentation] start', {
+              user_id: req.user.userId,
+              object_key: dto.object_key,
+            });
+            try {
+              const credentials = getSecretJson<GCPServiceAccount>(
+                'GCP_SERVICE_ACCOUNT_JSON',
+              );
+              const storage = new Storage({
+                projectId: credentials.project_id,
+                credentials,
+              });
+              const bucketName = secretExists('GCS_BUCKET_NAME')
+                ? getSecret('GCS_BUCKET_NAME')
+                : 'stylhelpr-prod-bucket';
+
+              const bucket = storage.bucket(bucketName);
+              const file = bucket.file(dto.object_key!);
+              const [imageBuffer] = await file.download();
+
+              const result = await this.vertex.removeBackground(
+                imageBuffer,
+                req.user.userId,
+                dto.object_key!,
+              );
+
+              if (result) {
+                console.log('[GarmentSegmentation] success', {
+                  processed_object_key: result.processedGcsUri,
+                });
+              } else {
+                console.log(
+                  '[GarmentSegmentation] skipped (no result returned)',
+                );
+              }
+              return result;
+            } catch (err) {
+              console.error('[GarmentSegmentation] failed', err);
+              return null; // Non-blocking: continue without processed image
+            }
+          })()
+        : Promise.resolve(null),
+    ]);
+
     const payload: CreateWardrobeItemDto = this.service.composeFromAiDraft(
       { ...dto, user_id: req.user.userId } as any,
       draft,
     );
 
-    // --- Garment Segmentation (non-blocking) ---
-    if (dto.object_key) {
-      console.log('[GarmentSegmentation] start', { user_id: req.user.userId, object_key: dto.object_key });
-      try {
-        const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
-        const storage = new Storage({
-          projectId: credentials.project_id,
-          credentials,
-        });
-        const bucketName = secretExists('GCS_BUCKET_NAME')
-          ? getSecret('GCS_BUCKET_NAME')
-          : 'stylhelpr-prod-bucket';
-
-        const bucket = storage.bucket(bucketName);
-        const file = bucket.file(dto.object_key);
-        const [imageBuffer] = await file.download();
-
-        const result = await this.vertex.removeBackground(
-          imageBuffer,
-          req.user.userId,
-          dto.object_key,
-        );
-
-        if (result) {
-          payload.processed_image_url = result.processedPublicUrl;
-          payload.processed_gsutil_uri = result.processedGcsUri;
-          console.log('[GarmentSegmentation] success', {
-            processed_object_key: result.processedGcsUri,
-          });
-        } else {
-          console.log('[GarmentSegmentation] skipped (no result returned)');
-        }
-      } catch (err) {
-        console.error('[GarmentSegmentation] failed', err);
-        // Non-blocking: continue without processed image
-      }
+    if (bgResult) {
+      payload.processed_image_url = bgResult.processedPublicUrl;
+      payload.processed_gsutil_uri = bgResult.processedGcsUri;
     }
 
     return this.service.createItem(payload);
@@ -307,7 +405,11 @@ export class WardrobeController {
     @Param('item_id') itemId: string,
     @Body() body: { favorite: boolean },
   ) {
-    const result = await this.service.updateFavorite(itemId, req.user.userId, body.favorite);
+    const result = await this.service.updateFavorite(
+      itemId,
+      req.user.userId,
+      body.favorite,
+    );
     if (!result) {
       throw new NotFoundException('Wardrobe item not found');
     }
@@ -329,11 +431,12 @@ export class WardrobeController {
     const userId = req.user.userId;
     const result = await this.service.removeBackgroundItem(itemId, userId);
     if (!result) {
-      throw new NotFoundException('Wardrobe item not found or background removal failed');
+      throw new NotFoundException(
+        'Wardrobe item not found or background removal failed',
+      );
     }
     return result;
   }
-
 }
 
 /////////////////////

@@ -44,6 +44,8 @@ import { SavedNotesModule } from './saved-notes/saved-notes.module';
 import { BrowserSyncModule } from './browser-sync/browser-sync.module';
 import { ShoppingModule } from './shopping/shopping.module';
 import { LearningModule } from './learning/learning.module';
+import { WeatherModule } from './weather/weather.module';
+import { TripsModule } from './trips/trips.module';
 
 // ⬇️ Register the notifier so main.ts can app.get(ScheduledOutfitNotifier)
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
@@ -52,7 +54,7 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: 'apps/backend-nest/.env',
     }),
     ThrottlerModule.forRoot([
       {
@@ -112,6 +114,8 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     BrowserSyncModule,
     ShoppingModule,
     LearningModule,
+    WeatherModule,
+    TripsModule,
   ],
   controllers: [AppController],
   providers: [

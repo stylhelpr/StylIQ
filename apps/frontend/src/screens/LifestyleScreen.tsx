@@ -25,6 +25,15 @@ const categories: Record<string, string[]> = {
   daily_activities: ['Work', 'Gym', 'Outdoor', 'Travel', 'Relaxing', 'Events'],
 };
 
+const COVERAGE_OPTIONS = [
+  'No midriff exposure',
+  'Shoulders covered',
+  'Knees covered',
+  'No deep neckline',
+  'Full arm coverage',
+  'No sheer fabrics',
+];
+
 export default function LifestyleScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
@@ -54,6 +63,11 @@ export default function LifestyleScreen({navigate}: Props) {
   const [selected, setSelected] = useState<{[key: string]: string[]}>({});
   const [dislikes, setDislikes] = useState('');
 
+  // coverage_no_go state
+  const [coverageSelected, setCoverageSelected] = useState<string[]>([]);
+  const [customCoverage, setCustomCoverage] = useState<string[]>([]);
+  const [newCoverage, setNewCoverage] = useState('');
+
   useEffect(() => {
     refetch();
   }, [refetch]);
@@ -70,6 +84,16 @@ export default function LifestyleScreen({navigate}: Props) {
 
     setSelected(initial);
     setDislikes(styleProfile.disliked_styles || '');
+
+    // coverage_no_go hydration
+    if (Array.isArray(styleProfile.coverage_no_go)) {
+      setCoverageSelected(styleProfile.coverage_no_go);
+      const customOnly = styleProfile.coverage_no_go.filter(
+        (c: string) =>
+          !COVERAGE_OPTIONS.map(x => x.toLowerCase()).includes(c.toLowerCase()),
+      );
+      setCustomCoverage(prev => Array.from(new Set([...prev, ...customOnly])));
+    }
   }, [styleProfile]);
 
   const toggleSelect = (category: string, value: string) => {
@@ -100,6 +124,40 @@ export default function LifestyleScreen({navigate}: Props) {
   const commitDislikes = () => {
     try {
       updateProfile('disliked_styles', dislikes);
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const toggleCoverage = (value: string) => {
+    h('impactLight');
+    const updated = coverageSelected.includes(value)
+      ? coverageSelected.filter(v => v !== value)
+      : [...coverageSelected, value];
+    setCoverageSelected(updated);
+    try {
+      updateProfile('coverage_no_go', updated);
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const handleAddCoverage = () => {
+    const trimmed = newCoverage.trim();
+    if (!trimmed) return;
+    const all = [...COVERAGE_OPTIONS, ...customCoverage];
+    if (all.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+      setNewCoverage('');
+      return;
+    }
+    const updatedCustom = [...customCoverage, trimmed];
+    const updatedSelected = [...coverageSelected, trimmed];
+    setCustomCoverage(updatedCustom);
+    setCoverageSelected(updatedSelected);
+    try {
+      updateProfile('coverage_no_go', updatedSelected);
+      setNewCoverage('');
+      h('impactLight');
     } catch {
       h('notificationError');
     }
@@ -193,6 +251,46 @@ export default function LifestyleScreen({navigate}: Props) {
                 },
               ]}
               multiline
+            />
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Coverage hard limits (the AI will never violate these):
+          </Text>
+
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md, paddingBottom: 20},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {[...COVERAGE_OPTIONS, ...customCoverage].map(opt => (
+                <Chip
+                  key={opt}
+                  label={opt}
+                  selected={coverageSelected.includes(opt)}
+                  onPress={() => toggleCoverage(opt)}
+                />
+              ))}
+            </View>
+
+            <TextInput
+              placeholder="Add a custom coverage rule"
+              placeholderTextColor={colors.muted}
+              style={[
+                styles.input,
+                {
+                  borderColor: theme.colors.inputBorder,
+                  color: theme.colors.foreground,
+                  borderWidth: tokens.borderWidth.hairline,
+                },
+              ]}
+              value={newCoverage}
+              onChangeText={setNewCoverage}
+              onSubmitEditing={handleAddCoverage}
+              onBlur={handleAddCoverage}
+              returnKeyType="done"
             />
           </View>
         </View>

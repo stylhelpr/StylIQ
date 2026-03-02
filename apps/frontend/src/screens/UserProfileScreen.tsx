@@ -24,10 +24,12 @@ import {
   useFollowers,
   useFollowing,
   useFollowUser,
+  useTrackProfileVisit,
 } from '../hooks/useCommunityApi';
 import {useUUID} from '../context/UUIDContext';
 import type {FollowUser} from '../types/community';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import SharedLookDetailModal from '../components/SavedLookModal/SharedLookDetailModal';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -93,6 +95,8 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
 
   const [sharedLooks, setSharedLooks] = useState<SharedLook[]>([]);
   const [favoriteBrands, setFavoriteBrands] = useState<string[]>([]);
+  const [isSharedLookModalVisible, setIsSharedLookModalVisible] = useState(false);
+  const [selectedSharedLook, setSelectedSharedLook] = useState<any>(null);
   const [followListModal, setFollowListModal] = useState<
     'followers' | 'following' | null
   >(null);
@@ -138,6 +142,15 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
     currentUserId || '',
   );
   const followMutation = useFollowUser();
+  const trackVisit = useTrackProfileVisit();
+
+  // Track profile visit (only for other users, on mount or userId change)
+  useEffect(() => {
+    if (userId && currentUserId && userId !== currentUserId) {
+      trackVisit.mutate({visitedId: userId});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, currentUserId]);
 
   // Fetch style profile by userId (for style tags)
   const {data: styleProfile} = useQuery({
@@ -670,7 +683,7 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
               animation="fadeInUpBig"
               delay={1900}
               style={globalStyles.sectionScroll}>
-              <Text style={[globalStyles.sectionTitle]}>Shared Looks</Text>
+              <Text style={[globalStyles.sectionTitle]}>Your Shared Styles</Text>
               {sharedLooks.length === 0 ? (
                 <Text style={globalStyles.missingDataMessage1}>
                   No shared looks yet.
@@ -687,7 +700,12 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                       delay={1700 + index * 120}
                       useNativeDriver
                       style={[globalStyles.outfitCard, {width: 131}]}>
-                      <Pressable style={{alignItems: 'center'}}>
+                      <Pressable
+                        onPress={() => {
+                          setSelectedSharedLook(look);
+                          setIsSharedLookModalVisible(true);
+                        }}
+                        style={{alignItems: 'center'}}>
                         {/* Card - single image or 2x2 grid */}
                         <View
                           style={{
@@ -700,50 +718,10 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                           {look.image_url ? (
                             <Image
                               source={{uri: look.image_url}}
-                              style={{width: 130, height: 130}}
+                              style={{width: 130, height: 130, backgroundColor: '#F5F5F5'}}
                               resizeMode="cover"
                             />
-                          ) : (
-                            <>
-                              <View style={{flexDirection: 'row', height: 65}}>
-                                <Image
-                                  source={{uri: look.top_image}}
-                                  style={{width: 65, height: 65}}
-                                  resizeMode="cover"
-                                />
-                                <Image
-                                  source={{uri: look.bottom_image}}
-                                  style={{width: 65, height: 65}}
-                                  resizeMode="cover"
-                                />
-                              </View>
-                              <View style={{flexDirection: 'row', height: 65}}>
-                                <Image
-                                  source={{uri: look.shoes_image}}
-                                  style={{width: 65, height: 65}}
-                                  resizeMode="cover"
-                                />
-                                <View
-                                  style={{
-                                    width: 65,
-                                    height: 65,
-                                    backgroundColor: '#000',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                  }}>
-                                  <Text
-                                    style={{
-                                      color: '#fff',
-                                      fontSize: 8,
-                                      fontWeight: '800',
-                                      letterSpacing: 1,
-                                    }}>
-                                    StylHelpr
-                                  </Text>
-                                </View>
-                              </View>
-                            </>
-                          )}
+                          ) : null}
                         </View>
                         {/* Look description */}
                         <Animatable.View
@@ -953,6 +931,14 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
           )}
         </View>
       </Modal>
+      <SharedLookDetailModal
+        visible={isSharedLookModalVisible}
+        look={selectedSharedLook}
+        onClose={() => {
+          setIsSharedLookModalVisible(false);
+          setSelectedSharedLook(null);
+        }}
+      />
     </View>
   );
 }

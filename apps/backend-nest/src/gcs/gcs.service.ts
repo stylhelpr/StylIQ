@@ -3,11 +3,7 @@ import { Storage } from '@google-cloud/storage';
 import * as path from 'path';
 
 // Allowed image MIME types for upload (security whitelist)
-const ALLOWED_IMAGE_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-]);
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 // Maximum upload size: 5MB (enforced via signed URL)
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;

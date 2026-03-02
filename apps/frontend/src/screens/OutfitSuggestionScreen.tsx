@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo, useRef, useCallback} from 'react';
+import React, {useState, useEffect, useMemo, useRef, useCallback,} from 'react';
 import {
   View,
   Text,
@@ -158,6 +158,78 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     feedback: null as 'like' | 'dislike' | null,
     tags: [] as string[],
     reason: '',
+  });
+
+   // Styles
+  const styles = StyleSheet.create({
+    screen: {flex: 1, backgroundColor: theme.colors.background},
+    title: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.colors.foreground,
+      marginBottom: 12,
+      letterSpacing: -0.4,
+    },
+       backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: theme.colors.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 12,
+    },
+    scrollContent: {marginTop: 32, paddingBottom: 40, alignItems: 'center'},
+    chipsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+      width: '100%',
+    },
+    cardOverlay: {
+      width: '100%',
+      height: 330,
+      borderRadius: tokens.borderRadius.md,
+      overflow: 'hidden',
+      marginBottom: 16,
+      backgroundColor: '#1c1c1e',
+      elevation: 3,
+    },
+    cardImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'contain',
+      padding: 30
+    },
+    overlay: {
+      position: 'absolute',
+      bottom: 0,
+      width: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.29)',
+      paddingVertical: 10,
+    },
+    categoryPill: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      backgroundColor: theme.colors.surface3,
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+    },
+    itemName: {fontSize: 18, fontWeight: '600', color: theme.colors.foreground},
+    whyText: {
+      fontSize: 18,
+      color: theme.colors.button1,
+      marginTop: 6,
+      fontWeight: '500',
+    },
   });
 
   // ──────────────────────────────────────────────────────────────
@@ -563,24 +635,24 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
   // "Create Outfit" - Initial generation with NEW session (uses legacy builtQuery)
   const handleV2Generate = () => {
-    console.log('[handleV2Generate] Called! userId:', userId);
+    // console.log('[handleV2Generate] Called! userId:', userId);
     if (!userId) {
-      console.log('[handleV2Generate] No userId, returning early');
+      // console.log('[handleV2Generate] No userId, returning early');
       return;
     }
 
     // Debug: Log locked item info
     if (lockedItem) {
-      console.log('[handleV2Generate] Locked item:', {
-        id: lockedItem.id,
-        name: lockedItem.name,
-        category: (lockedItem as any).mainCategory || (lockedItem as any).main_category,
-        fullItem: lockedItem,
-      });
+      // console.log('[handleV2Generate] Locked item:', {
+      //   id: lockedItem.id,
+      //   name: lockedItem.name,
+      //   category: (lockedItem as any).mainCategory || (lockedItem as any).main_category,
+      //   fullItem: lockedItem,
+      // });
     }
 
-    // Clear any existing outfit first to allow fresh generation
-    clear();
+    // Don't clear() here — regenerate() replaces outfits on success.
+    // Clearing before an async call blanks the screen if the request fails.
     // Reset refinement state for new outfit generation
     setHasRefined(false);
     setSelectedAdjustmentLabel(null);
@@ -623,11 +695,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       : [selectedMoodPrompt, outfitPrompt].filter(Boolean);
 
     const lockedIds = lockedItem ? [lockedItem.id] : undefined;
-    console.log('[handleV2Generate] Calling regenerate with:', {
-      query: queryToUse,
-      lockedItemIds: lockedIds,
-      refinementPrompt: promptParts.join(' ') || undefined,
-    });
+    // console.log('[handleV2Generate] Calling regenerate with:', {
+    //   query: queryToUse,
+    //   lockedItemIds: lockedIds,
+    //   refinementPrompt: promptParts.join(' ') || undefined,
+    // });
 
     regenerate(queryToUse, {
       topK: 25,
@@ -687,6 +759,15 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       };
       const swapCategory = swapCategoryMap[swapSection] || swapSection;
 
+      // Get IDs of items being replaced (same slot as swap target)
+      const replacedItemIds = rawItems
+        .filter((it: any) => {
+          const cat = (it?.mainCategory || it?.main_category || '').toLowerCase();
+          return cat === swapCategory;
+        })
+        .map((it: any) => it?.id)
+        .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+
       // Get IDs of items we want to KEEP (everything except the swapped section)
       const itemsToKeep = rawItems
         .filter((it: any) => {
@@ -696,8 +777,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         .map((it: any) => it?.id)
         .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
 
-      // Lock the items we're keeping PLUS the new item
-      const allLockedIds = [...itemsToKeep, item.id];
+      // Lock replaced items (for learning capture), kept items, PLUS the new item
+      const allLockedIds = [...replacedItemIds, ...itemsToKeep, item.id];
 
       // Build swap prompt
       const swapPrompt = `Replace ONLY the ${swapSection} with this specific ${itemCategory}. Keep all other items exactly the same.`;
@@ -789,6 +870,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const shoes = apiItemToUI(shoesApi);
   const outerwear = apiItemToUI(outerwearApi);
   const accessories = apiItemToUI(accessoriesApi);
+
+    // Handle back button
+    const handleBack = useCallback(() => {
+        navigate('Outfits');
+    }, [navigate]);
 
   const hasOutfit = useMemo(() => {
     const o: any = current;
@@ -885,69 +971,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     .map((it: any) => it?.id)
     .filter(Boolean);
 
-  // Styles
-  const styles = StyleSheet.create({
-    screen: {flex: 1, backgroundColor: theme.colors.background},
-    title: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: theme.colors.foreground,
-      marginBottom: 12,
-      letterSpacing: -0.4,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
-    },
-    scrollContent: {marginTop: 32, paddingBottom: 40, alignItems: 'center'},
-    chipsRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 12,
-      width: '100%',
-    },
-    cardOverlay: {
-      width: '100%',
-      height: 318,
-      borderRadius: tokens.borderRadius.md,
-      overflow: 'hidden',
-      marginBottom: 16,
-      backgroundColor: '#1c1c1e',
-      elevation: 3,
-    },
-    cardImage: {
-      width: '100%',
-      height: '100%',
-      resizeMode: 'contain',
-    },
-    overlay: {
-      position: 'absolute',
-      bottom: 0,
-      width: '100%',
-      backgroundColor: 'rgba(0, 0, 0, 0.29)',
-      paddingVertical: 10,
-    },
-    categoryPill: {
-      position: 'absolute',
-      top: 10,
-      left: 10,
-      backgroundColor: theme.colors.surface3,
-      paddingVertical: 4,
-      paddingHorizontal: 10,
-      borderRadius: 999,
-    },
-    itemName: {fontSize: 18, fontWeight: '600', color: theme.colors.foreground},
-    whyText: {
-      fontSize: 18,
-      color: theme.colors.button1,
-      marginTop: 6,
-      fontWeight: '500',
-    },
-  });
-
   const renderCard = (
     label: string,
     item: WardrobeItem | undefined,
@@ -974,7 +997,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         activeOpacity={0.9}
         style={[
           styles.cardOverlay,
-          {backgroundColor: theme.colors.surface},
+          {backgroundColor: theme.colors.imageBackground},
           isLocked && {borderWidth: 2, borderColor: theme.colors.primary},
         ]}>
         <Image
@@ -1012,32 +1035,53 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             <MaterialIcons name="lock" size={16} color="#fff" />
           </View>
         )}
-        {/* Swap out Item button - hide for locked items and until outfit is selected */}
-        {!isLocked && hasRefined && (
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation();
-              h('impactLight');
-              setSwapSection(section);
-              setShowWardrobePicker(true);
-            }}
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              backgroundColor: 'rgba(0,0,0,0.7)',
-              borderRadius: 16,
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-            }}>
-            <MaterialIcons name="swap-horiz" size={16} color="#fff" />
-            <Text style={{color: '#fff', fontSize: 12, fontWeight: '500'}}>
-              Swap
-            </Text>
-          </TouchableOpacity>
+        {/* Swap + Remove buttons - visible whenever outfit is displayed, hidden for locked items */}
+        {!isLocked && hasOutfit && (
+          <View style={{position: 'absolute', top: 8, right: 8, gap: 6, alignItems: 'flex-end'}}>
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                h('impactLight');
+                setSwapSection(section);
+                setShowWardrobePicker(true);
+              }}
+              style={{
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                borderRadius: 16,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+              }}>
+              <MaterialIcons name="swap-horiz" size={16} color="#fff" />
+              <Text style={{color: '#fff', fontSize: 12, fontWeight: '500'}}>
+                Swap
+              </Text>
+            </TouchableOpacity>
+            {item?.mainCategory && ['Outerwear', 'Accessories'].includes(item.mainCategory) && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  h('impactMedium');
+                  handleRefine(`Remove the ${item.mainCategory!.toLowerCase()}`);
+                }}
+                style={{
+                  backgroundColor: 'rgba(0,0,0,0.7)',
+                  borderRadius: 16,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                }}>
+                <MaterialIcons name="close" size={16} color="#fff" />
+                <Text style={{color: '#fff', fontSize: 12, fontWeight: '500'}}>
+                  Remove
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
         <View style={styles.overlay}>
           <View style={globalStyles.labelContainer2}>
@@ -1082,7 +1126,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           backgroundColor: theme.colors.background, // same tone as old nav
         }}
       />
-      
+
+    
       <View
           style={{
             flexDirection: 'row',
@@ -1090,6 +1135,17 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             paddingLeft: moderateScale(tokens.spacing.sm),
             marginBottom: 10
           }}>
+            <TouchableOpacity
+              style={[styles.backButton, {marginRight: 16}]}
+              onPress={handleBack}
+              activeOpacity={0.7}>
+              <MaterialIcons
+                name="arrow-back"
+                size={24}
+                color={theme.colors.foreground}
+              />
+            </TouchableOpacity>
+
           <Image
             source={require('../assets/images/Styla1.png')}
             style={{
@@ -1102,6 +1158,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             }}
             resizeMode="cover"
           />
+          
           <Text style={[globalStyles.header, {paddingLeft: 0}]}>Styla -AI Outfit Studio</Text>
         </View>
 
@@ -1584,6 +1641,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       setOutfitPrompt('');
                       setSessionId(null);
                       setHasRefined(false);
+                      setLastSpeech('');
+                      setBuildAroundPrompt('');
+                      setOccasion('Any');
+                      setStyle('Any');
+                      didAutoRunRef.current = false;
                       // Reset voice target to outfit prompt input
                       VoiceTarget.set(setOutfitPrompt, 'outfitPrompt');
                     }}>
@@ -1601,7 +1663,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   <View
                     style={[
                       styles.cardOverlay,
-                      {backgroundColor: theme.colors.surface},
+                      {backgroundColor: theme.colors.imageBackground},
                     ]}>
                     <View style={{
                       flex: 1,
@@ -1700,7 +1762,10 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     }}>
                     <TouchableOpacity
                       style={[globalStyles.buttonPrimary, {width: 120}]}
-                      onPress={() => setFeedbackModalVisible(true)}>
+                      onPress={() => {
+                        console.log('[STUDIO RATING DEBUG] Frontend handler fired', { outfitId, ratingValue: feedbackData.feedback });
+                        setFeedbackModalVisible(true);
+                      }}>
                       <Text style={globalStyles.buttonPrimaryText}>
                         Rate Outfit
                       </Text>
@@ -1788,6 +1853,26 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         {flex: 1},
                       ]}
                       onPress={() => {
+                        // LEARNING: fire accept event (fire-and-forget)
+                        if (outfitItemIds.length >= 2 && sessionId) {
+                          getAccessToken()
+                            .then(tkn => {
+                              if (!tkn) return;
+                              fetch(`${API_BASE_URL}/api/wardrobe/outfits`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  Authorization: `Bearer ${tkn}`,
+                                },
+                                body: JSON.stringify({
+                                  learning_accept: true,
+                                  lockedItemIds: outfitItemIds,
+                                  requestId: sessionId,
+                                }),
+                              }).catch(() => {});
+                            })
+                            .catch(() => {});
+                        }
                         clear();
                         setLockedItem(null);
                         setSelectedMoodLabel(null);
@@ -1797,6 +1882,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         setOutfitPrompt('');
                         setSessionId(null);
                         setHasRefined(false);
+                        setLastSpeech('');
+                        setBuildAroundPrompt('');
+                        setOccasion('Any');
+                        setStyle('Any');
+                        didAutoRunRef.current = false;
                       }}>
                       <Text style={globalStyles.buttonSecondaryText}>
                         All Done
@@ -2009,9 +2099,27 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 setPendingSaveOutfit(null);
               }}
               onSave={async (name, date) => {
+                console.log('[STUDIO SAVE DEBUG] Frontend handler fired', { outfitId });
                 if (pendingSaveOutfit && userId) {
                   try {
                     const accessToken = await getAccessToken();
+
+                    // LEARNING: fire accept event alongside save (fire-and-forget)
+                    if (outfitItemIds.length >= 2 && accessToken && sessionId) {
+                      fetch(`${API_BASE_URL}/wardrobe/outfits`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${accessToken}`,
+                        },
+                        body: JSON.stringify({
+                          learning_accept: true,
+                          lockedItemIds: outfitItemIds,
+                          requestId: sessionId,
+                        }),
+                      }).catch(() => {});
+                    }
+
                     const response = await fetch(
                       `${API_BASE_URL}/custom-outfits`,
                       {
@@ -2051,6 +2159,31 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     await response.json();
                     // Invalidate saved-outfits cache so SavedOutfitsScreen refreshes
                     queryClient.invalidateQueries({queryKey: ['saved-outfits', userId]});
+
+                    // POST to /outfit/favorite for learning pipeline
+                    console.log('[STUDIO SAVE DEBUG] About to POST favorite');
+                    try {
+                      const favResponse = await fetch(
+                        `${API_BASE_URL}/outfit/favorite`,
+                        {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${accessToken}`,
+                          },
+                          body: JSON.stringify({
+                            outfit_id: outfitId ?? requestId ?? 'active',
+                            outfit_type: 'ai',
+                          }),
+                        },
+                      );
+                      console.log(
+                        '[STUDIO SAVE DEBUG] Favorite POST complete, status:',
+                        favResponse.status,
+                      );
+                    } catch (favErr) {
+                      console.error('[STUDIO SAVE DEBUG] Favorite POST error:', favErr);
+                    }
                   } catch (err) {
                     console.error('Error saving outfit:', err);
                   } finally {

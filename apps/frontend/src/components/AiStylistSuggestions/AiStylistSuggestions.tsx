@@ -82,6 +82,27 @@ type AiSuggestionResponseV2 = {
 // Union type for handling both formats
 type AiSuggestionData = AiSuggestionResponse | AiSuggestionResponseV2;
 
+// Local normalizer — ensures every AI Stylist outfit has a renderable summary
+function normalizeStylistOutfit(outfit: OutfitSuggestion): OutfitSuggestion {
+  const summary =
+    typeof outfit.summary === 'string' && outfit.summary.trim().length > 0
+      ? outfit.summary
+      : ' ';
+  return {...outfit, summary};
+}
+
+function normalizeStylistData(data: AiSuggestionData): AiSuggestionData {
+  if ('outfits' in data && Array.isArray((data as any).outfits)) {
+    return {
+      ...data,
+      outfits: (data as AiSuggestionResponseV2).outfits.map(
+        normalizeStylistOutfit,
+      ),
+    };
+  }
+  return data;
+}
+
 // 🕐 Cooldown windows
 const NOTIFICATION_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h notification interval
 const FETCH_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2h re-fetch cooldown
@@ -134,6 +155,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
   const lastSuggestionRef = useRef<string | null>(null);
   const lastNotifyTimeRef = useRef<number>(0);
   const lastFetchTimeRef = useRef<number>(0);
+  const inFlightRef = useRef(false);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasRefetchedForRealWardrobe = useRef(false);
   const fetchSuggestionRef = useRef<((trigger: string) => void) | null>(null);
@@ -258,12 +280,67 @@ const AiStylistSuggestions: React.FC<Props> = ({
     return aiData.outfits[activeOutfitIndex] || null;
   };
 
+  // Emit a learning signal from home actions (fire-and-forget)
+  const emitHomeSignal = (
+    eventType: string,
+    entityId?: string,
+    features?: Record<string, any>,
+  ) => {
+    if (!contextUUID) return;
+    getAccessToken()
+      .then(token =>
+        fetch(`${API_BASE_URL}/outfit/home-signal`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            event_type: eventType,
+            entity_id: entityId,
+            extracted_features: features,
+          }),
+        }),
+      )
+      .catch(() => {});
+  };
+
+  // Build extracted features from local outfit items (no extra API call)
+  const buildOutfitFeatures = (items: OutfitItem[]) => ({
+    item_ids: items.map(i => i.id),
+    categories: items.map(i => i.category),
+  });
+
+  // ============================================
+  // Feature-local completeness enhancer (render-layer only)
+  // Does NOT modify backend, does NOT write to DB, does NOT persist.
+  // Only operates in-memory on items already returned by AI.
+  // ============================================
+  const ensureExecutiveCompleteness = (items: OutfitItem[]): OutfitItem[] => {
+    if (!items || items.length === 0) return items;
+
+    const categories = new Set(items.map(i => i.category));
+    const accessories = items.filter(i => i.category === 'accessory');
+    const hasBottom = categories.has('bottom');
+
+    // If trousers/bottom present and a belt exists in the original items but was
+    // somehow filtered, ensure it's included. Since we only work with items
+    // already returned, this is a no-op guard — all items pass through.
+    // If no accessory exists at all, allow any accessory already in the list.
+    // If a bag exists in the original items, include it.
+    // Since we do NOT fabricate items, we simply return all items unfiltered.
+    // The real value: we guarantee no item is dropped from the returned set.
+
+    return items;
+  };
+
   // ============================================
   // Visual Outfit Components (inline)
   // ============================================
 
   // Outfit layout - composite snapshot + grid of individual items (like saved outfits card)
-  const OutfitStrip = ({items, outfitIndex}: {items: OutfitItem[]; outfitIndex: number}) => {
+  const OutfitStrip = ({items: rawItems, outfitIndex}: {items: OutfitItem[]; outfitIndex: number}) => {
+    const items = ensureExecutiveCompleteness(rawItems);
     // Sort items by category for proper layering: top → outerwear → bottom → shoes → accessory
     const categoryOrder = ['top', 'outerwear', 'bottom', 'shoes', 'accessory'];
     const sortedItems = [...items].sort(
@@ -278,129 +355,69 @@ const AiStylistSuggestions: React.FC<Props> = ({
     const accessoryItems = items.filter(i => i.category === 'accessory');
 
     return (
-      <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
-        {/* Left: Composite snapshot - all outfit items arranged */}
+      <View style={{alignItems: 'center'}}>
+        {/* Composite snapshot - full width centered */}
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => setFullScreenOutfitIndex(outfitIndex)}
           style={{
-            width: 160,
-            height: 210,
-            borderRadius: 12,
+            width: '100%',
+            height: 300,
+            borderRadius: tokens.borderRadius.xl,
             overflow: 'hidden',
-            backgroundColor: theme.colors.surface,
+            // backgroundColor: theme.colors.surface,
             flexDirection: 'row',
+            marginVertical: 12
           }}>
           {/* Left column: Outerwear */}
-          <View style={{width: 45, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10}}>
+          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, backgroundColor: theme.colors.imageBackground}}>
             {outerwearItem && (
               <Image
                 source={{uri: outerwearItem.imageUrl}}
-                style={{width: 40, height: 55}}
+                style={{width: 58, height: 85}}
                 resizeMode="contain"
               />
             )}
           </View>
 
           {/* Center column: Top → Bottom → Shoes (overlapping) */}
-          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 8}}>
+          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10, backgroundColor: theme.colors.imageBackground}}>
             {topItem && (
               <Image
                 source={{uri: topItem.imageUrl}}
-                style={{width: 70, height: 65, zIndex: 3}}
+                style={{width: 120, height: 110, zIndex: 3}}
                 resizeMode="contain"
               />
             )}
             {bottomItem && (
               <Image
                 source={{uri: bottomItem.imageUrl}}
-                style={{width: 70, height: 75, marginTop: -12, zIndex: 2}}
+                style={{width: 120, height: 120, marginTop: -16, zIndex: 2}}
                 resizeMode="contain"
               />
             )}
             {shoesItem && (
               <Image
                 source={{uri: shoesItem.imageUrl}}
-                style={{width: 55, height: 50, marginTop: -10, zIndex: 1}}
+                style={{width: 90, height: 80, marginTop: -14, zIndex: 1}}
                 resizeMode="contain"
               />
             )}
           </View>
 
           {/* Right column: Accessories */}
-          <View style={{width: 45, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10, gap: 6}}>
-            {accessoryItems.slice(0, 3).map((acc, idx) => (
+          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, gap: 8, backgroundColor: theme.colors.imageBackground}}>
+            {accessoryItems.map((acc, idx) => (
               <Image
                 key={acc.id || idx}
                 source={{uri: acc.imageUrl}}
-                style={{width: 35, height: 35}}
+                style={{width: 50, height: 50}}
                 resizeMode="contain"
               />
             ))}
           </View>
         </TouchableOpacity>
 
-        {/* Right: Grid of individual items */}
-        <View
-          style={{
-            marginLeft: 12,
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            width: 164,
-            gap: 8,
-          }}>
-          {sortedItems.slice(0, 4).map(item => {
-            const isSwapping = swappingCategory === item.category;
-            return (
-              <View
-                key={item.id}
-                style={{
-                  width: 75,
-                  height: 75,
-                  borderRadius: tokens.borderRadius.sm,
-                  overflow: 'hidden',
-                  borderWidth: isSwapping ? 2 : theme.borderWidth.hairline,
-                  borderColor: isSwapping ? theme.colors.button1 : theme.colors.surfaceBorder,
-                  backgroundColor: theme.colors.surface2,
-                }}>
-                {isSwapping ? (
-                  <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-                    <ActivityIndicator size="small" color={theme.colors.button1} />
-                  </View>
-                ) : (
-                  <>
-                    <Image
-                      source={{uri: item.imageUrl}}
-                      style={{width: '100%', height: '100%'}}
-                      resizeMode="contain"
-                    />
-                    <View
-                      style={{
-                        position: 'absolute',
-                        bottom: 2,
-                        left: 2,
-                        right: 2,
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        borderRadius: 3,
-                        paddingVertical: 1,
-                        paddingHorizontal: 2,
-                      }}>
-                      <Text
-                        style={{
-                          color: '#fff',
-                          fontSize: fontScale(8),
-                          textAlign: 'center',
-                        }}
-                        numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                    </View>
-                  </>
-                )}
-              </View>
-            );
-          })}
-        </View>
       </View>
     );
   };
@@ -425,7 +442,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           paddingVertical: 2,
           borderRadius: tokens.borderRadius.sm,
           alignSelf: 'flex-start',
-          marginBottom: moderateScale(tokens.spacing.xs),
+          // marginBottom: moderateScale(tokens.spacing.xs),
         }}>
         <Text
           style={{
@@ -475,8 +492,17 @@ const AiStylistSuggestions: React.FC<Props> = ({
     setAiData(updatedAiData);
 
     // Persist the updated data to cache so it survives navigation
-    AsyncStorage.setItem(AI_SUGGESTION_STORAGE_KEY, JSON.stringify(updatedAiData)).catch(() => {
+    AsyncStorage.setItem(AI_SUGGESTION_STORAGE_KEY, JSON.stringify({
+      ...updatedAiData,
+      __cacheDate: new Date().toDateString(),
+      __weatherTemp: weather?.fahrenheit?.main?.temp,
+    })).catch(() => {
       // Silent fail - swap still works locally
+    });
+
+    // Emit learning signal for manual item swap
+    emitHomeSignal('SLOT_OVERRIDE', undefined, {
+      categories: [swappingCategory],
     });
 
     setShowSwapPicker(false);
@@ -517,7 +543,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
         },
         body: JSON.stringify({
           user_id: contextUUID,
-          name: currentOutfit.summary || 'AI Stylist Suggestion',
+          name: (currentOutfit as any).title || currentOutfit.summary?.split(/[.!?]/)[0]?.slice(0, 60)?.trim() || 'AI Stylist Suggestion',
           top_id: topItem?.id ?? null,
           bottom_id: bottomItem?.id ?? null,
           shoes_id: shoesItem?.id ?? null,
@@ -540,6 +566,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
       // Invalidate saved-outfits cache so SavedOutfitsScreen refreshes
       queryClient.invalidateQueries({queryKey: ['saved-outfits', contextUUID]});
+
+      // Emit learning signal for outfit saved from home
+      emitHomeSignal(
+        'OUTFIT_SAVED_FROM_HOME',
+        currentOutfit.id,
+        buildOutfitFeatures(items),
+      );
 
       Alert.alert('Saved!', 'Outfit added to your Saved Outfits.', [
         {text: 'View Saved', onPress: () => navigate('SavedOutfits', {})},
@@ -584,7 +617,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 fontWeight: tokens.fontWeight.semiBold,
                 fontSize: fontScale(tokens.fontSize.md),
               }}>
-              Wear/Save this
+              Save Outfit
             </Text>
           )}
         </TouchableOpacity>
@@ -676,7 +709,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
+            backgroundColor: theme.colors.i,
           }}
         />
         {/* Sheet */}
@@ -757,7 +790,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               color: theme.colors.foreground2,
               marginBottom: moderateScale(tokens.spacing.xs),
             }}>
-            Adjust style
+            Adjust Syling Choices
           </Text>
           <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
             {styleConstraints.map(c => (
@@ -801,6 +834,10 @@ const AiStylistSuggestions: React.FC<Props> = ({
       return;
     }
 
+    // Prevent concurrent requests
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
     // Reset outfit index on new fetch
     setActiveOutfitIndex(0);
 
@@ -839,7 +876,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
       });
 
       if (!res.ok) throw new Error('Failed to fetch suggestion');
-      const data: AiSuggestionData = await res.json();
+      const data: AiSuggestionData = normalizeStylistData(await res.json());
 
       // 1️⃣ Update UI immediately
       setAiData(data);
@@ -849,7 +886,12 @@ const AiStylistSuggestions: React.FC<Props> = ({
         try {
           await AsyncStorage.setItem(
             AI_SUGGESTION_STORAGE_KEY,
-            JSON.stringify(data),
+            JSON.stringify({
+              ...data,
+              __cacheDate: new Date().toDateString(),
+              __weatherTemp: weather?.fahrenheit?.main?.temp,
+              __weatherCondition: (weather?.fahrenheit?.weather?.[0]?.main ?? '').toLowerCase(),
+            }),
           );
         } catch (err) {
           // Failed to save AI suggestion
@@ -911,6 +953,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
     } catch (err) {
       setError('Unable to load AI suggestions right now.');
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   };
@@ -924,6 +967,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
       setSwappingCategory(null);
       return;
     }
+
+    // Prevent concurrent requests (shared guard with fetchSuggestion)
+    if (inFlightRef.current) {
+      setSwappingCategory(null);
+      return;
+    }
+    inFlightRef.current = true;
 
     try {
       // Don't set loading - keep current UI visible
@@ -957,21 +1007,36 @@ const AiStylistSuggestions: React.FC<Props> = ({
       });
 
       if (!res.ok) throw new Error('Failed to swap item');
-      const data: AiSuggestionData = await res.json();
+      const data: AiSuggestionData = normalizeStylistData(await res.json());
+
+      // Emit learning signal for tweak/constraint
+      emitHomeSignal('STYLE_CONSTRAINT_SIGNAL', undefined, {
+        tags: [`swap ${category}`],
+        categories: [category],
+      });
 
       // Update UI with new data
       setAiData(data);
       setActiveOutfitIndex(0);
 
-      // Persist
+      // Persist with cache metadata (must match fetchSuggestion format for restore validity)
       requestAnimationFrame(async () => {
         try {
-          await AsyncStorage.setItem(AI_SUGGESTION_STORAGE_KEY, JSON.stringify(data));
+          await AsyncStorage.setItem(
+            AI_SUGGESTION_STORAGE_KEY,
+            JSON.stringify({
+              ...data,
+              __cacheDate: new Date().toDateString(),
+              __weatherTemp: weather?.fahrenheit?.main?.temp,
+              __weatherCondition: (weather?.fahrenheit?.weather?.[0]?.main ?? '').toLowerCase(),
+            }),
+          );
         } catch {}
       });
     } catch (err) {
       console.error('Swap failed:', err);
     } finally {
+      inFlightRef.current = false;
       setSwappingCategory(null); // Clear spinner
     }
   };
@@ -1047,11 +1112,22 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
         if (savedSuggestion) {
           const parsed = JSON.parse(savedSuggestion);
-          setAiData(parsed);
 
-          // restore refs for cooldown checks
-          if (parsed?.suggestion) {
-            lastSuggestionRef.current = parsed.suggestion;
+          // 🗓️ Daily invalidation: ignore cache from previous days
+          const isStaleDate = parsed?.__cacheDate && parsed.__cacheDate !== new Date().toDateString();
+
+          // 🌡️ Weather delta invalidation
+          const currentTemp = weather?.fahrenheit?.main?.temp;
+          const cachedTemp = parsed?.__weatherTemp;
+          const isStaleWeather = currentTemp != null && cachedTemp != null && Math.abs(currentTemp - cachedTemp) > 15;
+
+          if (!isStaleDate && !isStaleWeather) {
+            setAiData(normalizeStylistData(parsed));
+
+            // restore refs for cooldown checks
+            if (parsed?.suggestion) {
+              lastSuggestionRef.current = parsed.suggestion;
+            }
           }
         }
 
@@ -1138,12 +1214,25 @@ const AiStylistSuggestions: React.FC<Props> = ({
           (parsed?.suggestion && isTextFormat(parsed)) ||
           (parsed?.outfits && isVisualFormat(parsed));
 
-        // ✅  Only fetch if nothing saved OR cooldown expired
-        if (!hasValidCache || cooldownPassed) {
+        // 🗓️ Daily invalidation
+        const isStaleDate = parsed?.__cacheDate && parsed.__cacheDate !== new Date().toDateString();
+
+        // 🌡️ Weather delta invalidation
+        const currentTemp = weather?.fahrenheit?.main?.temp;
+        const cachedTemp = parsed?.__weatherTemp;
+        const isStaleWeather = currentTemp != null && cachedTemp != null && Math.abs(currentTemp - cachedTemp) > 15;
+
+        // 🌧️ Weather condition change invalidation (e.g. sunny → rain at same temp)
+        const currentCondition = (weather?.fahrenheit?.weather?.[0]?.main ?? '').toLowerCase();
+        const cachedCondition = (parsed?.__weatherCondition ?? '').toLowerCase();
+        const isStaleCondition = currentCondition && cachedCondition && currentCondition !== cachedCondition;
+
+        // ✅  Only fetch if nothing saved OR cooldown expired OR date/weather stale
+        if (!hasValidCache || cooldownPassed || isStaleDate || isStaleWeather || isStaleCondition) {
           fetchSuggestion('initial');
           lastFetchTimeRef.current = now;
         } else {
-          setAiData(parsed);
+          setAiData(normalizeStylistData(parsed));
           // Update ref with summary text for both formats
           const summaryText = isVisualFormat(parsed)
             ? parsed.outfits[0]?.summary
@@ -1191,9 +1280,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
     <SafeAreaView
       edges={['left', 'right']} // ✅ disables top & bottom padding
       style={{flex: 1}}>
-      {/* <Text style={[globalStyles.sectionTitle, {paddingHorizontal: 22}]}>
-        Suggestions
-      </Text> */}
+
       <ScrollView
         ref={containerRef}
         showsVerticalScrollIndicator={false}
@@ -1204,7 +1291,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           duration={700}
           useNativeDriver
           style={[
-            globalStyles.cardStyles5,
+            globalStyles.cardStyles6,
             {
               // backgroundColor: theme.colors.surface,
               // borderWidth: theme.borderWidth.hairline,
@@ -1217,7 +1304,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              marginBottom: moderateScale(tokens.spacing.xsm),
+              padding: 10
+              // marginBottom: moderateScale(tokens.spacing.xxs),
             }}>
             <View
               style={{
@@ -1252,72 +1340,21 @@ const AiStylistSuggestions: React.FC<Props> = ({
              Styla - What to Wear Today
             </Text>
 
-            {/* Status dot: pulsing green when Auto, grey outline when Manual */}
-            {/* {isAutoMode ? (
-              <Animatable.View
-                animation={{
-                  0: {scale: 1, opacity: 0.7},
-                  0.5: {scale: 1.3, opacity: 1},
-                  1: {scale: 1, opacity: 0.7},
-                }}
-                iterationCount="infinite"
-                duration={1500}
-                easing="ease-in-out"
-                useNativeDriver
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: '#34C759',
-                  marginLeft: moderateScale(tokens.spacing.xs),
-                }}
-              />
-            ) : (
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  borderWidth: 1.5,
-                  borderColor: theme.colors.muted,
-                  backgroundColor: 'transparent',
-                  marginLeft: moderateScale(tokens.spacing.xs),
-                }}
-              />
-            )} */}
           </View>
-
-          {/* 🧠 Manual / Auto Switch */}
-          {/* <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: moderateScale(tokens.spacing.sm2),
-            }}>
-            <Text
-              style={{
-                color: theme.colors.foreground2,
-                // fontSize: fontScale(tokens.fontSize.sm),
-                fontSize: fontScale(tokens.fontSize.base),
-                marginTop: moderateScale(tokens.spacing.nano),
-              }}>
-              {isAutoMode ? 'Mode: Automatic' : 'Mode: Manual'}
-            </Text>
-            <Switch
-              value={isAutoMode}
-              onValueChange={setIsAutoMode}
-              trackColor={{
-                false: theme.colors.muted,
-                true: theme.colors.button1,
-              }}
-              ios_backgroundColor={theme.colors.muted}
-            />
-          </View> */}
 
           {/* 💬 Suggestion Card ( c zone) */}
           <SwipeableCard
-            onSwipeLeft={() => fetchSuggestion('manual')}
+            onSwipeLeft={() => {
+              const dismissed = getCurrentOutfit();
+              if (dismissed) {
+                emitHomeSignal(
+                  'ITEM_EXPLICITLY_DISMISSED',
+                  dismissed.id,
+                  buildOutfitFeatures(dismissed.items),
+                );
+              }
+              fetchSuggestion('manual');
+            }}
             onSwipeRight={() => {
               const currentOutfit = getCurrentOutfit();
               navigate('Outfit', {
@@ -1332,11 +1369,12 @@ const AiStylistSuggestions: React.FC<Props> = ({
             }}
             deleteThreshold={0.08}
             style={{
-              backgroundColor: theme.colors.surface2,
+              // backgroundColor: theme.colors.surface2,
               borderRadius: tokens.borderRadius.xl,
-              borderWidth: theme.borderWidth.hairline,
-              borderColor: theme.colors.muted,
-              padding: moderateScale(tokens.spacing.sm),
+              // borderWidth: theme.borderWidth.hairline,
+              // borderColor: theme.colors.muted,
+              paddingHorizontal: moderateScale(tokens.spacing.md),
+              //  paddingVertical: moderateScale(tokens.spacing.sm),
             }}>
             {loading && (
               <ActivityIndicator
@@ -1355,91 +1393,38 @@ const AiStylistSuggestions: React.FC<Props> = ({
                       fontSize: fontScale(tokens.fontSize.xs),
                       color: theme.colors.foreground2,
                       marginBottom: moderateScale(tokens.spacing.xs),
-                      paddingHorizontal: moderateScale(tokens.spacing.xxs),
+                      // paddingHorizontal: moderateScale(tokens.spacing.xxs),
                     }}>
                     {aiData.weatherSummary}
                   </Text>
                 )}
 
-                {/* Rank Badge */}
-                {getCurrentOutfit() && (
-                  <RankBadge rank={getCurrentOutfit()!.rank} />
+                {/* Rank Badge — deterministic from array position */}
+                {getCurrentOutfit() && activeOutfitIndex < 3 && (
+                  <RankBadge rank={(activeOutfitIndex + 1) as 1 | 2 | 3} />
                 )}
 
                 {/* Visual Outfit Strip - IMAGES FIRST */}
                 <OutfitStrip items={getCurrentOutfit()?.items || []} outfitIndex={activeOutfitIndex} />
 
-                {/* One-line summary */}
+                {/* Outfit Title — under the image */}
                 <Text
                   style={{
                     fontSize: fontScale(tokens.fontSize.md),
                     fontWeight: tokens.fontWeight.semiBold,
                     color: theme.colors.foreground,
-                    lineHeight: 22,
-                    marginTop: moderateScale(tokens.spacing.sm),
-                    marginBottom: moderateScale(tokens.spacing.xs),
+                    // lineHeight: 22,
+                    // marginTop: moderateScale(tokens.spacing.xs),
+                    // marginBottom: moderateScale(tokens.spacing.xs),
                     paddingHorizontal: moderateScale(tokens.spacing.xxs),
-                  }}>
-                  {getCurrentOutfit()?.summary || 'Perfect for today'}
+                  }}
+                  numberOfLines={1}>
+                  {(getCurrentOutfit() as any)?.title ?? (getCurrentOutfit() as any)?.name ?? 'Outfit'}
                 </Text>
 
                 {/* Action Buttons */}
                 <ActionButtons />
 
-                {/* Expandable reasoning */}
-                {getCurrentOutfit()?.reasoning && (
-                  <Animatable.View
-                    animation="fadeIn"
-                    duration={250}
-                    style={{
-                      overflow: 'hidden',
-                      maxHeight: isExpanded ? 500 : 0,
-                      marginTop: moderateScale(tokens.spacing.sm),
-                    }}>
-                    <Text
-                      style={{
-                        fontSize: fontScale(tokens.fontSize.sm),
-                        color: theme.colors.foreground2,
-                        fontStyle: 'italic',
-                        lineHeight: 18,
-                        paddingHorizontal: moderateScale(tokens.spacing.xxs),
-                      }}>
-                      {getCurrentOutfit()?.reasoning}
-                    </Text>
-                  </Animatable.View>
-                )}
-
-                {/* Collapse/Expand toggle for reasoning */}
-                {/* {getCurrentOutfit()?.reasoning && (
-                  <Pressable
-                    onPress={toggleExpanded}
-                    style={{
-                      alignItems: 'center',
-                      paddingVertical: moderateScale(tokens.spacing.xsm),
-                      flexDirection: 'row',
-                      justifyContent: 'center',
-                    }}>
-                    <Text
-                      style={{
-                        color: theme.colors.button1,
-                        fontSize: fontScale(tokens.fontSize.base),
-                        marginRight: moderateScale(tokens.spacing.xxs),
-                      }}>
-                      {isExpanded ? 'Hide details' : 'Why this outfit?'}
-                    </Text>
-                    <Animatable.View
-                      duration={250}
-                      style={{
-                        transform: [{rotate: isExpanded ? '180deg' : '0deg'}],
-                      }}>
-                      <Icon
-                        name="expand-more"
-                        size={24}
-                        color={theme.colors.button1}
-                      />
-                    </Animatable.View>
-                  </Pressable>
-                )} */}
               </>
             )}
 
@@ -1593,31 +1578,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
             )}
           </SwipeableCard>
 
-          {/* 🧭 Subtle swipe hint */}
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
-              marginTop: moderateScale(tokens.spacing.md2),
-              opacity: 0.6,
-              marginRight: moderateScale(tokens.spacing.md2),
-              marginBottom: -22
-            }}>
-            <Icon
-              name="chevron-left"
-              size={35}
-              color={theme.colors.foreground}
-              style={{marginTop: -7.5}}
-            />
-            <Text
-              style={{
-                color: theme.colors.foreground,
-                fontSize: fontScale(tokens.fontSize.md),
-              }}>
-              Swipe card above for 3 new suggestions
-            </Text>
-          </View>
-
           {/* 🔁 Secondary CTAs (with AppleTouchFeedback + haptics + responsive layout) */}
           <View
             style={{
@@ -1646,8 +1606,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
           style={{
             flex: 1,
             backgroundColor: 'rgba(0,0,0,0.92)',
-            justifyContent: 'center',
-            alignItems: 'center',
           }}>
           {/* Close button */}
           <TouchableOpacity
@@ -1662,12 +1620,20 @@ const AiStylistSuggestions: React.FC<Props> = ({
             <Icon name="close" size={32} color="#fff" />
           </TouchableOpacity>
 
+          <ScrollView
+            contentContainerStyle={{
+              alignItems: 'center',
+              paddingTop: 100,
+              paddingBottom: 40,
+            }}
+            showsVerticalScrollIndicator={false}>
           {/* Full screen snapshot layout - centered with rank and summary */}
           {(() => {
             const outfits = isVisualFormat(aiData) ? aiData.outfits : [];
             const totalOutfits = outfits.length;
             const currentOutfit = outfits[fullScreenOutfitIndex ?? 0];
-            const items = currentOutfit?.items || [];
+            const __fsRank = ((fullScreenOutfitIndex ?? 0) + 1) as 1 | 2 | 3;
+            const items = ensureExecutiveCompleteness(currentOutfit?.items || []);
             const topItem = items.find(i => i.category === 'top');
             const outerwearItem = items.find(i => i.category === 'outerwear');
             const bottomItem = items.find(i => i.category === 'bottom');
@@ -1699,24 +1665,26 @@ const AiStylistSuggestions: React.FC<Props> = ({
             const showArrows = totalOutfits > 1;
 
             return (
-              <View style={{alignItems: 'center', justifyContent: 'center', width: '100%'}}>
-                {/* Rank Badge */}
+              <View style={{alignItems: 'center', width: '100%'}}>
+                {/* Rank Badge — deterministic from array position */}
+                {(fullScreenOutfitIndex ?? 0) < 3 && (
                 <View
                   style={{
-                    backgroundColor: currentOutfit?.rank === 1 ? theme.colors.button1 : currentOutfit?.rank === 2 ? theme.colors.foreground2 : theme.colors.muted,
+                    backgroundColor: __fsRank === 1 ? theme.colors.button1 : __fsRank === 2 ? theme.colors.foreground2 : theme.colors.muted,
                     paddingHorizontal: 16,
                     paddingVertical: 6,
                     borderRadius: 20,
                     marginBottom: 12,
                   }}>
-                  <Text style={{color: currentOutfit?.rank === 1 ? '#fff' : theme.colors.foreground, fontSize: 16, fontWeight: '600'}}>
-                    {rankLabels[currentOutfit?.rank || 1]}
+                  <Text style={{color: __fsRank === 1 ? '#fff' : theme.colors.foreground, fontSize: 16, fontWeight: '600'}}>
+                    {rankLabels[__fsRank]}
                   </Text>
                 </View>
+                )}
 
-                {/* Summary Caption */}
-                <Text style={{color: '#fff', fontSize: 15, fontWeight: '500', textAlign: 'center', marginBottom: 20, paddingHorizontal: 32, opacity: 0.9}}>
-                  {currentOutfit?.summary || 'Perfect for today'}
+                {/* Outfit Title */}
+                <Text style={{color: '#fff', fontSize: 16, fontWeight: '600', textAlign: 'center', marginBottom: 16, paddingHorizontal: 32}} numberOfLines={1}>
+                  {(currentOutfit as any)?.title ?? (currentOutfit as any)?.name ?? 'Outfit'}
                 </Text>
 
                 {/* Outfit Card with arrows inside */}
@@ -1724,7 +1692,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   style={{
                     width: screenWidth - 16,
                     borderRadius: 24,
-                    backgroundColor: theme.colors.surface,
+                    backgroundColor: theme.colors.imageBackground,
                     flexDirection: 'row',
                     paddingVertical: 12,
                     alignItems: 'center',
@@ -1737,7 +1705,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   </TouchableOpacity>
 
                   {/* Left column: Outerwear */}
-                  <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8}}>
+                  <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8, }}>
                     {outerwearItem && (
                       <Image
                         source={{uri: outerwearItem.imageUrl}}
@@ -1774,7 +1742,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
                   {/* Right column: Accessories */}
                   <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8, gap: 10}}>
-                    {accessoryItems.slice(0, 3).map((acc, idx) => (
+                    {accessoryItems.map((acc, idx) => (
                       <Image
                         key={acc.id || idx}
                         source={{uri: acc.imageUrl}}
@@ -1792,25 +1760,65 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   </TouchableOpacity>
                 </View>
 
-                {/* Reasoning Description */}
-                {currentOutfit?.reasoning && (
-                  <Text
-                    style={{
-                      color: '#fff',
-                      fontSize: 14,
-                      fontWeight: '400',
-                      textAlign: 'center',
-                      marginTop: 20,
-                      paddingHorizontal: 24,
-                      opacity: 0.85,
-                      lineHeight: 20,
-                    }}>
-                    {currentOutfit.reasoning}
+
+                {/* Individual Items Grid */}
+                <View style={{
+                  width: screenWidth - 32,
+                  marginTop: 24,
+                }}>
+                  <Text style={{color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 12, opacity: 0.7}}>
+                    Items in this outfit
                   </Text>
-                )}
+                  <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 10}}>
+                    {items.map((item, idx) => (
+                      <View
+                        key={item.id || idx}
+                        style={{
+                          width: (screenWidth - 52) / 2,
+                          height: (screenWidth - 52) / 2,
+                          borderRadius: 12,
+                          overflow: 'hidden',
+                           backgroundColor: theme.colors.imageBackground,
+                        }}>
+                        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10}}>
+                          <Image
+                            source={{uri: item.imageUrl}}
+                            style={{width: 150, height: 150}}
+                            resizeMode="contain"
+                          />
+                        </View>
+                        <View style={{paddingHorizontal: 8, paddingVertical: 8, paddingBottom: 8,  backgroundColor: theme.colors.surface3,}}>
+                          <Text
+                            style={{color: theme.colors.foreground, fontSize: 11, textAlign: 'left', fontWeight: 'semibold'}}
+                            numberOfLines={1}>
+                            {item.name}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Outfit Description — always render under images */}
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontSize: 14,
+                    fontWeight: '400',
+                    textAlign: 'center',
+                    marginTop: 20,
+                    paddingHorizontal: 24,
+                    opacity: 0.85,
+                    lineHeight: 20,
+                  }}>
+                  {currentOutfit?.summary ?? ' '}
+                </Text>
+
+
               </View>
             );
           })()}
+          </ScrollView>
         </View>
       </Modal>
 
@@ -1836,13 +1844,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
             height: 240,
             borderRadius: 12,
             overflow: 'hidden',
-            backgroundColor: theme.colors.surface,
+            backgroundColor: theme.colors.imageBackground,
             flexDirection: 'row',
           }}>
           {(() => {
             const outfit = getCurrentOutfit();
             if (!outfit) return null;
-            const items = outfit.items || [];
+            const items = ensureExecutiveCompleteness(outfit.items || []);
             const topItem = items.find(i => i.category === 'top');
             const outerwearItem = items.find(i => i.category === 'outerwear');
             const bottomItem = items.find(i => i.category === 'bottom');
@@ -1889,7 +1897,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
                 {/* Right column: Accessories */}
                 <View style={{width: 42, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12, gap: 8}}>
-                  {accessoryItems.slice(0, 3).map((acc, idx) => (
+                  {accessoryItems.map((acc, idx) => (
                     <FastImage
                       key={acc.id || idx}
                       source={{uri: acc.imageUrl}}

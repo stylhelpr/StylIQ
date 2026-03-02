@@ -1,6 +1,6 @@
-import {Injectable} from '@nestjs/common';
-import {ConfigService} from '@nestjs/config';
-import {SocialPlatform} from './connected-accounts.service';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { SocialPlatform } from './connected-accounts.service';
 
 export interface OAuthTokenResponse {
   access_token: string;
@@ -27,10 +27,14 @@ export class OAuthService {
   async exchangeCodeForToken(
     platform: SocialPlatform,
     code: string,
-    redirectUri: string
+    redirectUri: string,
   ): Promise<OAuthTokenResponse> {
-    const clientId = this.configService.get(`${platform.toUpperCase()}_CLIENT_ID`);
-    const clientSecret = this.configService.get(`${platform.toUpperCase()}_CLIENT_SECRET`);
+    const clientId = this.configService.get(
+      `${platform.toUpperCase()}_CLIENT_ID`,
+    );
+    const clientSecret = this.configService.get(
+      `${platform.toUpperCase()}_CLIENT_SECRET`,
+    );
 
     if (!clientId || !clientSecret) {
       throw new Error(`OAuth credentials not configured for ${platform}`);
@@ -81,9 +85,12 @@ export class OAuthService {
    */
   async fetchUserAccountInfo(
     platform: SocialPlatform,
-    accessToken: string
+    accessToken: string,
   ): Promise<UserAccountInfo> {
-    const endpoints: Record<SocialPlatform, {url: string; userField: string}> = {
+    const endpoints: Record<
+      SocialPlatform,
+      { url: string; userField: string }
+    > = {
       instagram: {
         url: 'https://graph.instagram.com/me?fields=id,username',
         userField: 'username',
@@ -127,7 +134,7 @@ export class OAuthService {
         throw new Error(`Failed to fetch user info: ${response.statusText}`);
       }
 
-      const data = (await response.json()) as any;
+      const data = await response.json();
 
       return {
         id: data.id || data.open_id || data.localizedFirstName,
@@ -136,7 +143,10 @@ export class OAuthService {
         profileUrl: this.buildProfileUrl(platform, data.id || data.open_id),
       };
     } catch (error) {
-      console.error(`[OAuth] Failed to fetch user info for ${platform}:`, error);
+      console.error(
+        `[OAuth] Failed to fetch user info for ${platform}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -164,10 +174,14 @@ export class OAuthService {
    */
   async refreshAccessToken(
     platform: SocialPlatform,
-    refreshToken: string
+    refreshToken: string,
   ): Promise<OAuthTokenResponse> {
-    const clientId = this.configService.get(`${platform.toUpperCase()}_CLIENT_ID`);
-    const clientSecret = this.configService.get(`${platform.toUpperCase()}_CLIENT_SECRET`);
+    const clientId = this.configService.get(
+      `${platform.toUpperCase()}_CLIENT_ID`,
+    );
+    const clientSecret = this.configService.get(
+      `${platform.toUpperCase()}_CLIENT_SECRET`,
+    );
 
     if (!clientId || !clientSecret) {
       throw new Error(`OAuth credentials not configured for ${platform}`);

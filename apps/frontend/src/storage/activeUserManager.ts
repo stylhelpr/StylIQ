@@ -78,7 +78,7 @@ export async function setActiveUserId(userId: string): Promise<void> {
     // Notify listeners
     listeners.forEach(listener => listener(userId));
 
-    console.log(`[ActiveUserManager] Active user set to: ${userId}`);
+    // console.log(`[ActiveUserManager] Active user set to: ${userId}`);
   } catch (err) {
     console.error('[ActiveUserManager] Failed to set active user:', err);
     throw err;

@@ -77,7 +77,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       if (auth0Sub !== dbAuth0Sub) {
         this.logger.error({
           event: 'AUTH_MISMATCH',
-          message: 'JWT sub does not match DB auth0_sub - this should never happen',
+          message:
+            'JWT sub does not match DB auth0_sub - this should never happen',
           jwtSub: auth0Sub,
           dbAuth0Sub: dbAuth0Sub,
         });

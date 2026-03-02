@@ -22,7 +22,6 @@ import PushNotification from 'react-native-push-notification';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAppTheme} from './context/ThemeContext';
 import {ensureLocationPermission} from './utils/permissions';
-import {OPENWEATHER_API_KEY} from '@env';
 import {fetchWeather} from './utils/travelWeather';
 import MapScreen from './components/MapScreen/MapScreen';
 import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';

@@ -1,4 +1,10 @@
 import { parseConstraints } from './constraints';
+import {
+  mapMainCategoryToSlot,
+  isSlot,
+  filterBySlot,
+  type Slot,
+} from './categoryMapping';
 
 export type CatalogItemLite = {
   index: number;
@@ -60,8 +66,9 @@ export function finalizeOutfitSlots(
     /(sneaker|trainer)/.test(subOf(x)) || /(sneaker|trainer)/.test(styleOf(x));
   const isBoot = (x: CatalogItemLite) =>
     /boot/.test(subOf(x)) || /boot/.test(styleOf(x));
+  // Use canonical slot mapping for footwear detection
   const isFootwear = (x: CatalogItemLite) =>
-    lc(x.main_category) === 'shoes' ||
+    isSlot(x, 'shoes') ||
     [
       'loafer',
       'sneaker',
@@ -91,9 +98,10 @@ export function finalizeOutfitSlots(
   };
 
   // De-dup outerwear (prefer blazer/sport coat)
+  // Use canonical slot mapping for outerwear detection
   const outers = items
     .map((it, i) => ({ it, i }))
-    .filter(({ it }) => lc(it.main_category) === 'outerwear');
+    .filter(({ it }) => isSlot(it, 'outerwear'));
   if (outers.length > 1) {
     const prefScore = (s?: string) =>
       /\b(blazer|sport\s*coat)\b/i.test(lc(s)) ? 0 : 1;
@@ -164,8 +172,14 @@ export function finalizeOutfitSlots(
     return (A.index ?? 999) - (B.index ?? 999);
   };
 
-  const isTop = (x: CatalogItemLite) => lc(x.main_category) === 'tops';
-  const isBottom = (x: CatalogItemLite) => lc(x.main_category) === 'bottoms';
+  // Use canonical slot mapping for category detection
+  const getSlot = (x: CatalogItemLite): Slot =>
+    mapMainCategoryToSlot(x.main_category ?? '');
+  const isTop = (x: CatalogItemLite) => getSlot(x) === 'tops';
+  const isBottom = (x: CatalogItemLite) => getSlot(x) === 'bottoms';
+  const isDress = (x: CatalogItemLite) => getSlot(x) === 'dresses';
+  const isActivewear = (x: CatalogItemLite) => getSlot(x) === 'activewear';
+  const isSwimwear = (x: CatalogItemLite) => getSlot(x) === 'swimwear';
 
   pruneToOne(isTop);
   pruneToOne(isBottom, preferBottoms);
@@ -173,7 +187,13 @@ export function finalizeOutfitSlots(
 
   const hasTop = items.some(isTop);
   const hasBottom = items.some(isBottom);
+  const hasDress = items.some(isDress);
+  const hasActivewear = items.some(isActivewear);
+  const hasSwimwear = items.some(isSwimwear);
   const hasFootwear = items.some((x) => isFootwear(x));
+
+  // Slot-aware completeness: one-piece items replace top+bottom requirement
+  const isOnePieceOutfit = hasDress || hasActivewear || hasSwimwear;
 
   const pickBest = (
     pred: (x: CatalogItemLite) => boolean,
@@ -185,19 +205,22 @@ export function finalizeOutfitSlots(
     return pool.slice().sort(prefer)[0];
   };
 
-  if (!hasTop) {
-    const top = pickBest((x) => isTop(x));
-    if (top) items.push(top);
-    else appendMissing('A shirt');
-  }
+  // Only require top+bottom for separates outfits (not dresses/activewear/swimwear)
+  if (!isOnePieceOutfit) {
+    if (!hasTop) {
+      const top = pickBest((x) => isTop(x));
+      if (top) items.push(top);
+      else appendMissing('A shirt');
+    }
 
-  if (!hasBottom) {
-    const bottom = pickBest(
-      (x) => isBottom(x) && subOf(x) !== 'shorts',
-      preferBottoms,
-    );
-    if (bottom) items.push(bottom);
-    else appendMissing('Dress trousers');
+    if (!hasBottom) {
+      const bottom = pickBest(
+        (x) => isBottom(x) && subOf(x) !== 'shorts',
+        preferBottoms,
+      );
+      if (bottom) items.push(bottom);
+      else appendMissing('Dress trousers');
+    }
   }
 
   const currentlyHasLoafer = items.some(isLoafer);
@@ -274,15 +297,15 @@ export function validateOutfits(
   const blackTie = /\b(black\s*tie|white\s*tie|tux(edo)?)\b/.test(q);
 
   const lc = (s?: string) => (s ?? '').toLowerCase();
+  // Use canonical slot mapping for category detection
   const isBottom = (x?: CatalogItemLite) =>
     !!x &&
-    (lc(x.main_category) === 'bottoms' ||
+    (isSlot(x, 'bottoms') ||
       /\b(shorts|trouser|pants|jeans|chinos|joggers?|sweatpants?|track)\b/i.test(
         lc(x.subcategory),
       ));
 
-  const isShoes = (x?: CatalogItemLite) =>
-    !!x && lc(x.main_category) === 'shoes';
+  const isShoes = (x?: CatalogItemLite) => !!x && isSlot(x, 'shoes');
   const isSneaker = (x?: CatalogItemLite) =>
     !!x &&
     /\b(sneakers?|trainers?|running|athletic)\b/i.test(lc(x.subcategory));
@@ -295,11 +318,10 @@ export function validateOutfits(
     !!x && /\bshorts?\b/i.test(lc(x.subcategory));
   const isHoodie = (x?: CatalogItemLite) =>
     !!x && /\bhoodie\b/i.test(lc(x.subcategory));
-  const isOuter = (x?: CatalogItemLite) =>
-    !!x && lc(x.main_category) === 'outerwear';
+  const isOuter = (x?: CatalogItemLite) => !!x && isSlot(x, 'outerwear');
 
   const orderRank = (c: CatalogItemLite) =>
-    lc(c.main_category) === 'tops'
+    isSlot(c, 'tops')
       ? 1
       : isBottom(c)
         ? 2
@@ -353,7 +375,8 @@ export function validateOutfits(
 
   // Array-level fallback if LLM produced nothing useful
   if (out.length === 0 || out.every((o) => (o.items || []).length === 0)) {
-    const tops = catalog.filter((x) => lc(x.main_category) === 'tops');
+    // Use canonical slot mapping for category filtering
+    const tops = filterBySlot(catalog, 'tops');
     const bottoms = catalog.filter(isBottom);
     const sneakers = catalog.filter(isSneaker);
     const dressShoes = catalog.filter(isDressShoe);
@@ -377,7 +400,7 @@ export function validateOutfits(
       ((wedding || blackTie) && (dressShoes[0] ?? anyShoes[0])) ||
       anyShoes[0];
 
-    const items = [top, bottom, shoe].filter(Boolean) as CatalogItemLite[];
+    const items = [top, bottom, shoe].filter(Boolean);
     if (items.length) {
       out = [
         {
@@ -395,4 +418,176 @@ export function validateOutfits(
   }
 
   return out;
+}
+
+/**
+ * Hard validation gate — discards any outfit that is not structurally wearable.
+ *
+ * Valid structures (gender-neutral, slot-based):
+ *   1. SEPARATES  → tops + bottoms + shoes
+ *   2. ONE-PIECE  → dresses + shoes  (covers Formalwear, TraditionalWear via slot mapping)
+ *   3. ACTIVEWEAR → activewear + shoes
+ *   4. SWIMWEAR   → swimwear  (shoes NOT required)
+ *
+ * Accessories / outerwear / undergarments may exist but never satisfy core requirements.
+ */
+export function validateOutfitCore<
+  T extends { title?: string; items: Array<{ main_category?: string | null }> },
+>(outfits: T[], query?: string): T[] {
+  return outfits.filter((outfit, idx) => {
+    const items = outfit.items ?? [];
+    if (items.length === 0) {
+      // console.log(
+      //   `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": no items`,
+      // );
+      return false;
+    }
+
+    const hasTop = items.some((it) => isSlot(it, 'tops'));
+    const hasBottom = items.some((it) => isSlot(it, 'bottoms'));
+    const hasShoes = items.some((it) => isSlot(it, 'shoes'));
+    const hasDress = items.some((it) => isSlot(it, 'dresses'));
+    const hasActivewear = items.some((it) => isSlot(it, 'activewear'));
+    const hasSwimwear = items.some((it) => isSlot(it, 'swimwear'));
+
+    // 4. SWIMWEAR — shoes optional
+    if (hasSwimwear) return true;
+
+    // 3. ACTIVEWEAR — needs shoes
+    if (hasActivewear) {
+      if (hasShoes) return true;
+      // console.log(
+      //   `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": activewear missing shoes`,
+      // );
+      return false;
+    }
+
+    // 2. ONE-PIECE — dresses (incl. Formalwear, TraditionalWear) + shoes
+    if (hasDress) {
+      if (hasShoes) return true;
+      // console.log(
+      //   `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": dress/one-piece missing shoes`,
+      // );
+      return false;
+    }
+
+    // 1. SEPARATES — tops + bottoms + shoes
+    if (hasTop && hasBottom && hasShoes) return true;
+
+    const missing: string[] = [];
+    if (!hasTop) missing.push('tops');
+    if (!hasBottom) missing.push('bottoms');
+    if (!hasShoes) missing.push('shoes');
+    // console.log(
+    //   `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": separates missing ${missing.join(', ')}`,
+    // );
+    return false;
+  });
+}
+
+/**
+ * Pad outfits array to 3 by building deterministic backfill outfits from
+ * available items. Avoids repeating exact item combinations already present.
+ *
+ * @param outfits  Current outfits (0-2 after validation/fallback)
+ * @param pool     Available items (already filtered for masculine safety if needed)
+ * @param target   Desired outfit count (default 3)
+ */
+export function padToThreeOutfits<
+  T extends {
+    outfit_id?: string;
+    title?: string;
+    items: Array<{ id?: string; main_category?: string | null }>;
+    why?: string;
+  },
+>(
+  outfits: T[],
+  pool: Array<{
+    id: string;
+    name?: string;
+    main_category?: string;
+    subcategory?: string;
+    color?: string;
+    image_url?: string;
+  }>,
+  makeOutfit: (items: typeof pool) => T,
+  target = 3,
+): T[] {
+  if (outfits.length >= target) return outfits;
+
+  // Collect item IDs already used per-outfit so we don't duplicate exact combos
+  const usedCombos = new Set(
+    outfits.map((o) =>
+      (o.items || [])
+        .map((it) => it.id)
+        .filter(Boolean)
+        .sort()
+        .join(','),
+    ),
+  );
+
+  // Group pool by slot
+  const tops = pool.filter(
+    (r) => mapMainCategoryToSlot(r.main_category ?? '') === 'tops',
+  );
+  const bottoms = pool.filter(
+    (r) => mapMainCategoryToSlot(r.main_category ?? '') === 'bottoms',
+  );
+  const shoes = pool.filter(
+    (r) => mapMainCategoryToSlot(r.main_category ?? '') === 'shoes',
+  );
+  const dresses = pool.filter(
+    (r) => mapMainCategoryToSlot(r.main_category ?? '') === 'dresses',
+  );
+
+  // Track which items have been used in backfill to prefer variety
+  const usedIds = new Set<string>();
+  for (const o of outfits) {
+    for (const it of o.items || []) {
+      if (it.id) usedIds.add(it.id);
+    }
+  }
+
+  const pickUnused = (arr: typeof pool) =>
+    arr.find((r) => !usedIds.has(r.id)) ?? arr[0];
+
+  const result = [...outfits];
+
+  while (result.length < target) {
+    // Path A: separates
+    const top = pickUnused(tops);
+    const bottom = pickUnused(bottoms);
+    const shoe = pickUnused(shoes);
+
+    if (top && bottom && shoe) {
+      const combo = [top.id, bottom.id, shoe.id].sort().join(',');
+      if (!usedCombos.has(combo)) {
+        result.push(makeOutfit([top, bottom, shoe]));
+        usedCombos.add(combo);
+        usedIds.add(top.id);
+        usedIds.add(bottom.id);
+        usedIds.add(shoe.id);
+        continue;
+      }
+    }
+
+    // Path B: dress + shoes
+    const dress = pickUnused(dresses);
+    const shoe2 = pickUnused(shoes);
+    if (dress && shoe2) {
+      const combo = [dress.id, shoe2.id].sort().join(',');
+      if (!usedCombos.has(combo)) {
+        result.push(makeOutfit([dress, shoe2]));
+        usedCombos.add(combo);
+        usedIds.add(dress.id);
+        usedIds.add(shoe2.id);
+        continue;
+      }
+    }
+
+    // Wardrobe exhausted — can't build more unique outfits
+    break;
+  }
+
+  return result;
 }

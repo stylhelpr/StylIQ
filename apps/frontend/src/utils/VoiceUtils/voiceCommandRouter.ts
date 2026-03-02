@@ -37,137 +37,136 @@ export const routeVoiceCommand = async (
     keys.some(k => lower.includes(k));
 
   // ---------------------------
-  // 🔹 Navigation Intents
+  // 🔹 Navigation Intents (DISABLED — commented out to prevent voice-triggered navigation)
+  // Uncomment to re-enable.
   // ---------------------------
-  if (includesAny(['login', 'sign in', 'log in'])) return go('Login', 'Login');
-  if (includesAny(['home', 'main'])) return go('Home', 'Home');
-  if (includesAny(['profile', 'account'])) return go('Profile', 'Profile');
-  if (includesAny(['style profile', 'styling profile', 'style settings']))
-    return go('StyleProfileScreen', 'Style Profile');
-  if (includesAny(['fashion news', 'news', 'news stories']))
-    return go('Explore', 'Explore');
-  if (includesAny(['community share', 'community', 'share']))
-    return go('CommunityShowcaseScreen', 'CommunityShowcaseScreen');
-  if (includesAny(['wardrobe', 'closet'])) return go('Wardrobe', 'Wardrobe');
-  if (includesAny(['settings', 'preferences', 'options']))
-    return go('Settings', 'Settings');
-  if (includesAny(['barcode', 'scanner', 'scan']))
-    return go('BarcodeScannerScreen', 'Barcode Scanner');
-  if (includesAny(['measurements', 'sizes', 'fit data']))
-    return go('Measurements', 'Measurements');
-  if (includesAny(['budget', 'brands', 'spending']))
-    return go('BudgetAndBrands', 'Budget and Brands');
-  if (includesAny(['appearance', 'look settings']))
-    return go('Appearance', 'Appearance');
-  if (includesAny(['lifestyle', 'daily life', 'routine']))
-    return go('Lifestyle', 'Lifestyle');
-  if (includesAny(['style summary', 'summary']))
-    return go('StyleSummary', 'Style Summary');
-  if (includesAny(['activities', 'hobbies']))
-    return go('Activities', 'Activities');
-  if (includesAny(['body types', 'body type']))
-    return go('BodyTypes', 'Body Types');
-  if (includesAny(['shop', 'shopping, browser']))
-    return go('ShoppingDashboard');
-  if (includesAny(['climate', 'weather preferences']))
-    return go('Climate', 'Climate');
-  if (includesAny(['color preferences', 'favorite colors']))
-    return go('ColorPreferences', 'Color Preferences');
-  if (includesAny(['eye color'])) return go('EyeColor', 'Eye Color');
-  if (includesAny(['fashion goals', 'style goals']))
-    return go('FashionGoals', 'Fashion Goals');
-  if (includesAny(['fit preferences']))
-    return go('FitPreferences', 'Fit Preferences');
-  if (includesAny(['hair color'])) return go('HairColor', 'Hair Color');
-  if (includesAny(['personality', 'traits']))
-    return go('PersonalityTraits', 'Personality Traits');
-  if (includesAny(['preference strength']))
-    return go('PreferenceStrength', 'Preference Strength');
-  if (includesAny(['proportions', 'body proportions']))
-    return go('Proportions', 'Proportions');
-  if (includesAny(['search', 'find'])) return go('Search', 'Search');
-  if (includesAny(['skin tone', 'complexion']))
-    return go('SkinTone', 'Skin Tone');
-  if (includesAny(['style icon'])) return go('StyleIcon', 'Style Icon');
-  if (includesAny(['voice', 'assistant']))
-    return go('Voice', 'Voice Assistant');
-  if (includesAny(['item detail', 'details']))
-    return go('ItemDetail', 'Item Detail');
-  if (includesAny(['add item', 'add clothing', 'new item']))
-    return go('AddItem', 'Add Item');
-  if (includesAny(['outfit builder', 'build outfit']))
-    return go('OutfitBuilder', 'Outfit Builder');
-  if (includesAny(['style me', 'create outfit'])) return go('Outfit', 'Outfit');
-  if (includesAny(['saved outfits', 'saved looks']))
-    return go('SavedOutfits', 'Saved Outfits');
-  if (includesAny(['try on', 'overlay'])) return go('TryOnOverlay', 'Try On');
-  if (includesAny(['notifications', 'alerts']))
-    return go('Notifications', 'Notifications');
-  if (includesAny(['undertone', 'undertones']))
-    return go('Undertone', 'Undertone');
-  if (includesAny(['style keywords', 'keywords']))
-    return go('StyleKeywords', 'Style Keywords');
-  if (includesAny(['personal information', 'personal info']))
-    return go('PersonalInformation', 'Personal Information');
-  if (includesAny(['contact'])) return go('ContactScreen', 'Contact');
+  // if (includesAny(['login', 'sign in', 'log in'])) return go('Login', 'Login');
+  // if (includesAny(['home', 'main'])) return go('Home', 'Home');
+  // if (includesAny(['profile', 'account'])) return go('Profile', 'Profile');
+  // if (includesAny(['style profile', 'styling profile', 'style settings']))
+  //   return go('StyleProfileScreen', 'Style Profile');
+  // if (includesAny(['fashion news', 'news', 'news stories']))
+  //   return go('Explore', 'Explore');
+  // if (includesAny(['community share', 'community', 'share']))
+  //   return go('CommunityShowcaseScreen', 'CommunityShowcaseScreen');
+  // if (includesAny(['wardrobe', 'closet'])) return go('Wardrobe', 'Wardrobe');
+  // if (includesAny(['settings', 'preferences', 'options']))
+  //   return go('Settings', 'Settings');
+  // if (includesAny(['barcode', 'scanner', 'scan']))
+  //   return go('BarcodeScannerScreen', 'Barcode Scanner');
+  // if (includesAny(['measurements', 'sizes', 'fit data']))
+  //   return go('Measurements', 'Measurements');
+  // if (includesAny(['budget', 'brands', 'spending']))
+  //   return go('BudgetAndBrands', 'Budget and Brands');
+  // if (includesAny(['appearance', 'look settings']))
+  //   return go('Appearance', 'Appearance');
+  // if (includesAny(['lifestyle', 'daily life', 'routine']))
+  //   return go('Lifestyle', 'Lifestyle');
+  // if (includesAny(['style summary', 'summary']))
+  //   return go('StyleSummary', 'Style Summary');
+  // if (includesAny(['activities', 'hobbies']))
+  //   return go('Activities', 'Activities');
+  // if (includesAny(['body types', 'body type']))
+  //   return go('BodyTypes', 'Body Types');
+  // if (includesAny(['shop', 'shopping, browser']))
+  //   return go('ShoppingDashboard');
+  // if (includesAny(['climate', 'weather preferences']))
+  //   return go('Climate', 'Climate');
+  // if (includesAny(['color preferences', 'favorite colors']))
+  //   return go('ColorPreferences', 'Color Preferences');
+  // if (includesAny(['eye color'])) return go('EyeColor', 'Eye Color');
+  // if (includesAny(['fashion goals', 'style goals']))
+  //   return go('FashionGoals', 'Fashion Goals');
+  // if (includesAny(['fit preferences']))
+  //   return go('FitPreferences', 'Fit Preferences');
+  // if (includesAny(['hair color'])) return go('HairColor', 'Hair Color');
+  // if (includesAny(['personality', 'traits']))
+  //   return go('PersonalityTraits', 'Personality Traits');
+  // if (includesAny(['preference strength']))
+  //   return go('PreferenceStrength', 'Preference Strength');
+  // if (includesAny(['proportions', 'body proportions']))
+  //   return go('Proportions', 'Proportions');
+  // if (includesAny(['search', 'find'])) return go('Search', 'Search');
+  // if (includesAny(['skin tone', 'complexion']))
+  //   return go('SkinTone', 'Skin Tone');
+  // if (includesAny(['style icon'])) return go('StyleIcon', 'Style Icon');
+  // if (includesAny(['voice', 'assistant']))
+  //   return go('Voice', 'Voice Assistant');
+  // if (includesAny(['item detail', 'details']))
+  //   return go('ItemDetail', 'Item Detail');
+  // if (includesAny(['add item', 'add clothing', 'new item']))
+  //   return go('AddItem', 'Add Item');
+  // if (includesAny(['outfit builder', 'build outfit']))
+  //   return go('OutfitBuilder', 'Outfit Builder');
+  // if (includesAny(['style me', 'create outfit'])) return go('Outfit', 'Outfit');
+  // if (includesAny(['saved outfits', 'saved looks']))
+  //   return go('SavedOutfits', 'Saved Outfits');
+  // if (includesAny(['try on', 'overlay'])) return go('TryOnOverlay', 'Try On');
+  // if (includesAny(['notifications', 'alerts']))
+  //   return go('Notifications', 'Notifications');
+  // if (includesAny(['undertone', 'undertones']))
+  //   return go('Undertone', 'Undertone');
+  // if (includesAny(['style keywords', 'keywords']))
+  //   return go('StyleKeywords', 'Style Keywords');
+  // if (includesAny(['personal information', 'personal info']))
+  //   return go('PersonalInformation', 'Personal Information');
+  // if (includesAny(['contact'])) return go('ContactScreen', 'Contact');
   // if (includesAny(['about', 'about stylhelpr']))
   //   return go('AboutScreen', 'About');
-  if (includesAny(['feedback', 'support']))
-    return go('FeedbackScreen', 'Feedback');
-  if (
-    includesAny([
-      'ai stylist',
-      'ai chat',
-      'stylist chat',
-      'chatbot',
-      'assistant',
-      'chat',
-    ])
-  )
-    return go('AiStylistChatScreen', 'AI Stylist Chat');
-  if (includesAny(['recreated look', 'recreate']))
-    return go('RecreatedLook', 'Recreated Look');
-  if (includesAny(['web page', 'browser']))
-    return go('WebPageScreen', 'Web Page');
-  if (includesAny(['planner', 'schedule', 'calendar']))
-    return go('Planner', 'Planner');
+  // if (includesAny(['feedback', 'support']))
+  //   return go('FeedbackScreen', 'Feedback');
+  // if (
+  //   includesAny([
+  //     'ai stylist',
+  //     'ai chat',
+  //     'stylist chat',
+  //     'chatbot',
+  //     'assistant',
+  //     'chat',
+  //   ])
+  // )
+  //   return go('AiStylistChatScreen', 'AI Stylist Chat');
+  // if (includesAny(['recreated look', 'recreate']))
+  //   return go('RecreatedLook', 'Recreated Look');
+  // if (includesAny(['web page', 'browser']))
+  //   return go('WebPageScreen', 'Web Page');
+  // if (includesAny(['planner', 'schedule', 'calendar']))
+  //   return go('Planner', 'Planner');
 
-  if (
-    lastIntent === 'navigation' &&
-    (lower.includes('back') || lower.includes('previous'))
-  ) {
-    navigate('Home');
-    return;
-  }
+  // if (
+  //   lastIntent === 'navigation' &&
+  //   (lower.includes('back') || lower.includes('previous'))
+  // ) {
+  //   navigate('Home');
+  //   return;
+  // }
 
   // ---------------------------
-  // 🔙 Backward Navigation (Fixed)
+  // 🔙 Backward Navigation (DISABLED)
   // ---------------------------
-  if (includesAny(['back', 'previous', 'go back'])) {
-    try {
-      // Call navigate with a special flag or your back action handler
-      if (navigate && typeof navigate === 'function') {
-        navigate('..'); // or use your stack goBack logic here
-      } else {
-        console.log('⚠️ No navigation function available');
-      }
+  // if (includesAny(['back', 'previous', 'go back'])) {
+  //   try {
+  //     if (navigate && typeof navigate === 'function') {
+  //       navigate('..');
+  //     } else {
+  //       console.log('⚠️ No navigation function available');
+  //     }
+  //     VoiceMemory.set('lastIntent', 'navigation');
+  //     VoiceMemory.set('lastTopic', 'back');
+  //     console.log('🔙 Navigating back (via navigate)');
+  //     return;
+  //   } catch (err) {
+  //     console.log('⚠️ Back navigation failed (via navigate):', err);
+  //   }
+  // }
 
-      VoiceMemory.set('lastIntent', 'navigation');
-      VoiceMemory.set('lastTopic', 'back');
-      console.log('🔙 Navigating back (via navigate)');
-      return;
-    } catch (err) {
-      console.log('⚠️ Back navigation failed (via navigate):', err);
-    }
-  }
-
-  if (includesAny(['back', 'previous', 'go back'])) {
-    navigate('..'); // equivalent to goBack()
-    VoiceMemory.set('lastIntent', 'navigation');
-    VoiceMemory.set('lastTopic', 'back');
-    console.log('🔙 Navigating back');
-    return;
-  }
+  // if (includesAny(['back', 'previous', 'go back'])) {
+  //   navigate('..');
+  //   VoiceMemory.set('lastIntent', 'navigation');
+  //   VoiceMemory.set('lastTopic', 'back');
+  //   console.log('🔙 Navigating back');
+  //   return;
+  // }
 
   // ----------------------------
   // 🧠 Memory-driven commands
@@ -297,41 +296,7 @@ export const routeVoiceCommand = async (
       return routeVoiceCommand('show my schedule tomorrow', navigate);
   }
 
-  // 🧩 Weather follow-up: "in <city>"
-  if (
-    VoiceMemory.get('lastCommand') === 'weather' &&
-    lower.match(/\b(in|for|about)\s+([a-z\s]+)$/i)
-  ) {
-    try {
-      const match = lower.match(/\b(in|for|about)\s+([a-z\s]+)$/i);
-      const city = match?.[2]?.trim();
-      if (!city) return;
-
-      VoiceMemory.set('lastCity', city);
-
-      // Use same fallback coords if none found
-      let lat = 34.05;
-      let lon = -118.24;
-
-      const weatherResponse = await fetchWeather(lat, lon, 'imperial');
-      const data = weatherResponse?.fahrenheit;
-
-      const condition =
-        data?.weather?.[0]?.description || data?.description || 'clear skies';
-      const temperature = Math.round(data?.main?.temp ?? 0);
-
-      VoiceBus.emit('weather', {city, temperature, condition});
-      VoiceMemory.set('lastCommand', 'weather');
-      VoiceMemory.set('lastCity', city);
-      VoiceMemory.set('lastCondition', condition);
-      VoiceMemory.set('lastTemp', temperature);
-    } catch (err) {
-      // Weather follow-up (city) failed silently
-    }
-    return;
-  }
-
-  // 🧩 Weather follow-up: "tomorrow"
+  // 🧩 Weather follow-up: "tomorrow" (must come BEFORE city handler)
   if (
     VoiceMemory.get('lastCommand') === 'weather' &&
     includesAny(['tomorrow', 'next day'])
@@ -363,15 +328,13 @@ export const routeVoiceCommand = async (
         lon = -118.24;
       }
 
-      const weatherResponse = await fetchWeather(lat, lon, 'imperial');
-      const data = weatherResponse?.fahrenheit;
+      if (__DEV__) console.log(`[VoiceWeather] lat=${lat}, lng=${lon}, day=tomorrow`);
 
-      const city = data?.name || VoiceMemory.get('lastCity') || 'Los Angeles';
-      const condition =
-        data?.weather?.[0]?.description ||
-        data?.description ||
-        'similar conditions';
-      const temperature = Math.round(data?.main?.temp ?? 0);
+      const weatherResponse = await fetchWeather(lat, lon, 'imperial', 'tomorrow');
+
+      const city = weatherResponse?.city || VoiceMemory.get('lastCity') || 'Los Angeles';
+      const condition = weatherResponse?.condition || 'similar conditions';
+      const temperature = weatherResponse?.temperature || 0;
 
       VoiceBus.emit('weather', {city, temperature, condition});
       VoiceMemory.set('lastCommand', 'weather');
@@ -380,6 +343,42 @@ export const routeVoiceCommand = async (
       VoiceMemory.set('lastTemp', temperature);
     } catch (err) {
       // Weather follow-up failed silently
+    }
+    return;
+  }
+
+  // 🧩 Weather follow-up: "in <city>"
+  if (
+    VoiceMemory.get('lastCommand') === 'weather' &&
+    lower.match(/\b(in|for|about)\s+([a-z\s]+)$/i)
+  ) {
+    try {
+      const match = lower.match(/\b(in|for|about)\s+([a-z\s]+)$/i);
+      const city = match?.[2]?.trim();
+      if (!city) return;
+
+      VoiceMemory.set('lastCity', city);
+
+      if (__DEV__) console.log(`[VoiceWeather] city=${city}`);
+
+      const weatherResponse = await fetchWeather(
+        undefined,
+        undefined,
+        'imperial',
+        'today',
+        city,
+      );
+
+      const condition = weatherResponse?.condition || 'clear skies';
+      const temperature = weatherResponse?.temperature || 0;
+
+      VoiceBus.emit('weather', {city, temperature, condition});
+      VoiceMemory.set('lastCommand', 'weather');
+      VoiceMemory.set('lastCity', city);
+      VoiceMemory.set('lastCondition', condition);
+      VoiceMemory.set('lastTemp', temperature);
+    } catch (err) {
+      // Weather follow-up (city) failed silently
     }
     return;
   }
@@ -415,16 +414,14 @@ export const routeVoiceCommand = async (
         lon = -118.24;
       }
 
-      const weatherResponse = await fetchWeather(lat, lon, 'imperial');
+      const day = includesAny(['tomorrow', 'next day']) ? 'tomorrow' : 'today';
+      if (__DEV__) console.log(`[VoiceWeather] lat=${lat}, lng=${lon}, day=${day}`);
 
-      const data = weatherResponse?.fahrenheit;
+      const weatherResponse = await fetchWeather(lat, lon, 'imperial', day);
 
-      const city = data?.name || 'Los Angeles';
-      const condition =
-        data?.weather?.[0]?.description ||
-        data?.description ||
-        'Unknown conditions';
-      const temperature = Math.round(data?.main?.temp ?? 0);
+      const city = weatherResponse?.city || 'Los Angeles';
+      const condition = weatherResponse?.condition || 'Unknown conditions';
+      const temperature = weatherResponse?.temperature || 0;
 
       VoiceBus.emit('weather', {
         city,

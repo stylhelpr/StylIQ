@@ -46,6 +46,20 @@ const h = (type: string) =>
     ignoreAndroidSystemSettings: false,
   });
 
+const PATTERN_OPTIONS = [
+  'Solid',
+  'Stripes',
+  'Plaid / Tartan',
+  'Floral',
+  'Polka Dots',
+  'Animal Print',
+  'Geometric',
+  'Abstract',
+  'Paisley',
+  'Camo',
+  'Houndstooth',
+];
+
 export default function PreferencesScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
@@ -58,6 +72,16 @@ export default function PreferencesScreen({navigate}: Props) {
   // User-added custom prefs vocabulary (shown as chips even if unselected)
   const [customPrefs, setCustomPrefs] = useState<string[]>([]);
   const [newPref, setNewPref] = useState('');
+
+  // pattern_preferences state
+  const [patternSelected, setPatternSelected] = useState<string[]>([]);
+  const [customPatterns, setCustomPatterns] = useState<string[]>([]);
+  const [newPattern, setNewPattern] = useState('');
+
+  // avoid_patterns state
+  const [avoidPatternSelected, setAvoidPatternSelected] = useState<string[]>([]);
+  const [customAvoidPatterns, setCustomAvoidPatterns] = useState<string[]>([]);
+  const [newAvoidPattern, setNewAvoidPattern] = useState('');
 
   const {user} = useAuth0();
   const userId = user?.sub || '';
@@ -108,6 +132,26 @@ export default function PreferencesScreen({navigate}: Props) {
           );
           setCustomPrefs(customOnly);
         }
+      }
+
+      // pattern_preferences hydration
+      if (Array.isArray(styleProfile?.pattern_preferences)) {
+        setPatternSelected(styleProfile!.pattern_preferences);
+        const customOnly = styleProfile!.pattern_preferences.filter(
+          (p: string) =>
+            !PATTERN_OPTIONS.map(x => x.toLowerCase()).includes(p.toLowerCase()),
+        );
+        setCustomPatterns(prev => Array.from(new Set([...prev, ...customOnly])));
+      }
+
+      // avoid_patterns hydration
+      if (Array.isArray(styleProfile?.avoid_patterns)) {
+        setAvoidPatternSelected(styleProfile!.avoid_patterns);
+        const customOnly = styleProfile!.avoid_patterns.filter(
+          (p: string) =>
+            !PATTERN_OPTIONS.map(x => x.toLowerCase()).includes(p.toLowerCase()),
+        );
+        setCustomAvoidPatterns(prev => Array.from(new Set([...prev, ...customOnly])));
       }
     })();
   }, [styleProfile]);
@@ -177,6 +221,90 @@ export default function PreferencesScreen({navigate}: Props) {
     }
   };
 
+  // ── Pattern preferences handlers ──
+
+  const togglePattern = async (pref: string) => {
+    h('impactLight');
+    const next = patternSelected.includes(pref)
+      ? patternSelected.filter(p => p !== pref)
+      : [...patternSelected, pref];
+    const prev = patternSelected;
+    setPatternSelected(next);
+    try {
+      await updateProfile('pattern_preferences', next);
+    } catch {
+      setPatternSelected(prev);
+      h('notificationError');
+    }
+  };
+
+  const handleAddPattern = async () => {
+    const trimmed = newPattern.trim();
+    if (!trimmed) return;
+    const all = [...PATTERN_OPTIONS, ...customPatterns];
+    if (all.some(p => p.toLowerCase() === trimmed.toLowerCase())) {
+      setNewPattern('');
+      Keyboard.dismiss();
+      return;
+    }
+    const nextCustom = [...customPatterns, trimmed];
+    const nextSelected = [...patternSelected, trimmed];
+    setCustomPatterns(nextCustom);
+    setPatternSelected(nextSelected);
+    try {
+      await updateProfile('pattern_preferences', nextSelected);
+      setNewPattern('');
+      Keyboard.dismiss();
+      h('impactLight');
+    } catch {
+      setCustomPatterns(customPatterns);
+      setPatternSelected(patternSelected);
+      h('notificationError');
+    }
+  };
+
+  // ── Avoid patterns handlers ──
+
+  const toggleAvoidPattern = async (pref: string) => {
+    h('impactLight');
+    const next = avoidPatternSelected.includes(pref)
+      ? avoidPatternSelected.filter(p => p !== pref)
+      : [...avoidPatternSelected, pref];
+    const prev = avoidPatternSelected;
+    setAvoidPatternSelected(next);
+    try {
+      await updateProfile('avoid_patterns', next);
+    } catch {
+      setAvoidPatternSelected(prev);
+      h('notificationError');
+    }
+  };
+
+  const handleAddAvoidPattern = async () => {
+    const trimmed = newAvoidPattern.trim();
+    if (!trimmed) return;
+    const all = [...PATTERN_OPTIONS, ...customAvoidPatterns];
+    if (all.some(p => p.toLowerCase() === trimmed.toLowerCase())) {
+      setNewAvoidPattern('');
+      Keyboard.dismiss();
+      return;
+    }
+    const nextCustom = [...customAvoidPatterns, trimmed];
+    const nextSelected = [...avoidPatternSelected, trimmed];
+    setCustomAvoidPatterns(nextCustom);
+    setAvoidPatternSelected(nextSelected);
+    try {
+      await updateProfile('avoid_patterns', nextSelected);
+      setNewAvoidPattern('');
+      Keyboard.dismiss();
+      h('impactLight');
+    } catch {
+      setCustomAvoidPatterns(customAvoidPatterns);
+      setAvoidPatternSelected(avoidPatternSelected);
+      h('notificationError');
+    }
+  };
+
   const combinedPrefs = [...preferences, ...customPrefs];
 
   return (
@@ -240,6 +368,72 @@ export default function PreferencesScreen({navigate}: Props) {
               onChangeText={setNewPref}
               onSubmitEditing={handleAddPref}
               onBlur={handleAddPref}
+              returnKeyType="done"
+            />
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Patterns you like:
+          </Text>
+
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md, paddingBottom: 20},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {[...PATTERN_OPTIONS, ...customPatterns].map(pref => (
+                <Chip
+                  key={pref}
+                  label={pref}
+                  selected={patternSelected.includes(pref)}
+                  onPress={() => togglePattern(pref)}
+                />
+              ))}
+            </View>
+
+            <TextInput
+              placeholder="Add a custom pattern"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={newPattern}
+              onChangeText={setNewPattern}
+              onSubmitEditing={handleAddPattern}
+              onBlur={handleAddPattern}
+              returnKeyType="done"
+            />
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Patterns to avoid:
+          </Text>
+
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md, paddingBottom: 20},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {[...PATTERN_OPTIONS, ...customAvoidPatterns].map(pref => (
+                <Chip
+                  key={pref}
+                  label={pref}
+                  selected={avoidPatternSelected.includes(pref)}
+                  onPress={() => toggleAvoidPattern(pref)}
+                />
+              ))}
+            </View>
+
+            <TextInput
+              placeholder="Add a custom pattern to avoid"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={newAvoidPattern}
+              onChangeText={setNewAvoidPattern}
+              onSubmitEditing={handleAddAvoidPattern}
+              onBlur={handleAddAvoidPattern}
               returnKeyType="done"
             />
           </View>

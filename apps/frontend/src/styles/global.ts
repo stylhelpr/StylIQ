@@ -349,6 +349,21 @@ export const createGlobalStyles = (theme: Theme) =>
       // elevation: 5,
     },
 
+    cardStyles6: {
+      // paddingVertical: isTablet ? 8 : isLargePhone ? 8 : isRegularPhone ? 8 : 8,
+      // paddingHorizontal: isTablet ? 20 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.surfaceBorder,
+      borderRadius: tokens.borderRadius.xxxl,
+       backgroundColor: theme.colors.surface,
+
+      // shadowColor: '#000',
+      // shadowOffset: {width: 4, height: 4},
+      // shadowOpacity: 0.3,
+      // shadowRadius: 7,
+      // elevation: 5,
+    },
+
     newsCard1: {
       paddingVertical: isTablet
         ? 14
@@ -646,10 +661,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 16
         : isLargePhone
-          ? 12
+          ? 8
           : isRegularPhone
-            ? 12
-            : 12,
+            ? 8
+            : 8,
     },
     labelContainer2: {
       paddingHorizontal: isTablet
@@ -1032,7 +1047,7 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     image11: {
       width: '100%',
-      height: isTablet ? 160 : isLargePhone ? 165 : isRegularPhone ? 165 : 165,
+      height: isTablet ? 160 : isLargePhone ? 120 : isRegularPhone ? 120 : 120,
 
     },
     bgContainer1: {
@@ -1099,11 +1114,24 @@ export const createGlobalStyles = (theme: Theme) =>
       alignItems: 'flex-start',
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
-      borderRadius: tokens.borderRadius.lg,
-      // borderRadius: tokens.borderRadius.sm,
-      borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.surfaceBorder,
+      // borderRadius: tokens.borderRadius.lg,
+      borderRadius: tokens.borderRadius.sm,
+      // borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.surfaceBorder,
     },
+
+       outfitCard5: {
+      width: isTablet ? 160 : isLargePhone ? 195 : isRegularPhone ? 184 : 165,
+      // marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
+      alignItems: 'flex-start',
+      backgroundColor: theme.colors.surface,
+      overflow: 'hidden',
+      // borderRadius: tokens.borderRadius.lg,
+      borderRadius: tokens.borderRadius.sm,
+      // borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.surfaceBorder,
+    },
+
 
     // ============================================================
     // 🎙️ Prompt Input (Voice/Chat Bar)

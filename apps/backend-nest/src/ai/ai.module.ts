@@ -4,6 +4,7 @@ import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { DatabaseService } from '../db/database.service';
 import { VertexService } from '../vertex/vertex.service'; // ✅ added
+import { LearningModule } from '../learning/learning.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { VertexService } from '../vertex/vertex.service'; // ✅ added
       isGlobal: true,
       envFilePath: 'apps/backend-nest/.env', // ✅ explicit .env path
     }),
+    LearningModule,
   ],
   controllers: [AiController],
   providers: [

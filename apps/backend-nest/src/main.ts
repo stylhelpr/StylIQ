@@ -1,3 +1,8 @@
+// Load .env in dev only
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: '.env' });
+}
+
 // SECURITY: No dotenv - secrets loaded from filesystem only
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
@@ -31,7 +36,23 @@ const REQUIRED_SECRETS = [
 // Verify required secrets exist (fail fast)
 try {
   verifyRequiredSecrets(REQUIRED_SECRETS);
-  console.log('🔐 All required secrets verified');
+  // console.log('🔐 All required secrets verified');
+
+  // // ⚠️ TEMP: One-time flag verification — REMOVE after confirming
+  // const FLAG_KEYS = [
+  //   'ELITE_ENABLED',
+  //   'ELITE_SCORING_DEBUG',
+  //   'LEARNING_EVENTS_ENABLED',
+  //   'LEARNING_STATE_ENABLED',
+  //   'LEARNING_SHADOW_MODE',
+  //   'DEBUG_RECOMMENDED_BUYS',
+  // ] as const;
+  // console.log('🏁 [FLAG CHECK] Runtime environment flags:');
+  // for (const key of FLAG_KEYS) {
+  //   const val = process.env[key];
+  //   console.log(`   ${key} = ${val === undefined ? '❌ UNDEFINED' : `"${val}"`}`);
+  // }
+  // console.log('🏁 [FLAG CHECK] End');
 } catch (err: any) {
   console.error('❌ Secret verification failed:', err.message);
   process.exit(1);
@@ -60,7 +81,7 @@ async function bootstrap() {
     const app = await NestFactory.create<NestFastifyApplication>(
       AppModule,
       adapter,
-      { logger: ['error', 'warn'] },
+      { logger: ['error', 'warn'] }, // 'log' removed to suppress InstanceLoader/bootstrap noise
     );
 
     // Global validation pipe
@@ -78,7 +99,7 @@ async function bootstrap() {
     });
 
     // Ensure Express-style middleware exists (used by Passport)
-    const fastifyInstance = adapter.getInstance() as any;
+    const fastifyInstance = adapter.getInstance();
     if (typeof fastifyInstance.use !== 'function') {
       await fastifyInstance.register(fastifyExpress);
     }

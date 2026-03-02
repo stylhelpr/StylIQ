@@ -89,7 +89,7 @@ export async function hybridQueryUserNs(params: {
   // Merge results from both queries
   [imageRes.matches || [], textRes.matches || []].forEach((list) => {
     list.forEach((m, i) => {
-      const key = m.id!;
+      const key = m.id;
       if (!fuse[key]) fuse[key] = { score: 0, meta: m.metadata };
       fuse[key].score += rrf(i + 1);
     });

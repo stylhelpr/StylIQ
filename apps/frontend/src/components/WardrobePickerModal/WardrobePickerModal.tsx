@@ -30,9 +30,25 @@ const CATEGORY_TABS = [
   {value: 'All', label: 'All', icon: 'category'},
   {value: 'Tops', label: 'Tops', icon: 'checkroom'},
   {value: 'Bottoms', label: 'Bottoms', icon: 'drag-handle'},
-  {value: 'Shoes', label: 'Shoes', icon: 'hiking'},
   {value: 'Outerwear', label: 'Outerwear', icon: 'ac-unit'},
+  {value: 'Dresses', label: 'Dresses', icon: 'dry-cleaning'},
+  {value: 'Skirts', label: 'Skirts', icon: 'drag-handle'},
+  {value: 'Shoes', label: 'Shoes', icon: 'hiking'},
   {value: 'Accessories', label: 'Accessories', icon: 'watch'},
+  {value: 'Bags', label: 'Bags', icon: 'shopping-bag'},
+  {value: 'Headwear', label: 'Headwear', icon: 'face'},
+  {value: 'Jewelry', label: 'Jewelry', icon: 'diamond'},
+  {value: 'Undergarments', label: 'Undergarments', icon: 'layers'},
+  {value: 'Activewear', label: 'Activewear', icon: 'fitness-center'},
+  {value: 'Formalwear', label: 'Formalwear', icon: 'work'},
+  {value: 'Loungewear', label: 'Loungewear', icon: 'weekend'},
+  {value: 'Sleepwear', label: 'Sleepwear', icon: 'hotel'},
+  {value: 'Swimwear', label: 'Swimwear', icon: 'pool'},
+  {value: 'Maternity', label: 'Maternity', icon: 'pregnant-woman'},
+  {value: 'Unisex', label: 'Unisex', icon: 'wc'},
+  {value: 'Costumes', label: 'Costumes', icon: 'theater-comedy'},
+  {value: 'TraditionalWear', label: 'Traditional Wear', icon: 'festival'},
+  {value: 'Other', label: 'Other', icon: 'more-horiz'},
 ];
 
 type WardrobeItem = {
@@ -306,15 +322,6 @@ export default function WardrobePickerModal({
                   item.thumbnailUrl ||
                   item.image_url;
                 const uri = resolveUri(imageUrl);
-                // Debug: log FULL URLs being used
-                console.log('[WardrobePicker] FULL URLS:', {
-                  id: item.id,
-                  image: item.image,
-                  touchedUpImageUrl: item.touchedUpImageUrl,
-                  processedImageUrl: item.processedImageUrl,
-                  image_url: item.image_url,
-                  resolved: uri,
-                });
                 return (
                   <TouchableOpacity
                     key={item.id}

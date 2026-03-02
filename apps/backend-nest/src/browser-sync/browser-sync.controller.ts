@@ -30,7 +30,9 @@ export class BrowserSyncController {
    * Use on first app open or when local data is missing
    */
   @Get()
-  async getFullSync(@Request() req: AuthenticatedRequest): Promise<SyncResponseDto> {
+  async getFullSync(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<SyncResponseDto> {
     const userId = req.user.userId;
     return this.browserSyncService.getFullSync(userId);
   }
@@ -106,7 +108,9 @@ export class BrowserSyncController {
    */
   @Delete('analytics')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteAllAnalytics(@Request() req: AuthenticatedRequest): Promise<void> {
+  async deleteAllAnalytics(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<void> {
     const userId = req.user.userId;
     await this.browserSyncService.deleteAllAnalytics(userId);
   }

@@ -79,23 +79,24 @@ async function insertData() {
           event.title_sanitized,
           event.session_id,
           JSON.stringify(event.payload),
-        ]
+        ],
       );
 
       if (result.rows.length > 0) {
         console.log(`✅ Inserted ${event.event_type}: ${result.rows[0].id}`);
       } else {
-        console.log(`⏭️ Skipped duplicate ${event.event_type}: ${event.client_event_id}`);
+        console.log(
+          `⏭️ Skipped duplicate ${event.event_type}: ${event.client_event_id}`,
+        );
       }
     }
 
     // Verify
     const countRes = await client.query(
       'SELECT COUNT(*) FROM shopping_analytics_events WHERE user_id = $1 AND is_deleted = FALSE',
-      [userId]
+      [userId],
     );
     console.log(`\n✅ Total events in DB: ${countRes.rows[0].count}`);
-
   } catch (err: any) {
     console.error('❌ Error:', err.message);
   } finally {

@@ -20,11 +20,17 @@ export class PriceCheckCronService implements OnModuleInit {
     try {
       console.log('🔔 Price alert check started...');
 
-      const trackings = await this.priceTrackingService.getAllTrackingsToCheck();
+      const trackings =
+        await this.priceTrackingService.getAllTrackingsToCheck();
 
       for (const tracking of trackings) {
-        if (tracking.current_price <= tracking.target_price && !tracking.alert_sent) {
-          console.log(`✅ Price drop alert for: ${tracking.title} - $${tracking.current_price}`);
+        if (
+          tracking.current_price <= tracking.target_price &&
+          !tracking.alert_sent
+        ) {
+          console.log(
+            `✅ Price drop alert for: ${tracking.title} - $${tracking.current_price}`,
+          );
 
           // Mark alert as sent (in production, would send push notification here)
           await this.priceTrackingService.markAlertSent(tracking.id);

@@ -33,6 +33,26 @@ const COLORS = [
   'Bold Colors',
 ];
 
+const AVOID_COLOR_OPTIONS = [
+  'Black',
+  'White',
+  'Navy',
+  'Gray',
+  'Brown',
+  'Beige',
+  'Olive',
+  'Burgundy',
+  'Pastels',
+  'Bold Colors',
+  'Neon',
+  'Orange',
+  'Yellow',
+  'Pink',
+];
+
+const METAL_OPTIONS = ['Gold', 'Silver', 'Rose Gold', 'Mixed metals', 'No preference'];
+const CONTRAST_OPTIONS = ['High contrast', 'Medium contrast', 'Low contrast', 'No preference'];
+
 type Props = {navigate: (screen: string) => void};
 
 export default function ColorPreferencesScreen({navigate}: Props) {
@@ -42,6 +62,15 @@ export default function ColorPreferencesScreen({navigate}: Props) {
   const [selected, setSelected] = useState<string[]>([]);
   const [customColors, setCustomColors] = useState<string[]>([]);
   const [newColor, setNewColor] = useState('');
+
+  // avoid_colors state
+  const [avoidSelected, setAvoidSelected] = useState<string[]>([]);
+  const [customAvoidColors, setCustomAvoidColors] = useState<string[]>([]);
+  const [newAvoidColor, setNewAvoidColor] = useState('');
+
+  // single-select states
+  const [metalPref, setMetalPref] = useState('');
+  const [contrastPref, setContrastPref] = useState('');
 
   const insets = useSafeAreaInsets();
 
@@ -76,6 +105,20 @@ export default function ColorPreferencesScreen({navigate}: Props) {
       );
       setCustomColors(prev => Array.from(new Set([...prev, ...customOnly])));
     }
+
+    // avoid_colors hydration
+    if (Array.isArray(styleProfile?.avoid_colors)) {
+      setAvoidSelected(styleProfile.avoid_colors);
+      const customOnly = styleProfile.avoid_colors.filter(
+        (c: string) =>
+          !AVOID_COLOR_OPTIONS.map(x => x.toLowerCase()).includes(c.toLowerCase()),
+      );
+      setCustomAvoidColors(prev => Array.from(new Set([...prev, ...customOnly])));
+    }
+
+    // single-select hydration
+    if (styleProfile?.metal_preference) setMetalPref(styleProfile.metal_preference);
+    if (styleProfile?.contrast_preference) setContrastPref(styleProfile.contrast_preference);
   }, [styleProfile]);
 
   const toggleColor = async (color: string) => {
@@ -118,6 +161,53 @@ export default function ColorPreferencesScreen({navigate}: Props) {
       setNewColor('');
       Keyboard.dismiss();
       h('impactLight');
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const toggleAvoidColor = async (color: string) => {
+    h('impactLight');
+    const updated = avoidSelected.includes(color)
+      ? avoidSelected.filter(c => c !== color)
+      : [...avoidSelected, color];
+    setAvoidSelected(updated);
+    try {
+      updateProfile('avoid_colors', updated);
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const handleAddAvoidColor = async () => {
+    const trimmed = newAvoidColor.trim();
+    if (!trimmed) return;
+    const all = [...AVOID_COLOR_OPTIONS, ...customAvoidColors];
+    if (all.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+      setNewAvoidColor('');
+      Keyboard.dismiss();
+      return;
+    }
+    const updatedCustom = [...customAvoidColors, trimmed];
+    const updatedSelected = [...avoidSelected, trimmed];
+    setCustomAvoidColors(updatedCustom);
+    setAvoidSelected(updatedSelected);
+    try {
+      updateProfile('avoid_colors', updatedSelected);
+      setNewAvoidColor('');
+      Keyboard.dismiss();
+      h('impactLight');
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const handleSingleSelect = (key: string, value: string) => {
+    h('impactLight');
+    if (key === 'metal_preference') setMetalPref(value);
+    if (key === 'contrast_preference') setContrastPref(value);
+    try {
+      updateProfile(key, value);
     } catch {
       h('notificationError');
     }
@@ -187,6 +277,83 @@ export default function ColorPreferencesScreen({navigate}: Props) {
               onBlur={handleAddColor}
               returnKeyType="done"
             />
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Colors to always avoid:
+          </Text>
+
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md, paddingBottom: 20},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {[...AVOID_COLOR_OPTIONS, ...customAvoidColors].map(color => (
+                <Chip
+                  key={color}
+                  label={color}
+                  selected={avoidSelected.includes(color)}
+                  onPress={() => toggleAvoidColor(color)}
+                />
+              ))}
+            </View>
+
+            <TextInput
+              placeholder="Add a custom color to avoid"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={newAvoidColor}
+              onChangeText={setNewAvoidColor}
+              onSubmitEditing={handleAddAvoidColor}
+              onBlur={handleAddAvoidColor}
+              returnKeyType="done"
+            />
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Metal preference:
+          </Text>
+
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {METAL_OPTIONS.map(opt => (
+                <Chip
+                  key={opt}
+                  label={opt}
+                  selected={metalPref === opt}
+                  onPress={() => handleSingleSelect('metal_preference', opt)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Contrast preference:
+          </Text>
+
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {CONTRAST_OPTIONS.map(opt => (
+                <Chip
+                  key={opt}
+                  label={opt}
+                  selected={contrastPref === opt}
+                  onPress={() => handleSingleSelect('contrast_preference', opt)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

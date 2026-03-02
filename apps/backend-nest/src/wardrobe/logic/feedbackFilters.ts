@@ -131,6 +131,10 @@ function safeParseOutfitJson(raw: unknown): any | null {
   return null;
 }
 
+/**
+ * NormalizedCategory - all 21 MainCategories + 'unknown' fallback.
+ * Used for feedback rule matching.
+ */
 type NormalizedCategory =
   | 'tops'
   | 'bottoms'
@@ -140,6 +144,19 @@ type NormalizedCategory =
   | 'formalwear'
   | 'activewear'
   | 'swimwear'
+  | 'dresses'
+  | 'skirts'
+  | 'bags'
+  | 'headwear'
+  | 'jewelry'
+  | 'undergarments'
+  | 'loungewear'
+  | 'sleepwear'
+  | 'maternity'
+  | 'unisex'
+  | 'costumes'
+  | 'traditionalwear'
+  | 'other'
   | 'unknown';
 
 const CATEGORY_ALIASES: Array<[NormalizedCategory, RegExp]> = [
@@ -166,6 +183,25 @@ const CATEGORY_ALIASES: Array<[NormalizedCategory, RegExp]> = [
   ['formalwear', /\b(tux(ed|edo)?|dinner\s*jacket|gown|cocktail\s*dress)\b/i],
   ['activewear', /\b(activewear|athleisure|gym|training|performance)\b/i],
   ['swimwear', /\b(swim|trunks|boardshorts?|bikini|one[-\s]?piece)\b/i],
+  ['dresses', /\b(dress(es)?|gown|jumpsuit|romper)\b/i],
+  ['skirts', /\b(skirts?)\b/i],
+  ['bags', /\b(bags?|handbags?|totes?|clutch(es)?|backpacks?|crossbody)\b/i],
+  ['headwear', /\b(caps?|beanies?|fedoras?|headbands?|sun\s*hats?)\b/i],
+  ['jewelry', /\b(necklaces?|bracelets?|earrings?|rings?|jewelry)\b/i],
+  [
+    'undergarments',
+    /\b(underwear|briefs?|boxers?|bras?|socks?|panties|shapewear)\b/i,
+  ],
+  ['loungewear', /\b(lounge|sweatshirts?|co-?ords?)\b/i],
+  ['sleepwear', /\b(pajamas?|nightgowns?|nightshirts?|robes?|sleepwear)\b/i],
+  ['maternity', /\b(maternity|pregnancy|nursing)\b/i],
+  ['unisex', /\b(unisex|gender[-\s]?neutral)\b/i],
+  ['costumes', /\b(costumes?|halloween|cosplay)\b/i],
+  [
+    'traditionalwear',
+    /\b(kimonos?|sarees?|saris?|abayas?|hanboks?|traditional)\b/i,
+  ],
+  ['other', /\b(other|miscellaneous)\b/i],
 ];
 
 function normalizeCategoryText(s: string): NormalizedCategory {
@@ -267,6 +303,26 @@ function itemIsCategory(it: CatalogItem, cat: NormalizedCategory): boolean {
       return m === 'activewear';
     case 'swimwear':
       return m === 'swimwear' || /\b(swim|trunks|boardshorts?)\b/i.test(s);
+    case 'dresses':
+      return (
+        m === 'dresses' || /\b(dress(es)?|gown|jumpsuit|romper)\b/i.test(s)
+      );
+    case 'skirts':
+      return m === 'skirts' || /\bskirts?\b/i.test(s);
+    case 'bags':
+      return (
+        m === 'bags' || /\b(handbag|tote|clutch|backpack|crossbody)\b/i.test(s)
+      );
+    case 'headwear':
+      return m === 'headwear';
+    case 'jewelry':
+      return m === 'jewelry' || /\b(necklace|bracelet|earring|ring)\b/i.test(s);
+    case 'undergarments':
+      return m === 'undergarments';
+    case 'loungewear':
+      return m === 'loungewear';
+    case 'sleepwear':
+      return m === 'sleepwear';
     default:
       return false;
   }
@@ -447,10 +503,7 @@ function applyRulesSoft<T extends CatalogItem>(
   catalog: T[],
   rules: FeedbackRule[],
 ): T[] {
-  const itemRules = rules.filter((r) => r.kind === 'excludeItemIds') as Extract<
-    FeedbackRule,
-    { kind: 'excludeItemIds' }
-  >[];
+  const itemRules = rules.filter((r) => r.kind === 'excludeItemIds');
   if (!itemRules.length) return catalog;
   const banned = new Set<string>();
   itemRules.forEach((r) => r.item_ids.forEach((id) => banned.add(String(id))));

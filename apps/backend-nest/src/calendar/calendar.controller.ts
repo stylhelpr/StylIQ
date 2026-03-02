@@ -70,12 +70,18 @@ export class CalendarController {
     console.log('📅 POST /calendar/event received:', { user_id, ...body });
 
     if (!body?.title || !body?.start_date) {
-      console.warn('⚠️ Missing required fields:', { title: !!body?.title, start_date: !!body?.start_date });
+      console.warn('⚠️ Missing required fields:', {
+        title: !!body?.title,
+        start_date: !!body?.start_date,
+      });
       return { ok: false, error: 'missing_required_fields' };
     }
 
     try {
-      const event = await this.calendarService.createEvent({ user_id, ...body });
+      const event = await this.calendarService.createEvent({
+        user_id,
+        ...body,
+      });
       console.log('✅ Event created successfully:', event);
       return { ok: true, event };
     } catch (err) {
@@ -89,10 +95,7 @@ export class CalendarController {
   // Delete a single calendar event
   @Delete('event/:event_id')
   @HttpCode(HttpStatus.OK)
-  async deleteEvent(
-    @Req() req,
-    @Param('event_id') event_id: string,
-  ) {
+  async deleteEvent(@Req() req, @Param('event_id') event_id: string) {
     const user_id = req.user.userId;
     console.log('🗑️ DELETE /calendar/event received:', { user_id, event_id });
 
@@ -101,7 +104,10 @@ export class CalendarController {
     }
 
     try {
-      const result = await this.calendarService.deleteEvent({ user_id, event_id });
+      const result = await this.calendarService.deleteEvent({
+        user_id,
+        event_id,
+      });
       console.log('✅ Event deleted:', result);
       return result;
     } catch (err) {

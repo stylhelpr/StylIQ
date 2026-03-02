@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  UseGuards,
-  Req,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
 import { SearchLogsService } from './search-logs.service';
 import { CreateSearchLogDto } from './dto/create-search-log.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';

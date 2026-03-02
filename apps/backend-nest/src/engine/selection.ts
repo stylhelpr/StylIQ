@@ -1,6 +1,12 @@
+import {
+  type MainCategory,
+  filterBySlot,
+  isSlot,
+} from '../wardrobe/logic/categoryMapping';
+
 type Item = {
   id: string;
-  main_category: 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
+  main_category: MainCategory;
   subcategory: string; // 'Hoodie','Sport Coat','Sneakers', etc.
   color?: string; // normalized lower-case if you can
   pattern?: string; // 'SOLID','Micro','Bold', etc.
@@ -195,11 +201,12 @@ function buildOutfits(
   user: UserPrefs,
   count = 3,
 ) {
-  const tops = pool.filter((i) => i.main_category === 'Tops');
-  const bottoms = pool.filter((i) => i.main_category === 'Bottoms');
-  const shoes = pool.filter((i) => i.main_category === 'Shoes');
-  const outers = pool.filter((i) => i.main_category === 'Outerwear');
-  const accs = pool.filter((i) => i.main_category === 'Accessories');
+  // Use canonical slot mapping for category filtering
+  const tops = filterBySlot(pool, 'tops');
+  const bottoms = filterBySlot(pool, 'bottoms'); // includes Skirts
+  const shoes = filterBySlot(pool, 'shoes');
+  const outers = filterBySlot(pool, 'outerwear');
+  const accs = filterBySlot(pool, 'accessories'); // includes Bags, Headwear, Jewelry
 
   type Candidate = { items: Item[]; score: number; why: string };
   const cands: Candidate[] = [];

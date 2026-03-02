@@ -13,10 +13,12 @@ import {
   Get,
   Post,
   Delete,
+  Body,
   Req,
   UseGuards,
   HttpCode,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pool } from '../db/pool';
@@ -24,10 +26,18 @@ import { ConsentCache } from './consent-cache';
 import { LearningEventsService } from './learning-events.service';
 import { FashionStateService } from './fashion-state.service';
 import { LEARNING_FLAGS } from '../config/feature-flags';
+import {
+  LearningEventType,
+  EntityType,
+  ExtractedFeatures,
+  EVENT_SIGNAL_DEFAULTS,
+} from './dto/learning-event.dto';
 
 @Controller('learning')
 @UseGuards(JwtAuthGuard)
 export class LearningController {
+  private readonly logger = new Logger(LearningController.name);
+
   constructor(
     private readonly consentCache: ConsentCache,
     private readonly eventsService: LearningEventsService,
@@ -35,10 +45,57 @@ export class LearningController {
   ) {}
 
   /**
+   * Log a learning event from the frontend.
+   * Fire-and-forget: returns 202 immediately, event is persisted best-effort.
+   */
+  @Post('events')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async logEvent(
+    @Req() req,
+    @Body()
+    body: {
+      eventType: LearningEventType;
+      entityType: EntityType;
+      entityId?: string;
+      extractedFeatures?: ExtractedFeatures;
+      sourceFeature: string;
+    },
+  ): Promise<{ accepted: boolean }> {
+    const userId = req.user.userId;
+
+    this.logger.log('[Learning] EVENT RECEIVED', {
+      userId,
+      eventType: body.eventType,
+      entityType: body.entityType,
+      sourceFeature: body.sourceFeature,
+    });
+
+    const defaults = EVENT_SIGNAL_DEFAULTS[body.eventType];
+    if (!defaults) {
+      return { accepted: false };
+    }
+
+    await this.eventsService.logEvent({
+      userId,
+      eventType: body.eventType,
+      entityType: body.entityType,
+      entityId: body.entityId,
+      signalPolarity: defaults.polarity,
+      signalWeight: defaults.weight,
+      extractedFeatures: body.extractedFeatures ?? {},
+      sourceFeature: body.sourceFeature,
+    });
+
+    return { accepted: true };
+  }
+
+  /**
    * Get current learning consent status.
    */
   @Get('consent')
-  async getConsent(@Req() req): Promise<{ enabled: boolean; enabledAt?: string }> {
+  async getConsent(
+    @Req() req,
+  ): Promise<{ enabled: boolean; enabledAt?: string }> {
     const userId = req.user.userId;
 
     const result = await pool.query(
@@ -79,7 +136,9 @@ export class LearningController {
    */
   @Post('consent/disable')
   @HttpCode(HttpStatus.OK)
-  async disableConsent(@Req() req): Promise<{ enabled: boolean; deletedEvents: number }> {
+  async disableConsent(
+    @Req() req,
+  ): Promise<{ enabled: boolean; deletedEvents: number }> {
     const userId = req.user.userId;
 
     // Update consent flag
@@ -128,21 +187,52 @@ export class LearningController {
       colors: string[];
       styles: string[];
     };
+    negativePreferences?: {
+      brands: string[];
+      colors: string[];
+      styles: string[];
+    };
   }> {
     const userId = req.user.userId;
 
     const eventsCount = await this.eventsService.getEventCount(userId);
     const state = await this.fashionStateService.getState(userId);
 
+    // Fetch profile-level avoid_colors (fail-open)
+    let profileAvoidColors: string[] = [];
+    try {
+      const spResult = await pool.query(
+        'SELECT avoid_colors FROM style_profiles WHERE user_id = $1 LIMIT 1',
+        [userId],
+      );
+      const raw = spResult.rows[0]?.avoid_colors;
+      profileAvoidColors = Array.isArray(raw) ? raw : [];
+    } catch (e) {
+      this.logger.warn(`[Learning] summary: failed to fetch style_profiles avoid_colors: ${e.message}`);
+    }
+
     if (!state) {
+      // Even without fashion state, surface profile avoid_colors
+      const merged = [...new Set(profileAvoidColors.map(c => c.toLowerCase()))];
       return {
         eventsCount,
-        hasState: false,
+        hasState: merged.length > 0,
         isColdStart: true,
+        negativePreferences: merged.length > 0
+          ? { brands: [], colors: merged, styles: [] }
+          : undefined,
       };
     }
 
     const summary = await this.fashionStateService.getStateSummary(userId);
+
+    // Merge profile avoid_colors + learned avoid_colors, dedupe case-insensitive
+    const learnedAvoidColors = summary?.avoidColors ?? [];
+    const mergedAvoidColors = [
+      ...new Set(
+        [...profileAvoidColors, ...learnedAvoidColors].map(c => c.toLowerCase()),
+      ),
+    ];
 
     return {
       eventsCount,
@@ -155,6 +245,17 @@ export class LearningController {
             styles: summary.topStyles,
           }
         : undefined,
+      // T4 PATCH: expose negative learning signals for capsule engine
+      // T5 PATCH: merge style_profiles.avoid_colors into learned avoid_colors
+      negativePreferences: summary
+        ? {
+            brands: summary.avoidBrands,
+            colors: mergedAvoidColors,
+            styles: summary.avoidStyles,
+          }
+        : mergedAvoidColors.length > 0
+          ? { brands: [], colors: mergedAvoidColors, styles: [] }
+          : undefined,
     };
   }
 

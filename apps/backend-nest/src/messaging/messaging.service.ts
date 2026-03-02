@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { MessagingGateway } from './messaging.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { pool } from '../db/pool';
@@ -29,9 +34,15 @@ export class MessagingService {
     `);
 
     // Indexes
-    await pool.query(`CREATE INDEX IF NOT EXISTS dm_sender_recipient_idx ON direct_messages(sender_id, recipient_id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS dm_recipient_sender_idx ON direct_messages(recipient_id, sender_id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS dm_created_at_idx ON direct_messages(created_at DESC)`);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS dm_sender_recipient_idx ON direct_messages(sender_id, recipient_id)`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS dm_recipient_sender_idx ON direct_messages(recipient_id, sender_id)`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS dm_created_at_idx ON direct_messages(created_at DESC)`,
+    );
   }
 
   // Send a message
@@ -45,7 +56,7 @@ export class MessagingService {
       `SELECT 1 FROM blocked_users
        WHERE (blocker_id = $1 AND blocked_id = $2)
           OR (blocker_id = $2 AND blocked_id = $1)`,
-      [senderId, recipientId]
+      [senderId, recipientId],
     );
 
     if (blocked.rows.length > 0) {
@@ -56,7 +67,7 @@ export class MessagingService {
       `INSERT INTO direct_messages (sender_id, recipient_id, content)
        VALUES ($1, $2, $3)
        RETURNING *`,
-      [senderId, recipientId, content]
+      [senderId, recipientId, content],
     );
 
     const message = res.rows[0];
@@ -67,13 +78,15 @@ export class MessagingService {
         COALESCE(first_name, 'StylHelpr') || ' ' || COALESCE(last_name, 'User') as sender_name,
         COALESCE(profile_picture, 'https://i.pravatar.cc/100?u=' || $1::text) as sender_avatar
        FROM users WHERE id = $1::uuid`,
-      [senderId]
+      [senderId],
     );
 
     const enrichedMessage = {
       ...message,
       sender_name: senderInfo.rows[0]?.sender_name || 'StylHelpr User',
-      sender_avatar: senderInfo.rows[0]?.sender_avatar || `https://i.pravatar.cc/100?u=${senderId}`,
+      sender_avatar:
+        senderInfo.rows[0]?.sender_avatar ||
+        `https://i.pravatar.cc/100?u=${senderId}`,
     };
 
     // Emit via WebSocket for real-time delivery
@@ -81,34 +94,47 @@ export class MessagingService {
 
     // Send push notification to recipient
     const senderName = enrichedMessage.sender_name || 'Someone';
-    const truncatedContent = content.length > 100 ? content.slice(0, 100) + '...' : content;
+    const truncatedContent =
+      content.length > 100 ? content.slice(0, 100) + '...' : content;
     const title = 'New Direct Message';
     const notificationMessage = `${senderName}: ${truncatedContent}`;
 
-    this.notifications.sendPushToUser(
-      recipientId,
-      title,
-      notificationMessage,
-      { type: 'direct_message', senderId },
-    ).catch(() => {});
+    this.notifications
+      .sendPushToUser(recipientId, title, notificationMessage, {
+        type: 'direct_message',
+        senderId,
+      })
+      .catch(() => {});
 
     // Save to notifications inbox so it appears in the Notifications screen
-    this.notifications.saveInboxItem({
-      id: message.id,
-      user_id: recipientId,
-      title,
-      message: notificationMessage,
-      timestamp: new Date().toISOString(),
-      category: 'message',
-      data: { type: 'direct_message', senderId, senderName, senderAvatar: enrichedMessage.sender_avatar },
-      read: false,
-    }).catch(() => {});
+    this.notifications
+      .saveInboxItem({
+        id: message.id,
+        user_id: recipientId,
+        title,
+        message: notificationMessage,
+        timestamp: new Date().toISOString(),
+        category: 'message',
+        data: {
+          type: 'direct_message',
+          senderId,
+          senderName,
+          senderAvatar: enrichedMessage.sender_avatar,
+        },
+        read: false,
+      })
+      .catch(() => {});
 
     return enrichedMessage;
   }
 
   // Get messages between two users
-  async getMessages(userId: string, otherUserId: string, limit: number = 50, before?: string) {
+  async getMessages(
+    userId: string,
+    otherUserId: string,
+    limit: number = 50,
+    before?: string,
+  ) {
     let query = `
       SELECT
         dm.*,
@@ -137,7 +163,7 @@ export class MessagingService {
       `UPDATE direct_messages
        SET read_at = NOW()
        WHERE recipient_id = $1 AND sender_id = $2 AND read_at IS NULL`,
-      [userId, otherUserId]
+      [userId, otherUserId],
     );
 
     return res.rows.reverse(); // Return in chronological order
@@ -156,7 +182,7 @@ export class MessagingService {
          OR (dm.sender_id = $2 AND dm.recipient_id = $1))
          AND dm.created_at > $3
       ORDER BY dm.created_at ASC`,
-      [userId, otherUserId, since]
+      [userId, otherUserId, since],
     );
 
     // Mark as read
@@ -165,7 +191,7 @@ export class MessagingService {
         `UPDATE direct_messages
          SET read_at = NOW()
          WHERE recipient_id = $1 AND sender_id = $2 AND read_at IS NULL`,
-        [userId, otherUserId]
+        [userId, otherUserId],
       );
     }
 
@@ -200,7 +226,7 @@ export class MessagingService {
            OR (dm2.recipient_id = $1 AND dm2.sender_id = CASE WHEN dm.sender_id = $1 THEN dm.recipient_id ELSE dm.sender_id END)
       )
       ORDER BY dm.created_at DESC`,
-      [userId]
+      [userId],
     );
 
     return res.rows;
@@ -211,7 +237,7 @@ export class MessagingService {
     const res = await pool.query(
       `SELECT COUNT(*) as count FROM direct_messages
        WHERE recipient_id = $1 AND read_at IS NULL`,
-      [userId]
+      [userId],
     );
 
     return parseInt(res.rows[0].count);

@@ -106,14 +106,14 @@ const resolveBestImageUrl = (item: RawOutfitItemData): string => {
   // The backend computes 'image' with correct priority (touchedUp > processed > imageUrl)
   // Just use it directly, with fallbacks for legacy data
   const bestUrl = item.image || item.touchedUpImageUrl || item.processedImageUrl || item.imageUrl || item.image_url || '';
-  // 🔍 DEBUG: Log which field was selected
-  console.log('🖼️ resolveBestImageUrl:', {
-    id: item.id,
-    hasImage: !!item.image,
-    hasTouchedUp: !!item.touchedUpImageUrl,
-    hasProcessed: !!item.processedImageUrl,
-    selectedUrl: bestUrl?.substring(0, 60),
-  });
+  // // 🔍 DEBUG: Log which field was selected
+  // console.log('🖼️ resolveBestImageUrl:', {
+  //   id: item.id,
+  //   hasImage: !!item.image,
+  //   hasTouchedUp: !!item.touchedUpImageUrl,
+  //   hasProcessed: !!item.processedImageUrl,
+  //   selectedUrl: bestUrl?.substring(0, 60),
+  // });
   return normalizeImageUrl(bestUrl);
 };
 
@@ -200,21 +200,21 @@ export function useOutfitsQuery(
       const scheduledData: ScheduledOutfitData[] = scheduledRes.data || [];
       const wornCounts: Record<string, number> = wornCountsRes.data || {};
 
-      console.log('📦 useOutfitsQuery fetched:', {
-        aiCount: aiData.length,
-        customCount: customData.length,
-      });
+      // console.log('📦 useOutfitsQuery fetched:', {
+      //   aiCount: aiData.length,
+      //   customCount: customData.length,
+      // });
 
-      // 🔍 DEBUG: Log first custom outfit's allItems to trace image URLs
-      if (customData.length > 0 && customData[0].allItems) {
-        console.log('🖼️ Frontend received allItems:', customData[0].allItems.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          image: item.image?.substring(0, 60),
-          touchedUpImageUrl: item.touchedUpImageUrl?.substring(0, 50),
-          processedImageUrl: item.processedImageUrl?.substring(0, 50),
-        })));
-      }
+      // // 🔍 DEBUG: Log first custom outfit's allItems to trace image URLs
+      // if (customData.length > 0 && customData[0].allItems) {
+      //   console.log('🖼️ Frontend received allItems:', customData[0].allItems.map((item: any) => ({
+      //     id: item.id,
+      //     name: item.name,
+      //     image: item.image?.substring(0, 60),
+      //     touchedUpImageUrl: item.touchedUpImageUrl?.substring(0, 50),
+      //     processedImageUrl: item.processedImageUrl?.substring(0, 50),
+      //   })));
+      // }
 
       // Build schedule map
       const scheduleMap: Record<string, string> = {};

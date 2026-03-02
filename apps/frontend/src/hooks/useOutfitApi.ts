@@ -1,6 +1,15 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {API_BASE_URL} from '../config/api';
 import {getAccessToken} from '../utils/auth';
+import {findBySlot, type Slot} from '../lib/categoryMapping';
+
+/**
+ * Investor / AAA quality gate.
+ * When true, ALL outfit requests force the standard (Gemini Pro) pipeline
+ * with temperature 0.4 — regardless of useFastMode from the caller.
+ * Flip to `true` for investor demos; `false` for normal production.
+ */
+export const AAAA_MODE_ENABLED = false;
 
 export type OutfitApiItem = {
   index: number;
@@ -47,6 +56,12 @@ type UserStylePayload = {
   avoidSubcategories?: string[];
   favoriteBrands?: string[];
   dressBias?: 'Casual' | 'SmartCasual' | 'BusinessCasual' | 'Business';
+  styleKeywords?: string[];
+  fitPreferences?: string[];
+  fabricPreferences?: string[];
+  stylePreferences?: string[];
+  occasions?: string[];
+  climate?: string;
 };
 
 type Weights = {
@@ -68,6 +83,7 @@ export type GenerateOptions = {
   refinementPrompt?: string;
   lockedItemIds?: string[];
   useFastMode?: boolean; // 🚀 Use fast architecture (Flash + backend retrieval)
+  aaaaMode?: boolean; // 🎯 Force standard mode + max quality settings
 };
 
 function resolveUri(u?: string) {
@@ -120,10 +136,24 @@ function mapStyleProfileToUserStyle(raw: any): UserStylePayload | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const preferredColors = toStringArray(raw.favorite_colors);
   const favoriteBrands = toStringArray(raw.preferred_brands);
+  const avoidSubcategories = toStringArray(raw.disliked_styles);
+  const styleKeywords = toStringArray(raw.style_keywords);
+  const fitPreferences = toStringArray(raw.fit_preferences);
+  const fabricPreferences = toStringArray(raw.fabric_preferences);
+  const stylePreferences = toStringArray(raw.style_preferences);
+  const occasions = toStringArray(raw.occasions);
+  const climate = raw.climate && typeof raw.climate === 'string' ? raw.climate.trim() : undefined;
 
   const out: UserStylePayload = {};
   if (preferredColors) out.preferredColors = preferredColors;
   if (favoriteBrands) out.favoriteBrands = favoriteBrands;
+  if (avoidSubcategories) out.avoidSubcategories = avoidSubcategories;
+  if (styleKeywords) out.styleKeywords = styleKeywords;
+  if (fitPreferences) out.fitPreferences = fitPreferences;
+  if (fabricPreferences) out.fabricPreferences = fabricPreferences;
+  if (stylePreferences) out.stylePreferences = stylePreferences;
+  if (occasions) out.occasions = occasions;
+  if (climate) out.climate = climate;
 
   return Object.keys(out).length ? out : undefined;
 }
@@ -140,9 +170,9 @@ export function useOutfitApi(userId?: string) {
 
   const regenerate = useCallback(
     async (query: string, opts?: GenerateOptions) => {
-      console.log('[useOutfitApi.regenerate] Called with query:', query, 'userId:', userId);
+      // console.log('[useOutfitApi.regenerate] Called with query:', query, 'userId:', userId);
       if (!userId) {
-        console.log('[useOutfitApi.regenerate] No userId, returning early');
+        // console.log('[useOutfitApi.regenerate] No userId, returning early');
         return;
       }
 
@@ -159,13 +189,15 @@ export function useOutfitApi(userId?: string) {
           ? mapStyleProfileToUserStyle(opts?.styleProfile)
           : undefined;
 
+        const isAaaa = AAAA_MODE_ENABLED || opts?.aaaaMode;
         const body: any = {
           user_id: userId,
           query,
           topK: opts?.topK ?? 20,
           useWeather: opts?.useWeather ?? true,
           weather: opts?.weather,
-          useFastMode: opts?.useFastMode ?? true, // 🚀 Use fast mode by default
+          useFastMode: isAaaa ? false : (opts?.useFastMode ?? true), // 🎯 aaaaMode forces standard
+          ...(isAaaa ? { aaaaMode: true } : {}),
         };
 
         if (opts?.styleAgent) {
@@ -188,7 +220,7 @@ export function useOutfitApi(userId?: string) {
 
         if (opts?.lockedItemIds?.length) {
           body.lockedItemIds = opts.lockedItemIds; // ✅ camelCase matches backend
-          console.log('[useOutfitApi] Sending lockedItemIds to backend:', opts.lockedItemIds);
+          // console.log('[useOutfitApi] Sending lockedItemIds to backend:', opts.lockedItemIds);
         }
 
         // 👇 add this
@@ -231,23 +263,23 @@ export function useOutfitApi(userId?: string) {
         });
 
         if (!res.ok) {
-          console.log('[useOutfitApi] HTTP error:', res.status, res.statusText);
+          // console.log('[useOutfitApi] HTTP error:', res.status, res.statusText);
           throw new Error(`HTTP ${res.status} ${res.statusText}`);
         }
 
         const json = await res.json();
-        console.log('[useOutfitApi] Response received:', {
-          hasOutfits: !!json?.outfits,
-          outfitCount: json?.outfits?.length,
-          firstOutfitItems: json?.outfits?.[0]?.items?.length,
-        });
+        // console.log('[useOutfitApi] Response received:', {
+        //   hasOutfits: !!json?.outfits,
+        //   outfitCount: json?.outfits?.length,
+        //   firstOutfitItems: json?.outfits?.[0]?.items?.length,
+        // });
         const arr: OutfitApi[] = Array.isArray(json?.outfits)
           ? json.outfits
           : [];
         setOutfits(arr);
         setSelected(0);
       } catch (e: any) {
-        console.log('[useOutfitApi] Error caught:', e?.name, e?.message);
+        // console.log('[useOutfitApi] Error caught:', e?.name, e?.message);
         if (e?.name !== 'AbortError')
           setErr(e?.message || 'Failed to fetch outfits');
       } finally {
@@ -282,19 +314,48 @@ export function useOutfitApi(userId?: string) {
   };
 }
 
+/**
+ * Pick first item matching a slot.
+ * Uses canonical slot mapping - e.g., 'bottoms' includes both Bottoms and Skirts.
+ */
+export function pickFirstBySlot(
+  items: OutfitApiItem[] | undefined,
+  slot: Slot,
+) {
+  if (!items?.length) return undefined;
+  return findBySlot(items, slot);
+}
+
+/**
+ * @deprecated Use pickFirstBySlot instead for slot-based lookups.
+ * This function is kept for backward compatibility but uses canonical mapping internally.
+ */
 export function pickFirstByCategory(
   items: OutfitApiItem[] | undefined,
   cat: string,
 ) {
   if (!items?.length) return undefined;
+  // Map category string to slot for canonical lookup
+  const slotMap: Record<string, Slot> = {
+    Tops: 'tops',
+    Bottoms: 'bottoms',
+    Shoes: 'shoes',
+    Outerwear: 'outerwear',
+    Accessories: 'accessories',
+    Dresses: 'dresses',
+    Activewear: 'activewear',
+    Swimwear: 'swimwear',
+  };
+  const slot = slotMap[cat];
+  if (slot) {
+    return findBySlot(items, slot);
+  }
+  // Fallback: exact category match for unmapped categories
   return items.find(i => i.main_category === cat);
 }
 
 export function pickTopOrOuter(items?: OutfitApiItem[]) {
-  return (
-    pickFirstByCategory(items, 'Tops') ??
-    pickFirstByCategory(items, 'Outerwear')
-  );
+  return pickFirstBySlot(items, 'tops') ?? pickFirstBySlot(items, 'outerwear');
 }
 
 ////////////////////

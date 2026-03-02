@@ -246,7 +246,7 @@ export default function SavedRecommendationsModal({
 
       Alert.alert(
         'Remove from Saved',
-        `Are you sure you want to remove "${productTitle || 'this item'}" from your saved recommendations?`,
+        `Are you sure you want to remove "${productTitle || 'this item'}" from your saved recommendations? You will not be able to get it back`,
         [
           {
             text: 'Cancel',
@@ -297,6 +297,7 @@ export default function SavedRecommendationsModal({
             marginHorizontal: 1,
             backgroundColor: theme.colors.surface,
             overflow: 'hidden',
+             borderRadius: tokens.borderRadius.sm
           }}>
           <View
             style={{
@@ -336,7 +337,7 @@ export default function SavedRecommendationsModal({
                 position: 'absolute',
                 top: 8,
                 right: 8,
-                backgroundColor: 'rgba(0,0,0,0.5)',
+                backgroundColor: 'rgb(0, 0, 0)',
                 borderRadius: 16,
                 padding: 6,
               }}
@@ -350,7 +351,7 @@ export default function SavedRecommendationsModal({
                 product.product_id ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <MaterialIcons name="favorite" size={18} color="#ff4d6d" />
+                <MaterialIcons name="delete" size={18} color="red" />
               )}
             </TouchableOpacity>
 
@@ -381,53 +382,52 @@ export default function SavedRecommendationsModal({
                   fontWeight: '500',
                   fontSize: 12,
                 }}>
-                Shop Now
+                Buy Now
               </Text>
             </TouchableOpacity>
           </View>
 
-          {product.brand && (
-            <View
+          <View style={{minHeight: 102}}>
+            <Text
               style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
                 paddingHorizontal: 10,
                 paddingTop: 8,
+                color: theme.colors.foreground,
+                fontWeight: '700',
+                fontSize: 12,
+                lineHeight: 16,
+              }}
+                numberOfLines={1}>
+              {product.brand ?? ''}
+            </Text>
+
+            <Text
+              style={{
+                paddingHorizontal: 12,
+                marginTop: 8,
+                color: theme.colors.foreground,
+                fontWeight: '400',
+                fontSize: 13,
+                lineHeight: 18,
+              }}
+              numberOfLines={2}>
+              {product.title ?? ''}
+            </Text>
+
+            <Text
+              style={{
+                paddingHorizontal: 12,
+                marginTop: 'auto',
+                paddingTop: 4,
+                marginBottom: 10,
+                color: theme.colors.primary,
+                fontWeight: '600',
+                fontSize: 14,
+                lineHeight: 20,
               }}>
-              <Text
-                style={{
-                  color: theme.colors.foreground,
-                  fontWeight: '700',
-                  fontSize: 12,
-                }}>
-                {product.brand}
-              </Text>
-            </View>
-          )}
-
-          <Text
-            style={{
-              paddingHorizontal: 12,
-              marginTop: 8,
-              color: theme.colors.foreground,
-              fontWeight: '400',
-              fontSize: 13,
-            }}
-            numberOfLines={2}>
-            {product.title}
-          </Text>
-
-          <Text
-            style={{
-              paddingHorizontal: 12,
-              marginTop: 4,
-              marginBottom: 10,
-              color: theme.colors.primary,
-              fontWeight: '600',
-              fontSize: 14,
-            }}>
-            {product.price_raw || (product.price ? `$${product.price}` : '')}
-          </Text>
+              {product.price_raw || (product.price ? `$${product.price}` : '')}
+            </Text>
+          </View>
         </View>
       );
     },
@@ -506,7 +506,7 @@ export default function SavedRecommendationsModal({
           />
 
           <View style={styles.header}>
-            <Text style={styles.title}>Saved Recommended Buys</Text>
+            <Text style={styles.title}>Liked Recommended Buys</Text>
           </View>
 
           <Animatable.View animation="fadeIn" duration={400} style={{flex: 1}}>

@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../db/database.service';
-import { TrackItemDto, UpdatePriceAlertDto, UpdatePriceDto } from './dto/track-item.dto';
+import {
+  TrackItemDto,
+  UpdatePriceAlertDto,
+  UpdatePriceDto,
+} from './dto/track-item.dto';
 
 @Injectable()
 export class PriceTrackingService {
@@ -102,7 +106,11 @@ export class PriceTrackingService {
     return result.rows;
   }
 
-  async updatePriceAlert(userId: string, trackingId: number, update: UpdatePriceAlertDto) {
+  async updatePriceAlert(
+    userId: string,
+    trackingId: number,
+    update: UpdatePriceAlertDto,
+  ) {
     const query = `
       UPDATE price_tracking
       SET
@@ -123,7 +131,11 @@ export class PriceTrackingService {
     return result.rows[0];
   }
 
-  async updatePrice(userId: string, trackingId: number, priceUpdate: UpdatePriceDto) {
+  async updatePrice(
+    userId: string,
+    trackingId: number,
+    priceUpdate: UpdatePriceDto,
+  ) {
     // Update current price
     const updateQuery = `
       UPDATE price_tracking
@@ -135,7 +147,11 @@ export class PriceTrackingService {
       RETURNING *;
     `;
 
-    const result = await this.db.query(updateQuery, [trackingId, userId, priceUpdate.price]);
+    const result = await this.db.query(updateQuery, [
+      trackingId,
+      userId,
+      priceUpdate.price,
+    ]);
     const tracking = result.rows[0];
 
     // Record in history

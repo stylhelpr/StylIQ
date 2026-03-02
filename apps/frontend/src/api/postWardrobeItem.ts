@@ -113,6 +113,8 @@ type CreateArgs = {
   }[];
   disliked_features?: string[];
 
+  location_id?: string;
+
   notes?: string;
   favorite?: boolean;
 };
@@ -235,6 +237,9 @@ export async function postWardrobeItem(args: CreateArgs) {
     ai_description: args.ai_description,
     ai_key_attributes: args.ai_key_attributes,
     ai_confidence: args.ai_confidence,
+
+    // location
+    location_id: args.location_id,
 
     // pairing & feedback
     goes_with_ids: args.goes_with_ids,

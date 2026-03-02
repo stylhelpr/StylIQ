@@ -20,12 +20,27 @@ export type LearningEventType =
   | 'POST_LIKED'
   | 'POST_SAVED'
   | 'POST_DISMISSED'
-  | 'ITEM_EXPLICITLY_DISMISSED';
+  | 'ITEM_EXPLICITLY_DISMISSED'
+  | 'ELITE_SUGGESTION_SERVED'
+  | 'OUTFIT_SAVED_FROM_HOME'
+  | 'SLOT_OVERRIDE'
+  | 'STYLE_CONSTRAINT_SIGNAL'
+  | 'PRODUCT_CLICK'
+  | 'RECOMMENDED_BUYS_SERVED'
+  | 'TRIP_CAPSULE_GENERATED'
+  | 'TRIP_ITEM_REPLACED';
 
 /**
  * Entity types that can be the subject of learning events.
  */
-export type EntityType = 'outfit' | 'product' | 'post' | 'look' | 'notification';
+export type EntityType =
+  | 'outfit'
+  | 'product'
+  | 'post'
+  | 'look'
+  | 'notification'
+  | 'wardrobe_item'
+  | 'trip_capsule';
 
 /**
  * Signal polarity values.
@@ -59,6 +74,8 @@ export interface EventContext {
   season?: string;
   occasion?: string;
   location_type?: string;
+  schema_version?: number;
+  pipeline_version?: number;
 }
 
 /**
@@ -121,5 +138,13 @@ export const EVENT_SIGNAL_DEFAULTS: Record<
   POST_LIKED: { polarity: 1, weight: 0.3 },
   POST_SAVED: { polarity: 1, weight: 0.5 },
   POST_DISMISSED: { polarity: -1, weight: 0.2 },
-  ITEM_EXPLICITLY_DISMISSED: { polarity: -1, weight: 0.4 },
+  ITEM_EXPLICITLY_DISMISSED: { polarity: -1, weight: 0.2 },
+  ELITE_SUGGESTION_SERVED: { polarity: 0, weight: 0 },
+  OUTFIT_SAVED_FROM_HOME: { polarity: 1, weight: 0.5 },
+  SLOT_OVERRIDE: { polarity: 1, weight: 0.3 },
+  STYLE_CONSTRAINT_SIGNAL: { polarity: 1, weight: 0.3 },
+  PRODUCT_CLICK: { polarity: 1, weight: 0.35 },
+  RECOMMENDED_BUYS_SERVED: { polarity: 0, weight: 0.1 },
+  TRIP_CAPSULE_GENERATED: { polarity: 0, weight: 0.1 },
+  TRIP_ITEM_REPLACED: { polarity: -1, weight: 0.4 },
 };

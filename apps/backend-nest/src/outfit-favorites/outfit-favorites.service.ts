@@ -1,13 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AddFavoriteDto } from './dto/add-favorite.dto';
 import { RemoveFavoriteDto } from './dto/remove-favorite.dto';
 import { pool } from '../db/pool';
 import { LearningEventsService } from '../learning/learning-events.service';
+import { FashionStateService } from '../learning/fashion-state.service';
 import { LEARNING_FLAGS } from '../config/feature-flags';
+import { extractOutfitFeatures } from '../learning/extract-outfit-features';
 
 @Injectable()
 export class OutfitFavoritesService {
-  constructor(private readonly learningEvents: LearningEventsService) {}
+  private readonly logger = new Logger(OutfitFavoritesService.name);
+
+  constructor(
+    private readonly learningEvents: LearningEventsService,
+    private readonly fashionStateService: FashionStateService,
+  ) {}
 
   async addFavorite(dto: AddFavoriteDto) {
     const { user_id, outfit_id, outfit_type } = dto;
@@ -30,18 +37,20 @@ export class OutfitFavoritesService {
 
       // Emit OUTFIT_FAVORITED learning event
       if (LEARNING_FLAGS.EVENTS_ENABLED) {
-        this.learningEvents
-          .logEvent({
-            userId: user_id,
-            eventType: 'OUTFIT_FAVORITED',
-            entityType: 'outfit',
-            entityId: outfit_id,
-            signalPolarity: 1,
-            signalWeight: 0.3,
-            extractedFeatures: {},
-            sourceFeature: 'outfits',
-            clientEventId: `outfit_favorited:${user_id}:${outfit_id}`,
-          })
+        extractOutfitFeatures(outfit_id)
+          .then((features) =>
+            this.learningEvents.logEvent({
+              userId: user_id,
+              eventType: 'OUTFIT_FAVORITED',
+              entityType: 'outfit',
+              entityId: outfit_id,
+              signalPolarity: 1,
+              signalWeight: 0.3,
+              extractedFeatures: features,
+              sourceFeature: 'outfits',
+              clientEventId: `outfit_favorited:${user_id}:${outfit_id}`,
+            }),
+          )
           .catch(() => {});
       }
 
@@ -71,21 +80,27 @@ export class OutfitFavoritesService {
       [user_id, outfit_id],
     );
 
-    // Emit OUTFIT_UNFAVORITED learning event
+    // Emit OUTFIT_UNFAVORITED learning event + inline recompute
     if (LEARNING_FLAGS.EVENTS_ENABLED) {
-      this.learningEvents
-        .logEvent({
+      try {
+        const features = await extractOutfitFeatures(outfit_id);
+        await this.learningEvents.logEvent({
           userId: user_id,
           eventType: 'OUTFIT_UNFAVORITED',
           entityType: 'outfit',
           entityId: outfit_id,
           signalPolarity: -1,
           signalWeight: 0.2,
-          extractedFeatures: {},
+          extractedFeatures: features,
           sourceFeature: 'outfits',
           clientEventId: `outfit_unfavorited:${user_id}:${outfit_id}`,
-        })
-        .catch(() => {});
+        });
+        this.fashionStateService
+          .computeAndSaveState(user_id)
+          .catch(err => this.logger.error('[LEARNING INLINE] recompute failed', err));
+      } catch (err) {
+        this.logger.error('[LEARNING] outfit unfavorited event failed', err);
+      }
     }
 
     return { message: 'Unfavorited' };

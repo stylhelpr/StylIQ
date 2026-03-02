@@ -1,5 +1,7 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { pool } from '../db/pool';
+
+const DEBUG_RECS = process.env.DEBUG_RECS === 'true';
 
 /**
  * Recommendation Service for "Recommended for You" carousel
@@ -75,6 +77,8 @@ const MAX_RESULTS = 10;
 
 @Injectable()
 export class CommunityRecommendationsService implements OnModuleInit {
+  private readonly logger = new Logger('Recommendations');
+
   async onModuleInit() {
     try {
       await this.initTables();
@@ -116,6 +120,16 @@ export class CommunityRecommendationsService implements OnModuleInit {
     // Add keywords column to community_posts if it doesn't exist
     await pool.query(`
       ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS keywords TEXT[] DEFAULT '{}'
+    `);
+
+    // Recommendation impressions tracking (write-only)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS recommendation_impressions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        post_id UUID NOT NULL,
+        shown_at TIMESTAMP DEFAULT NOW()
+      )
     `);
   }
 
@@ -430,6 +444,8 @@ export class CommunityRecommendationsService implements OnModuleInit {
       WHERE cp.user_id != ALL($1::uuid[])
     `;
 
+    const poolCounts: Record<string, number> = {};
+
     // Pool 1: Posts from followed users
     if (signals.followed_user_ids.length > 0) {
       const followedPosts = await pool.query(
@@ -439,6 +455,7 @@ export class CommunityRecommendationsService implements OnModuleInit {
          LIMIT $3`,
         [excludedUserIds, signals.followed_user_ids, POOL_LIMIT],
       );
+      poolCounts.followed = followedPosts.rows.length;
       for (const row of followedPosts.rows) {
         candidates.set(row.id, row);
       }
@@ -453,6 +470,7 @@ export class CommunityRecommendationsService implements OnModuleInit {
          LIMIT $3`,
         [excludedUserIds, signals.frequently_visited_user_ids, POOL_LIMIT],
       );
+      poolCounts.visited = visitedPosts.rows.length;
       for (const row of visitedPosts.rows) {
         if (!candidates.has(row.id)) {
           candidates.set(row.id, row);
@@ -469,6 +487,7 @@ export class CommunityRecommendationsService implements OnModuleInit {
          LIMIT $3`,
         [excludedUserIds, signals.preferred_hashtags, POOL_LIMIT],
       );
+      poolCounts.hashtag = hashtagPosts.rows.length;
       for (const row of hashtagPosts.rows) {
         if (!candidates.has(row.id)) {
           candidates.set(row.id, row);
@@ -485,6 +504,7 @@ export class CommunityRecommendationsService implements OnModuleInit {
          LIMIT $3`,
         [excludedUserIds, signals.preferred_keywords, POOL_LIMIT],
       );
+      poolCounts.keyword = keywordPosts.rows.length;
       for (const row of keywordPosts.rows) {
         if (!candidates.has(row.id)) {
           candidates.set(row.id, row);
@@ -499,10 +519,17 @@ export class CommunityRecommendationsService implements OnModuleInit {
        LIMIT $2`,
       [excludedUserIds, POOL_LIMIT],
     );
+    poolCounts.recent = recentPosts.rows.length;
     for (const row of recentPosts.rows) {
       if (!candidates.has(row.id)) {
         candidates.set(row.id, row);
       }
+    }
+
+    if (DEBUG_RECS) {
+      this.logger.debug(
+        `[${userId}] pool_counts: ${JSON.stringify(poolCounts)} total_unique=${candidates.size}`,
+      );
     }
 
     return candidates;
@@ -595,7 +622,10 @@ export class CommunityRecommendationsService implements OnModuleInit {
    * Get recommended posts for a user
    * Returns 5-10 posts max, 1 per author
    */
-  async getRecommendedPosts(userId: string): Promise<ScoredPost[]> {
+  async getRecommendedPosts(
+    userId: string,
+    excludeIds: string[] = [],
+  ): Promise<ScoredPost[]> {
     // Get user signals
     let signals = await this.getUserSignals(userId);
 
@@ -614,6 +644,13 @@ export class CommunityRecommendationsService implements OnModuleInit {
       };
     }
 
+    if (DEBUG_RECS) {
+      this.logger.debug(`[${userId}] cold_start=${isColdStart}`);
+      this.logger.debug(
+        `[${userId}] signals: followed=${signals.followed_user_ids.length} visited=${signals.frequently_visited_user_ids.length} hashtags=${signals.preferred_hashtags.length} keywords=${signals.preferred_keywords.length}`,
+      );
+    }
+
     // Get excluded user IDs
     const excludedUserIds = await this.getExcludedUserIds(userId);
 
@@ -623,6 +660,20 @@ export class CommunityRecommendationsService implements OnModuleInit {
       signals,
       excludedUserIds,
     );
+
+    if (DEBUG_RECS) {
+      this.logger.debug(
+        `[${userId}] candidates_before_exclude=${candidates.size} exclude_ids=${excludeIds.length}`,
+      );
+    }
+
+    // Remove explicitly excluded post IDs (for dedup on subsequent fetches)
+    if (excludeIds.length > 0) {
+      const excludeSet = new Set(excludeIds);
+      for (const id of excludeSet) {
+        candidates.delete(id);
+      }
+    }
 
     // Score all candidates
     const scoredPosts: ScoredPost[] = [];
@@ -637,24 +688,87 @@ export class CommunityRecommendationsService implements OnModuleInit {
     // Sort by score descending
     scoredPosts.sort((a, b) => b.score - a.score);
 
+    if (DEBUG_RECS) {
+      const top5 = scoredPosts.slice(0, 5).map((p) => ({
+        id: p.id,
+        score: p.score.toFixed(4),
+        user: p.user_name,
+      }));
+      this.logger.debug(`[${userId}] top_scores: ${JSON.stringify(top5)}`);
+    }
+
     // Apply hard constraints: max 1 post per author
     const seenAuthors = new Set<string>();
     const finalPosts: ScoredPost[] = [];
+    let dedupCount = 0;
 
     for (const post of scoredPosts) {
-      if (seenAuthors.has(post.user_id)) continue;
+      if (seenAuthors.has(post.user_id)) {
+        dedupCount++;
+        continue;
+      }
       seenAuthors.add(post.user_id);
       finalPosts.push(post);
       if (finalPosts.length >= MAX_RESULTS) break;
     }
 
-    return finalPosts;
+    if (DEBUG_RECS) {
+      this.logger.debug(
+        `[${userId}] final=${finalPosts.length} deduped_authors=${dedupCount}`,
+      );
+    }
+
+    // Exploration slice: shuffle bottom 15% to introduce variety
+    if (finalPosts.length <= 5) {
+      return finalPosts;
+    }
+
+    const topCount = Math.floor(finalPosts.length * 0.85);
+    const topRanked = finalPosts.slice(0, topCount);
+    const explorePool = finalPosts.slice(topCount);
+
+    // Fisher-Yates shuffle
+    for (let i = explorePool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [explorePool[i], explorePool[j]] = [explorePool[j], explorePool[i]];
+    }
+
+    return [...topRanked, ...explorePool];
   }
 
   /**
-   * Format posts for API response (matches CommunityPost shape)
+   * Format posts for API response (matches CommunityPost shape).
+   * Batch-fetches interaction state (likes, saves, follows) to avoid N+1.
    */
-  formatPostsForResponse(posts: ScoredPost[], currentUserId?: string) {
+  async formatPostsForResponse(posts: ScoredPost[], currentUserId?: string) {
+    const postIds = posts.map((p) => p.id);
+    const authorIds = [...new Set(posts.map((p) => p.user_id))];
+
+    let likedSet = new Set<string>();
+    let savedSet = new Set<string>();
+    let followedSet = new Set<string>();
+
+    if (currentUserId && postIds.length > 0) {
+      const [likedRows, savedRows, followedRows] = await Promise.all([
+        pool.query(
+          `SELECT post_id FROM post_likes WHERE user_id = $1 AND post_id = ANY($2)`,
+          [currentUserId, postIds],
+        ),
+        pool.query(
+          `SELECT post_id FROM saved_posts WHERE user_id = $1 AND post_id = ANY($2)`,
+          [currentUserId, postIds],
+        ),
+        pool.query(
+          `SELECT following_id FROM user_follows WHERE follower_id = $1 AND following_id = ANY($2)`,
+          [currentUserId, authorIds],
+        ).catch(() => ({ rows: [] })),
+      ]);
+
+      likedSet = new Set(likedRows.rows.map((r) => r.post_id));
+      savedSet = new Set(savedRows.rows.map((r) => r.post_id));
+      followedSet = new Set(followedRows.rows.map((r) => r.following_id));
+    }
+
     return posts.map((post) => ({
       id: post.id,
       user_id: post.user_id,
@@ -669,13 +783,24 @@ export class CommunityRecommendationsService implements OnModuleInit {
       description: post.description,
       tags: post.tags,
       likes_count: post.likes_count,
-      comments_count: 0, // Not needed for carousel
+      comments_count: 0,
       views_count: post.views_count,
-      is_liked_by_me: false, // Would need additional query
-      is_saved_by_me: false, // Would need additional query
-      is_following_author: false, // Would need additional query
+      is_liked_by_me: likedSet.has(post.id),
+      is_saved_by_me: savedSet.has(post.id),
+      is_following_author: followedSet.has(post.user_id),
       is_demo: false,
       created_at: post.created_at,
     }));
+  }
+
+  /**
+   * Track that a recommended post was shown to a user (write-only).
+   */
+  async trackImpression(userId: string, postId: string): Promise<void> {
+    await pool.query(
+      `INSERT INTO recommendation_impressions (user_id, post_id)
+       VALUES ($1, $2)`,
+      [userId, postId],
+    );
   }
 }

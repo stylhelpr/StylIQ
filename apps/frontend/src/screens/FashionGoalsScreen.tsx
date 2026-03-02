@@ -29,6 +29,8 @@ export default function FashionGoalsScreen({navigate}: Props) {
   const [goals, setGoals] = useState('');
   const [confidence, setConfidence] = useState('');
   const [boldness, setBoldness] = useState('');
+  const [formalityFloor, setFormalityFloor] = useState('');
+  const [trendAppetite, setTrendAppetite] = useState('');
 
   const {user} = useAuth0();
   const userId = user?.sub || '';
@@ -45,6 +47,10 @@ export default function FashionGoalsScreen({navigate}: Props) {
       setConfidence(styleProfile.fashion_confidence);
     if (styleProfile.fashion_boldness)
       setBoldness(styleProfile.fashion_boldness);
+    if (styleProfile.formality_floor)
+      setFormalityFloor(styleProfile.formality_floor);
+    if (styleProfile.trend_appetite)
+      setTrendAppetite(styleProfile.trend_appetite);
   }, [styleProfile]);
 
   // ✅ Commit text field to DB when editing finishes
@@ -56,7 +62,27 @@ export default function FashionGoalsScreen({navigate}: Props) {
     }
   };
 
-  // ✅ Immediate update only for chips (they’re single clicks)
+  const handleFormalityFloor = (value: string) => {
+    h('impactLight');
+    setFormalityFloor(value);
+    try {
+      updateProfile('formality_floor', value);
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const handleTrendAppetite = (value: string) => {
+    h('impactLight');
+    setTrendAppetite(value);
+    try {
+      updateProfile('trend_appetite', value);
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  // ✅ Immediate update only for chips (they're single clicks)
   const handleSet = (
     key: 'fashion_confidence' | 'fashion_boldness',
     value: string,
@@ -177,6 +203,58 @@ export default function FashionGoalsScreen({navigate}: Props) {
                   label={option}
                   selected={boldness === option}
                   onPress={() => handleSet('fashion_boldness', option)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Text style={globalStyles.sectionTitle4}>
+            Minimum formality level (never suggest below this):
+          </Text>
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {[
+                'No minimum',
+                'Casual',
+                'Smart Casual',
+                'Business Casual',
+                'Business Formal',
+                'Black Tie',
+              ].map(option => (
+                <Chip
+                  key={option}
+                  label={option}
+                  selected={formalityFloor === option}
+                  onPress={() => handleFormalityFloor(option)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Text style={globalStyles.sectionTitle4}>
+            How trendy do you want your suggestions?
+          </Text>
+          <View
+            style={[
+              globalStyles.styleContainer1,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
+            <View style={globalStyles.pillContainer}>
+              {[
+                'Classic / timeless',
+                'Selectively trendy',
+                'Trend-forward',
+                'Cutting edge',
+              ].map(option => (
+                <Chip
+                  key={option}
+                  label={option}
+                  selected={trendAppetite === option}
+                  onPress={() => handleTrendAppetite(option)}
                 />
               ))}
             </View>

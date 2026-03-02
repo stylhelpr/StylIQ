@@ -86,6 +86,9 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
   const [nextZIndex, setNextZIndex] = useState(2);
   const [isDirty, setIsDirty] = useState(false);
 
+  // Grid overlay state
+  const [showGrid, setShowGrid] = useState(false);
+
   // Modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
@@ -312,7 +315,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     if (isDirty && placedItems.length > 0) {
       setShowDiscardModal(true);
     } else {
-      navigate('Wardrobe');
+      navigate('Outfits');
     }
   }, [isDirty, placedItems.length, navigate]);
 
@@ -454,7 +457,9 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       paddingHorizontal: 16,
       paddingTop: insets.top > 0 ? 8 : 16,
       paddingBottom: 6,
+      gap: 8,
       backgroundColor: theme.colors.background,
+        //  backgroundColor: 'yellow',
     },
     headerLeft: {
       flexDirection: 'row',
@@ -474,7 +479,6 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       paddingVertical: 8,
       borderRadius: 20,
       backgroundColor: theme.colors.button1,
-      // marginLeft: 30
     },
     headerTitle: {
       fontSize: 17,
@@ -486,6 +490,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       paddingVertical: 8,
       borderRadius: 20,
       backgroundColor: theme.colors.button1,
+      marginRight: 20
     },
     saveButtonDisabled: {
       opacity: 0.4,
@@ -503,7 +508,6 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       paddingVertical: 8,
       borderRadius: 20,
       backgroundColor: theme.colors.error,
-      marginRight: 8,
     },
     clearButtonText: {
       fontSize: 15,
@@ -516,6 +520,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     },
     canvasContainer: {
       flex: 1,
+      
     },
   });
 
@@ -549,23 +554,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* <Text style={styles.headerTitle}>Build Outfit</Text> */}
-
         <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={handleClearCanvas}
-            activeOpacity={0.7}
-            disabled={placedItems.length === 0}>
-            <Text
-              style={[
-                styles.clearButtonText,
-                placedItems.length === 0 && styles.saveButtonTextDisabled,
-              ]}>
-              Clear
-            </Text>
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={[
               styles.saveButton,
@@ -582,6 +571,22 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
               Save Outfit
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearCanvas}
+            activeOpacity={0.7}
+            disabled={placedItems.length === 0}>
+            <Text
+              style={[
+                styles.clearButtonText,
+                placedItems.length === 0 && styles.saveButtonTextDisabled,
+              ]}>
+              Clear All
+            </Text>
+          </TouchableOpacity>
+
+        
         </View>
       </View>
 
@@ -594,6 +599,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
           <OutfitCanvas
             placedItems={placedItems}
             selectedItemId={selectedItemId}
+            showGrid={showGrid}
             onSelectItem={setSelectedItemId}
             onDeselectItem={() => setSelectedItemId(null)}
             onUpdateItem={handleUpdateItem}
@@ -602,6 +608,29 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
             onRemoveItem={handleRemoveItem}
           />
         </ViewShot>
+
+        {/* Grid toggle — outside ViewShot so it won't appear in snapshots */}
+        <TouchableOpacity
+          onPress={() => setShowGrid(prev => !prev)}
+          activeOpacity={0.7}
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 9999,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: showGrid ? `${theme.colors.primary}33` : `${theme.colors.surface}CC`,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <MaterialIcons
+            name="grid-on"
+            size={18}
+            color={showGrid ? theme.colors.primary : theme.colors.foreground}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Item Drawer */}

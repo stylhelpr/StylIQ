@@ -6,7 +6,12 @@
     "Henleys",
     "Tank Tops",
     "Sweaters",
-    "Hoodies"
+    "Hoodies",
+    "Blouses",
+    "Bodysuits",
+    "Crop Tops",
+    "Camisoles",
+    "Tunics"
   ],
   "Bottoms": [
     "Jeans",
@@ -14,7 +19,10 @@
     "Trousers",
     "Joggers",
     "Shorts",
-    "Cargo Pants"
+    "Cargo Pants",
+    "Leggings",
+    "Skorts",
+    "Wide-Leg Pants"
   ],
   "Outerwear": [
     "Bomber Jackets",
@@ -24,15 +32,33 @@
     "Leather Jackets",
     "Denim Jackets",
     "Parkas",
-    "Vests"
+    "Vests",
+    "Cardigans",
+    "Puffer Jackets",
+    "Raincoats"
   ],
-  "Shoes": {
-    "Sneakers": ["Athletic Sneakers", "Lifestyle Sneakers"],
-    "Dress Shoes": ["Oxfords", "Derbies", "Monk Straps"],
-    "Casual Shoes": ["Loafers", "Boat Shoes", "Espadrilles"],
-    "Boots": ["Chelsea Boots", "Combat Boots", "Chukkas"],
-    "Others": ["Sandals", "Slides"]
-  },
+  "Shoes": [
+    "Athletic Sneakers",
+    "Lifestyle Sneakers",
+    "Oxfords",
+    "Derbies",
+    "Monk Straps",
+    "Loafers",
+    "Boat Shoes",
+    "Espadrilles",
+    "Chelsea Boots",
+    "Combat Boots",
+    "Chukkas",
+    "Sandals",
+    "Slides",
+    "Heels",
+    "Flats",
+    "Ankle Boots",
+    "Knee-High Boots",
+    "Mules",
+    "Wedges",
+    "Platforms"
+  ],
   "Accessories": [
     "Belts",
     "Hats",
@@ -40,10 +66,19 @@
     "Gloves",
     "Sunglasses",
     "Watches",
-    "Jewelry",
-    "Bags"
+    "Ties",
+    "Hair Accessories",
+    "Hosiery/Tights"
   ],
-  "Undergarments": ["Undershirts", "Briefs", "Boxers", "Socks"],
+  "Undergarments": [
+    "Undershirts",
+    "Briefs",
+    "Boxers",
+    "Socks",
+    "Bras",
+    "Panties",
+    "Shapewear"
+  ],
   "Activewear": [
     "Athletic Tops",
     "Running Shorts",
@@ -51,5 +86,95 @@
     "Performance Jackets",
     "Gym Hoodies"
   ],
-  "Formalwear": ["Suits", "Dress Shirts", "Tuxedos", "Waistcoats"]
+  "Formalwear": ["Suits", "Dress Shirts", "Tuxedos", "Waistcoats"],
+  "Dresses": [
+    "Midi Dresses",
+    "Maxi Dresses",
+    "Mini Dresses",
+    "Wrap Dresses",
+    "Shirt Dresses",
+    "Cocktail Dresses",
+    "Casual Dresses",
+    "Gowns",
+    "Evening Dresses",
+    "Slip Dresses",
+    "Bodycon Dresses",
+    "Sweater Dresses",
+    "Jumpsuits",
+    "Rompers",
+    "Overalls"
+  ],
+  "Skirts": [
+    "Mini Skirts",
+    "Midi Skirts",
+    "Maxi Skirts",
+    "Pencil Skirts",
+    "A-Line Skirts",
+    "Pleated Skirts",
+    "Wrap Skirts",
+    "Denim Skirts"
+  ],
+  "Bags": [
+    "Handbags",
+    "Tote Bags",
+    "Crossbody Bags",
+    "Clutches",
+    "Backpacks"
+  ],
+  "Headwear": [
+    "Baseball Caps",
+    "Beanies",
+    "Fedoras",
+    "Sun Hats",
+    "Headbands"
+  ],
+  "Jewelry": [
+    "Necklaces",
+    "Bracelets",
+    "Earrings",
+    "Rings"
+  ],
+  "Loungewear": [
+    "Lounge Sets",
+    "Lounge Tops",
+    "Lounge Pants",
+    "Sweatshirts",
+    "Sweatpants",
+    "Co-ords"
+  ],
+  "Sleepwear": [
+    "Pajama Sets",
+    "Pajama Separates",
+    "Nightgowns",
+    "Nightshirts",
+    "Robes"
+  ],
+  "Swimwear": [
+    "One-Piece Swimsuits",
+    "Bikinis",
+    "Cover-Ups",
+    "Rash Guards"
+  ],
+  "Maternity": [
+    "Maternity Tops",
+    "Maternity Dresses",
+    "Maternity Leggings"
+  ],
+  "Unisex": [
+    "Gender-Neutral Tees",
+    "Hoodies",
+    "Joggers"
+  ],
+  "Costumes": [
+    "Costumes",
+    "Costume Accessories"
+  ],
+  "TraditionalWear": [
+    "Cultural Attire",
+    "Saree",
+    "Kimono",
+    "Abaya",
+    "Hanbok"
+  ],
+  "Other": []
 }

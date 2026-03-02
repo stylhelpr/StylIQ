@@ -1,0 +1,5 @@
+ALTER TABLE trips
+  ADD COLUMN IF NOT EXISTS weather                JSONB DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS capsule                JSONB DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS starting_location_id   TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS starting_location_label TEXT DEFAULT NULL;

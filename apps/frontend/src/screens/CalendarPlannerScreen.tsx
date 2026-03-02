@@ -54,6 +54,9 @@ import {
   CalendarEvent,
   NormalizedOutfitItem,
 } from '../hooks/useCalendar';
+import {getTrips} from '../lib/trips/tripsStorage';
+import {getTripDateKeys, reconcileTripCalendarEvents} from '../utils/tripCalendarSync';
+import {Trip} from '../types/trips';
 
 // ───────── helpers ─────────
 const getLocalDateKey = (iso: string | Date | null | undefined) => {
@@ -179,6 +182,8 @@ function SwipeableEventCard({
       backgroundColor: theme.colors.surface3,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.surfaceBorder,
+      borderLeftWidth: 3,
+      borderLeftColor: '#ffdd00ff',
     },
     name: {
       color: theme.colors.foreground,
@@ -315,6 +320,8 @@ function SwipeableOutfitCard({
       backgroundColor: theme.colors.surface3,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.surfaceBorder,
+      borderLeftWidth: 3,
+      borderLeftColor: '#00ff73ff',
     },
     name: {
       color: theme.colors.foreground,
@@ -340,8 +347,8 @@ function SwipeableOutfitCard({
     thumb: {
       width: 68,
       height: 68,
-      borderRadius: 12,
-      backgroundColor: theme.colors.surface,
+      borderRadius: tokens.borderRadius.sm,
+      backgroundColor: theme.colors.imageBackground,
       padding: 4
     },
   });
@@ -388,6 +395,67 @@ function SwipeableOutfitCard({
   );
 }
 
+// ───────── TripCalendarCard ─────────
+type TripCalendarCardProps = {
+  trip: Trip;
+  theme: any;
+};
+
+function TripCalendarCard({trip, theme}: TripCalendarCardProps) {
+  const formatDateRange = (start: string, end: string) => {
+    const s = new Date(start + 'T00:00:00');
+    const e = new Date(end + 'T00:00:00');
+    const opts: Intl.DateTimeFormatOptions = {month: 'short', day: 'numeric'};
+    return `${s.toLocaleDateString(undefined, opts)} – ${e.toLocaleDateString(undefined, opts)}`;
+  };
+
+  const cardStyles = StyleSheet.create({
+    card: {
+      borderRadius: 16,
+      padding: 14,
+      backgroundColor: theme.colors.surface3,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.surfaceBorder,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.colors.button3,
+      marginBottom: 6,
+    },
+    title: {
+      color: theme.colors.foreground,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    date: {
+      color: theme.colors.foreground2,
+      marginTop: 4,
+      fontSize: 13,
+    },
+    activities: {
+      color: theme.colors.foreground2,
+      marginTop: 6,
+      fontSize: 13,
+      fontStyle: 'italic',
+    },
+  });
+
+  return (
+    <View style={cardStyles.card}>
+      <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+        <MaterialIcons name="flight" size={18} color={theme.colors.button3} />
+        <Text style={cardStyles.title}>Trip: {trip.destination}</Text>
+      </View>
+      <Text style={cardStyles.date}>
+        {formatDateRange(trip.startDate, trip.endDate)}
+      </Text>
+      {trip.activities.length > 0 && (
+        <Text style={cardStyles.activities}>
+          {trip.activities.join(', ')}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 // ───────── main ─────────
 export default function OutfitPlannerScreen() {
   const {user} = useAuth0();
@@ -409,6 +477,8 @@ export default function OutfitPlannerScreen() {
   const deleteEventMutation = useDeleteCalendarEvent();
   const deleteOutfitMutation = useDeleteScheduledOutfit();
   const invalidateCalendarData = useInvalidateCalendarData();
+
+  const [trips, setTrips] = useState<Trip[]>([]);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -621,6 +691,12 @@ export default function OutfitPlannerScreen() {
       // Now sync and fetch fresh data from backend
       await syncCalendarEvents();
       // TanStack Query auto-fetches scheduled outfits via useScheduledOutfits hook
+      // Load trips for purple dots + reconcile iOS calendar events
+      const loadedTrips = await getTrips();
+      setTrips(loadedTrips);
+      reconcileTripCalendarEvents(loadedTrips).catch(err =>
+        console.error('[Calendar] trip reconciliation failed:', err),
+      );
     };
 
     initialSync();
@@ -645,6 +721,12 @@ export default function OutfitPlannerScreen() {
       await syncCalendarEvents();
       // Invalidate queries to force refetch
       invalidateCalendarData(userId);
+      // Refresh trips for purple dots + reconcile iOS calendar events
+      const loadedTrips = await getTrips();
+      setTrips(loadedTrips);
+      reconcileTripCalendarEvents(loadedTrips).catch(err =>
+        console.error('[Calendar] trip reconciliation failed:', err),
+      );
       // console.log('📅 Sync complete');
     };
 
@@ -686,6 +768,17 @@ export default function OutfitPlannerScreen() {
     // console.log(`📅 Event "${ev.title}" -> date key: "${date}"`);
     if (!allMarks[date]) allMarks[date] = {dots: []};
     allMarks[date].dots.push({color: '#ffdd00ff'});
+  }
+  // Trip dots (purple)
+  for (const trip of trips) {
+    const dateKeys = getTripDateKeys(trip.startDate, trip.endDate);
+    for (const dateKey of dateKeys) {
+      if (!allMarks[dateKey]) allMarks[dateKey] = {dots: []};
+      allMarks[dateKey].dots.push({
+        color: theme.colors.button3,
+        key: `trip-${trip.id}`,
+      });
+    }
   }
   // console.log('📅 All marks:', Object.keys(allMarks));
 
@@ -1172,6 +1265,7 @@ export default function OutfitPlannerScreen() {
 
                 {calendarEvents
                   .filter(e => getLocalDateKey(e.start_date) === selectedDate)
+                  .filter(e => !e.title?.startsWith('Trip: '))
                   .map(ev => (
                     <SwipeableEventCard
                       key={ev.event_id || ev.id}
@@ -1180,6 +1274,15 @@ export default function OutfitPlannerScreen() {
                       theme={theme}
                       onDelete={handleDeleteEvent}
                     />
+                  ))}
+
+                {trips
+                  .filter(t => {
+                    const dateKeys = getTripDateKeys(t.startDate, t.endDate);
+                    return dateKeys.includes(selectedDate!);
+                  })
+                  .map(t => (
+                    <TripCalendarCard key={`trip-${t.id}`} trip={t} theme={theme} />
                   ))}
               </ScrollView>
             )}
@@ -1718,7 +1821,9 @@ export default function OutfitPlannerScreen() {
                   // Filter to days that have events or outfits
                   const daysWithContent = days.map(day => {
                     const dayEvents = calendarEvents.filter(
-                      e => getLocalDateKey(e.start_date) === day.dateKey,
+                      e =>
+                        getLocalDateKey(e.start_date) === day.dateKey &&
+                        !e.title?.startsWith('Trip: '),
                     );
                     const dayOutfits = scheduledOutfits.filter(
                       o => getLocalDateKey(o.plannedDate) === day.dateKey,

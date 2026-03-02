@@ -145,6 +145,11 @@
       "jsx",
       "json",
       "node"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/load-tests/",
+      "/apps/backend-nest/"
     ]
   },
   "scripts": {

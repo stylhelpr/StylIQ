@@ -104,7 +104,8 @@ export class MessagingGateway
   @SubscribeMessage('typing')
   handleTyping(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { senderId: string; recipientId: string; isTyping: boolean },
+    @MessageBody()
+    data: { senderId: string; recipientId: string; isTyping: boolean },
   ) {
     this.server.to(`user:${data.recipientId}`).emit('user_typing', {
       userId: data.senderId,
@@ -145,7 +146,12 @@ export class MessagingGateway
       created_at: string;
     },
   ) {
-    console.log(`📨 Emitting community notification to ${recipientId}:`, notification.type);
-    this.server.to(`user:${recipientId}`).emit('community_notification', notification);
+    console.log(
+      `📨 Emitting community notification to ${recipientId}:`,
+      notification.type,
+    );
+    this.server
+      .to(`user:${recipientId}`)
+      .emit('community_notification', notification);
   }
 }

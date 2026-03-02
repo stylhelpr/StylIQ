@@ -37,7 +37,9 @@ export class ProductSearchService {
   }
 
   private get bucketName(): string {
-    return secretExists('GCS_BUCKET') ? getSecret('GCS_BUCKET') : 'stylhelpr-prod-bucket';
+    return secretExists('GCS_BUCKET')
+      ? getSecret('GCS_BUCKET')
+      : 'stylhelpr-prod-bucket';
   }
 
   // 🧠 Gender pattern lists

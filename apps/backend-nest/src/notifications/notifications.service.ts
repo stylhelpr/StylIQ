@@ -30,11 +30,15 @@ function initializeFirebase(): void {
   let projectIdFromKey = 'n/a';
 
   if (secretExists('FIREBASE_SERVICE_ACCOUNT_JSON')) {
-    const json = getSecretJson<FirebaseServiceAccount>('FIREBASE_SERVICE_ACCOUNT_JSON');
+    const json = getSecretJson<FirebaseServiceAccount>(
+      'FIREBASE_SERVICE_ACCOUNT_JSON',
+    );
     projectIdFromKey = json.project_id || 'n/a';
     credential = admin.credential.cert(json as admin.ServiceAccount);
   } else {
-    throw new Error('Firebase Admin credentials missing. Expected FIREBASE_SERVICE_ACCOUNT_JSON secret.');
+    throw new Error(
+      'Firebase Admin credentials missing. Expected FIREBASE_SERVICE_ACCOUNT_JSON secret.',
+    );
   }
 
   // Optional config secrets
@@ -136,10 +140,10 @@ export class NotificationsService {
     );
 
     // Also delete this token if it belongs to a different user (device switched accounts)
-    await pool.query(
-      `DELETE FROM push_tokens WHERE token=$1 AND user_id!=$2`,
-      [device_token, user_id],
-    );
+    await pool.query(`DELETE FROM push_tokens WHERE token=$1 AND user_id!=$2`, [
+      device_token,
+      user_id,
+    ]);
 
     const res = await pool.query(
       `
@@ -452,7 +456,10 @@ export class NotificationsService {
         errorCode === 'messaging/registration-token-not-registered' ||
         errorCode === 'messaging/invalid-registration-token'
       ) {
-        console.log('🗑️ Removing invalid FCM token:', token.slice(0, 20) + '...');
+        console.log(
+          '🗑️ Removing invalid FCM token:',
+          token.slice(0, 20) + '...',
+        );
         await pool.query('DELETE FROM push_tokens WHERE token = $1', [token]);
       }
 
@@ -532,10 +539,9 @@ export class NotificationsService {
   }
 
   async clearAll(user_id: string) {
-    await pool.query(
-      `DELETE FROM user_notifications WHERE user_id = $1`,
-      [user_id],
-    );
+    await pool.query(`DELETE FROM user_notifications WHERE user_id = $1`, [
+      user_id,
+    ]);
     return { ok: true };
   }
 

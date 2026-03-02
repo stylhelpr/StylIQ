@@ -136,14 +136,14 @@ export const usePriceAlertStore = create<PriceAlertState>()(
         // CRITICAL: When switching users, we need to COMPLETELY replace the state
         // If persistedState is null/empty (new user), we MUST clear existing data
         if (persistedState && typeof persistedState === 'object' && Object.keys(persistedState as object).length > 0) {
-          console.log('[PriceAlertStore] Merging persisted state');
+          // console.log('[PriceAlertStore] Merging persisted state');
           return {
             ...currentState,
             ...(persistedState as object),
           };
         }
         // No persisted state = new user or empty storage
-        console.log('[PriceAlertStore] No persisted state - returning fresh state');
+        // console.log('[PriceAlertStore] No persisted state - returning fresh state');
         return {
           ...currentState,
           alerts: [],
@@ -151,7 +151,7 @@ export const usePriceAlertStore = create<PriceAlertState>()(
       },
       onRehydrateStorage: () => state => {
         if (state) {
-          console.log('[PriceAlertStore] Rehydration complete, alerts:', state.alerts?.length || 0);
+          // console.log('[PriceAlertStore] Rehydration complete, alerts:', state.alerts?.length || 0);
           state.setHasHydrated(true);
         }
       },

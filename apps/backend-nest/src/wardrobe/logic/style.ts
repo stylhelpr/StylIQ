@@ -1,5 +1,7 @@
 // apps/backend-nest/src/wardrobe/logic/style.ts
 
+import { isSlot } from './categoryMapping';
+
 // ───────────────────────────────────────────────────────────────
 // Types
 // ───────────────────────────────────────────────────────────────
@@ -31,6 +33,10 @@ export type UserStyle = {
   // ✨ Extended fields for stylist agents & DB parity
   name?: string;
   styleKeywords?: string[];
+  fitPreferences?: string[];
+  fabricPreferences?: string[];
+  stylePreferences?: string[];
+  occasions?: string[];
   personalityTraits?: string[];
   lifestyle?: string[]; // ✅ always array
   climate?: string;
@@ -367,11 +373,11 @@ export function scoreItemForStyle(
   // ── NEW OPTIONAL SIGNALS ──────────────────────────────────────
 
   // Fit alignment (simple but effective)
+  // Use canonical slot mapping for category detection
   if (W.fitMatch) {
     if (
       style.topsFit &&
-      item.main_category &&
-      t(item.main_category) === 'tops' &&
+      isSlot(item, 'tops') &&
       t(item.fit) === style.topsFit
     ) {
       maxPossible += W.fitMatch;
@@ -380,8 +386,7 @@ export function scoreItemForStyle(
     }
     if (
       style.bottomsFit &&
-      item.main_category &&
-      t(item.main_category) === 'bottoms' &&
+      isSlot(item, 'bottoms') &&
       t(item.fit) === style.bottomsFit
     ) {
       maxPossible += W.fitMatch;
@@ -478,7 +483,7 @@ export function scoreItemForStyle(
       (item as any).label ||
       [item.main_category, item.subcategory].filter(Boolean).join(' / ') ||
       'Item';
-    // eslint-disable-next-line no-console
+
     console.log(
       `[STYLE] ${label} raw=${rawScore.toFixed(2)} norm=${norm.toFixed(
         2,

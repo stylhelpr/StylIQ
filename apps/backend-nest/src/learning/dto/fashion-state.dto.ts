@@ -128,7 +128,9 @@ export function getTopN(
  * Create a summary from full fashion state.
  * Used for AI context injection.
  */
-export function createStateSummary(state: UserFashionState): FashionStateSummary {
+export function createStateSummary(
+  state: UserFashionState,
+): FashionStateSummary {
   return {
     topBrands: getTopN(state.brandScores, 5, 'positive'),
     avoidBrands: getTopN(state.brandScores, 3, 'negative'),

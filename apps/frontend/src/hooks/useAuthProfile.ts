@@ -30,7 +30,7 @@ export function useAuthProfile(enabled: boolean) {
     queryFn: async () => {
       console.log('[useAuthProfile] Fetching /auth/profile...');
       const response = await apiClient.get('/auth/profile');
-      console.log('[useAuthProfile] Server returned user ID:', response.data?.uuid || response.data?.id);
+      // console.log('[useAuthProfile] Server returned user ID:', response.data?.uuid || response.data?.id);
       return response.data;
     },
   });

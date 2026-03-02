@@ -84,17 +84,17 @@ export const initializeNotifications = async (userId?: string, forceRegister?: b
 
           // Check if Live Activities are enabled
           const enabled = await DynamicIsland.isEnabled();
-          console.log('🔔 Live Activities enabled?', enabled);
+          // console.log('🔔 Live Activities enabled?', enabled);
 
           if (!enabled) {
-            console.log('⚠️ Live Activities not allowed on this device / settings.');
+            // console.log('⚠️ Live Activities not allowed on this device / settings.');
             return;
           }
 
           // Start the Live Activity
           const result = await DynamicIsland.start(title, message);
-          console.log('✅ Dynamic Island started (local):', result);
-          console.log('📬 Local Notification:', title, '-', message);
+          // console.log('✅ Dynamic Island started (local):', result);
+          // console.log('📬 Local Notification:', title, '-', message);
 
           // Auto-dismiss after 15 seconds (gives user time to interact)
           setTimeout(async () => {
@@ -174,18 +174,18 @@ export const initializeNotifications = async (userId?: string, forceRegister?: b
     if (!fgRegistered) {
       fgUnsub = messaging().onMessage(async msg => {
         const mapped = mapMessage(msg);
-        console.log('📩 Foreground push:', mapped.id);
+        // console.log('📩 Foreground push:', mapped.id);
 
         // ✅ Skip if we've already processed this message ID
         if (mapped.id === lastShownId) {
-          console.log('⚠️ Skipping duplicate for:', mapped.id);
+          // console.log('⚠️ Skipping duplicate for:', mapped.id);
           return;
         }
         lastShownId = mapped.id;
 
         // 📥 Add to inbox immediately so it shows in NotificationsScreen
         await addToInbox(userId || '', mapped);
-        console.log('📥 Added to inbox:', mapped.id);
+        // console.log('📥 Added to inbox:', mapped.id);
 
         const title = String(mapped.title || 'Notification');
         const message = String(mapped.message || '');
@@ -203,16 +203,16 @@ export const initializeNotifications = async (userId?: string, forceRegister?: b
 
         // 🏝️ Show in Dynamic Island (scheduled outfit notifications)
         try {
-          console.log('🏝️ Attempting Dynamic Island for FCM:', {title, message});
+          // console.log('🏝️ Attempting Dynamic Island for FCM:', {title, message});
 
           // Check if Live Activities are enabled
           const enabled = await DynamicIsland.isEnabled();
-          console.log('🔔 Live Activities enabled?', enabled);
+          // console.log('🔔 Live Activities enabled?', enabled);
 
           if (enabled) {
             // Start the Live Activity
             const result = await DynamicIsland.start(title, message);
-            console.log('✅ Dynamic Island started (FCM):', result);
+            // console.log('✅ Dynamic Island started (FCM):', result);
 
             // Auto-dismiss after 60 seconds (gives user time to interact)
             setTimeout(async () => {

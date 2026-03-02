@@ -137,17 +137,6 @@ export default function ImagePickerGrid({
       assetRepresentationMode: 'current', // Force full resolution, not iCloud optimized
     });
     if (result.assets?.length) {
-      // Log what the image picker is returning
-      result.assets.forEach((asset, i) => {
-        console.log(`[ImagePicker] Asset ${i}:`, {
-          width: asset.width,
-          height: asset.height,
-          fileSize: asset.fileSize,
-          type: asset.type,
-          fileName: asset.fileName,
-        });
-      });
-
       const {accepted, rejected} = splitBySize(result.assets);
       if (rejected.length) {
         Alert.alert(

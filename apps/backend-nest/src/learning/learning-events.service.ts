@@ -13,10 +13,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { pool } from '../db/pool';
 import { ConsentCache } from './consent-cache';
-import {
-  LEARNING_FLAGS,
-  EVENT_LOGGING_CONFIG,
-} from '../config/feature-flags';
+import { LEARNING_FLAGS, EVENT_LOGGING_CONFIG, ELITE_FLAGS } from '../config/feature-flags';
 import {
   CreateLearningEventInput,
   EVENT_SIGNAL_DEFAULTS,
@@ -51,8 +48,18 @@ export class LearningEventsService {
       return;
     }
 
-    // Circuit breaker check
-    if (this.circuitOpen) {
+    // Skip zero-weight exposure/impression events (DB constraint rejects weight=0)
+    if (input.signalWeight === 0 && input.signalPolarity === 0) {
+      if (process.env.LEARNING_DEBUG === 'true') {
+        this.logger.warn(
+          `[LearningEvents] Skipping zero-weight exposure event: ${input.eventType}`,
+        );
+      }
+      return;
+    }
+
+    // Circuit breaker check (production only)
+    if (process.env.NODE_ENV === 'production' && this.circuitOpen) {
       if (
         Date.now() - this.circuitOpenedAt <
         EVENT_LOGGING_CONFIG.CIRCUIT_BREAKER_RESET_MS
@@ -79,6 +86,21 @@ export class LearningEventsService {
       return;
     }
 
+    // DEV MODE: bypass timeout + circuit breaker so events always persist locally
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        await this.insertEvent(input);
+        this.logger.debug(
+          `[LearningEvents] OK event=${input.eventType} source=${input.sourceFeature} entity=${input.entityId ?? '-'} ceid=${input.clientEventId ?? '-'} user=${input.userId.slice(0, 8)}`,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `[LearningEvents] Dev insert failed for ${input.userId}: ${error.message}`,
+        );
+      }
+      return;
+    }
+
     // Best-effort write with timeout
     const timeoutPromise = new Promise<'timeout'>((resolve) =>
       setTimeout(() => resolve('timeout'), EVENT_LOGGING_CONFIG.TIMEOUT_MS),
@@ -96,6 +118,11 @@ export class LearningEventsService {
 
       // Success - reset failure counter
       this.consecutiveFailures = 0;
+      if (ELITE_FLAGS.DEBUG) {
+        this.logger.log(
+          `[LearningEvents] OK event=${input.eventType} source=${input.sourceFeature} entity=${input.entityId ?? '-'} ceid=${input.clientEventId ?? '-'} user=${input.userId.slice(0, 8)}`,
+        );
+      }
     } catch (error) {
       this.handleFailure(error.message, input.userId);
     }
@@ -145,7 +172,9 @@ export class LearningEventsService {
       );
       return parseInt(result.rows[0].count, 10);
     } catch (error) {
-      this.logger.error(`[LearningEvents] getEventCount failed: ${error.message}`);
+      this.logger.error(
+        `[LearningEvents] getEventCount failed: ${error.message}`,
+      );
       return 0;
     }
   }
@@ -175,6 +204,10 @@ export class LearningEventsService {
    * Insert event into database.
    */
   private async insertEvent(input: CreateLearningEventInput): Promise<void> {
+    this.logger.log(
+      '[STUDIO LEARNING DEBUG] insertEvent called',
+      { event_type: input.eventType, source_feature: input.sourceFeature, user_id: input.userId },
+    );
     await pool.query(
       `INSERT INTO user_learning_events (
         user_id,

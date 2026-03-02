@@ -34,10 +34,6 @@ import { LearningController } from './learning.controller';
     FashionStateService,
     LearningCronService,
   ],
-  exports: [
-    ConsentCache,
-    LearningEventsService,
-    FashionStateService,
-  ],
+  exports: [ConsentCache, LearningEventsService, FashionStateService],
 })
 export class LearningModule {}

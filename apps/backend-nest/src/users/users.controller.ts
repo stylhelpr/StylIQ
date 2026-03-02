@@ -28,12 +28,13 @@ export class UsersController {
     const user = await this.service.findById(userId);
     if (!user) return null;
 
-    // DEBUG: Log what we're returning
-    console.log('[/users/me] Returning:', {
-      userId,
-      first_name: user.first_name,
-      last_name: user.last_name,
-    });
+    // // DEBUG: Log what we're returning
+    // console.log('[/users/me] Returning:', {
+    //   userId,
+    //   first_name: user.first_name,
+    //   last_name: user.last_name,
+    //   gender_presentation: user.gender_presentation,
+    // });
 
     return {
       id: user.id,
@@ -44,6 +45,7 @@ export class UsersController {
       profession: user.profession,
       bio: user.bio,
       fashion_level: user.fashion_level,
+      gender_presentation: user.gender_presentation,
       profile_picture: user.profile_picture,
       theme_mode: user.theme_mode,
       onboarding_complete: user.onboarding_complete,

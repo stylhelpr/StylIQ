@@ -12,11 +12,7 @@ import { getSecret, getSecretJson, secretExists } from '../config/secrets';
 const IMAGE_CT_FALLBACK = 'image/jpeg';
 
 // Allowed image MIME types for upload (security whitelist)
-const ALLOWED_IMAGE_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-]);
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 // Maximum upload size: 5MB (enforced via signed URL)
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -36,7 +32,9 @@ export class UploadService {
     private readonly wardrobe: WardrobeService,
     private readonly vertex: VertexService,
   ) {
-    const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
+    const credentials = getSecretJson<GCPServiceAccount>(
+      'GCP_SERVICE_ACCOUNT_JSON',
+    );
     this.storage = new Storage({
       projectId: credentials.project_id,
       credentials,
@@ -177,7 +175,7 @@ export class UploadService {
     };
 
     // Reuse your existing create flow (DB insert, Vertex embeds, Pinecone upsert)
-    return this.wardrobe.createItem(payload as any);
+    return this.wardrobe.createItem(payload);
   }
 }
 

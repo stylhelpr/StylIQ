@@ -92,7 +92,11 @@ export function useAIOutfit(userId?: string) {
         useFastMode?: boolean;
       },
     ) => {
-      if (!userId) return;
+      if (!userId) {
+        setError('Please log in to generate outfits.');
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {

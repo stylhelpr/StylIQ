@@ -8,6 +8,7 @@ export function buildOutfitPrompt(
   userQuery: string,
   styleAgent?: string,
   userStyleProfile?: any, // 👈 pass this in too
+  genderDirective?: string, // Layer 2 defense-in-depth
 ): string {
   const constraints = parseConstraints(userQuery);
   const constraintsLine = JSON.stringify(constraints);
@@ -34,14 +35,91 @@ TASTES & BIASES:
 (Always reflect this stylist’s taste — overrides the user profile.)
     `.trim();
   } else if (userStyleProfile) {
-    // 🟢 Default mode = user’s own style profile
-    styleContextLine = `
-USER STYLE PROFILE (use as primary guidance):
-- Preferred colors: ${userStyleProfile.preferredColors?.join(', ') || 'n/a'}
-- Favorite brands: ${userStyleProfile.favoriteBrands?.join(', ') || 'n/a'}
-- Style keywords: ${userStyleProfile.styleKeywords?.join(', ') || 'n/a'}
-- Dress bias: ${userStyleProfile.dressBias || 'n/a'}
-    `.trim();
+    // 🟢 Default mode = user's own style profile (all approved signals)
+    const profileLines: string[] = [];
+    if (userStyleProfile.preferredColors?.length)
+      profileLines.push(
+        `- Preferred colors: ${userStyleProfile.preferredColors.join(', ')}`,
+      );
+    if (userStyleProfile.favoriteBrands?.length)
+      profileLines.push(
+        `- Preferred brands: ${userStyleProfile.favoriteBrands.join(', ')}`,
+      );
+    if (userStyleProfile.occasions?.length)
+      profileLines.push(
+        `- Typical occasions: ${userStyleProfile.occasions.join(', ')}`,
+      );
+    if (userStyleProfile.avoidSubcategories?.length)
+      profileLines.push(
+        `- Disliked styles (avoid): ${userStyleProfile.avoidSubcategories.join(', ')}`,
+      );
+    if (userStyleProfile.stylePreferences?.length)
+      profileLines.push(
+        `- Style preferences: ${userStyleProfile.stylePreferences.join(', ')}`,
+      );
+    if (userStyleProfile.styleKeywords?.length)
+      profileLines.push(
+        `- Style keywords: ${userStyleProfile.styleKeywords.join(', ')}`,
+      );
+    if (userStyleProfile.fitPreferences?.length)
+      profileLines.push(
+        `- Fit preferences: ${userStyleProfile.fitPreferences.join(', ')}`,
+      );
+    if (userStyleProfile.fabricPreferences?.length)
+      profileLines.push(
+        `- Fabric preferences: ${userStyleProfile.fabricPreferences.join(', ')}`,
+      );
+    if (userStyleProfile.climate)
+      profileLines.push(`- Climate: ${userStyleProfile.climate}`);
+    if (userStyleProfile.dressBias)
+      profileLines.push(`- Dress bias: ${userStyleProfile.dressBias}`);
+
+    // P0 hard vetoes — LLM must respect
+    if (userStyleProfile.coverageNoGo?.length)
+      profileLines.push(
+        `HARD RULE — Coverage restrictions (NEVER include items violating these): ${userStyleProfile.coverageNoGo.join(', ')}`,
+      );
+    if (userStyleProfile.avoidColors?.length)
+      profileLines.push(
+        `HARD RULE — NEVER use these colors: ${userStyleProfile.avoidColors.join(', ')}`,
+      );
+    if (userStyleProfile.avoidMaterials?.length)
+      profileLines.push(
+        `HARD RULE — NEVER use these materials: ${userStyleProfile.avoidMaterials.join(', ')}`,
+      );
+    if (userStyleProfile.formalityFloor)
+      profileLines.push(
+        `HARD RULE — Minimum formality: ${userStyleProfile.formalityFloor} (never suggest items below this level)`,
+      );
+    if (
+      userStyleProfile.walkabilityRequirement &&
+      userStyleProfile.walkabilityRequirement !== 'Low'
+    )
+      profileLines.push(
+        `HARD RULE — Walkability requirement: ${userStyleProfile.walkabilityRequirement} (avoid impractical footwear)`,
+      );
+
+    // P1 soft preferences
+    if (userStyleProfile.patternPreferences?.length)
+      profileLines.push(
+        `- Preferred patterns: ${userStyleProfile.patternPreferences.join(', ')}`,
+      );
+    if (userStyleProfile.avoidPatterns?.length)
+      profileLines.push(
+        `- Avoided patterns: ${userStyleProfile.avoidPatterns.join(', ')}`,
+      );
+    if (userStyleProfile.silhouettePreference)
+      profileLines.push(
+        `- Silhouette preference: ${userStyleProfile.silhouettePreference}`,
+      );
+
+    if (profileLines.length > 0) {
+      styleContextLine = `
+USER STYLE PROFILE (use as primary guidance — treat as strong signals):
+${profileLines.join('\n')}
+Prioritize items matching these preferences. Avoid items matching disliked styles.
+      `.trim();
+    }
   }
 
   return `
@@ -86,7 +164,7 @@ OUTPUT FORMAT (STRICT JSON ONLY):
     }
   ]
 }
-`.trim();
+${genderDirective || ''}`.trim();
 }
 
 //////////////////////

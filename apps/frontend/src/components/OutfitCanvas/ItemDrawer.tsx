@@ -51,12 +51,27 @@ type Props = {
 const categorizeItem = (item: WardrobeItem): Category => {
   const cat = (item.main_category || item.mainCategory || '').toLowerCase();
 
+  // Exact-match new categories first (items explicitly labeled with new main_category)
+  if (cat === 'outerwear') return 'Outerwear';
+  if (cat === 'dresses') return 'Dresses';
+  if (cat === 'skirts') return 'Skirts';
+  if (cat === 'bags') return 'Bags';
+  if (cat === 'headwear') return 'Headwear';
+  if (cat === 'jewelry') return 'Jewelry';
+
   if (
-    ['tops', 'outerwear', 'shirts', 'jackets', 'knitwear', 'sweaters', 'blazers', 'coats', 't-shirts', 'blouses'].some(
+    ['tops', 'shirts', 'knitwear', 'sweaters', 'blouses', 't-shirts'].some(
       c => cat.includes(c),
     )
   ) {
     return 'Tops';
+  }
+  if (
+    ['jackets', 'blazers', 'coats'].some(
+      c => cat.includes(c),
+    )
+  ) {
+    return 'Outerwear';
   }
   if (
     ['bottoms', 'pants', 'trousers', 'shorts', 'skirts', 'jeans', 'denim'].some(
@@ -73,7 +88,7 @@ const categorizeItem = (item: WardrobeItem): Category => {
     return 'Shoes';
   }
   if (
-    ['accessories', 'hats', 'scarves', 'belts', 'jewelry', 'bags', 'glasses', 'watches'].some(
+    ['accessories', 'hats', 'scarves', 'belts', 'bags', 'glasses', 'watches'].some(
       c => cat.includes(c),
     )
   ) {
@@ -235,7 +250,8 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
       height: ITEM_SIZE,
       borderRadius: 10,
       overflow: 'hidden',
-      backgroundColor: theme.colors.surface,
+      // backgroundColor: theme.colors.surface,
+      backgroundColor: theme.colors.imageBackground,
       borderWidth: 1,
       borderColor: theme.colors.surfaceBorder || 'rgba(0,0,0,0.1)',
     },
@@ -300,15 +316,15 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
                 {filteredItems.map((item: WardrobeItem) => {
                   const isPlaced = placedItemIds.includes(item.id);
                   const resolvedUri = resolveUri(item);
-                  // Debug: log FULL URLs being used
-                  console.log('[ItemDrawer] FULL URLS:', {
-                    id: item.id,
-                    image: item.image,
-                    touchedUpImageUrl: item.touchedUpImageUrl,
-                    processedImageUrl: item.processedImageUrl,
-                    image_url: item.image_url,
-                    resolved: resolvedUri,
-                  });
+                  // // Debug: log FULL URLs being used
+                  // console.log('[ItemDrawer] FULL URLS:', {
+                  //   id: item.id,
+                  //   image: item.image,
+                  //   touchedUpImageUrl: item.touchedUpImageUrl,
+                  //   processedImageUrl: item.processedImageUrl,
+                  //   image_url: item.image_url,
+                  //   resolved: resolvedUri,
+                  // });
                   return (
                     <TouchableOpacity
                       key={item.id}

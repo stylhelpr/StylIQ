@@ -30,7 +30,13 @@ export type WardrobeItem = {
     | 'Maternity'
     | 'Unisex'
     | 'Costumes'
-    | 'TraditionalWear';
+    | 'TraditionalWear'
+    | 'Dresses'
+    | 'Skirts'
+    | 'Bags'
+    | 'Headwear'
+    | 'Jewelry'
+    | 'Other';
   subCategory?: string;
   tags?: string[];
   styleDescriptors?: string[];
@@ -163,6 +169,13 @@ export type WardrobeItem = {
   fitConfidence?: number;
   outfitFeedback?: {outfitId: string; liked: boolean; reasonCodes?: string[]}[];
   dislikedFeatures?: string[];
+
+  // Location
+  locationId?: string; // ↔ location_id
+
+  // Availability
+  careStatus?: 'available' | 'at_cleaner';
+  cleanerInfo?: string;
 
   // System
   metadata?: Record<string, any>;

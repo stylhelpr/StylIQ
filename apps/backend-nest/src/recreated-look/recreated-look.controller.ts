@@ -29,10 +29,7 @@ export class RecreatedLookController {
   }
 
   @Get()
-  async getRecentRecreatedLooks(
-    @Req() req,
-    @Query('limit') limit = '20',
-  ) {
+  async getRecentRecreatedLooks(@Req() req, @Query('limit') limit = '20') {
     const userId = req.user.userId;
     return this.recreatedLookService.getRecentRecreatedLooks(
       userId,
@@ -47,14 +44,15 @@ export class RecreatedLookController {
     @Body() body: { name?: string },
   ) {
     const userId = req.user.userId;
-    return this.recreatedLookService.updateRecreatedLook(userId, lookId, body.name);
+    return this.recreatedLookService.updateRecreatedLook(
+      userId,
+      lookId,
+      body.name,
+    );
   }
 
   @Delete(':lookId')
-  async deleteRecreatedLook(
-    @Req() req,
-    @Param('lookId') lookId: string,
-  ) {
+  async deleteRecreatedLook(@Req() req, @Param('lookId') lookId: string) {
     const userId = req.user.userId;
     return this.recreatedLookService.deleteRecreatedLook(userId, lookId);
   }

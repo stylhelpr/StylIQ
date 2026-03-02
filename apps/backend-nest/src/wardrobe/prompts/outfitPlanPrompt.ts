@@ -2,8 +2,23 @@
 // STATELESS, DETERMINISTIC outfit planning engine
 // NO personal preferences, NO learning, NO bias - pure constraints-based logic
 
+/**
+ * OutfitPlanSlot category type.
+ * Matches PlanCategory in categoryMapping.ts.
+ * ALL outfit-eligible slots are represented.
+ */
 export type OutfitPlanSlot = {
-  category: 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
+  category:
+    | 'Tops'
+    | 'Bottoms'
+    | 'Dresses'
+    | 'Shoes'
+    | 'Outerwear'
+    | 'Accessories'
+    | 'Activewear'
+    | 'Swimwear'
+    | 'Undergarments'
+    | 'Other';
   description: string;
   formality?: number;
 };
@@ -20,8 +35,10 @@ export type OutfitPlanResponse = {
 // Derive formality from query keywords
 function deriveFormality(query: string): number {
   const q = query.toLowerCase();
-  if (/\b(formal|business|interview|wedding|gala|black.?tie)\b/.test(q)) return 9;
-  if (/\b(smart.?casual|business.?casual|dinner|date|upscale)\b/.test(q)) return 7;
+  if (/\b(formal|business|interview|wedding|gala|black.?tie)\b/.test(q))
+    return 9;
+  if (/\b(smart.?casual|business.?casual|dinner|date|upscale)\b/.test(q))
+    return 7;
   if (/\b(casual|everyday|relaxed|weekend|brunch)\b/.test(q)) return 4;
   if (/\b(gym|workout|athletic|exercise|training)\b/.test(q)) return 2;
   if (/\b(lounge|home|sleep|pajama)\b/.test(q)) return 1;
@@ -42,7 +59,10 @@ function deriveOccasion(query: string): string | null {
 }
 
 // Derive season from query or weather
-function deriveSeason(query: string, weather?: { temp_f?: number }): string | null {
+function deriveSeason(
+  query: string,
+  weather?: { temp_f?: number },
+): string | null {
   const q = query.toLowerCase();
   if (/\b(winter|cold|freezing|snow)\b/.test(q)) return 'winter';
   if (/\b(summer|hot|warm|beach)\b/.test(q)) return 'summer';
@@ -60,7 +80,10 @@ function deriveSeason(query: string, weather?: { temp_f?: number }): string | nu
 }
 
 // Derive weather condition
-function deriveWeather(query: string, weather?: { temp_f?: number; condition?: string }): string | null {
+function deriveWeather(
+  query: string,
+  weather?: { temp_f?: number; condition?: string },
+): string | null {
   if (weather?.condition) return weather.condition;
   const q = query.toLowerCase();
   if (/\b(rain|rainy|wet)\b/.test(q)) return 'rainy';
@@ -80,7 +103,18 @@ export function buildOutfitPlanPrompt(
   userQuery: string,
   options?: {
     styleAgent?: string; // ignored - no personalization
-    userStyleProfile?: unknown; // ignored - no personalization
+    userStyleProfile?: {
+      preferredColors?: string[];
+      favoriteBrands?: string[];
+      styleKeywords?: string[];
+      dressBias?: string;
+      occasions?: string[];
+      avoidSubcategories?: string[];
+      stylePreferences?: string[];
+      fitPreferences?: string[];
+      fabricPreferences?: string[];
+      climate?: string;
+    } | null;
     weather?: {
       temp_f?: number;
       condition?: string;
@@ -88,9 +122,11 @@ export function buildOutfitPlanPrompt(
     };
     availableItems?: string[];
     refinementAction?: RefinementAction; // Slot-level only - NO item names ever
+    genderDirective?: string; // Layer 2 defense-in-depth
   },
 ): string {
-  const { weather, availableItems, refinementAction } = options || {};
+  const { weather, availableItems, refinementAction, genderDirective } =
+    options || {};
 
   // Derive constraints from query
   const formality = deriveFormality(userQuery);
@@ -124,6 +160,74 @@ REFINEMENT MODE:
 - Output ONLY the slots that need to change`;
   }
 
+  // Build style profile soft guidance (all approved signals)
+  const sp = options?.userStyleProfile as
+    | Record<string, any>
+    | null
+    | undefined;
+  let styleProfileBlock = '';
+  if (sp) {
+    const lines: string[] = [];
+    if (sp.preferredColors?.length)
+      lines.push(`- Preferred colors: ${sp.preferredColors.join(', ')}`);
+    if (sp.favoriteBrands?.length)
+      lines.push(`- Preferred brands: ${sp.favoriteBrands.join(', ')}`);
+    if (sp.occasions?.length)
+      lines.push(`- Typical occasions: ${sp.occasions.join(', ')}`);
+    if (sp.avoidSubcategories?.length)
+      lines.push(
+        `- Disliked styles (avoid): ${sp.avoidSubcategories.join(', ')}`,
+      );
+    if (sp.stylePreferences?.length)
+      lines.push(`- Style preferences: ${sp.stylePreferences.join(', ')}`);
+    if (sp.styleKeywords?.length)
+      lines.push(`- Style keywords: ${sp.styleKeywords.join(', ')}`);
+    if (sp.fitPreferences?.length)
+      lines.push(`- Fit preferences: ${sp.fitPreferences.join(', ')}`);
+    if (sp.fabricPreferences?.length)
+      lines.push(`- Fabric preferences: ${sp.fabricPreferences.join(', ')}`);
+    if (sp.climate) lines.push(`- Climate: ${sp.climate}`);
+    if (sp.dressBias) lines.push(`- Dress bias: ${sp.dressBias}`);
+
+    // P0 hard vetoes — LLM must respect
+    if (sp.coverageNoGo?.length)
+      lines.push(
+        `HARD RULE — Coverage restrictions (NEVER include items violating these): ${sp.coverageNoGo.join(', ')}`,
+      );
+    if (sp.avoidColors?.length)
+      lines.push(
+        `HARD RULE — NEVER use these colors: ${sp.avoidColors.join(', ')}`,
+      );
+    if (sp.avoidMaterials?.length)
+      lines.push(
+        `HARD RULE — NEVER use these materials: ${sp.avoidMaterials.join(', ')}`,
+      );
+    if (sp.formalityFloor)
+      lines.push(
+        `HARD RULE — Minimum formality: ${sp.formalityFloor} (never suggest items below this level)`,
+      );
+    if (sp.walkabilityRequirement && sp.walkabilityRequirement !== 'Low')
+      lines.push(
+        `HARD RULE — Walkability requirement: ${sp.walkabilityRequirement} (avoid impractical footwear)`,
+      );
+
+    // P1 soft preferences
+    if (sp.patternPreferences?.length)
+      lines.push(
+        `- Preferred patterns: ${sp.patternPreferences.join(', ')}`,
+      );
+    if (sp.avoidPatterns?.length)
+      lines.push(`- Avoided patterns: ${sp.avoidPatterns.join(', ')}`);
+    if (sp.silhouettePreference)
+      lines.push(`- Silhouette preference: ${sp.silhouettePreference}`);
+
+    if (lines.length > 0) {
+      styleProfileBlock = `
+STYLE PREFERENCES (soft guidance — prefer but do not override constraints):
+${lines.join('\n')}`;
+    }
+  }
+
   return `SYSTEM: Stateless outfit planning engine. Generate exactly 3 ranked outfits. No commentary.
 
 INPUT:
@@ -131,7 +235,7 @@ INPUT:
   "request": "${userQuery}",
   "constraints": ${JSON.stringify(constraints)}
 }
-${availableItemsConstraint}${refinementInstruction}
+${availableItemsConstraint}${refinementInstruction}${styleProfileBlock}${genderDirective || ''}
 
 OUTPUT (JSON only):
 {
@@ -148,9 +252,13 @@ OUTPUT (JSON only):
       ]
     },
     {
-      "title": "Pick #2: [Different vibe]",
+      "title": "Pick #2: [Different vibe — dress option if appropriate]",
       "why": "One sentence explaining the different approach",
-      "slots": [...]
+      "slots": [
+        {"category": "Dresses", "description": "midi dress in neutral tone", "formality": N},
+        {"category": "Shoes", "description": "strappy sandals", "formality": N},
+        {"category": "Accessories", "description": "statement earrings", "formality": N}
+      ]
     },
     {
       "title": "Pick #3: [Wildcard/Bold choice]",
@@ -163,10 +271,17 @@ OUTPUT (JSON only):
 RULES:
 - Exactly 3 outfits: #1 safe, #2 different vibe, #3 controlled wildcard
 - Each outfit MUST include a "why" field: one concise sentence explaining why this combination works
-- Each outfit SHOULD include ALL 5 categories: Tops, Bottoms, Shoes, Outerwear, Accessories
+- Each outfit uses one of two STRUCTURES:
+  A) SEPARATES: Tops + Bottoms + Shoes [+ Outerwear] [+ Accessories]
+  B) ONE-PIECE: Dresses + Shoes [+ Outerwear] [+ Accessories]
+- NEVER combine Tops+Bottoms with Dresses in the same outfit
+- Activewear slots replace Tops+Bottoms for athletic/gym contexts
+- Swimwear is a standalone slot for beach/pool contexts
+- Valid categories: Tops, Bottoms, Dresses, Shoes, Outerwear, Accessories, Activewear, Swimwear, Undergarments, Other
+- CRITICAL: If an item is a dress, gown, romper, or jumpsuit, its category MUST be 'Dresses', never 'Bottoms'
 - Only omit Outerwear if weather/context makes it inappropriate (e.g., hot summer day)
 - Only omit Accessories if none would enhance the outfit
-- Prefer COMPLETE outfits with 4-5 items over minimal 3-item outfits
+- Prefer COMPLETE outfits with 3-5 items over minimal 2-item outfits
 - Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer", "light bomber jacket", "leather belt")
 - No brands, no specific items, no images, no item names
 - Formality 1-10 per slot
@@ -218,8 +333,22 @@ PICK #3 WILDCARD CONSTRAINTS (critical):
  * - The LLM must NOT generate a slot for the centerpiece's category
  * - All outfits must be DESIGNED around the centerpiece, not have it appended
  */
+/**
+ * CenterpieceItem category type.
+ * Matches PlanCategory in categoryMapping.ts.
+ */
 export type CenterpieceItem = {
-  category: 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
+  category:
+    | 'Tops'
+    | 'Bottoms'
+    | 'Dresses'
+    | 'Shoes'
+    | 'Outerwear'
+    | 'Accessories'
+    | 'Activewear'
+    | 'Swimwear'
+    | 'Undergarments'
+    | 'Other';
   description: string; // e.g., "navy blue chinos", "white leather sneakers"
   color?: string;
   formality?: number;
@@ -262,10 +391,31 @@ WARDROBE CONSTRAINT (only use item types from this list):
 ${availableItems.join(', ')}`;
   }
 
-  // Determine which categories to generate (exclude centerpiece category)
-  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  // Determine which categories to generate (exclude centerpiece + structural complements)
+  // All plan-visible categories (from canonical categoryMapping)
+  const allCategories = [
+    'Tops',
+    'Bottoms',
+    'Dresses',
+    'Shoes',
+    'Outerwear',
+    'Accessories',
+    'Activewear',
+    'Swimwear',
+    'Undergarments',
+    'Other',
+  ];
+  const centerpieceCatLc = centerpieceItem.category.toLowerCase();
+  const structuralExclusions = new Set<string>();
+  structuralExclusions.add(centerpieceCatLc);
+  if (centerpieceCatLc === 'dresses') {
+    structuralExclusions.add('tops');
+    structuralExclusions.add('bottoms');
+  } else if (centerpieceCatLc === 'tops' || centerpieceCatLc === 'bottoms') {
+    structuralExclusions.add('dresses');
+  }
   const categoriesToGenerate = allCategories.filter(
-    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+    (c) => !structuralExclusions.has(c.toLowerCase()),
   );
 
   // Build centerpiece description
@@ -381,8 +531,16 @@ export type StartWithItemInputV2 = {
   availableItems?: string[];
 };
 
-export function buildStartWithItemPromptV2(input: StartWithItemInputV2): string {
-  const { centerpieceItem, moodPrompts, freeformPrompt, weather, availableItems } = input;
+export function buildStartWithItemPromptV2(
+  input: StartWithItemInputV2,
+): string {
+  const {
+    centerpieceItem,
+    moodPrompts,
+    freeformPrompt,
+    weather,
+    availableItems,
+  } = input;
 
   // Build combined styling intent from mood + freeform prompt
   const stylingIntentParts: string[] = [];
@@ -433,10 +591,31 @@ WARDROBE CONSTRAINT (only use item types from this list):
 ${availableItems.join(', ')}`;
   }
 
-  // Determine which categories to generate (exclude centerpiece category)
-  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  // Determine which categories to generate (exclude centerpiece + structural complements)
+  // All plan-visible categories (from canonical categoryMapping)
+  const allCategories = [
+    'Tops',
+    'Bottoms',
+    'Dresses',
+    'Shoes',
+    'Outerwear',
+    'Accessories',
+    'Activewear',
+    'Swimwear',
+    'Undergarments',
+    'Other',
+  ];
+  const centerpieceCatLc = centerpieceItem.category.toLowerCase();
+  const structuralExclusions = new Set<string>();
+  structuralExclusions.add(centerpieceCatLc);
+  if (centerpieceCatLc === 'dresses') {
+    structuralExclusions.add('tops');
+    structuralExclusions.add('bottoms');
+  } else if (centerpieceCatLc === 'tops' || centerpieceCatLc === 'bottoms') {
+    structuralExclusions.add('dresses');
+  }
   const categoriesToGenerate = allCategories.filter(
-    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+    (c) => !structuralExclusions.has(c.toLowerCase()),
   );
 
   // Build centerpiece description
@@ -487,7 +666,15 @@ CRITICAL RULES:
 2. ALL 3 outfits must be designed to COMPLEMENT the centerpiece item
 3. Match formality, color palette, and aesthetic to work WITH the centerpiece
 4. Only generate slots for: ${categoriesToGenerate.join(', ')}
-5. Apply the mood/intent to ALL items selected${moodPrompts?.length ? '\n6. Each outfit must reflect the specified mood(s): ' + moodPrompts.map((p) => p.match(/with (?:a |an )?(\w+)/i)?.[1]).filter(Boolean).join(', ') : ''}
+5. Apply the mood/intent to ALL items selected${
+    moodPrompts?.length
+      ? '\n6. Each outfit must reflect the specified mood(s): ' +
+        moodPrompts
+          .map((p) => p.match(/with (?:a |an )?(\w+)/i)?.[1])
+          .filter(Boolean)
+          .join(', ')
+      : ''
+  }
 
 COMPOSITION REQUIREMENT (MANDATORY):
 Each outfit MUST contain:
@@ -616,7 +803,9 @@ export function validateStartWithItemComposition(
   }
 
   // Rule 3: At least 2 non-centerpiece items
-  const nonCenterpieceItems = outfit.items.filter((item) => item.id !== centerpieceId);
+  const nonCenterpieceItems = outfit.items.filter(
+    (item) => item.id !== centerpieceId,
+  );
   if (nonCenterpieceItems.length < 2) {
     errors.push(
       `Outfit ${outfitIndex + 1} has only ${nonCenterpieceItems.length} complementary items (minimum 2 required)`,
@@ -624,7 +813,9 @@ export function validateStartWithItemComposition(
   }
 
   // Rule 4: No duplicate categories
-  const categories = outfit.items.map((item) => item.main_category?.toLowerCase());
+  const categories = outfit.items.map((item) =>
+    item.main_category?.toLowerCase(),
+  );
   const categorySet = new Set(categories.filter(Boolean));
   if (categorySet.size < categories.filter(Boolean).length) {
     errors.push(`Outfit ${outfitIndex + 1} has duplicate categories`);
@@ -634,7 +825,10 @@ export function validateStartWithItemComposition(
   const nonAccessoryNonCenterpiece = nonCenterpieceItems.filter(
     (item) => item.main_category?.toLowerCase() !== 'accessories',
   );
-  if (nonCenterpieceItems.length >= 2 && nonAccessoryNonCenterpiece.length === 0) {
+  if (
+    nonCenterpieceItems.length >= 2 &&
+    nonAccessoryNonCenterpiece.length === 0
+  ) {
     errors.push(
       `Outfit ${outfitIndex + 1} only has accessories as complementary items (need at least one core garment)`,
     );
@@ -643,12 +837,16 @@ export function validateStartWithItemComposition(
   // Rule 6: All items must have an ID
   const itemsWithoutId = outfit.items.filter((item) => !item.id);
   if (itemsWithoutId.length > 0) {
-    errors.push(`Outfit ${outfitIndex + 1} has ${itemsWithoutId.length} items without IDs`);
+    errors.push(
+      `Outfit ${outfitIndex + 1} has ${itemsWithoutId.length} items without IDs`,
+    );
   }
 
   // Warnings (non-fatal)
   if (outfit.items.length === 3) {
-    warnings.push(`Outfit ${outfitIndex + 1} has minimum items (3) - consider adding more variety`);
+    warnings.push(
+      `Outfit ${outfitIndex + 1} has minimum items (3) - consider adding more variety`,
+    );
   }
 
   return {
@@ -724,6 +922,7 @@ export type NormalizedStartWithItemInput = {
     humidity?: number;
   };
   availableItems?: string[];
+  userStyleProfile?: Record<string, any>; // Approved style signals (soft guidance)
 };
 
 /**
@@ -769,7 +968,8 @@ export function normalizeStartWithItemIntent(
   input: RawStartWithItemInput,
 ): NormalizedStartWithItemInput {
   const hasMoods = input.moodPrompts && input.moodPrompts.length > 0;
-  const hasFreeform = input.freeformPrompt && input.freeformPrompt.trim().length > 0;
+  const hasFreeform =
+    input.freeformPrompt && input.freeformPrompt.trim().length > 0;
 
   // MUTUAL EXCLUSIVITY CHECK - fail closed
   if (hasMoods && hasFreeform) {
@@ -817,8 +1017,17 @@ export function normalizeStartWithItemIntent(
  * THIS FUNCTION IS COMPLETELY ISOLATED FROM PATH #1.
  * DO NOT MODIFY buildOutfitPlanPrompt() - it is read-only.
  */
-export function buildStartWithItemPromptV3(input: NormalizedStartWithItemInput): string {
-  const { centerpieceItem, intentMode, moods, freeformPrompt, weather, availableItems } = input;
+export function buildStartWithItemPromptV3(
+  input: NormalizedStartWithItemInput,
+): string {
+  const {
+    centerpieceItem,
+    intentMode,
+    moods,
+    freeformPrompt,
+    weather,
+    availableItems,
+  } = input;
 
   // Build styling intent based on EXCLUSIVE mode
   let stylingIntent: string;
@@ -835,7 +1044,10 @@ export function buildStartWithItemPromptV3(input: NormalizedStartWithItemInput):
         })
         .filter(Boolean);
 
-      stylingIntent = moodKeywords.length > 0 ? `Mood: ${moodKeywords.join(', ')}` : 'Mood-based styling';
+      stylingIntent =
+        moodKeywords.length > 0
+          ? `Mood: ${moodKeywords.join(', ')}`
+          : 'Mood-based styling';
 
       moodInstruction = `
 STYLING MOOD (apply to ALL 3 outfits - EXCLUSIVE MODE):
@@ -885,10 +1097,31 @@ WARDROBE CONSTRAINT (only use item types from this list):
 ${availableItems.join(', ')}`;
   }
 
-  // Determine which categories to generate (exclude centerpiece category)
-  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  // Determine which categories to generate (exclude centerpiece + structural complements)
+  // All plan-visible categories (from canonical categoryMapping)
+  const allCategories = [
+    'Tops',
+    'Bottoms',
+    'Dresses',
+    'Shoes',
+    'Outerwear',
+    'Accessories',
+    'Activewear',
+    'Swimwear',
+    'Undergarments',
+    'Other',
+  ];
+  const centerpieceCatLc = centerpieceItem.category.toLowerCase();
+  const structuralExclusions = new Set<string>();
+  structuralExclusions.add(centerpieceCatLc);
+  if (centerpieceCatLc === 'dresses') {
+    structuralExclusions.add('tops');
+    structuralExclusions.add('bottoms');
+  } else if (centerpieceCatLc === 'tops' || centerpieceCatLc === 'bottoms') {
+    structuralExclusions.add('dresses');
+  }
   const categoriesToGenerate = allCategories.filter(
-    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+    (c) => !structuralExclusions.has(c.toLowerCase()),
   );
 
   // Build centerpiece description
@@ -1030,7 +1263,9 @@ export function validateStartWithItemIntentMode(
         errors.push('Intent mode is "mood" but no moods provided');
       }
       if (input.freeformPrompt) {
-        errors.push('Intent mode is "mood" but freeformPrompt is present (should be null)');
+        errors.push(
+          'Intent mode is "mood" but freeformPrompt is present (should be null)',
+        );
       }
       break;
 
@@ -1039,7 +1274,9 @@ export function validateStartWithItemIntentMode(
         errors.push('Intent mode is "freeform" but no freeformPrompt provided');
       }
       if (input.moods && input.moods.length > 0) {
-        errors.push('Intent mode is "freeform" but moods are present (should be null)');
+        errors.push(
+          'Intent mode is "freeform" but moods are present (should be null)',
+        );
       }
       break;
 
@@ -1089,8 +1326,51 @@ export function validateStartWithItemIntentMode(
  * THIS FUNCTION IS COMPLETELY ISOLATED FROM PATH #1.
  * DO NOT MODIFY buildOutfitPlanPrompt() - it is read-only.
  */
-export function buildStartWithItemPromptV4(input: NormalizedStartWithItemInput): string {
-  const { centerpieceItem, intentMode, moods, freeformPrompt, weather, availableItems } = input;
+export function buildStartWithItemPromptV4(
+  input: NormalizedStartWithItemInput,
+): string {
+  const {
+    centerpieceItem,
+    intentMode,
+    moods,
+    freeformPrompt,
+    weather,
+    availableItems,
+    userStyleProfile,
+  } = input;
+
+  // Build style profile soft guidance (same pattern as PATH #1)
+  const sp = userStyleProfile;
+  let styleProfileBlock = '';
+  if (sp) {
+    const lines: string[] = [];
+    if (sp.preferredColors?.length)
+      lines.push(`- Preferred colors: ${sp.preferredColors.join(', ')}`);
+    if (sp.favoriteBrands?.length)
+      lines.push(`- Preferred brands: ${sp.favoriteBrands.join(', ')}`);
+    if (sp.occasions?.length)
+      lines.push(`- Typical occasions: ${sp.occasions.join(', ')}`);
+    if (sp.avoidSubcategories?.length)
+      lines.push(
+        `- Disliked styles (avoid): ${sp.avoidSubcategories.join(', ')}`,
+      );
+    if (sp.stylePreferences?.length)
+      lines.push(`- Style preferences: ${sp.stylePreferences.join(', ')}`);
+    if (sp.styleKeywords?.length)
+      lines.push(`- Style keywords: ${sp.styleKeywords.join(', ')}`);
+    if (sp.fitPreferences?.length)
+      lines.push(`- Fit preferences: ${sp.fitPreferences.join(', ')}`);
+    if (sp.fabricPreferences?.length)
+      lines.push(`- Fabric preferences: ${sp.fabricPreferences.join(', ')}`);
+    if (sp.climate) lines.push(`- Climate: ${sp.climate}`);
+    if (sp.dressBias) lines.push(`- Dress bias: ${sp.dressBias}`);
+    if (lines.length > 0) {
+      styleProfileBlock = `
+
+STYLE PREFERENCES (soft guidance — prefer but do not override centerpiece or constraints):
+${lines.join('\n')}`;
+    }
+  }
 
   // Derive constraints
   const formality = deriveFormality(freeformPrompt || '');
@@ -1114,10 +1394,31 @@ WARDROBE CONSTRAINT (only use item types from this list):
 ${availableItems.join(', ')}`;
   }
 
-  // Determine which categories to generate (exclude centerpiece category)
-  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  // Determine which categories to generate (exclude centerpiece + structural complements)
+  // All plan-visible categories (from canonical categoryMapping)
+  const allCategories = [
+    'Tops',
+    'Bottoms',
+    'Dresses',
+    'Shoes',
+    'Outerwear',
+    'Accessories',
+    'Activewear',
+    'Swimwear',
+    'Undergarments',
+    'Other',
+  ];
+  const centerpieceCatLc = centerpieceItem.category.toLowerCase();
+  const structuralExclusions = new Set<string>();
+  structuralExclusions.add(centerpieceCatLc);
+  if (centerpieceCatLc === 'dresses') {
+    structuralExclusions.add('tops');
+    structuralExclusions.add('bottoms');
+  } else if (centerpieceCatLc === 'tops' || centerpieceCatLc === 'bottoms') {
+    structuralExclusions.add('dresses');
+  }
   const categoriesToGenerate = allCategories.filter(
-    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+    (c) => !structuralExclusions.has(c.toLowerCase()),
   );
 
   // Build centerpiece description
@@ -1226,7 +1527,7 @@ INPUT:
   "locked_centerpiece": "${centerpieceItem.category}: ${centerpieceDesc}",
   "constraints": ${JSON.stringify(constraints)}
 }
-${availableItemsConstraint}
+${availableItemsConstraint}${styleProfileBlock}
 
 CRITICAL RULES:
 1. The centerpiece ${centerpieceItem.category} is LOCKED - do NOT generate a slot for ${centerpieceItem.category}

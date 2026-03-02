@@ -94,6 +94,12 @@ export class CreateWardrobeItemDto {
     'Unisex',
     'Costumes',
     'TraditionalWear',
+    'Dresses',
+    'Skirts',
+    'Bags',
+    'Headwear',
+    'Jewelry',
+    'Other',
   ])
   main_category!:
     | 'Tops'
@@ -110,7 +116,13 @@ export class CreateWardrobeItemDto {
     | 'Maternity'
     | 'Unisex'
     | 'Costumes'
-    | 'TraditionalWear';
+    | 'TraditionalWear'
+    | 'Dresses'
+    | 'Skirts'
+    | 'Bags'
+    | 'Headwear'
+    | 'Jewelry'
+    | 'Other';
 
   @IsOptional()
   @IsString()
@@ -129,7 +141,13 @@ export class CreateWardrobeItemDto {
   @IsOptional()
   @IsArray()
   @IsIn(['Classic', 'Minimal', 'Street', 'Prep', 'Avant-Garde'], { each: true })
-  style_archetypes?: ('Classic' | 'Minimal' | 'Street' | 'Prep' | 'Avant-Garde')[];
+  style_archetypes?: (
+    | 'Classic'
+    | 'Minimal'
+    | 'Street'
+    | 'Prep'
+    | 'Avant-Garde'
+  )[];
 
   @IsOptional()
   @IsIn(['Hero', 'Neutral', 'Connector'])
@@ -142,7 +160,14 @@ export class CreateWardrobeItemDto {
   occasion_tags?: ('Work' | 'DateNight' | 'Travel' | 'Gym')[];
 
   @IsOptional()
-  @IsIn(['UltraCasual', 'Casual', 'SmartCasual', 'BusinessCasual', 'Business', 'BlackTie'])
+  @IsIn([
+    'UltraCasual',
+    'Casual',
+    'SmartCasual',
+    'BusinessCasual',
+    'Business',
+    'BlackTie',
+  ])
   dress_code?:
     | 'UltraCasual'
     | 'Casual'
@@ -170,7 +195,20 @@ export class CreateWardrobeItemDto {
   palette_hex?: string[];
 
   @IsOptional()
-  @IsIn(['Black', 'White', 'Blue', 'Red', 'Green', 'Yellow', 'Brown', 'Gray', 'Navy', 'Beige', 'Purple', 'Orange'])
+  @IsIn([
+    'Black',
+    'White',
+    'Blue',
+    'Red',
+    'Green',
+    'Yellow',
+    'Brown',
+    'Gray',
+    'Navy',
+    'Beige',
+    'Purple',
+    'Orange',
+  ])
   color_family?:
     | 'Black'
     | 'White'
@@ -238,7 +276,18 @@ export class CreateWardrobeItemDto {
 
   // Pattern
   @IsOptional()
-  @IsIn(['Solid', 'Striped', 'Check', 'Herringbone', 'Windowpane', 'Floral', 'Dot', 'Camo', 'Abstract', 'Other'])
+  @IsIn([
+    'Solid',
+    'Striped',
+    'Check',
+    'Herringbone',
+    'Windowpane',
+    'Floral',
+    'Dot',
+    'Camo',
+    'Abstract',
+    'Other',
+  ])
   pattern?:
     | 'Solid'
     | 'Striped'
@@ -465,6 +514,20 @@ export class CreateWardrobeItemDto {
   @IsArray()
   @IsString({ each: true })
   disliked_features?: string[];
+
+  // Location
+  @IsOptional()
+  @IsString()
+  location_id?: string;
+
+  // Availability
+  @IsOptional()
+  @IsString()
+  care_status?: string;
+
+  @IsOptional()
+  @IsString()
+  cleaner_info?: string;
 
   // System
   @IsOptional()

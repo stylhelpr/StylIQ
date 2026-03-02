@@ -100,22 +100,22 @@ export async function addToInbox(userId: string, n: AppNotification & {user_id?:
     return;
   }
 
-  console.log('📥 addToInbox called with:', {
-    id: n.id,
-    title: n.title,
-    category: n.category,
-    dataType: n.data?.type,
-  });
+  // console.log('📥 addToInbox called with:', {
+  //   id: n.id,
+  //   title: n.title,
+  //   category: n.category,
+  //   dataType: n.data?.type,
+  // });
 
   const list = await loadInbox(userId);
-  console.log('📋 Current inbox count:', list.length);
+  // console.log('📋 Current inbox count:', list.length);
 
   // ✅ Skip duplicates locally
   const duplicate = list.find(
     x => x.id === n.id || (x.title === n.title && x.message === n.message),
   );
   if (duplicate) {
-    console.log('⚠️ Skipping duplicate notification:', n.id || n.title);
+    // console.log('⚠️ Skipping duplicate notification:', n.id || n.title);
     return;
   }
 
@@ -165,7 +165,7 @@ export async function deleteFromInbox(userId: string, id: string) {
   // First delete from backend
   try {
     await apiClient.post('/notifications/delete', {id});
-    console.log('☁️ Notification deleted from backend:', id);
+    // console.log('☁️ Notification deleted from backend:', id);
   } catch (err) {
     console.warn('⚠️ Failed to delete from backend:', err);
   }
@@ -174,7 +174,7 @@ export async function deleteFromInbox(userId: string, id: string) {
   const list = await loadInbox(userId);
   const filtered = list.filter(n => n.id !== id);
   await saveInbox(userId, filtered);
-  console.log('🗑️ Notification deleted locally:', id);
+  // console.log('🗑️ Notification deleted locally:', id);
 }
 
 export async function markAllRead(userId: string) {

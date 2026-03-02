@@ -12,6 +12,8 @@
  *   const reranked = rerankCatalogWithContext(catalog, constraints, ...);
  */
 
+import { isSlot, type Slot } from './categoryMapping';
+
 export type CatalogItem = {
   index: number;
   id?: string;
@@ -318,12 +320,8 @@ function allowWedding(item: CatalogItem): boolean {
   if (Number.isFinite(f) && f >= 6) return true;
   // Fallback: blazers/suit components & dress shoes are usually OK
   if (RX_BLAZER.test(subOf(item))) return true;
-  if (
-    item.main_category &&
-    lc(item.main_category) === 'shoes' &&
-    RX_DRESS_SHOE.test(subOf(item))
-  )
-    return true;
+  // Use canonical slot mapping for shoe detection
+  if (isSlot(item, 'shoes') && RX_DRESS_SHOE.test(subOf(item))) return true;
   return false;
 }
 
@@ -331,11 +329,11 @@ function blockWedding(item: CatalogItem): boolean {
   // No ultra-casual
   if (isUltraCasualForUpscale(item)) return true;
   // Hard bans: shorts, hoodies, sneakers (unless specified casual wedding, which we don't detect here)
-  const main = mainOf(item);
+  // Use canonical slot mapping for category detection
   const sub = subOf(item);
-  if (main === 'bottoms' && RX_SHORTS.test(sub)) return true;
-  if (main === 'tops' && RX_HOODIE.test(sub)) return true;
-  if (main === 'shoes' && RX_SNEAKER.test(sub)) return true;
+  if (isSlot(item, 'bottoms') && RX_SHORTS.test(sub)) return true;
+  if (isSlot(item, 'tops') && RX_HOODIE.test(sub)) return true;
+  if (isSlot(item, 'shoes') && RX_SNEAKER.test(sub)) return true;
   return false;
 }
 

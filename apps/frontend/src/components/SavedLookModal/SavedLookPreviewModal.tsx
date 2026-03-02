@@ -86,11 +86,11 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
 
     // —— Content ——
     heroImage: {
-      width,
-      height,
       position: 'absolute',
       top: 0,
+      bottom: 0,
       left: 0,
+      right: 0,
     },
     nameContainer: {
       position: 'absolute',
@@ -262,7 +262,7 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
           {/* Full-bleed hero image */}
           <Animatable.Image
             source={{uri: look.image_url}}
-            resizeMode="cover"
+            resizeMode="contain"
             animation="zoomIn"
             duration={500}
             style={styles.heroImage}
