@@ -55,7 +55,7 @@ export class CalendarService {
         `DELETE FROM user_calendar_events WHERE user_id = $1 AND event_id = ANY($2::text[]);`,
         [user_id, deletedIds],
       );
-      console.log(`🗑️ Removed ${deletedIds.length} deleted iOS events`);
+      // console.log(`🗑️ Removed ${deletedIds.length} deleted iOS events`);
     }
 
     // 4️⃣ Upsert all remaining events (insert or update)

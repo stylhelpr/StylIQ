@@ -170,9 +170,9 @@ export function useOutfitApi(userId?: string) {
 
   const regenerate = useCallback(
     async (query: string, opts?: GenerateOptions) => {
-      console.log('[useOutfitApi.regenerate] Called with query:', query, 'userId:', userId);
+      // console.log('[useOutfitApi.regenerate] Called with query:', query, 'userId:', userId);
       if (!userId) {
-        console.log('[useOutfitApi.regenerate] No userId, returning early');
+        // console.log('[useOutfitApi.regenerate] No userId, returning early');
         return;
       }
 
@@ -220,7 +220,7 @@ export function useOutfitApi(userId?: string) {
 
         if (opts?.lockedItemIds?.length) {
           body.lockedItemIds = opts.lockedItemIds; // ✅ camelCase matches backend
-          console.log('[useOutfitApi] Sending lockedItemIds to backend:', opts.lockedItemIds);
+          // console.log('[useOutfitApi] Sending lockedItemIds to backend:', opts.lockedItemIds);
         }
 
         // 👇 add this
@@ -263,23 +263,23 @@ export function useOutfitApi(userId?: string) {
         });
 
         if (!res.ok) {
-          console.log('[useOutfitApi] HTTP error:', res.status, res.statusText);
+          // console.log('[useOutfitApi] HTTP error:', res.status, res.statusText);
           throw new Error(`HTTP ${res.status} ${res.statusText}`);
         }
 
         const json = await res.json();
-        console.log('[useOutfitApi] Response received:', {
-          hasOutfits: !!json?.outfits,
-          outfitCount: json?.outfits?.length,
-          firstOutfitItems: json?.outfits?.[0]?.items?.length,
-        });
+        // console.log('[useOutfitApi] Response received:', {
+        //   hasOutfits: !!json?.outfits,
+        //   outfitCount: json?.outfits?.length,
+        //   firstOutfitItems: json?.outfits?.[0]?.items?.length,
+        // });
         const arr: OutfitApi[] = Array.isArray(json?.outfits)
           ? json.outfits
           : [];
         setOutfits(arr);
         setSelected(0);
       } catch (e: any) {
-        console.log('[useOutfitApi] Error caught:', e?.name, e?.message);
+        // console.log('[useOutfitApi] Error caught:', e?.name, e?.message);
         if (e?.name !== 'AbortError')
           setErr(e?.message || 'Failed to fetch outfits');
       } finally {

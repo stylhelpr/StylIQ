@@ -504,12 +504,12 @@ export default function SavedOutfitsScreen() {
   const displayOutfits =
     outfitsState === 'demo' ? demoOutfits : combinedOutfits;
 
-  console.log('🎨 SavedOutfits render:', {
-    outfitsState,
-    combinedOutfitsCount: combinedOutfits?.length,
-    displayOutfitsCount: displayOutfits?.length,
-    hasEverHadOutfits,
-  });
+  // console.log('🎨 SavedOutfits render:', {
+  //   outfitsState,
+  //   combinedOutfitsCount: combinedOutfits?.length,
+  //   displayOutfitsCount: displayOutfits?.length,
+  //   hasEverHadOutfits,
+  // });
 
   // TanStack Query: Mutations
   const updateOutfitMutation = useUpdateOutfit();
@@ -767,13 +767,13 @@ export default function SavedOutfitsScreen() {
     const title = 'Outfit Reminder';
     const message = `Wear ${outfitName?.trim() || 'your planned outfit'}`;
 
-    console.log('🔔 Scheduling notification:', {
-      outfitId,
-      when: when.toISOString(),
-      whenLocal: when.toLocaleString(),
-      now: new Date().toISOString(),
-      nowLocal: new Date().toLocaleString(),
-    });
+    // console.log('🔔 Scheduling notification:', {
+    //   outfitId,
+    //   when: when.toISOString(),
+    //   whenLocal: when.toLocaleString(),
+    //   now: new Date().toISOString(),
+    //   nowLocal: new Date().toLocaleString(),
+    // });
 
     // @ts-ignore - id property exists but types may be outdated
     PushNotification.localNotificationSchedule({
@@ -961,11 +961,11 @@ export default function SavedOutfitsScreen() {
     });
   }, [displayOutfits, occasionFilter, sortType]);
 
-  console.log('🎨 sortedOutfits:', {
-    sortedCount: sortedOutfits?.length,
-    occasionFilter,
-    sortType,
-  });
+  // console.log('🎨 sortedOutfits:', {
+  //   sortedCount: sortedOutfits?.length,
+  //   occasionFilter,
+  //   sortType,
+  // });
 
   // Handle scroll for bottom nav hide/show
   const handleScroll = useCallback(

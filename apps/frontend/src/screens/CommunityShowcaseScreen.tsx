@@ -384,10 +384,10 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
   // Open initial post modal if navigated with initialPostId
   const lastOpenedPostIdRef = useRef<string | null>(null);
   useEffect(() => {
-    console.log('[CommunityShowcase] initialPostId:', initialPostId, 'posts.length:', posts.length, 'lastOpened:', lastOpenedPostIdRef.current);
+    // console.log('[CommunityShowcase] initialPostId:', initialPostId, 'posts.length:', posts.length, 'lastOpened:', lastOpenedPostIdRef.current);
     if (initialPostId && posts.length > 0 && lastOpenedPostIdRef.current !== initialPostId) {
       const targetPost = posts.find((p: CommunityPost) => p.id === initialPostId);
-      console.log('[CommunityShowcase] targetPost found:', !!targetPost);
+      // console.log('[CommunityShowcase] targetPost found:', !!targetPost);
       if (targetPost) {
         lastOpenedPostIdRef.current = initialPostId;
         // Open immediately - no delay needed

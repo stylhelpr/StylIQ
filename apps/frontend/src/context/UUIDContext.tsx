@@ -111,13 +111,13 @@ export const UUIDProvider = ({children}: UUIDProviderProps) => {
         // INVARIANT CHECK: Detect user switch and log for debugging
         AsyncStorage.getItem('user_id').then(cachedId => {
           if (cachedId && cachedId !== serverIdStr) {
-            console.warn('[UUIDContext] USER SWITCH DETECTED:', {
-              cachedUserId: cachedId,
-              serverUserId: serverIdStr,
-              action: 'Overwriting cached ID with server-provided ID (derived from auth0_sub)',
-            });
+            // console.warn('[UUIDContext] USER SWITCH DETECTED:', {
+            //   cachedUserId: cachedId,
+            //   serverUserId: serverIdStr,
+            //   action: 'Overwriting cached ID with server-provided ID (derived from auth0_sub)',
+            // });
           }
-          console.log('[UUIDContext] Server returned user ID:', serverIdStr, cachedId ? `(was: ${cachedId})` : '(no cached ID)');
+          // console.log('[UUIDContext] Server returned user ID:', serverIdStr, cachedId ? `(was: ${cachedId})` : '(no cached ID)');
         }).catch(() => {});
 
         // CRITICAL: Always use server-provided ID - it's derived from JWT auth0_sub
@@ -128,14 +128,14 @@ export const UUIDProvider = ({children}: UUIDProviderProps) => {
         // MULTI-ACCOUNT: Set active user and rehydrate stores
         // This ensures stores load from the correct user-scoped key
         setActiveUserId(serverIdStr).then(async () => {
-          console.log('[UUIDContext] Active user set, rehydrating stores...');
+          // console.log('[UUIDContext] Active user set, rehydrating stores...');
           // Rehydrate all user-scoped Zustand stores
           await rehydrateAllUserStores();
           // Load analytics queue for this user
           await analyticsQueue.load(serverIdStr);
           // Load calendar event prompts for this user
           await loadCalendarPrompts();
-          console.log('[UUIDContext] All stores rehydrated for user:', serverIdStr);
+          // console.log('[UUIDContext] All stores rehydrated for user:', serverIdStr);
         }).catch(err => {
           console.error('[UUIDContext] Failed to set active user:', err);
         });

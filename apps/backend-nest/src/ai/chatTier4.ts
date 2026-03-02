@@ -102,16 +102,16 @@ export function scanChatForViolations(
   const violations: ChatViolation[] = [];
   const sentences = responseText.split(/[.!?\n]+/).filter(s => s.trim().length > 10);
 
-  console.log('[AskStyla T4 DEBUG] raw avoid colors:', avoidLists.avoidColors);
+  // console.log('[AskStyla T4 DEBUG] raw avoid colors:', avoidLists.avoidColors);
 
   // Color violations (with family expansion)
   if (avoidLists.avoidColors.length > 0) {
     const expanded = expandAvoidColorsLite(avoidLists.avoidColors);
-    console.log('[AskStyla T4 DEBUG] expanded avoid colors:', expanded);
+    // console.log('[AskStyla T4 DEBUG] expanded avoid colors:', expanded);
     for (const ac of expanded) {
       const colorRegex = new RegExp(`\\b${escapeRegex(ac)}\\b`, 'i');
       if (colorRegex.test(responseText)) {
-        console.log('[AskStyla T4 DEBUG] color violation detected:', ac);
+        // console.log('[AskStyla T4 DEBUG] color violation detected:', ac);
         const snippet = sentences.find(s => colorRegex.test(s))?.trim() || '';
         violations.push({ type: 'AVOID_COLOR', term: ac, snippet: snippet.slice(0, 120) });
       }

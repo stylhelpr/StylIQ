@@ -2329,7 +2329,7 @@ ${climateNote}
         .replace(/ies$/, 'ie')       // hoodies → hoodie
         .replace(/([^s])ses$/, '$1se') // dresses → dress (preserve trailing e)
         .replace(/([^s])s$/, '$1');    // jackets → jacket (but not "pants")
-      console.log(`[AskStyla T4] inventory intent detected: "${searchPhrase}"`);
+      // console.log(`[AskStyla T4] inventory intent detected: "${searchPhrase}"`);
 
       try {
         const { rows: invRows } = await pool.query(
@@ -2345,7 +2345,7 @@ ${climateNote}
             // Token match: require at least 1 meaningful token
             return searchTokens.length > 0 && searchTokens.some((t) => nameLower.includes(t));
           });
-          console.log(`[AskStyla T4] inventory matches: ${JSON.stringify(matches.map((m) => m.name))}`);
+          // console.log(`[AskStyla T4] inventory matches: ${JSON.stringify(matches.map((m) => m.name))}`);
 
           let reply: string;
           if (matches.length > 0) {
@@ -2372,9 +2372,9 @@ ${climateNote}
           return { reply, images: [], links: [] };
         }
         // No wardrobe items at all → fall through to normal GPT flow
-        console.log('[AskStyla T4] inventory: no wardrobe items, falling through to GPT');
+        // console.log('[AskStyla T4] inventory: no wardrobe items, falling through to GPT');
       } catch (err: any) {
-        console.warn('[AskStyla T4] inventory query failed, falling through to GPT:', err.message);
+        // console.warn('[AskStyla T4] inventory query failed, falling through to GPT:', err.message);
       }
     }
 
@@ -2402,7 +2402,7 @@ ${climateNote}
       if (key in contextNeeds) (contextNeeds as any)[key] = true;
     }
     if (forcedNeeds.length > 0) {
-      console.log(`[AskStyla T4] deterministic routing forced: ${JSON.stringify(forcedNeeds)}`);
+      // console.log(`[AskStyla T4] deterministic routing forced: ${JSON.stringify(forcedNeeds)}`);
     }
 
     try {
@@ -2435,9 +2435,9 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
         if (key in contextNeeds) (contextNeeds as any)[key] = true;
       });
 
-      console.log(`[AskStyla Debug] classifier needs: ${JSON.stringify(needs)}, styleProfile=${contextNeeds.styleProfile}`);
+      // console.log(`[AskStyla Debug] classifier needs: ${JSON.stringify(needs)}, styleProfile=${contextNeeds.styleProfile}`);
       if (forcedNeeds.length > 0) {
-        console.log(`[AskStyla T4] merged needs — rule: ${JSON.stringify(forcedNeeds)}, classifier: ${JSON.stringify(needs)}`);
+        // console.log(`[AskStyla T4] merged needs — rule: ${JSON.stringify(forcedNeeds)}, classifier: ${JSON.stringify(needs)}`);
       }
       // ✅ Force-enable weather context if location or weather was passed
       if (dto.lat || dto.lon || dto.weather) {
@@ -2507,14 +2507,14 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
         // console.log(`🟢 Redis HIT for ${cacheKey}`);
         longTermSummary = cached;
       } else {
-        console.log(`🔴 Redis MISS for ${cacheKey} — fetching from Postgres`);
+        // console.log(`🔴 Redis MISS for ${cacheKey} — fetching from Postgres`);
         const { rows } = await pool.query(
           `SELECT summary FROM chat_memory WHERE user_id = $1`,
           [user_id],
         );
         if (rows[0]?.summary) {
           longTermSummary = rows[0].summary;
-          console.log(`🟢 Caching summary in Redis for ${cacheKey}`);
+          // console.log(`🟢 Caching summary in Redis for ${cacheKey}`);
           await redis.set(cacheKey, longTermSummary, { ex: 86400 });
         }
       }
@@ -2598,10 +2598,10 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
         if (styleRows.length > 0) {
           const sp = styleRows[0];
           // [AskStyla Debug] — raw data shape verification
-          console.log('[AskStyla Debug] raw fabric_preferences:', sp.fabric_preferences);
-          console.log('[AskStyla Debug] typeof fabric_preferences:', typeof sp.fabric_preferences);
-          console.log('[AskStyla Debug] raw avoid_patterns:', sp.avoid_patterns);
-          console.log('[AskStyla Debug] raw avoid_colors:', sp.avoid_colors);
+          // console.log('[AskStyla Debug] raw fabric_preferences:', sp.fabric_preferences);
+          // console.log('[AskStyla Debug] typeof fabric_preferences:', typeof sp.fabric_preferences);
+          // console.log('[AskStyla Debug] raw avoid_patterns:', sp.avoid_patterns);
+          // console.log('[AskStyla Debug] raw avoid_colors:', sp.avoid_colors);
           /** Safe Postgres TEXT[] parser — handles real arrays, pg string format, null */
           const pgArr = (v: any): string[] => {
             if (!v) return [];
@@ -2612,9 +2612,9 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
             return [];
           };
           const arr = (v: any) => pgArr(v).join(', ');
-          console.log('[AskStyla Debug] parsed fabric_preferences:', pgArr(sp.fabric_preferences));
-          console.log('[AskStyla Debug] parsed avoid_patterns:', pgArr(sp.avoid_patterns));
-          console.log('[AskStyla Debug] parsed avoid_colors:', pgArr(sp.avoid_colors));
+          // console.log('[AskStyla Debug] parsed fabric_preferences:', pgArr(sp.fabric_preferences));
+          // console.log('[AskStyla Debug] parsed avoid_patterns:', pgArr(sp.avoid_patterns));
+          // console.log('[AskStyla Debug] parsed avoid_colors:', pgArr(sp.avoid_colors));
           const parts: string[] = [];
           if (sp.body_type) parts.push(`Body type: ${sp.body_type}`);
           if (sp.skin_tone) parts.push(`Skin tone: ${sp.skin_tone}`);
@@ -2657,12 +2657,12 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
             style_preferences: pgArr(sp.style_preferences),
             disliked_styles: pgArr(sp.disliked_styles),
           };
-          console.log('[AskStyla T4 DEBUG] styleProfile loaded:', {
-            avoid_colors: chatAvoidLists.avoidColors,
-            avoid_materials: chatAvoidLists.avoidMaterials,
-            avoid_patterns: chatAvoidLists.avoidPatterns,
-            coverage_no_go: chatAvoidLists.coverageNoGo,
-          });
+          // console.log('[AskStyla T4 DEBUG] styleProfile loaded:', {
+          //   avoid_colors: chatAvoidLists.avoidColors,
+          //   avoid_materials: chatAvoidLists.avoidMaterials,
+          //   avoid_patterns: chatAvoidLists.avoidPatterns,
+          //   coverage_no_go: chatAvoidLists.coverageNoGo,
+          // });
           if (coverageNoGo.length > 0)
             parts.push(
               `HARD RULE — Coverage restrictions: ${coverageNoGo.join(', ')}`,
@@ -2740,14 +2740,14 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
             parts.push(`Unit preference: ${sp.unit_preference}`);
           if (parts.length > 0) {
             styleProfileContext = '\n\n👗 STYLE PROFILE:\n' + parts.join('\n');
-            console.log(
-              `👗 Chat: Loaded style profile with ${parts.length} attributes`,
-            );
-            console.log('[AskStyla Debug] styleProfileContext preview:', styleProfileContext.slice(0, 500));
+            // console.log(
+            //   `👗 Chat: Loaded style profile with ${parts.length} attributes`,
+            // );
+            // console.log('[AskStyla Debug] styleProfileContext preview:', styleProfileContext.slice(0, 500));
           }
         }
       } catch (err: any) {
-        console.log('[AskStyla T4 DEBUG] styleProfile FAILED to load');
+        // console.log('[AskStyla T4 DEBUG] styleProfile FAILED to load');
         console.warn('⚠️ failed to load style profile for chat:', err.message);
       }
 
@@ -2832,11 +2832,11 @@ IMPORTANT: Any question about the user's preferences, style, body, measurements,
 - "works with your [fit] [COLOR] [ITEM]"
 NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
 
-          console.log('[AskStyla T4 DEBUG] wardrobe rows count:', wardrobeRows.length);
-          console.log('[AskStyla T4 DEBUG] wardrobe item names:', wardrobeRows.map(r => r.name));
-          console.log('[AskStyla T4 DEBUG] wardrobe context preview START');
-          console.log(wardrobeContext.slice(0, 1500));
-          console.log('[AskStyla T4 DEBUG] wardrobe context preview END');
+          // console.log('[AskStyla T4 DEBUG] wardrobe rows count:', wardrobeRows.length);
+          // console.log('[AskStyla T4 DEBUG] wardrobe item names:', wardrobeRows.map(r => r.name));
+          // console.log('[AskStyla T4 DEBUG] wardrobe context preview START');
+          // console.log(wardrobeContext.slice(0, 1500));
+          // console.log('[AskStyla T4 DEBUG] wardrobe context preview END');
         }
       } catch (err: any) {
         console.warn('⚠️ failed to load wardrobe items for chat:', err.message);
@@ -2852,7 +2852,7 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
     let shortlistContext = '';
     if (useShortlist) {
       shortlistContext = formatShortlistForPrompt(shortlist);
-      console.log(`[AskStyla T4 Reasoning] shortlist: ${shortlist.length} items, category=${detectedCategory}, formality=${formalityAnchor}`);
+      // console.log(`[AskStyla T4 Reasoning] shortlist: ${shortlist.length} items, category=${detectedCategory}, formality=${formalityAnchor}`);
     }
 
     /* ⭐ --- LOAD SAVED LOOKS FOR CHAT CONTEXT --- */
@@ -3260,13 +3260,13 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
       weatherContext +
       learnedPrefsContext;
 
-    console.log(
-      `🔍 [Ask Styla] context: styleProfile=${styleProfileContext ? 'YES' : 'NO'} | ` +
-      `wardrobe=${wardrobeContext ? 'YES' : 'NO'} | ` +
-      `calendar=${calendarContext ? 'YES' : 'NO'} | ` +
-      `memory=${longTermSummary ? 'YES' : 'NO'} | ` +
-      `learnedPrefs=${learnedPrefsContext ? 'YES' : 'NO'}`
-    );
+    // console.log(
+    //   `🔍 [Ask Styla] context: styleProfile=${styleProfileContext ? 'YES' : 'NO'} | ` +
+    //   `wardrobe=${wardrobeContext ? 'YES' : 'NO'} | ` +
+    //   `calendar=${calendarContext ? 'YES' : 'NO'} | ` +
+    //   `memory=${longTermSummary ? 'YES' : 'NO'} | ` +
+    //   `learnedPrefs=${learnedPrefsContext ? 'YES' : 'NO'}`
+    // );
 
     // 1️⃣ Generate base text with OpenAI
     // Tier 4 Reasoning: Use luxury stylist prompt when shortlist is active
@@ -3371,7 +3371,7 @@ Rules:
       }
 
       if (nonOwnedRefs.length > 0) {
-        console.log(`[AskStyla T4 InventoryAuth] non-owned refs detected: ${JSON.stringify(nonOwnedRefs)}`);
+        // console.log(`[AskStyla T4 InventoryAuth] non-owned refs detected: ${JSON.stringify(nonOwnedRefs)}`);
         systemContent += `\n\n════════════════════════
 INVENTORY AUTHORITY (MANDATORY — INTERNAL ONLY)
 ════════════════════════
@@ -3412,7 +3412,7 @@ Rules:
             break;
           }
         }
-        console.log(`[AskStyla T4 InventoryAuth] sanitized msg: "${sanitized}"`);
+        // console.log(`[AskStyla T4 InventoryAuth] sanitized msg: "${sanitized}"`);
       }
     }
 
@@ -3479,7 +3479,7 @@ Rules:
         const slots = JSON.parse(slotRaw);
 
         if (slots.tops && slots.bottoms && slots.shoes) {
-          console.log(`[AskStyla Structured Slots] ✅ locked: tops=${slots.tops}, bottoms=${slots.bottoms}, shoes=${slots.shoes}, outerwear=${slots.outerwear || 'none'}, accessories=${(slots.accessories || []).length}`);
+          // console.log(`[AskStyla Structured Slots] ✅ locked: tops=${slots.tops}, bottoms=${slots.bottoms}, shoes=${slots.shoes}, outerwear=${slots.outerwear || 'none'}, accessories=${(slots.accessories || []).length}`);
 
           // ── Build ValidatorItem[] directly from structured slots ──
           // Inline slot resolution — mirrors mainCatToSlot() in chatTier4.ts exactly
@@ -3549,17 +3549,17 @@ Rules:
           };
 
           // ── Validate structured slots BEFORE prose generation ──
-          console.log(`[AskStyla T4 Validator] validating structured slots: ${structuredValidatorItems.map(i => `${i.slot}=${i.name}`).join(', ')}`);
+          // console.log(`[AskStyla T4 Validator] validating structured slots: ${structuredValidatorItems.map(i => `${i.slot}=${i.name}`).join(', ')}`);
           const slotValidation = tasteValidateOutfit(
             structuredValidatorItems,
             chatValidatorCtx,
           );
 
           if (slotValidation.valid) {
-            console.log(`[AskStyla T4 Validator] validation clean (coherence: ${slotValidation.coherenceScore})`);
+            // console.log(`[AskStyla T4 Validator] validation clean (coherence: ${slotValidation.coherenceScore})`);
             structuredSlotLocked = true;
           } else {
-            console.log(`[AskStyla T4 Validator] structured slots HARD FAIL: ${slotValidation.hardFails.join('; ')}`);
+            // console.log(`[AskStyla T4 Validator] structured slots HARD FAIL: ${slotValidation.hardFails.join('; ')}`);
 
             // ── One retry: re-select slots with correction instructions ──
             try {
@@ -3608,15 +3608,15 @@ You MUST correct these issues:
                   slots.outerwear = retrySlots.outerwear || null;
                   slots.accessories = Array.isArray(retrySlots.accessories) ? retrySlots.accessories : [];
                   structuredSlotLocked = true;
-                  console.log(`[AskStyla T4 Validator] retry succeeded — validation passed (coherence: ${retryValidation.coherenceScore})`);
+                  // console.log(`[AskStyla T4 Validator] retry succeeded — validation passed (coherence: ${retryValidation.coherenceScore})`);
                 } else {
-                  console.log(`[AskStyla T4 Validator] retry also failed (${retryValidation.hardFails.join('; ')}) — falling through to free-text`);
+                  // console.log(`[AskStyla T4 Validator] retry also failed (${retryValidation.hardFails.join('; ')}) — falling through to free-text`);
                 }
               } else {
-                console.log(`[AskStyla T4 Validator] retry missing required slots — falling through to free-text`);
+                // console.log(`[AskStyla T4 Validator] retry missing required slots — falling through to free-text`);
               }
             } catch (retryErr: any) {
-              console.warn(`[AskStyla T4 Validator] retry slot selection error — falling through to free-text: ${retryErr.message}`);
+              // console.warn(`[AskStyla T4 Validator] retry slot selection error — falling through to free-text: ${retryErr.message}`);
             }
           }
 
@@ -3656,10 +3656,10 @@ Additional rules:
 - Include search_terms JSON at the end as usual.`;
           }
         } else {
-          console.log(`[AskStyla Structured Slots] ⚠️ missing required slots (tops=${!!slots.tops}, bottoms=${!!slots.bottoms}, shoes=${!!slots.shoes}), falling through to free-text`);
+          // console.log(`[AskStyla Structured Slots] ⚠️ missing required slots (tops=${!!slots.tops}, bottoms=${!!slots.bottoms}, shoes=${!!slots.shoes}), falling through to free-text`);
         }
       } catch (slotErr: any) {
-        console.warn(`[AskStyla Structured Slots] slot selection failed, falling through to free-text: ${slotErr.message}`);
+        // console.warn(`[AskStyla Structured Slots] slot selection failed, falling through to free-text: ${slotErr.message}`);
       }
     }
 
@@ -3686,7 +3686,7 @@ Additional rules:
 
     // ── Tier 4: Post-LLM avoid-list validation + wardrobe hallucination guard ──
     try {
-      console.log('[AskStyla T4 DEBUG] validation starting');
+      // console.log('[AskStyla T4 DEBUG] validation starting');
       const hasAvoidLists = chatAvoidLists.avoidColors.length > 0
         || chatAvoidLists.avoidMaterials.length > 0
         || chatAvoidLists.avoidPatterns.length > 0
@@ -3702,21 +3702,21 @@ Additional rules:
       if (wardrobeItemNames.size > 0 && isStylingResponse(aiReply)) {
         const hallucinations = scanForWardrobeHallucinations(aiReply, wardrobeItemNames);
         if (hallucinations.length > 0) {
-          console.log(`[AskStyla T4] wardrobe hallucination: ${JSON.stringify(hallucinations.map(v => v.term))} not in allowed set`);
+          // console.log(`[AskStyla T4] wardrobe hallucination: ${JSON.stringify(hallucinations.map(v => v.term))} not in allowed set`);
           allViolations = [...allViolations, ...hallucinations];
         }
       }
 
-      console.log('[AskStyla T4 DEBUG] violations:', allViolations);
+      // console.log('[AskStyla T4 DEBUG] violations:', allViolations);
 
       if (allViolations.length > 0) {
-        console.log(`[AskStyla T4] violations found: ${JSON.stringify(allViolations.map(v => ({ type: v.type, term: v.term })))}`);
+        // console.log(`[AskStyla T4] violations found: ${JSON.stringify(allViolations.map(v => ({ type: v.type, term: v.term })))}`);
 
         // Exactly ONE regeneration attempt
         let retried = false;
         if (!retried) {
           retried = true;
-          console.log('[AskStyla T4 DEBUG] regeneration triggered');
+          // console.log('[AskStyla T4 DEBUG] regeneration triggered');
           try {
             const correctionPrompt = buildCorrectionPrompt(allViolations);
             const retryCompletion = await this.openai.chat.completions.create({
@@ -3748,17 +3748,17 @@ At the end, return a short JSON block like:
 
               if (retryViolations.length === 0) {
                 aiReply = retryReply;
-                console.log('[AskStyla T4] regeneration succeeded — violations cleared');
+                // console.log('[AskStyla T4] regeneration succeeded — violations cleared');
               } else {
                 aiReply = retryReply + buildCorrectionNote(retryViolations);
-                console.log(`[AskStyla T4] regeneration still has ${retryViolations.length} violations — appending note`);
+                // console.log(`[AskStyla T4] regeneration still has ${retryViolations.length} violations — appending note`);
               }
             }
           } catch (retryErr: any) {
-            console.warn(`[AskStyla T4] regeneration failed, using original: ${retryErr.message}`);
+            // console.warn(`[AskStyla T4] regeneration failed, using original: ${retryErr.message}`);
             aiReply = aiReply + buildCorrectionNote(allViolations);
           }
-          console.log('[AskStyla T4 DEBUG] regeneration complete');
+          // console.log('[AskStyla T4 DEBUG] regeneration complete');
         }
       } else if (
         (hasAvoidLists || wardrobeItemNames.size > 0) && isStylingResponse(aiReply)
@@ -3766,14 +3766,14 @@ At the end, return a short JSON block like:
         // Tier 4 guard: warn if validation artifacts leaked into user-facing response
         const hasLeakedMarkers = /\bChecked:/i.test(aiReply) || /\bResult:\s*(PASS|FAIL)/i.test(aiReply);
         if (hasLeakedMarkers) {
-          console.warn('[AskStyla T4] validation clean BUT response contains leaked validation markers');
+          // console.warn('[AskStyla T4] validation clean BUT response contains leaked validation markers');
         } else {
-          console.log('[AskStyla T4] validation clean');
+          // console.log('[AskStyla T4] validation clean');
         }
       }
     } catch (validationErr: any) {
       // Fail-open: never block the response
-      console.warn(`[AskStyla T4] validation error: ${validationErr.message}`);
+      // console.warn(`[AskStyla T4] validation error: ${validationErr.message}`);
     }
 
     // ── Tier 4: Outfit-shaped response → tasteValidateOutfit gating ──
@@ -3783,7 +3783,7 @@ At the end, return a short JSON block like:
         const extractedItems = extractOutfitItemsFromResponse(aiReply, wardrobeRows);
 
         if (extractedItems.length >= 2) {
-          console.log(`[AskStyla T4 Validator] ${extractedItems.length} outfit items detected: ${extractedItems.map(i => i.name).join(', ')}`);
+          // console.log(`[AskStyla T4 Validator] ${extractedItems.length} outfit items detected: ${extractedItems.map(i => i.name).join(', ')}`);
 
           // Derive requestedDressCode from user message — same pattern as Stylist Suggestions (line ~6106)
           const chatRequestedDressCode: string | undefined = (() => {
@@ -3806,7 +3806,7 @@ At the end, return a short JSON block like:
           );
 
           if (!outfitValidation.valid) {
-            console.log(`[AskStyla T4 Validator] HARD FAIL: ${outfitValidation.hardFails.join('; ')}`);
+            // console.log(`[AskStyla T4 Validator] HARD FAIL: ${outfitValidation.hardFails.join('; ')}`);
 
             // Build targeted correction instructions from specific hardFail types
             const correctionInstructions: string[] = [];
@@ -3896,31 +3896,31 @@ At the end, return a short JSON block like:
                   );
                   if (retryValidation.valid) {
                     aiReply = retryReply;
-                    console.log('[AskStyla T4 Validator] retry succeeded — validation passed');
+                    // console.log('[AskStyla T4 Validator] retry succeeded — validation passed');
                   } else {
                     aiReply = 'I cannot construct a compliant outfit from your wardrobe under current constraints.';
-                    console.log(`[AskStyla T4 Validator] retry also failed (${retryValidation.hardFails.join('; ')}) — returning fallback`);
+                    // console.log(`[AskStyla T4 Validator] retry also failed (${retryValidation.hardFails.join('; ')}) — returning fallback`);
                   }
                 } else {
                   // Retry produced non-outfit response — accept it
                   aiReply = retryReply;
-                  console.log('[AskStyla T4 Validator] retry is non-outfit — accepting');
+                  // console.log('[AskStyla T4 Validator] retry is non-outfit — accepting');
                 }
               }
             } catch (retryErr: any) {
               aiReply = 'I cannot construct a compliant outfit from your wardrobe under current constraints.';
-              console.warn(`[AskStyla T4 Validator] retry error — returning fallback: ${retryErr.message}`);
+              // console.warn(`[AskStyla T4 Validator] retry error — returning fallback: ${retryErr.message}`);
             }
           } else {
-            console.log(`[AskStyla T4 Validator] passed (coherence: ${outfitValidation.coherenceScore})`);
+            // console.log(`[AskStyla T4 Validator] passed (coherence: ${outfitValidation.coherenceScore})`);
           }
         }
       } catch (extractErr: any) {
         // Extraction/infrastructure error — log and continue (don't block response)
-        console.warn(`[AskStyla T4 Validator] extraction error: ${extractErr.message}`);
+        // console.warn(`[AskStyla T4 Validator] extraction error: ${extractErr.message}`);
       }
     } else if (structuredSlotLocked) {
-      console.log('[AskStyla T4 Validator] skipped prose extraction — structured slots already validated');
+      // console.log('[AskStyla T4 Validator] skipped prose extraction — structured slots already validated');
     }
 
     // ── Tier 4 Reasoning: Quality validation (shortlist queries only) ──
@@ -3930,7 +3930,7 @@ At the end, return a short JSON block like:
         const shortlistNames = shortlist.map(i => (i.name || '').trim().toLowerCase());
         const reasoningOk = validateReasoningQuality(aiReply, shortlistNames);
         if (!reasoningOk) {
-          console.log('[AskStyla T4 Reasoning] quality check failed, regenerating once');
+          // console.log('[AskStyla T4 Reasoning] quality check failed, regenerating once');
           const retryCompletion = await this.openai.chat.completions.create({
             model: 'gpt-4o',
             temperature: 0.5,
@@ -3942,14 +3942,14 @@ At the end, return a short JSON block like:
           const retryReply = retryCompletion.choices[0]?.message?.content?.trim();
           if (retryReply) {
             aiReply = retryReply;
-            console.log('[AskStyla T4 Reasoning] quality retry complete');
+            // console.log('[AskStyla T4 Reasoning] quality retry complete');
           }
         } else {
-          console.log('[AskStyla T4 Reasoning] quality check passed');
+          // console.log('[AskStyla T4 Reasoning] quality check passed');
         }
       } catch (reasoningErr: any) {
         // Fail-open: never block the response
-        console.warn(`[AskStyla T4 Reasoning] quality validation error: ${reasoningErr.message}`);
+        // console.warn(`[AskStyla T4 Reasoning] quality validation error: ${reasoningErr.message}`);
       }
     }
 
@@ -7349,15 +7349,15 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         }),
       );
     }
-    console.log(
-      JSON.stringify({
-        _tag: 'STUDIO_FINAL_CURATION_PROOF',
-        mode: 'stylist',
-        candidateCount: _candidateCountStylist,
-        returnedCount: eliteOutfits.length,
-        topScores: eliteOutfits.map((o: any) => o.qualityScore ?? (scoreOutfit as any)(o, _judgeCtxStylist).total),
-      }),
-    );
+    // console.log(
+    //   JSON.stringify({
+    //     _tag: 'STUDIO_FINAL_CURATION_PROOF',
+    //     mode: 'stylist',
+    //     candidateCount: _candidateCountStylist,
+    //     returnedCount: eliteOutfits.length,
+    //     topScores: eliteOutfits.map((o: any) => o.qualityScore ?? (scoreOutfit as any)(o, _judgeCtxStylist).total),
+    //   }),
+    // );
 
     // ── DETERMINISTIC SWIPE PAGING: rotate through FULL quality-approved pool ──
     // Pages through ALL quality-eligible outfits (not just the truncated top 3)

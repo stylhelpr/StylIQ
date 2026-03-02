@@ -79,13 +79,13 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
   // Phase 1B: Log loaded trip state on mount
   useEffect(() => {
     if (__DEV__) {
-      console.log('[TripCapsule][LOADED_TRIP]', {
-        tripId: trip.id,
-        itemsLength: trip.capsule?.packingList?.reduce((s: number, g: any) => s + (g.items?.length ?? 0), 0) ?? 0,
-        capsulePresent: !!trip.capsule,
-        capsuleFingerprint: trip.capsule?.fingerprint ?? null,
-        capsuleVersion: trip.capsule?.version ?? null,
-      });
+      // console.log('[TripCapsule][LOADED_TRIP]', {
+      //   tripId: trip.id,
+      //   itemsLength: trip.capsule?.packingList?.reduce((s: number, g: any) => s + (g.items?.length ?? 0), 0) ?? 0,
+      //   capsulePresent: !!trip.capsule,
+      //   capsuleFingerprint: trip.capsule?.fingerprint ?? null,
+      //   capsuleVersion: trip.capsule?.version ?? null,
+      // });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.id]);
@@ -156,7 +156,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
     // BLOCK: never build without a valid profile snapshot
     if (!effectiveProfile) {
       if (__DEV__) {
-        console.log('[TRIP BLOCK] prevented build — profile not ready');
+        // console.log('[TRIP BLOCK] prevented build — profile not ready');
       }
       return;
     }
@@ -182,16 +182,16 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
     );
 
     if (__DEV__) {
-      console.log('[TripCapsule][REBUILD_DECISION]', {
-        tripId: trip.id,
-        rebuild: needsRebuild,
-        reason,
-        mode,
-        capsuleVersion: capsule?.version ?? 0,
-        engineVersion: CAPSULE_VERSION,
-        storedFingerprint: capsule?.fingerprint ?? null,
-        computedFingerprint: fingerprint,
-      });
+      // console.log('[TripCapsule][REBUILD_DECISION]', {
+      //   tripId: trip.id,
+      //   rebuild: needsRebuild,
+      //   reason,
+      //   mode,
+      //   capsuleVersion: capsule?.version ?? 0,
+      //   engineVersion: CAPSULE_VERSION,
+      //   storedFingerprint: capsule?.fingerprint ?? null,
+      //   computedFingerprint: fingerprint,
+      // });
     }
 
     if (didRebuildRef.current) return;

@@ -109,13 +109,13 @@ export async function updateTrip(updated: Trip): Promise<boolean> {
         (g.items ?? []).map(i => ({wardrobeItemId: i.wardrobeItemId})),
       );
       if (__DEV__) {
-        console.log('[TripCapsule][SAVE_PAYLOAD]', {
-          tripId: updated.id,
-          itemsLength: items?.length,
-          capsulePresent: !!updated.capsule,
-          capsuleFingerprint: updated.capsule?.fingerprint ?? null,
-          capsuleVersion: updated.capsule?.version ?? null,
-        });
+        // console.log('[TripCapsule][SAVE_PAYLOAD]', {
+        //   tripId: updated.id,
+        //   itemsLength: items?.length,
+        //   capsulePresent: !!updated.capsule,
+        //   capsuleFingerprint: updated.capsule?.fingerprint ?? null,
+        //   capsuleVersion: updated.capsule?.version ?? null,
+        // });
         if (items.length === 0 && !updated.capsule) {
           const err = new Error('[TripCapsule][WIPE_STACK]');
           console.log('[TripCapsule][WIPE_DETECTED]', {

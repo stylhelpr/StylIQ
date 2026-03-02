@@ -100,7 +100,7 @@ export class AuthController {
 
     // userId is already the internal UUID from jwt.strategy.ts
     // This ID was resolved STRICTLY from auth0_sub - no email fallback, no caching
-    console.log('[/auth/profile] Returning userId:', userId);
+    // console.log('[/auth/profile] Returning userId:', userId);
     return { uuid: userId };
   }
 }

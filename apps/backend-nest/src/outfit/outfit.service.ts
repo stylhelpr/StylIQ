@@ -289,21 +289,21 @@ export class OutfitService {
           itemsRes.rows.map((i: any) => [i.id, i]),
         );
 
-        // 🔍 DEBUG: Log what the database returns for each wardrobe item
-        console.log(
-          '🖼️ getCustomOutfits - wardrobe items from DB:',
-          itemsRes.rows.map((i: any) => ({
-            id: i.id,
-            name: i.name,
-            image_url: i.image_url?.substring(0, 50) + '...',
-            touched_up_image_url: i.touched_up_image_url
-              ? i.touched_up_image_url.substring(0, 50) + '...'
-              : i.touched_up_image_url,
-            processed_image_url: i.processed_image_url
-              ? i.processed_image_url.substring(0, 50) + '...'
-              : i.processed_image_url,
-          })),
-        );
+        // // 🔍 DEBUG: Log what the database returns for each wardrobe item
+        // console.log(
+        //   '🖼️ getCustomOutfits - wardrobe items from DB:',
+        //   itemsRes.rows.map((i: any) => ({
+        //     id: i.id,
+        //     name: i.name,
+        //     image_url: i.image_url?.substring(0, 50) + '...',
+        //     touched_up_image_url: i.touched_up_image_url
+        //       ? i.touched_up_image_url.substring(0, 50) + '...'
+        //       : i.touched_up_image_url,
+        //     processed_image_url: i.processed_image_url
+        //       ? i.processed_image_url.substring(0, 50) + '...'
+        //       : i.processed_image_url,
+        //   })),
+        // );
 
         // Create items array for ALL canvas items - return all image URLs for frontend resolution
         const allCanvasItems = row.canvas_data.placedItems
@@ -329,9 +329,9 @@ export class OutfitService {
             // Return all image URLs - frontend will pick best one using same logic as canvas
             const image = touchedUp || processed || original;
 
-            console.log(
-              `🖼️ Item ${item.id} (${item.name}): touchedUp=${!!touchedUp}, processed=${!!processed}, original=${!!original}, selected=${image?.substring(0, 40)}`,
-            );
+            // console.log(
+            //   `🖼️ Item ${item.id} (${item.name}): touchedUp=${!!touchedUp}, processed=${!!processed}, original=${!!original}, selected=${image?.substring(0, 40)}`,
+            // );
 
             return {
               id: item.id,
@@ -353,17 +353,17 @@ export class OutfitService {
         // Include ALL items for full grid display
         outfit.allItems = allCanvasItems;
 
-        // 🔍 DEBUG: Log what we're returning
-        console.log(
-          '🖼️ getCustomOutfits - allCanvasItems returned:',
-          allCanvasItems.map((i: any) => ({
-            id: i.id,
-            name: i.name,
-            image: i.image?.substring(0, 60) + '...',
-            touchedUpImageUrl: i.touchedUpImageUrl?.substring(0, 50) + '...',
-            processedImageUrl: i.processedImageUrl?.substring(0, 50) + '...',
-          })),
-        );
+        // // 🔍 DEBUG: Log what we're returning
+        // console.log(
+        //   '🖼️ getCustomOutfits - allCanvasItems returned:',
+        //   allCanvasItems.map((i: any) => ({
+        //     id: i.id,
+        //     name: i.name,
+        //     image: i.image?.substring(0, 60) + '...',
+        //     touchedUpImageUrl: i.touchedUpImageUrl?.substring(0, 50) + '...',
+        //     processedImageUrl: i.processedImageUrl?.substring(0, 50) + '...',
+        //   })),
+        // );
 
         // Also include canvas_data for full reconstruction
         outfit.canvas_data = row.canvas_data;

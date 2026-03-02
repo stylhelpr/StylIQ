@@ -164,9 +164,9 @@ export class WardrobeController {
     const weatherArg = body.useWeather === false ? undefined : body.weather;
     const userStyle = normalizeUserStyle(body.style_profile);
 
-    console.log('🚀 [OUTFITS] useFastMode:', body.useFastMode);
-    console.log('🚀 [OUTFITS] refinementPrompt:', body.refinementPrompt);
-    console.log('🚀 [OUTFITS] original query:', body.query);
+    // console.log('🚀 [OUTFITS] useFastMode:', body.useFastMode);
+    // console.log('🚀 [OUTFITS] refinementPrompt:', body.refinementPrompt);
+    // console.log('🚀 [OUTFITS] original query:', body.query);
 
     const requestId = randomUUID();
 
@@ -224,7 +224,7 @@ export class WardrobeController {
     // "Keep the shirt and slacks but give me brown shoes instead"
     // Routes to deterministic mutation (~200ms) instead of full LLM (~50s)
     const isRefineCandidate = !swapMatch && !!body.refinementPrompt && locked.length >= 2 && !!body.useFastMode && !body.aaaaMode;
-    console.log(`REFINE_ROUTE_CHECK { reason: "swapMatch=${!!swapMatch} refinementPrompt=${!!body.refinementPrompt} locked=${locked.length} fastMode=${!!body.useFastMode} aaaaMode=${!!body.aaaaMode} => ${isRefineCandidate}" }`);
+    // console.log(`REFINE_ROUTE_CHECK { reason: "swapMatch=${!!swapMatch} refinementPrompt=${!!body.refinementPrompt} locked=${locked.length} fastMode=${!!body.useFastMode} aaaaMode=${!!body.aaaaMode} => ${isRefineCandidate}" }`);
 
     if (isRefineCandidate) {
       console.log(`REFINE_ROUTE_ENTERED { reason: "prompt=${body.refinementPrompt} lockedCount=${locked.length}" }`);
@@ -244,7 +244,7 @@ export class WardrobeController {
     // Use fast mode if explicitly requested (and not aaaaMode)
     if (body.useFastMode && !body.aaaaMode) {
       if (body.refinementPrompt) {
-        console.log(`FALLBACK_TO_GENERATE_OUTFITS_FAST { reason: "refine attempted but mutateOutfit returned null or refine gate failed, falling through to LLM generation" }`);
+        // console.log(`FALLBACK_TO_GENERATE_OUTFITS_FAST { reason: "refine attempted but mutateOutfit returned null or refine gate failed, falling through to LLM generation" }`);
       }
 
       // If there's a refinement prompt, append it to the query
@@ -252,7 +252,7 @@ export class WardrobeController {
         ? `${body.query}. IMPORTANT REFINEMENT: User specifically requested: "${body.refinementPrompt}". You MUST incorporate this into ALL outfits.`
         : body.query;
 
-      console.log('🚀 [OUTFITS] queryWithRefinement:', queryWithRefinement);
+      // console.log('🚀 [OUTFITS] queryWithRefinement:', queryWithRefinement);
 
       return this.service.generateOutfitsFast(userId, queryWithRefinement, {
         userStyle,

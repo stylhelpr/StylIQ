@@ -797,15 +797,15 @@ export function validateOutfit(
   items: ValidatorItem[],
   ctx: ValidatorContext,
 ): ValidationResult {
-  // ALWAYS-ON: prove what avoid_colors + item colors the validator sees
-  console.log(
-    JSON.stringify({
-      _tag: 'AVOID_COLOR_INPUT_PROOF',
-      avoid: ctx?.styleProfile?.avoid_colors ?? null,
-      firstItemId: items?.[0]?.id ?? null,
-      firstItemColors: extractItemColors(items?.[0] ?? ({} as ValidatorItem)),
-    }),
-  );
+  // // ALWAYS-ON: prove what avoid_colors + item colors the validator sees
+  // console.log(
+  //   JSON.stringify({
+  //     _tag: 'AVOID_COLOR_INPUT_PROOF',
+  //     avoid: ctx?.styleProfile?.avoid_colors ?? null,
+  //     firstItemId: items?.[0]?.id ?? null,
+  //     firstItemColors: extractItemColors(items?.[0] ?? ({} as ValidatorItem)),
+  //   }),
+  // );
 
   const hardFails: string[] = [];
   const softPenalties: string[] = [];
@@ -830,29 +830,29 @@ export function validateOutfit(
   const avoidCol = checkAvoidColors(items, ctx);
   if (avoidCol) hardFails.push(avoidCol);
 
-  // AVOID_COLOR_PROOF: low-volume proof log when avoid_colors is active
-  if (ctx.styleProfile?.avoid_colors?.length) {
-    const expanded = expandAvoidColors(ctx.styleProfile.avoid_colors);
-    console.log(
-      JSON.stringify({
-        _tag: 'AVOID_COLOR_PROOF',
-        avoidList: ctx.styleProfile.avoid_colors,
-        expandedAvoidList: expanded,
-        items: items.map((it) => {
-          const colors = extractItemColors(it);
-          return {
-            id: it.id,
-            name: it.name,
-            slot: it.slot,
-            extractedColors: colors,
-            matched: colors.some((ic) =>
-              expanded.some((ac) => colorMatchesSafe(ic, ac)),
-            ),
-          };
-        }),
-      }),
-    );
-  }
+  // // AVOID_COLOR_PROOF: low-volume proof log when avoid_colors is active
+  // if (ctx.styleProfile?.avoid_colors?.length) {
+  //   const expanded = expandAvoidColors(ctx.styleProfile.avoid_colors);
+  //   console.log(
+  //     JSON.stringify({
+  //       _tag: 'AVOID_COLOR_PROOF',
+  //       avoidList: ctx.styleProfile.avoid_colors,
+  //       expandedAvoidList: expanded,
+  //       items: items.map((it) => {
+  //         const colors = extractItemColors(it);
+  //         return {
+  //           id: it.id,
+  //           name: it.name,
+  //           slot: it.slot,
+  //           extractedColors: colors,
+  //           matched: colors.some((ic) =>
+  //             expanded.some((ac) => colorMatchesSafe(ic, ac)),
+  //           ),
+  //         };
+  //       }),
+  //     }),
+  //   );
+  // }
 
   const avoidMat = checkAvoidMaterials(items, ctx);
   if (avoidMat) hardFails.push(avoidMat);

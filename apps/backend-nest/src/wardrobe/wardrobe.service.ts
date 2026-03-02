@@ -2430,17 +2430,17 @@ ${lockedLines}
       };
       const _candidateCountSlow = eliteOutfits.length;
       eliteOutfits = selectTopOutfits(eliteOutfits, _judgeCtxSlow);
-      console.log(
-        JSON.stringify({
-          _tag: 'STUDIO_FINAL_CURATION_PROOF',
-          mode: 'standard',
-          candidateCount: _candidateCountSlow,
-          returnedCount: eliteOutfits.length,
-          topScores: eliteOutfits.map((o: any) =>
-            scoreOutfit(o, _judgeCtxSlow).total,
-          ),
-        }),
-      );
+      // console.log(
+      //   JSON.stringify({
+      //     _tag: 'STUDIO_FINAL_CURATION_PROOF',
+      //     mode: 'standard',
+      //     candidateCount: _candidateCountSlow,
+      //     returnedCount: eliteOutfits.length,
+      //     topScores: eliteOutfits.map((o: any) =>
+      //       scoreOutfit(o, _judgeCtxSlow).total,
+      //     ),
+      //   }),
+      // );
 
       return {
         request_id,
@@ -2482,8 +2482,8 @@ ${lockedLines}
   ) {
     const startTime = Date.now();
     const reqId = opts?.requestId || randomUUID();
-    console.log('⚡ [FAST] Starting generateOutfitsFast for user:', userId);
-    console.log('⚡ [FAST] Full query:', query);
+    // console.log('⚡ [FAST] Starting generateOutfitsFast for user:', userId);
+    // console.log('⚡ [FAST] Full query:', query);
 
     try {
       const { weather, lockedItemIds = [] } = opts || {};
@@ -2537,11 +2537,11 @@ ${lockedLines}
         (r: any) => `${r.main_category}: ${r.subcategory || 'general'}`,
       );
       if (userPresentation === 'masculine') {
-        console.log(
-          `⚡ [FAST] Masculine filter: ${(categoryRows as any[]).length} → ${filteredCategoryRows.length} category types`,
-        );
+        // console.log(
+        //   `⚡ [FAST] Masculine filter: ${(categoryRows as any[]).length} → ${filteredCategoryRows.length} category types`,
+        // );
       }
-      console.log('⚡ [FAST] Available item types:', availableItems.join(', '));
+      // console.log('⚡ [FAST] Available item types:', availableItems.join(', '));
 
       // ── 0a) Inventory-Aware Color Shaping ─────────────────────────
       // Extract color intent from query and build a per-slot color map
@@ -2588,9 +2588,9 @@ ${lockedLines}
             break;
           }
         }
-        console.log(
-          `⚡ [FAST] Color intent: [${_colorIntent.join(', ')}] anchor_slot=${_colorAnchorSlot ?? 'none'} colors_by_slot=${JSON.stringify(_availableColorsBySlot)}`,
-        );
+        // console.log(
+        //   `⚡ [FAST] Color intent: [${_colorIntent.join(', ')}] anchor_slot=${_colorAnchorSlot ?? 'none'} colors_by_slot=${JSON.stringify(_availableColorsBySlot)}`,
+        // );
       }
 
       // ── 0b) For refinements, determine which SLOTS to keep vs change ──
@@ -2631,7 +2631,7 @@ ${lockedLines}
           ? refinementMatch[1].toLowerCase()
           : '';
 
-        console.log('⚡ [FAST] Parsing refinement text only:', refinementText);
+        // console.log('⚡ [FAST] Parsing refinement text only:', refinementText);
 
         // Use canonical REFINEMENT_CATEGORY_KEYWORDS from categoryMapping
         const categoryKeywords = REFINEMENT_CATEGORY_KEYWORDS;
@@ -2669,10 +2669,10 @@ ${lockedLines}
           }
         }
 
-        console.log(
-          '⚡ [FAST] Refinement - detected explicit change intent for:',
-          explicitlyChangeCategories,
-        );
+        // console.log(
+        //   '⚡ [FAST] Refinement - detected explicit change intent for:',
+        //   explicitlyChangeCategories,
+        // );
 
         // Keep slots = locked categories MINUS explicitly changed ones
         const keepCategories = lockedCategories.filter(
@@ -2716,9 +2716,9 @@ ${lockedLines}
         const hasDressIntent = dressPattern.test(refinementText);
 
         if (hasDressIntent) {
-          console.log(
-            '⚡ [FAST] Dress promotion triggered - refinement contains dress keyword',
-          );
+          // console.log(
+          //   '⚡ [FAST] Dress promotion triggered - refinement contains dress keyword',
+          // );
 
           // Remove Tops and Bottoms from change_slots (will be replaced by Dresses)
           changeCategories = changeCategories.filter(
@@ -2735,10 +2735,10 @@ ${lockedLines}
             (c) => c.toLowerCase() !== 'tops' && c.toLowerCase() !== 'bottoms',
           );
 
-          console.log(
-            '⚡ [FAST] Dress promotion - updated change_slots:',
-            changeCategories,
-          );
+          // console.log(
+          //   '⚡ [FAST] Dress promotion - updated change_slots:',
+          //   changeCategories,
+          // );
 
           refinementAction = {
             keep_slots: filteredKeep,
@@ -2751,15 +2751,15 @@ ${lockedLines}
           };
         }
 
-        console.log(
-          '⚡ [FAST] Refinement - keep slots:',
-          keepCategories,
-          'change slots:',
-          changeCategories,
-        );
-        console.log(
-          '⚡ [FAST] Refinement - NO item names sent to LLM (slot-level only)',
-        );
+        // console.log(
+        //   '⚡ [FAST] Refinement - keep slots:',
+        //   keepCategories,
+        //   'change slots:',
+        //   changeCategories,
+        // );
+        // console.log(
+        //   '⚡ [FAST] Refinement - NO item names sent to LLM (slot-level only)',
+        // );
       }
 
       // ── 0c) PATH #2: Detect "Start with Item" case ──
@@ -2770,11 +2770,11 @@ ${lockedLines}
       let centerpieceDbItem: any = null;
 
       if (isStartWithItem) {
-        console.log('⚡ [FAST] PATH #2: Start with Item detected');
-        console.log(
-          '⚡ [FAST] PATH #2: Centerpiece item ID:',
-          lockedItemIds[0],
-        );
+        // console.log('⚡ [FAST] PATH #2: Start with Item detected');
+        // console.log(
+        //   '⚡ [FAST] PATH #2: Centerpiece item ID:',
+        //   lockedItemIds[0],
+        // );
 
         // Fetch the centerpiece item details from database
         const { rows: centerpieceRows } = await pool.query(
@@ -2804,14 +2804,14 @@ ${lockedLines}
             style: cp.dress_code,
           };
 
-          console.log(
-            '⚡ [FAST] PATH #2: Centerpiece item:',
-            JSON.stringify(centerpieceItem, null, 2),
-          );
+          // console.log(
+          //   '⚡ [FAST] PATH #2: Centerpiece item:',
+          //   JSON.stringify(centerpieceItem, null, 2),
+          // );
         } else {
-          console.warn(
-            '⚡ [FAST] PATH #2: Centerpiece item not found in database',
-          );
+          // console.warn(
+          //   '⚡ [FAST] PATH #2: Centerpiece item not found in database',
+          // );
         }
       }
 
@@ -2822,9 +2822,9 @@ ${lockedLines}
       if (isStartWithItem && centerpieceItem) {
         // PATH #2: Use specialized V4 prompt with CENTERPIECE-FIRST enforcement
         // V4 ensures centerpiece is PRIMARY constraint - user input is only a styling MODIFIER
-        console.log(
-          '⚡ [FAST] PATH #2: Using buildStartWithItemPromptV4 (centerpiece-first enforcement)',
-        );
+        // console.log(
+        //   '⚡ [FAST] PATH #2: Using buildStartWithItemPromptV4 (centerpiece-first enforcement)',
+        // );
 
         // Extract mood prompts and freeform prompt from the query string
         // Format: "outfit built around my X. IMPORTANT REFINEMENT: User specifically requested: "mood. prompt". You MUST..."
@@ -2836,10 +2836,10 @@ ${lockedLines}
         );
         if (refinementMatch && refinementMatch[1]) {
           const refinementText = refinementMatch[1];
-          console.log(
-            '⚡ [FAST] PATH #2: Extracted refinement text:',
-            refinementText,
-          );
+          // console.log(
+          //   '⚡ [FAST] PATH #2: Extracted refinement text:',
+          //   refinementText,
+          // );
 
           // Split by period to separate mood prompts from freeform prompt
           // Mood prompts typically start with "Create an outfit with..."
@@ -2862,11 +2862,11 @@ ${lockedLines}
           }
         }
 
-        console.log('⚡ [FAST] PATH #2: Extracted moods:', extractedMoods);
-        console.log(
-          '⚡ [FAST] PATH #2: Extracted freeform:',
-          extractedFreeform,
-        );
+        // console.log('⚡ [FAST] PATH #2: Extracted moods:', extractedMoods);
+        // console.log(
+        //   '⚡ [FAST] PATH #2: Extracted freeform:',
+        //   extractedFreeform,
+        // );
 
         // Build raw input for normalization
         const rawInput: RawStartWithItemInput = {
@@ -2887,15 +2887,15 @@ ${lockedLines}
         let normalizedInput: NormalizedStartWithItemInput;
         try {
           normalizedInput = normalizeStartWithItemIntent(rawInput);
-          console.log(
-            '⚡ [FAST] PATH #2: Intent mode:',
-            normalizedInput.intentMode,
-          );
+          // console.log(
+          //   '⚡ [FAST] PATH #2: Intent mode:',
+          //   normalizedInput.intentMode,
+          // );
         } catch (error) {
           if (error instanceof MutualExclusionError) {
-            console.error(
-              '⚡ [FAST] PATH #2: MUTUAL EXCLUSION ERROR - cannot combine moods with freeform prompt',
-            );
+            // console.error(
+            //   '⚡ [FAST] PATH #2: MUTUAL EXCLUSION ERROR - cannot combine moods with freeform prompt',
+            // );
             throw error; // Fail closed - do not proceed
           }
           throw error;
@@ -2905,10 +2905,10 @@ ${lockedLines}
         const intentValidation =
           validateStartWithItemIntentMode(normalizedInput);
         if (!intentValidation.valid) {
-          console.error(
-            '⚡ [FAST] PATH #2: Intent mode validation failed:',
-            intentValidation.errors,
-          );
+          // console.error(
+          //   '⚡ [FAST] PATH #2: Intent mode validation failed:',
+          //   intentValidation.errors,
+          // );
           throw new Error(
             `PATH #2 intent mode validation failed: ${intentValidation.errors.join('; ')}`,
           );
@@ -2971,11 +2971,11 @@ ${slotLines}
 - Prioritize tonal harmony across the outfit (e.g., charcoal + navy + black, not charcoal + magenta + lime).`;
       }
 
-      console.log('⚡ [FAST] Plan prompt length:', planPrompt.length, 'chars');
-      console.log(
-        '⚡ [FAST] Plan prompt (first 500 chars):',
-        planPrompt.substring(0, 500),
-      );
+      // console.log('⚡ [FAST] Plan prompt length:', planPrompt.length, 'chars');
+      // console.log(
+      //   '⚡ [FAST] Plan prompt (first 500 chars):',
+      //   planPrompt.substring(0, 500),
+      // );
 
       if (process.env.DEBUG_STUDIO === 'true') {
         const profileIdx = planPrompt.indexOf('STYLE PREFERENCES');
@@ -3012,8 +3012,8 @@ ${slotLines}
         (typeof planRaw === 'string' ? planRaw : '');
 
       const planLatencyMs = Date.now() - planStartTime;
-      console.log('⚡ [FAST] Plan generated in', planLatencyMs, 'ms');
-      console.log('⚡ [FAST] Plan raw text:', planText.substring(0, 800));
+      // console.log('⚡ [FAST] Plan generated in', planLatencyMs, 'ms');
+      // console.log('⚡ [FAST] Plan raw text:', planText.substring(0, 800));
 
       logRawResponse(reqId, {
         responseText: planText,
@@ -3064,7 +3064,7 @@ ${slotLines}
       let outfitsArray = plan.outfit ? [plan.outfit] : plan.outfits || [];
 
       if (!outfitsArray.length && planText.length > 50) {
-        console.warn('⚡ [FAST] JSON parse failed, attempting partial outfit salvage');
+        // console.warn('⚡ [FAST] JSON parse failed, attempting partial outfit salvage');
         const salvaged: any[] = [];
         // Match each outfit block: "title" + "slots" array
         const outfitRe = /"title"\s*:\s*"([^"]*)"[\s\S]*?"slots"\s*:\s*\[([\s\S]*?)\]/g;
@@ -3084,15 +3084,15 @@ ${slotLines}
           }
         }
         if (salvaged.length > 0) {
-          console.log(`⚡ [FAST] Salvaged ${salvaged.length} outfits from malformed JSON`);
+          // console.log(`⚡ [FAST] Salvaged ${salvaged.length} outfits from malformed JSON`);
           outfitsArray = salvaged;
         }
       }
 
-      console.log('⚡ [FAST] Plan outfits count:', outfitsArray.length);
+      // console.log('⚡ [FAST] Plan outfits count:', outfitsArray.length);
 
       if (!outfitsArray.length) {
-        console.warn('⚡ [FAST] No outfits in plan after salvage, returning empty');
+        // console.warn('⚡ [FAST] No outfits in plan after salvage, returning empty');
         return {
           request_id: randomUUID(),
           outfit_id: randomUUID(),
@@ -3128,24 +3128,24 @@ ${slotLines}
           mapPlanCategoryToSlot(s.slot.category || '') === 'bottoms' &&
           dressDescPattern.test(s.slot.description || '')
         ) {
-          console.log(
-            `⚡ [FAST] Slot normalization: "${s.slot.description}" category ${s.slot.category} → Dresses`,
-          );
+          // console.log(
+          //   `⚡ [FAST] Slot normalization: "${s.slot.description}" category ${s.slot.category} → Dresses`,
+          // );
           s.slot.category = 'Dresses';
         }
       }
 
-      console.log('⚡ [FAST] Total slots to embed:', allSlots.length);
+      // console.log('⚡ [FAST] Total slots to embed:', allSlots.length);
 
       // Embed ALL slot descriptions in a SINGLE batch API call
       const slotDescriptions = allSlots.map((s) => s.slot.description);
       const embeddings = await this.vertex.embedTextBatch(slotDescriptions);
 
-      console.log(
-        '⚡ [FAST] Embeddings done in',
-        Date.now() - embedStartTime,
-        'ms (batch)',
-      );
+      // console.log(
+      //   '⚡ [FAST] Embeddings done in',
+      //   Date.now() - embedStartTime,
+      //   'ms (batch)',
+      // );
 
       // Query Pinecone for all slots in parallel
       // IMPORTANT: Filter by kind: "text" to match text embeddings against text vectors
@@ -3171,18 +3171,18 @@ ${slotLines}
         }),
       );
 
-      console.log(
-        '⚡ [FAST] Pinecone queries in',
-        Date.now() - pineconeStartTime,
-        'ms',
-      );
+      // console.log(
+      //   '⚡ [FAST] Pinecone queries in',
+      //   Date.now() - pineconeStartTime,
+      //   'ms',
+      // );
 
       // Debug: Log what Pinecone returned for each slot
       for (const result of pineconeResults) {
         const topMatch = result.matches[0];
-        console.log(
-          `⚡ [FAST] Slot "${result.slot.description}" (${result.slot.category}) → ${result.matches.length} matches, top: ${topMatch?.metadata?.name || topMatch?.metadata?.ai_title || topMatch?.id || 'none'} (score: ${topMatch?.score?.toFixed(3) || 'n/a'})`,
-        );
+        // console.log(
+        //   `⚡ [FAST] Slot "${result.slot.description}" (${result.slot.category}) → ${result.matches.length} matches, top: ${topMatch?.metadata?.name || topMatch?.metadata?.ai_title || topMatch?.id || 'none'} (score: ${topMatch?.score?.toFixed(3) || 'n/a'})`,
+        // );
 
         logFilter(reqId, {
           stage: `pinecone_slot:${result.slot.category}`,
@@ -3202,11 +3202,11 @@ ${slotLines}
       });
 
       const embedPineconeMs = Date.now() - embedStartTime;
-      console.log(
-        '⚡ [FAST] Total embed + Pinecone time:',
-        embedPineconeMs,
-        'ms',
-      );
+      // console.log(
+      //   '⚡ [FAST] Total embed + Pinecone time:',
+      //   embedPineconeMs,
+      //   'ms',
+      // );
 
       logParsed(reqId, {
         outfitCount: outfitsArray.length,
@@ -3253,11 +3253,11 @@ ${slotLines}
         itemsMap = new Map(rows.map((r: any) => [r.id, r]));
       }
 
-      console.log(
-        '⚡ [FAST] PostgreSQL fetch in',
-        Date.now() - dbStartTime,
-        'ms',
-      );
+      // console.log(
+      //   '⚡ [FAST] PostgreSQL fetch in',
+      //   Date.now() - dbStartTime,
+      //   'ms',
+      // );
 
       // ── Elite Scoring: load context early (needed for slot-pick avoid_colors + taste validator + rerank) ──
       const eliteStyleContext = await this.loadEliteStyleContext(userId);
@@ -3291,21 +3291,21 @@ ${slotLines}
       // PATH #2 (start with item): Centerpiece is FIRST in every outfit, LLM generated complementary slots
       // Refinement: backend handles kept items directly (no LLM involvement with item names)
       if (isStartWithItem && centerpieceDbItem) {
-        console.log(
-          '⚡ [FAST] PATH #2: Assembling outfits with centerpiece:',
-          centerpieceDbItem.name,
-        );
-        console.log(
-          '⚡ [FAST] PATH #2: Centerpiece category:',
-          centerpieceDbItem.main_category,
-        );
+        // console.log(
+        //   '⚡ [FAST] PATH #2: Assembling outfits with centerpiece:',
+        //   centerpieceDbItem.name,
+        // );
+        // console.log(
+        //   '⚡ [FAST] PATH #2: Centerpiece category:',
+        //   centerpieceDbItem.main_category,
+        // );
       } else if (isRefinement) {
-        console.log(
-          '⚡ [FAST] Refinement - backend directly uses locked items for kept slots',
-        );
-        console.log(
-          '⚡ [FAST] Refinement - LLM only generated descriptions for changed slots',
-        );
+        // console.log(
+        //   '⚡ [FAST] Refinement - backend directly uses locked items for kept slots',
+        // );
+        // console.log(
+        //   '⚡ [FAST] Refinement - LLM only generated descriptions for changed slots',
+        // );
       }
 
       let outfits = assembledOutfits.map((assembled, outfitIdx) => {
@@ -3321,9 +3321,9 @@ ${slotLines}
           const centerpieceId = centerpieceDbItem.id;
           items.push(this.dbRowToCatalogItem(centerpieceDbItem));
           usedIds.add(centerpieceId);
-          console.log(
-            `⚡ [FAST] PATH #2: Outfit ${outfitIdx + 1} - Centerpiece: ${centerpieceDbItem.name} (${centerpieceDbItem.main_category})`,
-          );
+          // console.log(
+          //   `⚡ [FAST] PATH #2: Outfit ${outfitIdx + 1} - Centerpiece: ${centerpieceDbItem.name} (${centerpieceDbItem.main_category})`,
+          // );
         }
         // ── Refinement: Add locked items for KEPT slots ──
         else if (isRefinement && lockedItemsByCategory.size > 0) {
@@ -3333,9 +3333,9 @@ ${slotLines}
             if (item && !usedIds.has(itemId)) {
               items.push(this.dbRowToCatalogItem(item));
               usedIds.add(itemId);
-              console.log(
-                `⚡ [FAST] Kept ${category} slot: ${item.name} (backend-direct, no LLM)`,
-              );
+              // console.log(
+              //   `⚡ [FAST] Kept ${category} slot: ${item.name} (backend-direct, no LLM)`,
+              // );
             }
           }
         }
@@ -3362,9 +3362,9 @@ ${slotLines}
 
           if (alreadyHasCategory) {
             if (isStartWithItem) {
-              console.log(
-                `⚡ [FAST] PATH #2: Skipping ${targetSlot} slot (centerpiece already fills this category)`,
-              );
+              // console.log(
+              //   `⚡ [FAST] PATH #2: Skipping ${targetSlot} slot (centerpiece already fills this category)`,
+              // );
             }
             continue;
           }
@@ -3400,9 +3400,9 @@ ${slotLines}
               query,
             );
             if (!slotCheck.valid) {
-              console.log(
-                `⚡ [FAST] STUDIO_SLOT_REJECTED | slot: "${sr.slot.description}" | candidate: "${item.name}" (${item.subcategory || item.main_category}) | reason: ${slotCheck.reason}`,
-              );
+              // console.log(
+              //   `⚡ [FAST] STUDIO_SLOT_REJECTED | slot: "${sr.slot.description}" | candidate: "${item.name}" (${item.subcategory || item.main_category}) | reason: ${slotCheck.reason}`,
+              // );
               continue;
             }
 
@@ -3413,9 +3413,9 @@ ${slotLines}
               avoidColors: _earlyAvoid,
             });
             if (!_driftCheck.valid) {
-              console.log(
-                `⚡ [FAST] DRIFT_REJECTED | slot: "${sr.slot.description}" | candidate: "${item.name}" | ${_driftCheck.reason}`,
-              );
+              // console.log(
+              //   `⚡ [FAST] DRIFT_REJECTED | slot: "${sr.slot.description}" | candidate: "${item.name}" | ${_driftCheck.reason}`,
+              // );
               if (!_pickedFallback) _pickedFallback = item;
               continue;
             }
@@ -3423,17 +3423,17 @@ ${slotLines}
             items.push(this.dbRowToCatalogItem(item));
             usedIds.add(itemId);
             _slotPicked = true;
-            console.log(
-              `⚡ [FAST] STUDIO_SLOT_ACCEPTED | slot: "${sr.slot.description}" | picked: "${item.name}" (${item.subcategory || item.main_category})`,
-            );
+            // console.log(
+            //   `⚡ [FAST] STUDIO_SLOT_ACCEPTED | slot: "${sr.slot.description}" | picked: "${item.name}" (${item.subcategory || item.main_category})`,
+            // );
             if (isRefinement) {
-              console.log(
-                `⚡ [FAST] Changed ${targetSlot} slot: ${item.name} (from LLM description: "${sr.slot.description}")`,
-              );
+              // console.log(
+              //   `⚡ [FAST] Changed ${targetSlot} slot: ${item.name} (from LLM description: "${sr.slot.description}")`,
+              // );
             } else if (isStartWithItem) {
-              console.log(
-                `⚡ [FAST] PATH #2: Complementary ${targetSlot}: ${item.name} (matched: "${sr.slot.description}")`,
-              );
+              // console.log(
+              //   `⚡ [FAST] PATH #2: Complementary ${targetSlot}: ${item.name} (matched: "${sr.slot.description}")`,
+              // );
             }
             _pickedFallback = null;
             break;
@@ -3450,9 +3450,9 @@ ${slotLines}
               items.push(this.dbRowToCatalogItem(_pickedFallback));
               usedIds.add(_pickedFallback.id);
             } else {
-              console.log(
-                `⚡ [FAST] FALLBACK_DRIFT_REJECTED | slot: "${sr.slot.description}" | fallback: "${_pickedFallback.name}" | ${_fbCheck.reason}`,
-              );
+              // console.log(
+              //   `⚡ [FAST] FALLBACK_DRIFT_REJECTED | slot: "${sr.slot.description}" | fallback: "${_pickedFallback.name}" | ${_fbCheck.reason}`,
+              // );
             }
           }
         }
@@ -3473,9 +3473,9 @@ ${slotLines}
             }
           }
           if (items.length < preLen) {
-            console.log(
-              `⚡ [FAST] Masculine post-filter: ${preLen} → ${items.length} items in outfit "${outfitPlan.title}"`,
-            );
+            // console.log(
+            //   `⚡ [FAST] Masculine post-filter: ${preLen} → ${items.length} items in outfit "${outfitPlan.title}"`,
+            // );
           }
         }
 
@@ -3515,21 +3515,21 @@ ${slotLines}
             );
             if (matches) return true;
           }
-          console.log(
-            `⚡ [FAST] EXECUTIVE_COLOR_ANCHOR_FAIL: "${outfit.title}" has no ${_colorIntent.join('/')} piece`,
-          );
+          // console.log(
+          //   `⚡ [FAST] EXECUTIVE_COLOR_ANCHOR_FAIL: "${outfit.title}" has no ${_colorIntent.join('/')} piece`,
+          // );
           return false;
         });
         // Fail-open: only apply filter if it doesn't empty the list
         if (withAnchor.length > 0) {
-          console.log(
-            `⚡ [FAST] Color anchor filter: ${outfits.length} → ${withAnchor.length} outfits`,
-          );
+          // console.log(
+          //   `⚡ [FAST] Color anchor filter: ${outfits.length} → ${withAnchor.length} outfits`,
+          // );
           outfits = withAnchor;
         } else {
-          console.log(
-            '⚡ [FAST] Color anchor filter would reject all — keeping originals (fail-open)',
-          );
+          // console.log(
+          //   '⚡ [FAST] Color anchor filter would reject all — keeping originals (fail-open)',
+          // );
         }
       }
 
@@ -3540,9 +3540,9 @@ ${slotLines}
       // If validateOutfitCore rejected ALL outfits, build a basic one from DB.
       // Tries separates (top+bottom+shoes) first, then dress+shoes.
       if (outfits.length === 0 && !isStartWithItem) {
-        console.warn(
-          '⚡ [FAST] All outfits rejected by validateOutfitCore — building deterministic fallback',
-        );
+        // console.warn(
+        //   '⚡ [FAST] All outfits rejected by validateOutfitCore — building deterministic fallback',
+        // );
         const { rows: fallbackRows } = await pool.query(
           `SELECT id, name, main_category, subcategory, image_url, color
            FROM wardrobe_items
@@ -3599,7 +3599,7 @@ ${slotLines}
               why: 'Built from your wardrobe favorites as a reliable fallback.',
             },
           ];
-          console.log('⚡ [FAST] Deterministic fallback: separates path');
+          // console.log('⚡ [FAST] Deterministic fallback: separates path');
         } else {
           // Path B: dress + shoes (matches validateOutfitCore structure)
           const dress = pickFirst('dresses');
@@ -3612,11 +3612,11 @@ ${slotLines}
                 why: 'Built from your wardrobe favorites as a reliable fallback.',
               },
             ];
-            console.log('⚡ [FAST] Deterministic fallback: dress+shoes path');
+            // console.log('⚡ [FAST] Deterministic fallback: dress+shoes path');
           } else {
-            console.warn(
-              '⚡ [FAST] Deterministic fallback: insufficient items for any valid outfit structure',
-            );
+            // console.warn(
+            //   '⚡ [FAST] Deterministic fallback: insufficient items for any valid outfit structure',
+            // );
           }
         }
       }
@@ -3668,9 +3668,9 @@ ${slotLines}
         const centerpieceCategory =
           centerpieceDbItem.main_category?.toLowerCase() || '';
 
-        console.log(
-          '⚡ [FAST] PATH #2: Running composition validation on outfit[0]...',
-        );
+        // console.log(
+        //   '⚡ [FAST] PATH #2: Running composition validation on outfit[0]...',
+        // );
 
         // Validate only the primary outfit (outfit[0]) for centerpiece constraints
         const validationResult = validateStartWithItemComposition(
@@ -3752,7 +3752,7 @@ ${slotLines}
       }
 
       const totalTime = Date.now() - startTime;
-      console.log('⚡ [FAST] Total generateOutfitsFast time:', totalTime, 'ms');
+      // console.log('⚡ [FAST] Total generateOutfitsFast time:', totalTime, 'ms');
 
       logOutput(reqId, {
         outfits: outfits.map((o: any) => ({
@@ -4041,9 +4041,9 @@ ${slotLines}
             const ranks = coreItems.map((it) => formalityRank(it.formality_score));
             const formalitySpread = Math.max(...ranks) - Math.min(...ranks);
             if (formalitySpread > 1) {
-              console.log(
-                `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" formality spread=${formalitySpread}`,
-              );
+              // console.log(
+              //   `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" formality spread=${formalitySpread}`,
+              // );
               return false;
             }
           }
@@ -4059,9 +4059,9 @@ ${slotLines}
             );
           });
           if (hasCasual) {
-            console.log(
-              `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" contains casual piece in executive context`,
-            );
+            // console.log(
+            //   `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" contains casual piece in executive context`,
+            // );
             return false;
           }
 
@@ -4096,9 +4096,9 @@ ${slotLines}
             }
           }
           if (nonNeutralFamilies.length > 1) {
-            console.log(
-              `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" accents=${nonNeutralFamilies.length} neutrals=[${neutralFamilies.join(', ')}] accents=[${nonNeutralFamilies.join(', ')}]`,
-            );
+            // console.log(
+            //   `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" accents=${nonNeutralFamilies.length} neutrals=[${neutralFamilies.join(', ')}] accents=[${nonNeutralFamilies.join(', ')}]`,
+            // );
             return false;
           }
 
@@ -4110,9 +4110,9 @@ ${slotLines}
             return NON_TAILORED_OUTERWEAR.test(text);
           });
           if (hasNonTailored) {
-            console.log(
-              `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" has non-tailored outerwear in executive context`,
-            );
+            // console.log(
+            //   `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" has non-tailored outerwear in executive context`,
+            // );
             return false;
           }
 
@@ -4124,9 +4124,9 @@ ${slotLines}
             return EXECUTIVE_CASUAL_TOP_REGEX.test(combined);
           });
           if (hasCasualTop) {
-            console.log(
-              `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" reason: CASUAL_TOP_HARD_REJECT`,
-            );
+            // console.log(
+            //   `⚡ [FAST] EXECUTIVE_COHERENCE_FAIL: "${outfit.title}" reason: CASUAL_TOP_HARD_REJECT`,
+            // );
             return false;
           }
 
@@ -4135,14 +4135,14 @@ ${slotLines}
 
         // Fail-open: if all outfits rejected, keep original set
         if (coherent.length > 0) {
-          console.log(
-            `⚡ [FAST] Executive coherence gate: ${outfits.length} → ${coherent.length} outfits`,
-          );
+          // console.log(
+          //   `⚡ [FAST] Executive coherence gate: ${outfits.length} → ${coherent.length} outfits`,
+          // );
           outfits = coherent;
         } else {
-          console.log(
-            '⚡ [FAST] Executive coherence gate would reject all — keeping originals (fail-open)',
-          );
+          // console.log(
+          //   '⚡ [FAST] Executive coherence gate would reject all — keeping originals (fail-open)',
+          // );
         }
       }
 
@@ -4209,9 +4209,9 @@ ${slotLines}
         );
         eliteOutfits = boosted;
         if (boostLog.length > 0) {
-          console.log(
-            JSON.stringify({ _tag: 'FAST_LEARNING_BOOST', boosts: boostLog }),
-          );
+          // console.log(
+          //   JSON.stringify({ _tag: 'FAST_LEARNING_BOOST', boosts: boostLog }),
+          // );
         }
       }
 
@@ -4303,17 +4303,17 @@ ${slotLines}
       };
       const _candidateCountFast = eliteOutfits.length;
       eliteOutfits = selectTopOutfits(eliteOutfits, _judgeCtxFast);
-      console.log(
-        JSON.stringify({
-          _tag: 'STUDIO_FINAL_CURATION_PROOF',
-          mode: 'fast',
-          candidateCount: _candidateCountFast,
-          returnedCount: eliteOutfits.length,
-          topScores: eliteOutfits.map((o: any) =>
-            scoreOutfit(o, _judgeCtxFast).total,
-          ),
-        }),
-      );
+      // console.log(
+      //   JSON.stringify({
+      //     _tag: 'STUDIO_FINAL_CURATION_PROOF',
+      //     mode: 'fast',
+      //     candidateCount: _candidateCountFast,
+      //     returnedCount: eliteOutfits.length,
+      //     topScores: eliteOutfits.map((o: any) =>
+      //       scoreOutfit(o, _judgeCtxFast).total,
+      //     ),
+      //   }),
+      // );
 
       // ── FINAL DEDUP PASS (Tier 4 Presentation Guarantee) ──
       {
@@ -4331,9 +4331,9 @@ ${slotLines}
           return true;
         });
         if (eliteOutfits.length < beforeDedup) {
-          console.log(
-            `⚡ [FAST] FINAL_DEDUP: ${beforeDedup} → ${eliteOutfits.length} outfits`,
-          );
+          // console.log(
+          //   `⚡ [FAST] FINAL_DEDUP: ${beforeDedup} → ${eliteOutfits.length} outfits`,
+          // );
         }
       }
 

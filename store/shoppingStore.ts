@@ -1704,7 +1704,7 @@ export const useShoppingStore = create<ShoppingState>()(
         // If persistedState is null/empty (new user), we MUST clear existing data
         // to prevent User A's data from leaking to User B
         if (persistedState && typeof persistedState === 'object' && Object.keys(persistedState as object).length > 0) {
-          console.log('[ShoppingStore] Merging persisted state with', Object.keys(persistedState as object).length, 'keys');
+          // console.log('[ShoppingStore] Merging persisted state with', Object.keys(persistedState as object).length, 'keys');
           return {
             ...currentState,
             ...(persistedState as object),
@@ -1712,7 +1712,7 @@ export const useShoppingStore = create<ShoppingState>()(
         }
         // No persisted state = new user or empty storage
         // Return fresh state with empty arrays to prevent data leakage
-        console.log('[ShoppingStore] No persisted state - returning fresh state');
+        // console.log('[ShoppingStore] No persisted state - returning fresh state');
         return {
           ...currentState,
           // Reset all user-specific data to prevent leakage
@@ -1744,7 +1744,7 @@ export const useShoppingStore = create<ShoppingState>()(
       },
       onRehydrateStorage: () => state => {
         if (state) {
-          console.log('[ShoppingStore] Rehydration complete, tabs:', state.tabs?.length || 0, 'bookmarks:', state.bookmarks?.length || 0);
+          // console.log('[ShoppingStore] Rehydration complete, tabs:', state.tabs?.length || 0, 'bookmarks:', state.bookmarks?.length || 0);
           state.setHasHydrated(true);
         }
       },

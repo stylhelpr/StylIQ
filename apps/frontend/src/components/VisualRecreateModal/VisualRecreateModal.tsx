@@ -119,6 +119,7 @@ function ProductCard({
             backgroundColor: 'red',
             justifyContent: 'center',
             alignItems: 'center',
+             borderRadius: tokens.borderRadius.sm,
           }}>
           <MaterialIcons
             name="shopping-bag"
@@ -269,7 +270,7 @@ function PieceSection({
           style={{
             padding: 20,
             backgroundColor: theme.colors.surface2,
-            borderRadius: tokens.borderRadius.md,
+            borderRadius: tokens.borderRadius.sm,
             alignItems: 'center',
           }}>
           <MaterialIcons

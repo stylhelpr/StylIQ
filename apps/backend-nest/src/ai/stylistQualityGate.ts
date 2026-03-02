@@ -66,12 +66,12 @@ export function expandStylistAvoidColors(avoidColors: string[]): string[] {
   }
   const result = [...expanded];
   if (result.length > avoidColors.length) {
-    console.log(
-      JSON.stringify({
-        _tag: 'STYLIST_COLOR_FAMILY_EXPANSION',
-        expandedCount: result.length - avoidColors.length,
-      }),
-    );
+    // console.log(
+    //   JSON.stringify({
+    //     _tag: 'STYLIST_COLOR_FAMILY_EXPANSION',
+    //     expandedCount: result.length - avoidColors.length,
+    //   }),
+    // );
   }
   return result;
 }

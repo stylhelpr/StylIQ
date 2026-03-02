@@ -437,9 +437,9 @@ export function validateOutfitCore<
   return outfits.filter((outfit, idx) => {
     const items = outfit.items ?? [];
     if (items.length === 0) {
-      console.log(
-        `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": no items`,
-      );
+      // console.log(
+      //   `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": no items`,
+      // );
       return false;
     }
 
@@ -456,18 +456,18 @@ export function validateOutfitCore<
     // 3. ACTIVEWEAR — needs shoes
     if (hasActivewear) {
       if (hasShoes) return true;
-      console.log(
-        `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": activewear missing shoes`,
-      );
+      // console.log(
+      //   `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": activewear missing shoes`,
+      // );
       return false;
     }
 
     // 2. ONE-PIECE — dresses (incl. Formalwear, TraditionalWear) + shoes
     if (hasDress) {
       if (hasShoes) return true;
-      console.log(
-        `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": dress/one-piece missing shoes`,
-      );
+      // console.log(
+      //   `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": dress/one-piece missing shoes`,
+      // );
       return false;
     }
 
@@ -478,9 +478,9 @@ export function validateOutfitCore<
     if (!hasTop) missing.push('tops');
     if (!hasBottom) missing.push('bottoms');
     if (!hasShoes) missing.push('shoes');
-    console.log(
-      `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": separates missing ${missing.join(', ')}`,
-    );
+    // console.log(
+    //   `[validateOutfitCore] REJECT outfit ${idx} "${outfit.title ?? ''}": separates missing ${missing.join(', ')}`,
+    // );
     return false;
   });
 }

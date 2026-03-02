@@ -193,24 +193,24 @@ export async function upsertItemNs({
     );
   }
 
-  console.log(
-    '🔁 Pinecone upsert payload (count:',
-    payload.length,
-    '):',
-    JSON.stringify(
-      payload.map((p) => ({
-        id: p.id,
-        valuesLen: p.values.length,
-        metaPreview: {
-          kind: p.metadata.kind,
-          name: p.metadata.name,
-          ai_title: p.metadata.ai_title,
-        },
-      })),
-      null,
-      2,
-    ),
-  );
+  // console.log(
+  //   '🔁 Pinecone upsert payload (count:',
+  //   payload.length,
+  //   '):',
+  //   JSON.stringify(
+  //     payload.map((p) => ({
+  //       id: p.id,
+  //       valuesLen: p.values.length,
+  //       metaPreview: {
+  //         kind: p.metadata.kind,
+  //         name: p.metadata.name,
+  //         ai_title: p.metadata.ai_title,
+  //       },
+  //     })),
+  //     null,
+  //     2,
+  //   ),
+  // );
 
   await ns.upsert(payload);
 }

@@ -198,8 +198,8 @@ export class TripsService {
     userId: string,
     dto: UpdateTripItemsDto,
   ) {
-    console.log('[TripsService][REPLACE_ITEMS] tripId:', tripId, 'userId:', userId);
-    console.log('[TripsService][REPLACE_ITEMS] items count:', dto.items?.length, 'capsule:', dto.capsule ? 'present' : 'null');
+    // console.log('[TripsService][REPLACE_ITEMS] tripId:', tripId, 'userId:', userId);
+    // console.log('[TripsService][REPLACE_ITEMS] items count:', dto.items?.length, 'capsule:', dto.capsule ? 'present' : 'null');
 
     try {
       // Verify ownership

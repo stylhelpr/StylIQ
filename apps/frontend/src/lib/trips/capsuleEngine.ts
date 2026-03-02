@@ -1181,7 +1181,7 @@ let __brandFitProbeLogged = false;
 export function adaptWardrobeItem(item: any): TripWardrobeItem {
   if (__DEV__ && !__brandFitProbeLogged) {
     __brandFitProbeLogged = true;
-    console.log('[Trips] brand/fit probe:', { brand: item.brand ?? '(missing)', fit: item.fit ?? '(missing)' });
+    // console.log('[Trips] brand/fit probe:', { brand: item.brand ?? '(missing)', fit: item.fit ?? '(missing)' });
   }
   return {
     id: item.id,

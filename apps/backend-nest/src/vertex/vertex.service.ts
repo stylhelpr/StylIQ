@@ -712,10 +712,10 @@ export class VertexService {
       withBackoff(() => model.generateContent(prompt), 'gemini:flash'),
     );
 
-    console.log(
-      '👗 Gemini Flash outfit response:',
-      JSON.stringify(result.response, null, 2),
-    );
+    // console.log(
+    //   '👗 Gemini Flash outfit response:',
+    //   JSON.stringify(result.response, null, 2),
+    // );
 
     return result.response;
   }

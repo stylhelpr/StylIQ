@@ -316,15 +316,15 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
                 {filteredItems.map((item: WardrobeItem) => {
                   const isPlaced = placedItemIds.includes(item.id);
                   const resolvedUri = resolveUri(item);
-                  // Debug: log FULL URLs being used
-                  console.log('[ItemDrawer] FULL URLS:', {
-                    id: item.id,
-                    image: item.image,
-                    touchedUpImageUrl: item.touchedUpImageUrl,
-                    processedImageUrl: item.processedImageUrl,
-                    image_url: item.image_url,
-                    resolved: resolvedUri,
-                  });
+                  // // Debug: log FULL URLs being used
+                  // console.log('[ItemDrawer] FULL URLS:', {
+                  //   id: item.id,
+                  //   image: item.image,
+                  //   touchedUpImageUrl: item.touchedUpImageUrl,
+                  //   processedImageUrl: item.processedImageUrl,
+                  //   image_url: item.image_url,
+                  //   resolved: resolvedUri,
+                  // });
                   return (
                     <TouchableOpacity
                       key={item.id}

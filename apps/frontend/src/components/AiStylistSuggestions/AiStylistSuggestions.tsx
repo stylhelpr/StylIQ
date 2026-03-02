@@ -709,7 +709,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
+            backgroundColor: theme.colors.i,
           }}
         />
         {/* Sheet */}
@@ -1844,7 +1844,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             height: 240,
             borderRadius: 12,
             overflow: 'hidden',
-            backgroundColor: theme.colors.surface,
+            backgroundColor: theme.colors.imageBackground,
             flexDirection: 'row',
           }}>
           {(() => {

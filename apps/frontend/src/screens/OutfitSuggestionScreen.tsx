@@ -194,7 +194,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     },
     cardOverlay: {
       width: '100%',
-      height: 318,
+      height: 330,
       borderRadius: tokens.borderRadius.md,
       overflow: 'hidden',
       marginBottom: 16,
@@ -205,6 +205,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       width: '100%',
       height: '100%',
       resizeMode: 'contain',
+      padding: 30
     },
     overlay: {
       position: 'absolute',
@@ -634,20 +635,20 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
   // "Create Outfit" - Initial generation with NEW session (uses legacy builtQuery)
   const handleV2Generate = () => {
-    console.log('[handleV2Generate] Called! userId:', userId);
+    // console.log('[handleV2Generate] Called! userId:', userId);
     if (!userId) {
-      console.log('[handleV2Generate] No userId, returning early');
+      // console.log('[handleV2Generate] No userId, returning early');
       return;
     }
 
     // Debug: Log locked item info
     if (lockedItem) {
-      console.log('[handleV2Generate] Locked item:', {
-        id: lockedItem.id,
-        name: lockedItem.name,
-        category: (lockedItem as any).mainCategory || (lockedItem as any).main_category,
-        fullItem: lockedItem,
-      });
+      // console.log('[handleV2Generate] Locked item:', {
+      //   id: lockedItem.id,
+      //   name: lockedItem.name,
+      //   category: (lockedItem as any).mainCategory || (lockedItem as any).main_category,
+      //   fullItem: lockedItem,
+      // });
     }
 
     // Don't clear() here — regenerate() replaces outfits on success.
@@ -694,11 +695,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       : [selectedMoodPrompt, outfitPrompt].filter(Boolean);
 
     const lockedIds = lockedItem ? [lockedItem.id] : undefined;
-    console.log('[handleV2Generate] Calling regenerate with:', {
-      query: queryToUse,
-      lockedItemIds: lockedIds,
-      refinementPrompt: promptParts.join(' ') || undefined,
-    });
+    // console.log('[handleV2Generate] Calling regenerate with:', {
+    //   query: queryToUse,
+    //   lockedItemIds: lockedIds,
+    //   refinementPrompt: promptParts.join(' ') || undefined,
+    // });
 
     regenerate(queryToUse, {
       topK: 25,
@@ -996,7 +997,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         activeOpacity={0.9}
         style={[
           styles.cardOverlay,
-          {backgroundColor: theme.colors.surface},
+          {backgroundColor: theme.colors.imageBackground},
           isLocked && {borderWidth: 2, borderColor: theme.colors.primary},
         ]}>
         <Image
@@ -1662,7 +1663,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   <View
                     style={[
                       styles.cardOverlay,
-                      {backgroundColor: theme.colors.surface},
+                      {backgroundColor: theme.colors.imageBackground},
                     ]}>
                     <View style={{
                       flex: 1,

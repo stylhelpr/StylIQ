@@ -235,26 +235,26 @@ const RootNavigator = ({
 
   // Fetch real wardrobe when user is authenticated, clear on logout
   useEffect(() => {
-    console.warn('[WARDROBE] useEffect TRIGGERED - contextUUID:', contextUUID, 'isUUIDInitialized:', isUUIDInitialized);
+    // console.warn('[WARDROBE] useEffect TRIGGERED - contextUUID:', contextUUID, 'isUUIDInitialized:', isUUIDInitialized);
 
     // Clear wardrobe when user logs out (UUID becomes null)
     if (!contextUUID) {
-      console.warn('[WARDROBE] 🧹 Clearing wardrobe (user logged out)');
+      // console.warn('[WARDROBE] 🧹 Clearing wardrobe (user logged out)');
       setWardrobe([]);
       return;
     }
 
     if (contextUUID && isUUIDInitialized) {
-      console.warn('[WARDROBE] Fetching real wardrobe for user:', contextUUID);
+      // console.warn('[WARDROBE] Fetching real wardrobe for user:', contextUUID);
       fetchWardrobeItems(contextUUID)
         .then(items => {
-          console.warn('[WARDROBE] API response:', items?.length, 'items');
-          if (items?.[0]) {
-            console.warn('[WARDROBE] First item image:', items[0].image);
-          }
+          // console.warn('[WARDROBE] API response:', items?.length, 'items');
+          // if (items?.[0]) {
+          //   console.warn('[WARDROBE] First item image:', items[0].image);
+          // }
           // Always set wardrobe from fetch result (even if empty) to ensure clean state for new users
           setWardrobe(items || []);
-          console.warn(`[WARDROBE] ✅ Loaded ${items?.length || 0} real wardrobe items`);
+          // console.warn(`[WARDROBE] ✅ Loaded ${items?.length || 0} real wardrobe items`);
         })
         .catch(err => console.error('[WARDROBE] ❌ Failed to fetch:', err));
     }
@@ -341,17 +341,17 @@ const RootNavigator = ({
       // The contextUUID is set by UUIDContext after server validates auth0_sub
       const userId = contextUUID;
 
-      console.log('[routeAfterLogin] Using context UUID:', userId);
+      // console.log('[routeAfterLogin] Using context UUID:', userId);
 
       // If UUID not yet initialized by context, wait briefly or use context value
       // This handles the race condition where routeAfterLogin is called before UUIDContext finishes
       if (!userId && !isUUIDInitialized) {
-        console.log('[routeAfterLogin] Waiting for UUIDContext to initialize...');
+        // console.log('[routeAfterLogin] Waiting for UUIDContext to initialize...');
         // Context will set UUID after /auth/profile returns
         // For now, check if we at least have a cached value as temporary fallback
         const cachedUserId = await AsyncStorage.getItem('user_id');
         if (cachedUserId) {
-          console.log('[routeAfterLogin] Using cached user_id temporarily:', cachedUserId);
+          // console.log('[routeAfterLogin] Using cached user_id temporarily:', cachedUserId);
           const user = await fetchUserData(cachedUserId);
           if (user) {
             const onboarded = user?.onboarding_complete === true;
