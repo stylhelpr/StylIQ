@@ -103,7 +103,7 @@ const OutfitsScreen = ({navigate}: Props) => {
             <View style={styles.cardTextContainer}>
               <Text style={styles.cardTitle}>Manually Build Outfit</Text>
               <Text style={styles.cardSubtitle}>
-                Drag and drop items from your wardrobe to an build outfit
+                Drag and drop items from your wardrobe to build an outfit
               </Text>
             </View>
             <Icon name="chevron-right" size={24} color={theme.colors.muted} />

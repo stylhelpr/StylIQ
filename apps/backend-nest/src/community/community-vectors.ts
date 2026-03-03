@@ -38,7 +38,7 @@ export async function upsertPostEmbedding(params: {
     },
   ]);
 
-  console.log(`📌 Community post ${postId} embedded in Pinecone`);
+  // console.log(`📌 Community post ${postId} embedded in Pinecone`);
 }
 
 /**

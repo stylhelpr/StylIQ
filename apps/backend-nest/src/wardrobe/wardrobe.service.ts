@@ -1239,20 +1239,20 @@ export class WardrobeService {
         const _beforeOccasion = catalog.length;
         catalog = catalog.filter((item) => {
           if (isOccasionAppropriate(item, _occasionCtx)) return true;
-          console.log(
-            JSON.stringify({
-              _tag: 'OCCASION_FILTER_REJECTED',
-              mode: 'standard',
-              itemName: item.label,
-              reason: getOccasionRejectionReason(item, _occasionCtx),
-            }),
-          );
+          // console.log(
+          //   JSON.stringify({
+          //     _tag: 'OCCASION_FILTER_REJECTED',
+          //     mode: 'standard',
+          //     itemName: item.label,
+          //     reason: getOccasionRejectionReason(item, _occasionCtx),
+          //   }),
+          // );
           return false;
         });
         if (_beforeOccasion > catalog.length) {
-          console.log(
-            `[STD] Occasion filter: ${_beforeOccasion} → ${catalog.length} items`,
-          );
+          // console.log(
+          //   `[STD] Occasion filter: ${_beforeOccasion} → ${catalog.length} items`,
+          // );
         }
       }
 
@@ -2398,27 +2398,27 @@ ${lockedLines}
         const _coherentSlow = eliteOutfits.filter((o: any) => {
           const v = isStylisticallyIncoherent(o, _vetoCtx);
           if (v.invalid) {
-            console.log(
-              JSON.stringify({
-                _tag: 'STYLIST_VETO_REJECTED',
-                mode: 'standard',
-                reason: v.reason,
-                outfitSummary: (o.items ?? []).map((it: any) =>
-                  `${it.name ?? it.label ?? '?'} (${it.subcategory ?? it.main_category ?? '?'})`
-                ),
-              }),
-            );
+            // console.log(
+            //   JSON.stringify({
+            //     _tag: 'STYLIST_VETO_REJECTED',
+            //     mode: 'standard',
+            //     reason: v.reason,
+            //     outfitSummary: (o.items ?? []).map((it: any) =>
+            //       `${it.name ?? it.label ?? '?'} (${it.subcategory ?? it.main_category ?? '?'})`
+            //     ),
+            //   }),
+            // );
           }
           return !v.invalid;
         });
         if (_coherentSlow.length < _beforeVetoSlow && _coherentSlow.length < 3) {
-          console.log(
-            JSON.stringify({
-              _tag: 'STYLIST_VETO_INSUFFICIENT',
-              mode: 'standard',
-              remainingCount: _coherentSlow.length,
-            }),
-          );
+          // console.log(
+          //   JSON.stringify({
+          //     _tag: 'STYLIST_VETO_INSUFFICIENT',
+          //     mode: 'standard',
+          //     remainingCount: _coherentSlow.length,
+          //   }),
+          // );
         }
         eliteOutfits = _coherentSlow.length >= 3 ? _coherentSlow : _coherentSlow;
       }
@@ -3382,14 +3382,14 @@ ${slotLines}
 
             // P-1: occasion appropriateness — reject items inappropriate for formal contexts
             if (!isOccasionAppropriate(item, { query })) {
-              console.log(
-                JSON.stringify({
-                  _tag: 'OCCASION_FILTER_REJECTED',
-                  mode: 'fast',
-                  itemName: item.name,
-                  reason: getOccasionRejectionReason(item, { query }),
-                }),
-              );
+              // console.log(
+              //   JSON.stringify({
+              //     _tag: 'OCCASION_FILTER_REJECTED',
+              //     mode: 'fast',
+              //     itemName: item.name,
+              //     reason: getOccasionRejectionReason(item, { query }),
+              //   }),
+              // );
               continue;
             }
 
@@ -4271,27 +4271,27 @@ ${slotLines}
         const _coherentFast = eliteOutfits.filter((o: any) => {
           const v = isStylisticallyIncoherent(o, _vetoCtxFast);
           if (v.invalid) {
-            console.log(
-              JSON.stringify({
-                _tag: 'STYLIST_VETO_REJECTED',
-                mode: 'fast',
-                reason: v.reason,
-                outfitSummary: (o.items ?? []).map((it: any) =>
-                  `${it.name ?? it.label ?? '?'} (${it.subcategory ?? it.main_category ?? '?'})`
-                ),
-              }),
-            );
+            // console.log(
+            //   JSON.stringify({
+            //     _tag: 'STYLIST_VETO_REJECTED',
+            //     mode: 'fast',
+            //     reason: v.reason,
+            //     outfitSummary: (o.items ?? []).map((it: any) =>
+            //       `${it.name ?? it.label ?? '?'} (${it.subcategory ?? it.main_category ?? '?'})`
+            //     ),
+            //   }),
+            // );
           }
           return !v.invalid;
         });
         if (_coherentFast.length < _beforeVetoFast && _coherentFast.length < 3) {
-          console.log(
-            JSON.stringify({
-              _tag: 'STYLIST_VETO_INSUFFICIENT',
-              mode: 'fast',
-              remainingCount: _coherentFast.length,
-            }),
-          );
+          // console.log(
+          //   JSON.stringify({
+          //     _tag: 'STYLIST_VETO_INSUFFICIENT',
+          //     mode: 'fast',
+          //     remainingCount: _coherentFast.length,
+          //   }),
+          // );
         }
         eliteOutfits = _coherentFast;
       }

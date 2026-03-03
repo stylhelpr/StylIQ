@@ -4300,9 +4300,9 @@ Preferences: ${JSON.stringify(preferences || {})}
           ? `\n\n👍 USER PREFERENCES (from past feedback):\n${parts.join('\n')}`
           : '';
 
-      console.log(
-        `🎯 [AI Stylist] Loaded feedback for ${userId}: ${prefRows.length} item scores, ${likedPatterns.length} liked patterns`,
-      );
+      // console.log(
+      //   `🎯 [AI Stylist] Loaded feedback for ${userId}: ${prefRows.length} item scores, ${likedPatterns.length} liked patterns`,
+      // );
 
       return {
         itemScores,
@@ -4385,13 +4385,13 @@ Preferences: ${JSON.stringify(preferences || {})}
           );
         }
 
-        console.log(
-          JSON.stringify({
-            _tag: 'STYLIST_BRAIN_FALLBACK_USED',
-            recoveredProfile: !!brainCtx.styleProfile,
-            presentation: brainCtx.presentation,
-          }),
-        );
+        // console.log(
+        //   JSON.stringify({
+        //     _tag: 'STYLIST_BRAIN_FALLBACK_USED',
+        //     recoveredProfile: !!brainCtx.styleProfile,
+        //     presentation: brainCtx.presentation,
+        //   }),
+        // );
       } catch (err) {
         console.error('STYLIST_BRAIN_FALLBACK_FAILED:', err);
       }
@@ -4403,24 +4403,24 @@ Preferences: ${JSON.stringify(preferences || {})}
     }
 
     // ALWAYS-ON: prove what brainCtx.styleProfile contains after load
-    console.log(
-      JSON.stringify({
-        _tag: 'BRAIN_STYLE_PROFILE_PROOF',
-        hasStyleProfile: !!brainCtx?.styleProfile,
-        keys: Object.keys(brainCtx?.styleProfile ?? {}),
-        avoid: (brainCtx as any)?.styleProfile?.avoid_colors ?? null,
-      }),
-    );
+    // console.log(
+    //   JSON.stringify({
+    //     _tag: 'BRAIN_STYLE_PROFILE_PROOF',
+    //     hasStyleProfile: !!brainCtx?.styleProfile,
+    //     keys: Object.keys(brainCtx?.styleProfile ?? {}),
+    //     avoid: (brainCtx as any)?.styleProfile?.avoid_colors ?? null,
+    //   }),
+    // );
 
     // STYLIST_BRAIN_READY: Proof brain is loaded BEFORE candidate generation
-    console.log(
-      JSON.stringify({
-        _tag: 'STYLIST_BRAIN_READY',
-        hasProfile: true,
-        presentation: brainCtx.presentation,
-        keys: Object.keys(brainCtx.styleProfile || {}),
-      }),
-    );
+    // console.log(
+    //   JSON.stringify({
+    //     _tag: 'STYLIST_BRAIN_READY',
+    //     hasProfile: true,
+    //     presentation: brainCtx.presentation,
+    //     keys: Object.keys(brainCtx.styleProfile || {}),
+    //   }),
+    // );
     let userPresentation = brainCtx.presentation;
 
     // ── Implicit presentation fallback when no style profile exists ──
@@ -6175,7 +6175,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
     // Full post-processing pipeline (gate → silhouette → sort → canonicalize)
     const applyPostProcessing = (outfits: any[]): any[] => {
-      console.log(JSON.stringify({ _tag: 'STYLIST_WEATHER_HARD_GATE_ACTIVE', tempF: wxContext?.tempF, precipitation: wxContext?.precipitation }));
+      // console.log(JSON.stringify({ _tag: 'STYLIST_WEATHER_HARD_GATE_ACTIVE', tempF: wxContext?.tempF, precipitation: wxContext?.precipitation }));
       // 1. Quality gate (fallback to originals if all rejected)
       let result = outfits.filter(qualityGateFilter);
       if (result.length === 0) result = [...outfits];
@@ -6659,48 +6659,48 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         const o = candidatePool[i];
         const badItem = (o.items ?? []).find((it: any) => !isOccasionAppropriate(it, _occasionCtx));
         if (badItem) {
-          console.log(
-            JSON.stringify({
-              _tag: 'OCCASION_FILTER_REJECTED',
-              mode: 'stylist',
-              itemName: badItem.name ?? badItem.label ?? '?',
-              reason: getOccasionRejectionReason(badItem, _occasionCtx),
-            }),
-          );
+          // console.log(
+          //   JSON.stringify({
+          //     _tag: 'OCCASION_FILTER_REJECTED',
+          //     mode: 'stylist',
+          //     itemName: badItem.name ?? badItem.label ?? '?',
+          //     reason: getOccasionRejectionReason(badItem, _occasionCtx),
+          //   }),
+          // );
           candidatePool.splice(i, 1);
         }
       }
       if (_beforeOccasion > candidatePool.length) {
-        console.log(
-          `[STYLIST] Occasion filter: ${_beforeOccasion} → ${candidatePool.length} outfits`,
-        );
+        // console.log(
+        //   `[STYLIST] Occasion filter: ${_beforeOccasion} → ${candidatePool.length} outfits`,
+        // );
       }
     }
 
     // ALWAYS-ON: prove expanded pool size before validation
-    console.log(
-      JSON.stringify({
-        _tag: 'STYLIST_POOL_EXPANDED_PROOF',
-        poolSize: candidatePool.length,
-        avoid: validatorCtx?.styleProfile?.avoid_colors ?? null,
-      }),
-    );
+    // console.log(
+    //   JSON.stringify({
+    //     _tag: 'STYLIST_POOL_EXPANDED_PROOF',
+    //     poolSize: candidatePool.length,
+    //     avoid: validatorCtx?.styleProfile?.avoid_colors ?? null,
+    //   }),
+    // );
 
-    console.log(
-      JSON.stringify({
-        _tag: 'CANONICAL_COLOR_HYDRATION_PROOF',
-        firstItem: candidatePool?.[0]?.items?.[0]?.id ?? null,
-        firstItemCanonicalColors:
-          candidatePool?.[0]?.items?.[0]?.__canonicalColors ?? null,
-      }),
-    );
+    // console.log(
+    //   JSON.stringify({
+    //     _tag: 'CANONICAL_COLOR_HYDRATION_PROOF',
+    //     firstItem: candidatePool?.[0]?.items?.[0]?.id ?? null,
+    //     firstItemCanonicalColors:
+    //       candidatePool?.[0]?.items?.[0]?.__canonicalColors ?? null,
+    //   }),
+    // );
     // ALWAYS-ON: prove avoid_colors is populated in validatorCtx BEFORE validator runs
-    console.log(
-      JSON.stringify({
-        _tag: 'AVOID_COLOR_CTX_PROOF',
-        avoid: validatorCtx?.styleProfile?.avoid_colors ?? null,
-      }),
-    );
+    // console.log(
+    //   JSON.stringify({
+    //     _tag: 'AVOID_COLOR_CTX_PROOF',
+    //     avoid: validatorCtx?.styleProfile?.avoid_colors ?? null,
+    //   }),
+    // );
     const validation = tasteValidateOutfits(
       candidatePool.map((o, i) => ({
         outfitId: o.id ?? `outfit-${i}`,
@@ -6908,20 +6908,20 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       _backfillUsed = validOutfits.length < 3 ? 'INSUFFICIENT' : 'NONE';
     }
     // ALWAYS-ON: taste validation proof (ungated for debugging avoid_colors)
-    console.log(
-      JSON.stringify({
-        _tag: 'STYLIST_TASTE_PROOF',
-        candidatePoolSize: candidatePool.length,
-        numHardFailed: invalidCount,
-        numRepairedViaSwap: _numRepairedViaSwap,
-        numValidAfterValidation: validOutfits.length,
-        backfillUsed: _backfillUsed,
-        finalReturnedCount: selectedOutfits.length,
-        ...(selectedOutfits.length < 3
-          ? { reason: 'WARDROBE_INSUFFICIENT' }
-          : {}),
-      }),
-    );
+    // console.log(
+    //   JSON.stringify({
+    //     _tag: 'STYLIST_TASTE_PROOF',
+    //     candidatePoolSize: candidatePool.length,
+    //     numHardFailed: invalidCount,
+    //     numRepairedViaSwap: _numRepairedViaSwap,
+    //     numValidAfterValidation: validOutfits.length,
+    //     backfillUsed: _backfillUsed,
+    //     finalReturnedCount: selectedOutfits.length,
+    //     ...(selectedOutfits.length < 3
+    //       ? { reason: 'WARDROBE_INSUFFICIENT' }
+    //       : {}),
+    //   }),
+    // );
 
     // Elite Scoring hook — Phase 2: rerank when V2 flag on
     // ONE-FLAG: ELITE_ENABLED in feature-flags.ts:42 force-enables STYLIST + STYLIST_V2
@@ -6939,18 +6939,18 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       _eliteRerankRan = _usedV2;
     }
     if (ELITE_FLAGS.DEBUG) {
-      console.log(
-        JSON.stringify({
-          _tag: 'STYLIST_ELITE_PROOF',
-          eliteEnabled: ELITE_FLAGS.STYLIST || ELITE_FLAGS.STYLIST_V2,
-          usedV2: _eliteRerankRan,
-          returned: eliteOutfits.length,
-          validatorRan: true,
-          numHardFailed: invalidCount,
-          numRepaired: _numRepairedViaSwap,
-          backfillUsed: _backfillUsed !== 'NONE',
-        }),
-      );
+      // console.log(
+      //   JSON.stringify({
+      //     _tag: 'STYLIST_ELITE_PROOF',
+      //     eliteEnabled: ELITE_FLAGS.STYLIST || ELITE_FLAGS.STYLIST_V2,
+      //     usedV2: _eliteRerankRan,
+      //     returned: eliteOutfits.length,
+      //     validatorRan: true,
+      //     numHardFailed: invalidCount,
+      //     numRepaired: _numRepairedViaSwap,
+      //     backfillUsed: _backfillUsed !== 'NONE',
+      //   }),
+      // );
     }
     // Re-hydrate eliteOutfits (elite scoring creates new objects via denormalize)
     eliteOutfits.forEach(_hydrateOutfitColors);
@@ -7150,15 +7150,15 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       }
       eliteOutfits = _cleanElite;
       // ALWAYS-ON: final guard proof (ungated for debugging avoid_colors)
-      console.log(
-        JSON.stringify({
-          _tag: 'AVOID_COLOR_FINAL_GUARD',
-          avoidColors: _avoidColorList,
-          expandedAvoid: _expanded,
-          beforeCount: _beforeCount,
-          afterCount: eliteOutfits.length,
-        }),
-      );
+      // console.log(
+      //   JSON.stringify({
+      //     _tag: 'AVOID_COLOR_FINAL_GUARD',
+      //     avoidColors: _avoidColorList,
+      //     expandedAvoid: _expanded,
+      //     beforeCount: _beforeCount,
+      //     afterCount: eliteOutfits.length,
+      //   }),
+      // );
     }
 
     // ── Elite Scoring: log exposure event (fire-and-forget) ──
@@ -7254,17 +7254,17 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           );
         }
       }
-      console.log(
-        JSON.stringify({
-          _tag: 'AVOID_COLOR_RETURN_GUARD_PROOF',
-          avoid: _rtAvoid,
-          before: _rtBefore,
-          after: eliteOutfits.length,
-          firstOutfitColors: (eliteOutfits?.[0]?.items ?? [])
-            .flatMap((it: any) => it.__canonicalColors ?? [])
-            .slice(0, 20),
-        }),
-      );
+      // console.log(
+      //   JSON.stringify({
+      //     _tag: 'AVOID_COLOR_RETURN_GUARD_PROOF',
+      //     avoid: _rtAvoid,
+      //     before: _rtBefore,
+      //     after: eliteOutfits.length,
+      //     firstOutfitColors: (eliteOutfits?.[0]?.items ?? [])
+      //       .flatMap((it: any) => it.__canonicalColors ?? [])
+      //       .slice(0, 20),
+      //   }),
+      // );
     }
 
     // ALWAYS-ON: log when avoid_colors leaves fewer than 3 outfits
@@ -7286,27 +7286,27 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
       const _coherentStylist = eliteOutfits.filter((o: any) => {
         const v = isStylisticallyIncoherent(o, _vetoCtxStylist);
         if (v.invalid) {
-          console.log(
-            JSON.stringify({
-              _tag: 'STYLIST_VETO_REJECTED',
-              mode: 'stylist',
-              reason: v.reason,
-              outfitSummary: (o.items ?? []).map((it: any) =>
-                `${it.name ?? it.label ?? '?'} (${it.subcategory ?? it.main_category ?? '?'})`
-              ),
-            }),
-          );
+          // console.log(
+          //   JSON.stringify({
+          //     _tag: 'STYLIST_VETO_REJECTED',
+          //     mode: 'stylist',
+          //     reason: v.reason,
+          //     outfitSummary: (o.items ?? []).map((it: any) =>
+          //       `${it.name ?? it.label ?? '?'} (${it.subcategory ?? it.main_category ?? '?'})`
+          //     ),
+          //   }),
+          // );
         }
         return !v.invalid;
       });
       if (_coherentStylist.length < _beforeVetoStylist && _coherentStylist.length < 3) {
-        console.log(
-          JSON.stringify({
-            _tag: 'STYLIST_VETO_INSUFFICIENT',
-            mode: 'stylist',
-            remainingCount: _coherentStylist.length,
-          }),
-        );
+        // console.log(
+        //   JSON.stringify({
+        //     _tag: 'STYLIST_VETO_INSUFFICIENT',
+        //     mode: 'stylist',
+        //     remainingCount: _coherentStylist.length,
+        //   }),
+        // );
       }
       eliteOutfits = _coherentStylist;
     }
@@ -7445,14 +7445,14 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
       eliteOutfits = paged.map((p) => p.outfit);
 
-      console.log(
-        JSON.stringify({
-          _tag: 'STYLIST_ROTATION_TOP_BAND',
-          rotationPoolSize: _rotationPool.length,
-          pageOffset: safeOffset,
-          returnedCount: eliteOutfits.length,
-        }),
-      );
+      // console.log(
+      //   JSON.stringify({
+      //     _tag: 'STYLIST_ROTATION_TOP_BAND',
+      //     rotationPoolSize: _rotationPool.length,
+      //     pageOffset: safeOffset,
+      //     returnedCount: eliteOutfits.length,
+      //   }),
+      // );
     }
 
     // ── EXPLANATION BACKFILL: ensure every returned outfit has a stylist explanation ──
@@ -7533,13 +7533,13 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           }),
         );
       }
-      console.log(
-        JSON.stringify({
-          _tag: 'STYLIST_EXPLANATION_GENERATED',
-          syntheticCount: _synExplainCount,
-          totalReturned: eliteOutfits.length,
-        }),
-      );
+      // console.log(
+      //   JSON.stringify({
+      //     _tag: 'STYLIST_EXPLANATION_GENERATED',
+      //     syntheticCount: _synExplainCount,
+      //     totalReturned: eliteOutfits.length,
+      //   }),
+      // );
     }
 
     // ── TITLE HARDENING: enforce max 60 chars, no sentence leakage ──
@@ -7592,7 +7592,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
             const wLabel = _weatherLabel(temp);
             const slot = _dominantSlot(outfit);
             title = wLabel ? `Refined ${wLabel} ${slot}` : `Curated ${slot}`;
-            console.log(JSON.stringify({ _tag: 'STYLIST_TITLE_CONTEXTUALIZED', descriptor: slot }));
+            // console.log(JSON.stringify({ _tag: 'STYLIST_TITLE_CONTEXTUALIZED', descriptor: slot }));
           }
         }
 
@@ -7609,20 +7609,20 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
         outfit.title = title;
 
-        console.log(
-          JSON.stringify({
-            _tag: 'STYLIST_TITLE_HARDENED',
-            originalLength,
-            finalLength: title.length,
-          }),
-        );
+        // console.log(
+        //   JSON.stringify({
+        //     _tag: 'STYLIST_TITLE_HARDENED',
+        //     originalLength,
+        //     finalLength: title.length,
+        //   }),
+        // );
       }
     }
 
-    console.log(JSON.stringify({
-      _tag: 'STYLIST_TITLE_FIELD_PROOF',
-      titles: eliteOutfits.map((o: any) => o.title),
-    }));
+    // console.log(JSON.stringify({
+    //   _tag: 'STYLIST_TITLE_FIELD_PROOF',
+    //   titles: eliteOutfits.map((o: any) => o.title),
+    // }));
 
     return { weatherSummary, outfits: eliteOutfits };
   }
