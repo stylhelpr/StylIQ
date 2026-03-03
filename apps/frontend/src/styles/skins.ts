@@ -19,6 +19,7 @@ export const skins = {
       input: '#EAEAEA',
       input2: 'rgb(43, 43, 43)',
       inputText1: 'rgba(121, 121, 121, 1)',
+      // imageBackground: '#dadada',
       imageBackground: '#f7f7f7',
       // imageBackground: 'red',
 

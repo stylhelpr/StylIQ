@@ -637,7 +637,7 @@ export default function AddItemScreen({
                     alignSelf: 'center',
                     maxWidth: 340, // ✅ keeps it balanced even on iPhone SE / Mini
                     paddingVertical: 10,
-                    backgroundColor: theme.colors.frostedGlass,
+                    backgroundColor: theme.colors.imageBackground,
                     borderRadius: 24,
                   }}>
                   {selectedGrid.map((uri, idx) => (
