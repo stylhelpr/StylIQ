@@ -57,12 +57,12 @@ export class UsersService {
 
   async sync(dto: CreateUserDto) {
     // DEBUG: Log auth0_sub to verify it's unique per account
-    console.log('[UsersService.sync] INCOMING:', {
-      auth0_sub: dto.auth0_sub,
-      email: dto.email,
-      first_name: dto.first_name,
-      last_name: dto.last_name,
-    });
+    // console.log('[UsersService.sync] INCOMING:', {
+    //   auth0_sub: dto.auth0_sub,
+    //   email: dto.email,
+    //   first_name: dto.first_name,
+    //   last_name: dto.last_name,
+    // });
 
     // 1️⃣ Find or create user
     const existing = await pool.query(
@@ -72,18 +72,18 @@ export class UsersService {
 
     let user = existing.rows[0];
 
-    console.log(
-      '[UsersService.sync] EXISTING USER:',
-      user
-        ? {
-            id: user.id,
-            auth0_sub: user.auth0_sub,
-            email: user.email,
-            first_name: user.first_name,
-            last_name: user.last_name,
-          }
-        : 'NOT FOUND - WILL CREATE NEW USER',
-    );
+    // console.log(
+    //   '[UsersService.sync] EXISTING USER:',
+    //   user
+    //     ? {
+    //         id: user.id,
+    //         auth0_sub: user.auth0_sub,
+    //         email: user.email,
+    //         first_name: user.first_name,
+    //         last_name: user.last_name,
+    //       }
+    //     : 'NOT FOUND - WILL CREATE NEW USER',
+    // );
 
     if (user) {
       // EXISTING USER: Only update email (for account recovery purposes)

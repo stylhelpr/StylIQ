@@ -122,12 +122,12 @@ export function selectTopOutfitsWithQualityFloor<T extends JudgeOutfit>(
   });
 
   if (epsilonApplied) {
-    console.log(
-      JSON.stringify({
-        _tag: 'STYLIST_SCORE_TIE_BREAK_APPLIED',
-        epsilonApplied: true,
-      }),
-    );
+    // console.log(
+    //   JSON.stringify({
+    //     _tag: 'STYLIST_SCORE_TIE_BREAK_APPLIED',
+    //     epsilonApplied: true,
+    //   }),
+    // );
   }
 
   // Sort descending by adjustedScore, stable by original index
@@ -138,15 +138,15 @@ export function selectTopOutfitsWithQualityFloor<T extends JudgeOutfit>(
 
   // If best candidate is below MIN_SHIP → ship nothing (use finalScore for threshold)
   if (scored[0].finalScore < MIN_SHIP) {
-    console.log(
-      JSON.stringify({
-        _tag: 'STYLIST_QUALITY_FLOOR',
-        candidateCount: outfits.length,
-        shippedCount: 0,
-        bestScore: scored[0].finalScore,
-        reason: 'best_below_min_ship',
-      }),
-    );
+    // console.log(
+    //   JSON.stringify({
+    //     _tag: 'STYLIST_QUALITY_FLOOR',
+    //     candidateCount: outfits.length,
+    //     shippedCount: 0,
+    //     bestScore: scored[0].finalScore,
+    //     reason: 'best_below_min_ship',
+    //   }),
+    // );
     return [];
   }
 
@@ -176,16 +176,16 @@ export function selectTopOutfitsWithQualityFloor<T extends JudgeOutfit>(
     confidence: toConfidence(s.adjustedScore),
   }));
 
-  console.log(
-    JSON.stringify({
-      _tag: 'STYLIST_QUALITY_FLOOR',
-      candidateCount: outfits.length,
-      shippedCount: result.length,
-      scores: selected.map((s) => s.adjustedScore),
-      maxScore,
-      confidences: result.map((r) => r.confidence),
-    }),
-  );
+  // console.log(
+  //   JSON.stringify({
+  //     _tag: 'STYLIST_QUALITY_FLOOR',
+  //     candidateCount: outfits.length,
+  //     shippedCount: result.length,
+  //     scores: selected.map((s) => s.adjustedScore),
+  //     maxScore,
+  //     confidences: result.map((r) => r.confidence),
+  //   }),
+  // );
 
   return result;
 }
@@ -360,15 +360,15 @@ export function filterWardrobeForStylist<
   const hardExcludedCount = items.length - afterExclusion.length;
   const guaranteedIncludedCount = missingGuaranteed.length;
 
-  console.log(
-    JSON.stringify({
-      _tag: 'STYLIST_LLM_INPUT_PROOF',
-      total: items.length,
-      hardExcludedCount,
-      guaranteedIncludedCount,
-      resultCount: result.length,
-    }),
-  );
+  // console.log(
+  //   JSON.stringify({
+  //     _tag: 'STYLIST_LLM_INPUT_PROOF',
+  //     total: items.length,
+  //     hardExcludedCount,
+  //     guaranteedIncludedCount,
+  //     resultCount: result.length,
+  //   }),
+  // );
 
   return { filtered: result, vetoIds };
 }

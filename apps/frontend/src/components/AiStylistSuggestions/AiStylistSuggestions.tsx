@@ -369,12 +369,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
             flexDirection: 'row',
             marginVertical: 12
           }}>
+
           {/* Left column: Outerwear */}
-          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, backgroundColor: theme.colors.imageBackground}}>
+          <View style={{width: 110, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 80, backgroundColor: theme.colors.imageBackground}}>
             {outerwearItem && (
               <Image
                 source={{uri: outerwearItem.imageUrl}}
-                style={{width: 58, height: 85}}
+                style={{width: 110, height: 110}}
                 resizeMode="contain"
               />
             )}
@@ -385,21 +386,21 @@ const AiStylistSuggestions: React.FC<Props> = ({
             {topItem && (
               <Image
                 source={{uri: topItem.imageUrl}}
-                style={{width: 120, height: 110, zIndex: 3}}
+                style={{width: 130, height: 130, zIndex: 3, marginRight: 35}}
                 resizeMode="contain"
               />
             )}
             {bottomItem && (
               <Image
                 source={{uri: bottomItem.imageUrl}}
-                style={{width: 120, height: 120, marginTop: -16, zIndex: 2}}
+                style={{width: 130, height: 130, marginTop: -25, marginRight: 35, zIndex: 2}}
                 resizeMode="contain"
               />
             )}
             {shoesItem && (
               <Image
                 source={{uri: shoesItem.imageUrl}}
-                style={{width: 90, height: 80, marginTop: -14, zIndex: 1}}
+                style={{width: 65, height: 65, marginTop: -20, marginRight: 50, zIndex: 1}}
                 resizeMode="contain"
               />
             )}
@@ -411,7 +412,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               <Image
                 key={acc.id || idx}
                 source={{uri: acc.imageUrl}}
-                style={{width: 50, height: 50}}
+                style={{width: 100, height: 100, marginRight: 65, marginTop: 70}}
                 resizeMode="contain"
               />
             ))}
@@ -1691,7 +1692,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 <View
                   style={{
                     width: screenWidth - 16,
-                    borderRadius: 24,
+                    borderRadius: tokens.borderRadius.sm,
                     backgroundColor: theme.colors.imageBackground,
                     flexDirection: 'row',
                     paddingVertical: 12,
@@ -1709,7 +1710,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     {outerwearItem && (
                       <Image
                         source={{uri: outerwearItem.imageUrl}}
-                        style={{width: 80, height: 130}}
+                        style={{width: 160, height: 160}}
                         resizeMode="contain"
                       />
                     )}
@@ -1720,21 +1721,22 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     {topItem && (
                       <Image
                         source={{uri: topItem.imageUrl}}
-                        style={{width: 200, height: 190, zIndex: 3}}
+                        style={{width: 200, height: 200, zIndex: 3}}
                         resizeMode="contain"
                       />
                     )}
                     {bottomItem && (
                       <Image
                         source={{uri: bottomItem.imageUrl}}
-                        style={{width: 200, height: 220, marginTop: -42, zIndex: 2}}
+                        style={{width: 220, height: 220, marginTop: -22, zIndex: 2}}
                         resizeMode="contain"
                       />
                     )}
                     {shoesItem && (
                       <Image
                         source={{uri: shoesItem.imageUrl}}
-                        style={{width: 160, height: 145, marginTop: -32, zIndex: 1}}
+                        style={{width: 110, height: 110,
+                          marginTop: -25, marginRight: 30, zIndex: 1}}
                         resizeMode="contain"
                       />
                     )}
@@ -1746,7 +1748,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                       <Image
                         key={acc.id || idx}
                         source={{uri: acc.imageUrl}}
-                        style={{width: 80, height: 80}}
+                        style={{width: 160, height: 160, marginRight: 10}}
                         resizeMode="contain"
                       />
                     ))}
@@ -1860,11 +1862,11 @@ const AiStylistSuggestions: React.FC<Props> = ({
             return (
               <>
                 {/* Left column: Outerwear */}
-                <View style={{width: 42, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12}}>
+                <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12}}>
                   {outerwearItem?.imageUrl && (
                     <FastImage
                       source={{uri: outerwearItem.imageUrl}}
-                      style={{width: 38, height: 70}}
+                      style={{width: 85, height: 85, marginRight: 30}}
                       resizeMode={FastImage.resizeMode.contain}
                     />
                   )}
@@ -1875,21 +1877,21 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   {topItem?.imageUrl && (
                     <FastImage
                       source={{uri: topItem.imageUrl}}
-                      style={{width: 65, height: 80, zIndex: 3}}
+                      style={{width: 95, height: 95, zIndex: 3}}
                       resizeMode={FastImage.resizeMode.contain}
                     />
                   )}
                   {bottomItem?.imageUrl && (
                     <FastImage
                       source={{uri: bottomItem.imageUrl}}
-                      style={{width: 65, height: 95, marginTop: -10, zIndex: 2}}
+                      style={{width: 95, height: 95, marginTop: -10, zIndex: 2}}
                       resizeMode={FastImage.resizeMode.contain}
                     />
                   )}
                   {shoesItem?.imageUrl && (
                     <FastImage
                       source={{uri: shoesItem.imageUrl}}
-                      style={{width: 52, height: 58, marginTop: -8, zIndex: 1}}
+                      style={{width: 50, height: 50, marginTop: -10, zIndex: 1}}
                       resizeMode={FastImage.resizeMode.contain}
                     />
                   )}
@@ -1901,7 +1903,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     <FastImage
                       key={acc.id || idx}
                       source={{uri: acc.imageUrl}}
-                      style={{width: 34, height: 34}}
+                      style={{width: 70, height: 70, marginTop: 80}}
                       resizeMode={FastImage.resizeMode.contain}
                     />
                   ))}

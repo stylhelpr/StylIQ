@@ -457,7 +457,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       borderRadius: tokens.borderRadius.md,
       marginBottom: 20,
       // backgroundColor: 'white',
-        backgroundColor: '#828282',
+        backgroundColor: theme.colors.imageBackground,
       padding: 4,
     },
     input: {

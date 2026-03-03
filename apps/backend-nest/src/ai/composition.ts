@@ -763,9 +763,9 @@ export function rankByComposition<T extends CompositionItem>(
     const adjustment = winner.__compositionScore - baseScore;
     if (Math.abs(adjustment) > 0.001) {
       const styleResult = scoreStyleColorPrecision(winner, ctx, requestedSlotDescription);
-      console.log(
-        `STYLE_SCORE_ADJUSTMENT { slot: "${winner.category || ''}", requested: "${(requestedSlotDescription || '').slice(0, 60)}", itemId: "${winner.id}", itemName: "${(winner.name || '').slice(0, 40)}", baseScore: ${baseScore.toFixed(3)}, adjustment: ${adjustment.toFixed(3)}, finalScore: ${winner.__compositionScore.toFixed(3)}, reason: "${styleResult?.reason || 'none'}" }`,
-      );
+      // console.log(
+      //   `STYLE_SCORE_ADJUSTMENT { slot: "${winner.category || ''}", requested: "${(requestedSlotDescription || '').slice(0, 60)}", itemId: "${winner.id}", itemName: "${(winner.name || '').slice(0, 40)}", baseScore: ${baseScore.toFixed(3)}, adjustment: ${adjustment.toFixed(3)}, finalScore: ${winner.__compositionScore.toFixed(3)}, reason: "${styleResult?.reason || 'none'}" }`,
+      // );
     }
   }
 
