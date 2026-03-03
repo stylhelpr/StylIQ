@@ -3036,14 +3036,16 @@ export default function SavedOutfitsScreen() {
                 <View
                   style={{
                     width: screenWidth - 16,
-                    borderRadius: 24,
+                    borderRadius: tokens.borderRadius.sm,
                      backgroundColor: theme.colors.imageBackground,
                     overflow: 'hidden',
+                    justifyContent: 'center',
+                    alignItems: 'center'
                   }}>
                   {fullScreenOutfit.thumbnailUrl ? (
                     <Image
                       source={{uri: fullScreenOutfit.thumbnailUrl}}
-                      style={{width: '100%', aspectRatio: 1}}
+                      style={{width: '100%', height: 510, aspectRatio: 1}}
                       resizeMode="contain"
                     />
                   ) : (

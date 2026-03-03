@@ -1692,7 +1692,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 <View
                   style={{
                     width: screenWidth - 16,
-                    borderRadius: 24,
+                    borderRadius: tokens.borderRadius.sm,
                     backgroundColor: theme.colors.imageBackground,
                     flexDirection: 'row',
                     paddingVertical: 12,
@@ -1710,7 +1710,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     {outerwearItem && (
                       <Image
                         source={{uri: outerwearItem.imageUrl}}
-                        style={{width: 140, height: 140}}
+                        style={{width: 160, height: 160}}
                         resizeMode="contain"
                       />
                     )}
@@ -1721,21 +1721,22 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     {topItem && (
                       <Image
                         source={{uri: topItem.imageUrl}}
-                        style={{width: 170, height: 170, zIndex: 3}}
+                        style={{width: 200, height: 200, zIndex: 3}}
                         resizeMode="contain"
                       />
                     )}
                     {bottomItem && (
                       <Image
                         source={{uri: bottomItem.imageUrl}}
-                        style={{width: 170, height: 170, marginTop: -22, zIndex: 2}}
+                        style={{width: 220, height: 220, marginTop: -22, zIndex: 2}}
                         resizeMode="contain"
                       />
                     )}
                     {shoesItem && (
                       <Image
                         source={{uri: shoesItem.imageUrl}}
-                        style={{width: 90, height: 90, marginTop: -25, marginRight: 30, zIndex: 1}}
+                        style={{width: 110, height: 110,
+                          marginTop: -25, marginRight: 30, zIndex: 1}}
                         resizeMode="contain"
                       />
                     )}

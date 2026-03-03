@@ -192,6 +192,15 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       marginBottom: 12,
       width: '100%',
     },
+    fullOutfitCardOverlay: {
+      width: '100%',
+      height: 510,
+      borderRadius: tokens.borderRadius.md,
+      overflow: 'hidden',
+      marginBottom: 16,
+      backgroundColor: '#1c1c1e',
+      elevation: 3,
+    },
     cardOverlay: {
       width: '100%',
       height: 330,
@@ -1662,7 +1671,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   {/* Full Outfit Preview Card */}
                   <View
                     style={[
-                      styles.cardOverlay,
+                      styles.fullOutfitCardOverlay,
                       {backgroundColor: theme.colors.imageBackground},
                     ]}>
                     <View style={{
@@ -1674,21 +1683,21 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       {top && (
                         <Image
                           source={{uri: top.image}}
-                          style={{width: 140, height: 130, zIndex: 5}}
+                          style={{width: 200, height: 200, zIndex: 5, marginLeft: 35}}
                           resizeMode="contain"
                         />
                       )}
                       {bottom && (
                         <Image
                           source={{uri: bottom.image}}
-                          style={{width: 140, height: 150, marginTop: -20, zIndex: 4}}
+                          style={{width: 220, height: 220, marginTop: -20, zIndex: 4, marginLeft: 35}}
                           resizeMode="contain"
                         />
                       )}
                       {shoes && (
                         <Image
                           source={{uri: shoes.image}}
-                          style={{width: 100, height: 80, marginTop: -15, zIndex: 3}}
+                          style={{width: 110, height: 110, marginTop: -15, zIndex: 3, marginLeft: 35}}
                           resizeMode="contain"
                         />
                       )}
@@ -1698,12 +1707,12 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                           source={{uri: outerwear.image}}
                           style={{
                             position: 'absolute',
-                            right: 20,
-                            top: 30,
-                            width: 80,
-                            height: 90,
+                            left: 0,
+                            top: 140,
+                            width: 160,
+                            height: 160,
                             zIndex: 6,
-                            transform: [{rotate: '10deg'}],
+                            // transform: [{rotate: '10deg'}],
                           }}
                           resizeMode="contain"
                         />
@@ -1714,10 +1723,10 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                           source={{uri: accessories.image}}
                           style={{
                             position: 'absolute',
-                            left: 20,
-                            bottom: 40,
-                            width: 60,
-                            height: 60,
+                            right: 0,
+                            bottom: 150,
+                            width: 135,
+                            height: 135,
                             zIndex: 6,
                           }}
                           resizeMode="contain"
