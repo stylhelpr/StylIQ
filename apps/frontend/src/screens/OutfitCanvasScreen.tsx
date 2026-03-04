@@ -456,7 +456,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       justifyContent: 'space-between',
       paddingHorizontal: 16,
       paddingTop: insets.top > 0 ? 8 : 16,
-      paddingBottom: 6,
+      paddingBottom: 10,
       gap: 8,
       backgroundColor: theme.colors.background,
         //  backgroundColor: 'yellow',
@@ -520,7 +520,6 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     },
     canvasContainer: {
       flex: 1,
-      
     },
   });
 
