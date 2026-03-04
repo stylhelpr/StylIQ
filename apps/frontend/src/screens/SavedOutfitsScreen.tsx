@@ -173,7 +173,7 @@ export default function SavedOutfitsScreen() {
 
     // 🪩 Core Outfit Card
     card: {
-      backgroundColor: 'red',
+       backgroundColor: theme.colors.imageBackground,
       borderRadius: 24,
       padding: 18,
       marginBottom: 6,
@@ -1476,7 +1476,7 @@ export default function SavedOutfitsScreen() {
                       }}>
                         <View style={{
                           flex: 1,
-                           backgroundColor: theme.colors.imageBackground,
+                           backgroundColor: theme.colors.imageBackground
                           // padding: 2,
                           // borderWidth: 1,
                           // borderColor: `${theme.colors.primary}1F`,
@@ -3036,8 +3036,8 @@ export default function SavedOutfitsScreen() {
                 <View
                   style={{
                     width: screenWidth - 16,
-                    borderRadius: tokens.borderRadius.sm,
-                     backgroundColor: theme.colors.imageBackground,
+                    borderRadius: tokens.borderRadius.xl,
+                    backgroundColor: theme.colors.imageBackground,
                     overflow: 'hidden',
                     justifyContent: 'center',
                     alignItems: 'center'

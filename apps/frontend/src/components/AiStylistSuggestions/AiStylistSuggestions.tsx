@@ -365,7 +365,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             height: 300,
             borderRadius: tokens.borderRadius.xl,
             overflow: 'hidden',
-            // backgroundColor: theme.colors.surface,
+            backgroundColor: theme.colors.surface,
             flexDirection: 'row',
             marginVertical: 12
           }}>
@@ -412,7 +412,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               <Image
                 key={acc.id || idx}
                 source={{uri: acc.imageUrl}}
-                style={{width: 100, height: 100, marginRight: 65, marginTop: 70}}
+                style={{width: 110, height: 110, marginRight: 65, marginTop: 70}}
                 resizeMode="contain"
               />
             ))}
@@ -1692,7 +1692,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 <View
                   style={{
                     width: screenWidth - 16,
-                    borderRadius: tokens.borderRadius.sm,
+                    borderRadius: tokens.borderRadius.xl,
                     backgroundColor: theme.colors.imageBackground,
                     flexDirection: 'row',
                     paddingVertical: 12,
@@ -1836,16 +1836,14 @@ const AiStylistSuggestions: React.FC<Props> = ({
         defaultCategory={swapPickerCategory || undefined}
       />
 
-      {/* Hidden ViewShot for capturing outfit snapshot - matches SavedOutfitsScreen display (130x210) */}
+      {/* Hidden ViewShot for capturing outfit snapshot */}
       <View style={{position: 'absolute', left: -9999, top: -9999}}>
         <ViewShot
           ref={snapshotRef}
           options={{format: 'png', quality: 0.9}}
           style={{
-            width: 150,
+            width: 165,
             height: 240,
-            borderRadius: 12,
-            overflow: 'hidden',
             backgroundColor: theme.colors.imageBackground,
             flexDirection: 'row',
           }}>
@@ -1862,11 +1860,11 @@ const AiStylistSuggestions: React.FC<Props> = ({
             return (
               <>
                 {/* Left column: Outerwear */}
-                <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12}}>
+                <View style={{width: 50, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12}}>
                   {outerwearItem?.imageUrl && (
                     <FastImage
                       source={{uri: outerwearItem.imageUrl}}
-                      style={{width: 85, height: 85, marginRight: 30}}
+                      style={{width: 50, height: 50}}
                       resizeMode={FastImage.resizeMode.contain}
                     />
                   )}
@@ -1898,12 +1896,12 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 </View>
 
                 {/* Right column: Accessories */}
-                <View style={{width: 42, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12, gap: 8}}>
+                <View style={{width: 50, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12, gap: 8}}>
                   {accessoryItems.map((acc, idx) => (
                     <FastImage
                       key={acc.id || idx}
                       source={{uri: acc.imageUrl}}
-                      style={{width: 70, height: 70, marginTop: 80}}
+                      style={{width: 50, height: 50, marginTop: 80}}
                       resizeMode={FastImage.resizeMode.contain}
                     />
                   ))}
