@@ -509,7 +509,7 @@ export default function SavedRecommendationsModal({
             <Text style={styles.title}>Liked Recommended Buys</Text>
           </View>
 
-          <Animatable.View animation="fadeIn" duration={400} style={{flex: 1}}>
+          <Animatable.View animation="fadeIn" duration={400} style={{flex: 1, marginTop: 20}}>
             <FlashList
               data={filteredProducts}
               renderItem={renderItem}

@@ -1338,7 +1338,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 color: theme.colors.foreground,
                 textTransform: 'uppercase',
               }}>
-             Styla - What to Wear Today
+             What to Wear Today
             </Text>
 
           </View>
@@ -1616,9 +1616,11 @@ const AiStylistSuggestions: React.FC<Props> = ({
               top: 60,
               right: 20,
               zIndex: 10,
-              padding: 10,
+              padding: 6,
+              backgroundColor: theme.colors.foreground,
+              borderRadius: 50
             }}>
-            <Icon name="close" size={32} color="#fff" />
+            <Icon name="close" size={22} color="black" />
           </TouchableOpacity>
 
           <ScrollView

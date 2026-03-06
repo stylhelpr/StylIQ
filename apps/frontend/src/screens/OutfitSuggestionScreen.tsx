@@ -1168,7 +1168,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             resizeMode="cover"
           />
           
-          <Text style={[globalStyles.header, {paddingLeft: 0}]}>Styla -AI Outfit Studio</Text>
+          <Text style={[globalStyles.header, {paddingLeft: 0}]}>AI Outfit Studio</Text>
         </View>
 
         {/* Header */}

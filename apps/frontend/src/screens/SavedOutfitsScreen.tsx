@@ -1525,7 +1525,7 @@ export default function SavedOutfitsScreen() {
                   </View>
 
               {/* Right column – Controls */}
-              <View style={{flex: 1, marginLeft: 30, marginTop: 4}}>
+              <View style={{flex: 1, marginLeft: 10, marginTop: 4}}>
                     
                 {/* ❤️ & ✏️ & 👕 Buttons */}
                   <View
@@ -2166,13 +2166,13 @@ export default function SavedOutfitsScreen() {
               padding: 8,
               borderRadius: 20,
               backgroundColor: menuVisible
-                ? theme.colors.primary
+                ? theme.colors.foreground
                 : theme.colors.surface,
             }}>
             <MaterialIcons
               name="filter-list"
               size={24}
-              color={menuVisible ? '#fff' : theme.colors.primary}
+              color={menuVisible ? 'black' : theme.colors.foreground}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -2997,9 +2997,13 @@ export default function SavedOutfitsScreen() {
               top: 60,
               right: 20,
               zIndex: 10,
-              padding: 10,
+              padding: 6,
+              backgroundColor: theme.colors.foreground,
+              borderRadius: 50,
+              borderColor: theme.colors.background,
+              borderWidth: theme.borderWidth.hairline
             }}>
-            <MaterialIcons name="close" size={32} color="#fff" />
+            <MaterialIcons name="close" size={22} color="black" />
           </TouchableOpacity>
 
           <ScrollView

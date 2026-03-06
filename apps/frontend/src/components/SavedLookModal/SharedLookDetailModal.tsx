@@ -38,6 +38,8 @@ export default function SharedLookDetailModal({visible, look, onClose}: Props) {
             height: 32,
             borderRadius: 16,
             backgroundColor: 'white',
+            borderColor: theme.colors.background,
+            borderWidth: theme.borderWidth.hairline,
             justifyContent: 'center',
             alignItems: 'center',
           }}>

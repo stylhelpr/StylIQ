@@ -1894,7 +1894,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 numberOfLines={1}
                 ellipsizeMode="tail">
                 {firstName
-                  ? `Hi ${firstName}, let’s make getting dressed easy!`
+                  ? `Hi ${firstName}, let’s get you styled today!`
                   : 'Hi there, let’s make getting dressed easy!'}
               </Animatable.Text>
             </View>
@@ -2294,8 +2294,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                   }}>
-                  <Text style={[globalStyles.sectionTitle, {}]}>
-                    Today's Recommended Buys
+                  <Text style={[globalStyles.sectionTitle]}>
+                    Recommended Buys
                   </Text>
                     <Pressable
                     onPress={() => {

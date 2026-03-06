@@ -158,7 +158,9 @@ const ItemReplaceModal = ({
           <View style={styles.header}>
             <Text style={styles.title}>Replace Item</Text>
             <AppleTouchFeedback onPress={onClose} hapticStyle="impactLight">
-              <Icon name="close" size={22} color={theme.colors.foreground2} />
+              <View style={{backgroundColor: theme.colors.foreground, borderRadius: 50, padding: 6}}>
+                  <Icon name="close" size={22} color={theme.colors.background} />
+              </View>
             </AppleTouchFeedback>
           </View>
           {currentItem && (

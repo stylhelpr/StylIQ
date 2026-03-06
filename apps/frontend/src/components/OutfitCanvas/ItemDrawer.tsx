@@ -239,11 +239,13 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
     itemsContainer: {
       paddingHorizontal: 12,
       paddingBottom: 20,
+     
     },
     itemsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 10,
+      justifyContent: 'center'
     },
     itemWrapper: {
       width: ITEM_SIZE,
