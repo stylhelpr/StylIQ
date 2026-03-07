@@ -10,7 +10,7 @@ export const skins = {
       background: 'rgba(0, 0, 0, 1)',
       foreground: 'rgba(255, 255, 255, 1)',
       // foreground: '#21daa3',
-      foreground2: 'rgba(255,255,255,0.5)',
+      foreground2: 'rgba(238, 238, 238, 0.79)',
       foreground3: 'rgba(234, 234, 234, 1)',
       cardBackground: 'rgb(61, 61, 61)',
       header: '#1E1E1E',
@@ -173,7 +173,7 @@ export const skins = {
       secondary: '#000000',
       background: '#ffffffff',
       foreground: '#000000',
-      foreground2: 'rgba(104, 101, 101, 1)',
+      foreground2: 'rgb(96, 96, 96)',
       foreground3: 'rgba(0, 0, 0, 1)',
       // foreground3: 'rgb(97, 153, 232)',
       cardBackground: '#F0F0F0',
@@ -182,7 +182,7 @@ export const skins = {
       input: '#E0E0E0',
       input2: '#EAEAEA',
       inputText1: 'rgb(80, 84, 90)',
-      imageBackground: '#f7f7f7', 
+      imageBackground: '#dddcdc',
 
       // surface: '#EBEAEF',
 

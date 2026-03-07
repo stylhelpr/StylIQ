@@ -295,15 +295,14 @@ export default function SavedRecommendationsModal({
             width: itemWidth,
             marginBottom: tokens.spacing.nano,
             marginHorizontal: 1,
-            backgroundColor: theme.colors.surface,
+            // backgroundColor: theme.colors.imageBackground,
             overflow: 'hidden',
-             borderRadius: tokens.borderRadius.sm
+             borderRadius: tokens.borderRadius.switch1
           }}>
           <View
             style={{
               width: '100%',
               aspectRatio: 3 / 4,
-              backgroundColor: theme.colors.surface,
             }}>
             {imageUri ? (
               <FastImage
@@ -320,7 +319,6 @@ export default function SavedRecommendationsModal({
                 style={{
                   width: '100%',
                   height: '100%',
-                  backgroundColor: theme.colors.surface2,
                   justifyContent: 'center',
                   alignItems: 'center',
                 }}>
@@ -369,11 +367,11 @@ export default function SavedRecommendationsModal({
                 bottom: 12,
                 left: 8,
                 right: 8,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                backgroundColor: 'rgba(0, 0, 0, 0.54)',
                 borderRadius: tokens.borderRadius.sm,
                 paddingVertical: 10,
-                borderColor: theme.colors.foreground,
-                borderWidth: tokens.borderWidth.hairline,
+                // borderColor: theme.colors.foreground,
+                // borderWidth: tokens.borderWidth.hairline,
               }}>
               <Text
                 style={{
@@ -387,15 +385,16 @@ export default function SavedRecommendationsModal({
             </TouchableOpacity>
           </View>
 
-          <View style={{minHeight: 102}}>
+          <View style={{minHeight: 90}}>
             <Text
               style={{
-                paddingHorizontal: 10,
-                paddingTop: 8,
+                // paddingHorizontal: 2,
+                paddingTop: 6,
                 color: theme.colors.foreground,
-                fontWeight: '700',
-                fontSize: 12,
-                lineHeight: 16,
+                fontWeight: '600',
+                fontSize: 14,
+                // lineHeight: 16,
+                textTransform: 'uppercase'
               }}
                 numberOfLines={1}>
               {product.brand ?? ''}
@@ -403,12 +402,12 @@ export default function SavedRecommendationsModal({
 
             <Text
               style={{
-                paddingHorizontal: 12,
-                marginTop: 8,
-                color: theme.colors.foreground,
+                // paddingHorizontal: 2,
+                // marginTop: 8,
+                color: theme.colors.foreground2,
                 fontWeight: '400',
                 fontSize: 13,
-                lineHeight: 18,
+                // lineHeight: 18,
               }}
               numberOfLines={2}>
               {product.title ?? ''}
@@ -416,14 +415,14 @@ export default function SavedRecommendationsModal({
 
             <Text
               style={{
-                paddingHorizontal: 12,
+                // paddingHorizontal: 2,
                 marginTop: 'auto',
                 paddingTop: 4,
                 marginBottom: 10,
                 color: theme.colors.primary,
                 fontWeight: '600',
-                fontSize: 14,
-                lineHeight: 20,
+                fontSize: 13,
+                // lineHeight: 20,
               }}>
               {product.price_raw || (product.price ? `$${product.price}` : '')}
             </Text>
@@ -509,7 +508,7 @@ export default function SavedRecommendationsModal({
             <Text style={styles.title}>Liked Recommended Buys</Text>
           </View>
 
-          <Animatable.View animation="fadeIn" duration={400} style={{flex: 1, marginTop: 20}}>
+          <Animatable.View animation="fadeIn" duration={400} style={{flex: 1, marginTop: 14}}>
             <FlashList
               data={filteredProducts}
               renderItem={renderItem}

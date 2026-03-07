@@ -549,14 +549,14 @@ export const createGlobalStyles = (theme: Theme) =>
     // ============================================================
     label: {
       fontSize: font.xs,
-      fontWeight: tokens.fontWeight.semiBold,
+      fontWeight: tokens.fontWeight.medium,
       color: theme.colors.foreground,
     },
     label2: {
-      fontSize: font.sm,
-      fontWeight: tokens.fontWeight.semiBold,
+      fontSize: font.xs,
+      fontWeight: tokens.fontWeight.medium,
       width: '25%',
-      color: theme.colors.foreground,
+      color: theme.colors.foreground2,
     },
     subLabel: {
       fontSize: font.xs,
@@ -567,12 +567,12 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     cardLabel: {
       fontSize: font.sm,
-      fontWeight: tokens.fontWeight.semiBold,
+      fontWeight: tokens.fontWeight.medium,
       color: theme.colors.foreground,
     },
     cardSubLabel: {
       fontSize: font.xs,
-      fontWeight: tokens.fontWeight.semiBold,
+      fontWeight: tokens.fontWeight.medium,
       marginTop: 2,
       color: theme.colors.foreground2,
     },
@@ -1003,19 +1003,19 @@ export const createGlobalStyles = (theme: Theme) =>
     image7: {
       // width: image4Size,
       // height: image4Size,
-      backgroundColor: theme.colors.surface3,
+      // backgroundColor: theme.colors.surface3,
       width: '100%',
       // height: isTablet ? 160 : isLargePhone ? 140 : 125,
-      height: isTablet ? 160 : isLargePhone ? 110 : isRegularPhone ? 115 : 105,
+      height: isTablet ? 160 : isLargePhone ? 160 : isRegularPhone ? 115 : 105,
     },
     image8: {
       // width: image4Size,
       // height: image4Size,
       // backgroundColor: theme.colors.surface,
       // borderRadius: tokens.borderRadius.lg,
-      borderRadius: tokens.borderRadius.sm,
-      borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.surfaceBorder,
+      // borderRadius: tokens.borderRadius.sm,
+      // borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.surfaceBorder,
       width: isTablet ? 160 : isLargePhone ? 120 : isRegularPhone ? 120 : 105,
       // height: isTablet ? 160 : isLargePhone ? 175 : 145,
       // height: isTablet ? 160 : isLargePhone ? 140 : 125,
@@ -1080,16 +1080,17 @@ export const createGlobalStyles = (theme: Theme) =>
 
     outfitCard2: {
       // width: isTablet ? 160 : isLargePhone ? 180 : 160,
-      width: isTablet ? 160 : isLargePhone ? 180 : isRegularPhone ? 160 : 160,
+      width: isTablet ? 160 : isLargePhone ? 160 : isRegularPhone ? 160 : 160,
       // marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
       marginRight: isTablet ? 16 : isLargePhone ? 10 : isRegularPhone ? 10 : 10,
       alignItems: 'flex-start',
-      backgroundColor: theme.colors.surface,
+      // backgroundColor: theme.colors.surface,
       overflow: 'hidden',
       // borderRadius: tokens.borderRadius.lg,
-      borderRadius: tokens.borderRadius.sm,
-      borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.surfaceBorder,
+      // borderRadius: tokens.borderRadius.sm,
+       borderRadius: tokens.borderRadius.switch1,
+      // borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.surfaceBorder,
     },
 
     outfitCard3: {

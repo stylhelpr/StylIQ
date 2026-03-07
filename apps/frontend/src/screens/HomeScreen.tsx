@@ -2447,11 +2447,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   setSelectedLook(look);
                                   setPreviewVisible(true);
                                 }}
-                                style={{alignItems: 'center'}}>
+                              >
                                 <View>
                                   <Image
                                     source={{uri: look.image_url}}
-                                    style={[globalStyles.image8, {backgroundColor: 'white'}]}
+                                    style={[globalStyles.image8, {backgroundColor: theme.colors.imageBackground}]}
                                     resizeMode="cover"
                                     // resizeMode="contain"
                                   />
@@ -2476,7 +2476,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 <Text
                                   style={[
                                     globalStyles.cardSubLabel,
-                                    {marginTop: 4, textAlign: 'center'},
+                                    {marginTop: 4, textAlign: 'left'},
                                   ]}
                                   numberOfLines={1}>
                                   {look.name}
@@ -2646,9 +2646,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                     <View>
                                       <Image
                                         source={{uri: c.source_image_url}}
-                                        style={[globalStyles.image8, {backgroundColor: 'white'}]}
-                                        // resizeMode="cover"
-                                         resizeMode="cover"
+                                        style={[globalStyles.image8, {backgroundColor: theme.colors.imageBackground}]}
+                                        resizeMode="cover"
+                                        //  resizeMode="contain"
                                       />
                                     </View>
                                     <TouchableOpacity
@@ -2675,7 +2675,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                         globalStyles.cardSubLabel,
                                         {
                                           marginTop: 4,
-                                          textAlign: 'center',
+                                          textAlign: 'left',
                                           width: '100%',
                                         },
                                       ]}>
@@ -2817,9 +2817,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   style={{
                                     width: 130,
                                     height: 130,
-                                    borderRadius: tokens.borderRadius.md,
+                                    borderRadius: tokens.borderRadius.switch1,
                                     overflow: 'hidden',
-                                    backgroundColor: '#F5F5F5',
+                                    backgroundColor: theme.colors.imageBackground,
                                   }}>
                                   <View>
                                     {look.image_url ? (
@@ -2827,6 +2827,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                         source={{uri: look.image_url}}
                                         style={{width: 130, height: 130, backgroundColor: '#F5F5F5'}}
                                         resizeMode="cover"
+                                        //  resizeMode="contain"
                                       />
                                     ) : null}
                                     <Pressable
@@ -2867,7 +2868,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   style={[
                                     globalStyles.cardSubLabel,
                                     {
-                                      textAlign: 'center',
+                                      textAlign: 'left',
                                       marginTop: 4,
                                       width: 130,
                                     },

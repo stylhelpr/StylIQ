@@ -758,8 +758,8 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                   <Image
                     source={{uri: item.image_url}}
                     style={[globalStyles.image7, {backgroundColor: theme.colors.imageBackground}]}
-                    resizeMode="contain"
-                    //  resizeMode="cover"
+                    // resizeMode="contain"
+                    resizeMode="cover"
                     onError={() =>
                       console.warn('⚠️ image failed', item.image_url)
                     }
@@ -798,12 +798,14 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                     />
                   </View>
                 </View>
+
                 <Text
                   style={[
                     globalStyles.cardLabel,
                     {
-                      marginHorizontal: 10,
+                      // marginHorizontal: 10,
                       marginTop: 6,
+                      // textTransform: 'uppercase'
                     },
                   ]}
                   numberOfLines={1}>
@@ -813,9 +815,8 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                   style={[
                     globalStyles.cardSubLabel,
                     {
-                      marginHorizontal: 10,
-                      marginBottom: 8,
-                      marginTop: 4,
+                      // marginHorizontal: 10,
+                      // marginBottom: 8,
                     },
                   ]}
                      numberOfLines={1}>

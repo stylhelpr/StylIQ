@@ -544,7 +544,7 @@ export default function AllSavedLooksModal({
                 <Text
                   style={{
                     textAlign: 'center',
-                    color: theme.colors.foreground,
+                    color: 'white',
                     fontWeight: '500',
                     fontSize: 12,
                   }}>
