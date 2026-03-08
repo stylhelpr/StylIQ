@@ -746,29 +746,30 @@ export default function ProfileScreen({navigate}: Props) {
                   animation="zoomInUp"
                   delay={2300 + index * 120}
                   useNativeDriver
-                  style={[globalStyles.outfitCard, {width: 131}]}>
+                  style={[globalStyles.outfitCard]}>
                   <Pressable
                     onPress={() => {
                       setSelectedSharedLook(look);
                       setIsSharedLookModalVisible(true);
                     }}
-                    style={{alignItems: 'center'}}>
+                   >
+
                     {/* Card - single image or 2x2 grid */}
                     <View
                       style={{
                         width: 130,
                         height: 130,
-                        borderRadius: tokens.borderRadius.md,
+                        borderRadius: tokens.borderRadius.switch1,
                         overflow: 'hidden',
-                        backgroundColor: '#000',
                       }}>
                       {look.image_url ? (
                         <Image
                           source={{uri: look.image_url}}
-                          style={{width: 130, height: 130, backgroundColor: '#F5F5F5'}}
+                          style={{width: 130, height: 130}}
                           resizeMode="cover"
                         />
                       ) : null}
+                      
                       {/* Hide button */}
                       <Pressable
                         onPress={() => {
@@ -803,15 +804,16 @@ export default function ProfileScreen({navigate}: Props) {
                         <Icon name="close" size={14} color="#fff" />
                       </Pressable>
                     </View>
+
                     {/* Look name and likes */}
                     <Animatable.View
                       animation="fadeIn"
                       delay={2500 + index * 100}
-                      style={{marginTop: 6, alignItems: 'center'}}>
+                      style={{marginTop: 6}}>
                       <Text
                         style={[
                           globalStyles.cardSubLabel,
-                          {textAlign: 'center'},
+                          {textAlign: 'left'},
                         ]}
                         numberOfLines={1}>
                         {look.name || 'Shared Look'}

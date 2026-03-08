@@ -512,7 +512,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     clearButtonText: {
       fontSize: 15,
       fontWeight: '600',
-      color: theme.colors.foreground,
+      color: theme.colors.buttonText1,
     },
     headerRight: {
       flexDirection: 'row',

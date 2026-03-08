@@ -53,8 +53,8 @@ const ITEM_WIDTH = (SCREEN_WIDTH - ITEM_SPACING * 3) / NUM_COLUMNS;
 const ITEM_HEIGHT = ITEM_WIDTH * 1.3;
 
 // Horizontal sections view card sizing
-const HORIZ_CARD_WIDTH = 160;
-const HORIZ_CARD_HEIGHT = 100;
+const HORIZ_CARD_WIDTH = 140;
+const HORIZ_CARD_HEIGHT = 120;
 
 // Animated pressable with scale effect for images
 const ScalePressable = ({
@@ -870,14 +870,13 @@ export default function ClosetScreen({navigate}: Props) {
     },
     itemContainer: {
       width: ITEM_WIDTH,
-      marginBottom: 15,
+      marginBottom: 6,
+      // backgroundColor: 'red'
     },
     itemImage: {
       width: '100%',
       height: ITEM_HEIGHT,
-      backgroundColor: theme.colors.surface,
-      borderTopLeftRadius: tokens.borderRadius.sm,
-      borderTopRightRadius: tokens.borderRadius.sm,
+      backgroundColor: theme.colors.imageBackground,
     },
     itemRow: {
       flexDirection: 'row',
@@ -887,16 +886,15 @@ export default function ClosetScreen({navigate}: Props) {
     },
     imageArea: {
       width: '100%',
-      flex: 1,                 // 🔴 fills top of card
-      justifyContent: 'center',// 🔴 vertical center
-      alignItems: 'center',    // 🔴 horizontal center
+      flex: 1,             
+      justifyContent: 'center',
+      alignItems: 'center',   
       paddingTop: 20,
     },
     imageSlot: {
-      width: '60%',            // 🔴 capped width
-      height: 110,             // 🔴 capped height
-      // backgroundColor: '#e6e6e6',
-      borderRadius: 12,
+      width: '60%',           
+      height: 160,           
+      borderRadius: tokens.borderRadius.switch1,
       overflow: 'hidden',
       justifyContent: 'center',
       alignItems: 'center',
@@ -906,19 +904,16 @@ export default function ClosetScreen({navigate}: Props) {
       width: '100%',
       height: '100%',
     },
-
     horizImageArea: {
       width: '100%',
-      flex: 1,                   // fills card space
-      justifyContent: 'center',  // vertical center
-      alignItems: 'center',      // horizontal center
-      paddingTop: 12,
+      flex: 1,                 
+      justifyContent: 'center',  
+      alignItems: 'center',     
+      paddingVertical: 12,
     },
     horizImageSlot: {
-      width: '50%',              // capped width
-      height: HORIZ_CARD_HEIGHT, // reuse your constant
-      // backgroundColor: '#e6e6e6',
-      borderRadius: 10,
+      width: '60%',             
+      height: HORIZ_CARD_HEIGHT, 
       overflow: 'hidden',
       justifyContent: 'center',
       alignItems: 'center',
@@ -950,7 +945,6 @@ export default function ClosetScreen({navigate}: Props) {
     ({item: listItem}: {item: FlatListItem}) => {
       if (listItem.type === 'header') {
         return (
-          // <View style={globalStyles.section}>
           <View style={{paddingHorizontal: 4, marginTop: 16}}>
             <Animated.Text
               style={[
@@ -975,8 +969,8 @@ export default function ClosetScreen({navigate}: Props) {
 
       if (listItem.type === 'subheader') {
         return (
-          <View style={{paddingHorizontal: ITEM_SPACING}}>
-            <Text style={[globalStyles.title3]}>{listItem.subCategory}</Text>
+          <View style={{paddingHorizontal: 8}}>
+            <Text style={[globalStyles.title3, {color: theme.colors.foreground}]}>{listItem.subCategory}</Text>
           </View>
         );
       }
@@ -990,9 +984,9 @@ export default function ClosetScreen({navigate}: Props) {
         item.image_url;
 
       return (
-        <View style={styles.itemContainer}>
+        <View style={[styles.itemContainer, {marginLeft: 6}]}>
           <ScalePressable
-            style={[globalStyles.outfitCard4,  {backgroundColor: theme.colors.imageBackground}]}
+            // style={[globalStyles.outfitCard4]}
             onPress={() => {
               if (isDemo) {
                 // For demo items, navigate to AddItem to encourage adding real items
@@ -1010,7 +1004,7 @@ export default function ClosetScreen({navigate}: Props) {
                 setShowEditModal(true);
               }
             }}>
-            <View style={styles.imageArea}>
+            <View style={[styles.imageArea, {backgroundColor: theme.colors.imageBackground}]}>
               <View style={styles.imageSlot}>
                 <FastImage
                   source={{
@@ -1086,7 +1080,7 @@ export default function ClosetScreen({navigate}: Props) {
             )}
 
             {/* Labels */}
-            <View style={[globalStyles.labelContainer, {backgroundColor: theme.colors.surface3, width: '100%', height: 'auto'}]}>
+            <View style={[globalStyles.labelContainer, {width: '100%', height: 'auto'}]}>
               <Text
                 style={[globalStyles.cardLabel]}
                 numberOfLines={1}
@@ -1191,7 +1185,7 @@ export default function ClosetScreen({navigate}: Props) {
       return (
         <View style={{width: HORIZ_CARD_WIDTH, marginRight: 10}}>
           <ScalePressable
-            style={[globalStyles.outfitCard5, {width: HORIZ_CARD_WIDTH, backgroundColor: theme.colors.imageBackground}]}
+            style={[globalStyles.outfitCard5, {width: HORIZ_CARD_WIDTH}]}
             onPress={() => {
               if (isDemo) {
                 navigate('AddItem');
@@ -1208,7 +1202,7 @@ export default function ClosetScreen({navigate}: Props) {
                 setShowEditModal(true);
               }
             }}>
-         <View style={styles.horizImageArea}>
+         <View style={[styles.horizImageArea, {backgroundColor: theme.colors.imageBackground}]}>
             <View style={styles.horizImageSlot}>
               <FastImage
                 source={{
@@ -1216,7 +1210,7 @@ export default function ClosetScreen({navigate}: Props) {
                   priority: FastImage.priority.normal,
                   cache: FastImage.cacheControl.immutable,
                 }}
-                style={styles.horizImage}
+                style={[styles.horizImage]}
                 resizeMode={FastImage.resizeMode.contain}
               />
             </View>
@@ -1285,7 +1279,7 @@ export default function ClosetScreen({navigate}: Props) {
             )}
 
             {/* Labels */}
-            <View style={[globalStyles.labelContainer, {backgroundColor: theme.colors.surface3, width: '100%'}]}>
+            <View style={[globalStyles.labelContainer, {width: '100%'}]}>
               <Text
                 style={[globalStyles.cardLabel]}
                 numberOfLines={1}
@@ -1360,7 +1354,6 @@ export default function ClosetScreen({navigate}: Props) {
           flex: 1,
           backgroundColor: theme.colors.background,
           paddingBottom: 0,
-          // alignItems: 'center',
         },
       ]}>
       <Animated.View
@@ -1372,10 +1365,9 @@ export default function ClosetScreen({navigate}: Props) {
         <View
           style={{
             height: Math.max(insets.top, 44),
-            backgroundColor: 'theme.colors.background',
+            backgroundColor: theme.colors.background,
           }}
         />
-      
 
         {/* Header row: title + buttons on one line */}
         <View
@@ -1538,7 +1530,7 @@ export default function ClosetScreen({navigate}: Props) {
                     globalStyles.sectionTitle5,
                     {
                       paddingHorizontal: ITEM_SPACING,
-                      marginTop: 16,
+                      marginTop: 8,
                       marginBottom: 8,
                       transform: [
                         {
@@ -1600,7 +1592,7 @@ export default function ClosetScreen({navigate}: Props) {
                   borderColor: theme.colors.buttonText1,
                   backgroundColor:
                     btn.icon === 'add'
-                      ? theme.colors.button1
+                      ? 'rgba(54, 54, 54, 0.44)'
                       : 'rgba(54, 54, 54, 0.44)',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1619,7 +1611,7 @@ export default function ClosetScreen({navigate}: Props) {
                   {btn.icon === 'add' && (
                     <Text
                       style={{
-                        color: theme.colors.foreground,
+                        color: theme.colors.buttonText1,
                         fontSize: 9,
                         fontWeight: tokens.fontWeight.semiBold,
                         marginBottom: -2,
@@ -1630,7 +1622,7 @@ export default function ClosetScreen({navigate}: Props) {
                   {btn.icon === 'center-focus-weak' && (
                     <Text
                       style={{
-                        color: theme.colors.foreground,
+                        color: theme.colors.buttonText1,
                         fontSize: 9,
                         fontWeight: tokens.fontWeight.semiBold,
                         marginBottom: -2,
@@ -1641,7 +1633,7 @@ export default function ClosetScreen({navigate}: Props) {
                   <MaterialIcons
                     name={btn.icon}
                     size={btn.icon === 'add' || btn.icon === 'center-focus-weak' ? 20 : 26}
-                    color={theme.colors.foreground}
+                    color={theme.colors.buttonText1}
                   />
                 </Pressable>
               </View>
@@ -1666,6 +1658,7 @@ export default function ClosetScreen({navigate}: Props) {
                 backgroundColor: 'rgba(54, 54, 54, 0.44)',
                 alignItems: 'center',
                 justifyContent: 'center',
+                
               }}>
               <Pressable
                 onPress={toggleFab}
@@ -1674,6 +1667,7 @@ export default function ClosetScreen({navigate}: Props) {
                   height: '100%',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  
                 }}>
                 <Animated.View
                   style={{
@@ -1689,7 +1683,7 @@ export default function ClosetScreen({navigate}: Props) {
                   <MaterialIcons
                     name="add"
                     size={32}
-                    color={theme.colors.foreground}
+                    color={theme.colors.buttonText1}
                   />
                 </Animated.View>
               </Pressable>

@@ -21,7 +21,7 @@ export const skins = {
       inputText1: 'rgba(121, 121, 121, 1)',
       // imageBackground: '#dadada',
       imageBackground: '#f7f7f7',
-      // imageBackground: 'red',
+      // imageBackground: '#dddcdc',
 
       // surface: '#1a1a1aff' /* Apple Newsey */,
       surface: '#242426' /* Actual ios Apple Newsey */,
@@ -183,6 +183,8 @@ export const skins = {
       input2: '#EAEAEA',
       inputText1: 'rgb(80, 84, 90)',
       imageBackground: '#dddcdc',
+      //  imageBackground: '#F0F0F2',
+        // imageBackground: 'red',
 
       // surface: '#EBEAEF',
 

@@ -705,33 +705,34 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                           setSelectedSharedLook(look);
                           setIsSharedLookModalVisible(true);
                         }}
-                        style={{alignItems: 'center'}}>
+                     >
                         {/* Card - single image or 2x2 grid */}
                         <View
                           style={{
                             width: 130,
                             height: 130,
-                            borderRadius: tokens.borderRadius.md,
+                            borderRadius: tokens.borderRadius.switch1,
                             overflow: 'hidden',
                             backgroundColor: '#000',
                           }}>
                           {look.image_url ? (
                             <Image
                               source={{uri: look.image_url}}
-                              style={{width: 130, height: 130, backgroundColor: '#F5F5F5'}}
+                              style={{width: 130, height: 130}}
                               resizeMode="cover"
                             />
                           ) : null}
                         </View>
+
                         {/* Look description */}
                         <Animatable.View
                           animation="fadeIn"
                           delay={1900 + index * 100}
-                          style={{marginTop: 6, alignItems: 'center'}}>
+                          style={{marginTop: 6}}>
                           <Text
                             style={[
                               globalStyles.cardSubLabel,
-                              {textAlign: 'center'},
+                              {textAlign: 'left'},
                             ]}
                             numberOfLines={1}>
                             {look.name || 'Shared Look'}

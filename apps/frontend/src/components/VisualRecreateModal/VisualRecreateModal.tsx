@@ -101,8 +101,7 @@ function ProductCard({
         width: cardWidth,
         marginBottom: 12,
         marginRight: small ? 4 : 0,
-        // backgroundColor: theme.colors.surface,
-        borderRadius: tokens.borderRadius.sm,
+         borderRadius: tokens.borderRadius.switch1,
         overflow: 'hidden',
       }}>
       {item.image ? (
@@ -128,7 +127,7 @@ function ProductCard({
           />
         </View>
       )}
-      <View style={{padding: small ? 8 : 10}}>
+      <View style={{paddingVertical: small ? 8 : 10}}>
         <Text
           numberOfLines={2}
           style={{
@@ -143,7 +142,7 @@ function ProductCard({
           <Text
             numberOfLines={1}
             style={{
-              color: theme.colors.muted,
+              color: theme.colors.foreground2,
               fontSize: small ? 9 : 11,
               marginTop: 2,
             }}>
@@ -205,9 +204,8 @@ function PieceSection({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          marginBottom: 12,
+          marginBottom: 6,
           paddingBottom: 8,
-          borderBottomWidth: 1,
           borderBottomColor: theme.colors.surface2,
         }}>
         <View
@@ -456,7 +454,7 @@ export default function VisualRecreateModal({
       <View
         style={{
           flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 1)',
+          backgroundColor: theme.colors.background,
           justifyContent: 'flex-end',
         }}>
         <View
@@ -488,9 +486,9 @@ export default function VisualRecreateModal({
             <TouchableOpacity
               onPress={handleClose}
               style={{
-                backgroundColor: 'white',
                 borderRadius: 20,
                 borderWidth: tokens.borderWidth.hairline,
+                backgroundColor: 'white',
                 borderColor: theme.colors.muted,
                 padding: 6,
                 marginLeft: 12,
@@ -498,7 +496,7 @@ export default function VisualRecreateModal({
               <MaterialIcons
                 name="close"
                 size={20}
-                color={theme.colors.background}
+                color={'black'}
               />
             </TouchableOpacity>
           </View>
@@ -509,6 +507,7 @@ export default function VisualRecreateModal({
               alignItems: 'center',
               gap: 12,
               paddingHorizontal: 16,
+              marginBottom: 10
             }}>
               
             {/* Save Button */}
@@ -517,9 +516,6 @@ export default function VisualRecreateModal({
                 onPress={handleSave}
                 disabled={saving || saved}
                 style={{
-                  // backgroundColor: saved
-                  //   ? theme.colors.primary
-                  //   : theme.colors.surface,
                   borderRadius: tokens.borderRadius.sm,
                   borderColor: theme.colors.muted,
                   borderWidth: tokens.borderWidth.hairline,
@@ -647,6 +643,7 @@ export default function VisualRecreateModal({
                 found
               </Text>
             )}
+
             {/* Source Image Preview */}
             {source_image && (
               <View style={{marginBottom: 24, alignItems: 'center'}}>
@@ -657,7 +654,7 @@ export default function VisualRecreateModal({
                     // height: screenWidth * 0.45,
                     width: screenWidth * 0.4,
                     height: screenWidth * 0.5,
-                    borderRadius: tokens.borderRadius.sm,
+                    borderRadius: tokens.borderRadius.switch1,
                   }}
                   resizeMode="cover"
                 />

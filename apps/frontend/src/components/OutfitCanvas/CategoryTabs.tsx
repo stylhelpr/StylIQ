@@ -43,8 +43,6 @@ export default function CategoryTabs({
       paddingVertical: 8,
       borderRadius: 20,
       backgroundColor: theme.colors.surface,
-      borderWidth: 1,
-      borderColor: theme.colors.surfaceBorder || 'rgba(0,0,0,0.15)',
     },
     tabSelected: {
       backgroundColor: theme.colors.button1,

@@ -325,6 +325,7 @@ const HeroCarousel = React.memo(
           height: 300,
           overflow: 'hidden',
           borderRadius: tokens.borderRadius.lg,
+          paddingHorizontal: 6
         }}>
         <Animated.View
           pointerEvents="none"
@@ -333,6 +334,7 @@ const HeroCarousel = React.memo(
             height: '100%',
             borderRadius: tokens.borderRadius.lg,
             opacity: heroFadeAnim,
+            
           }}>
           <FastImage
               source={{
@@ -359,7 +361,7 @@ const HeroCarousel = React.memo(
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.25)',
+            // backgroundColor: 'rgba(0, 0, 0, 0.25)',
             borderRadius: tokens.borderRadius.lg,
           }}
         />
@@ -2562,7 +2564,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   key={`demo-recreated-${index}`}
                                   style={[
                                     globalStyles.outfitCard,
-                                    globalStyles.image8,
                                     {height: 'auto', borderWidth: 0},
                                   ]}>
                                   <Pressable
@@ -2753,12 +2754,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 style={{
                                   width: 130,
                                   height: 130,
-                                  borderRadius: tokens.borderRadius.md,
+                                  borderRadius: tokens.borderRadius.switch1,
                                   overflow: 'hidden',
                                 }}>
                                 <Image
                                   source={img}
-                                  style={{width: 130, height: 130}}
+                                  style={{width: 130, height: 130,}}
                                   resizeMode="cover"
                                 />
                                 <View
@@ -2808,24 +2809,18 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                             .map((look: any) => (
                               <View
                                 key={look.id}
-                                style={[globalStyles.outfitCard]}>
+                              >
                                 <Pressable
                                   onPress={() => {
                                     setSelectedSharedLook(look);
                                     setIsSharedLookModalVisible(true);
-                                  }}
-                                  style={{
-                                    width: 130,
-                                    height: 130,
-                                    borderRadius: tokens.borderRadius.switch1,
-                                    overflow: 'hidden',
-                                    backgroundColor: theme.colors.imageBackground,
                                   }}>
+                       
                                   <View>
                                     {look.image_url ? (
                                       <Image
                                         source={{uri: look.image_url}}
-                                        style={{width: 130, height: 130, backgroundColor: '#F5F5F5'}}
+                                        style={[globalStyles.image8, {borderRadius: tokens.borderRadius.switch1}]}
                                         resizeMode="cover"
                                         //  resizeMode="contain"
                                       />
@@ -2852,7 +2847,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                       style={{
                                         position: 'absolute',
                                         bottom: 4,
-                                        right: 4,
+                                        right: 14,
                                         width: 20,
                                         height: 20,
                                         borderRadius: 10,
@@ -3075,11 +3070,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               onClose={() => setShopVisible(false)}
               results={shopResults}
             />
-            {/* <PersonalizedShopModal
-          visible={personalizedVisible}
-          onClose={() => setPersonalizedVisible(false)}
-          purchases={personalizedPurchases}
-        /> */}
             <PersonalizedShopModal
               visible={personalizedVisible}
               onClose={() => setPersonalizedVisible(false)}

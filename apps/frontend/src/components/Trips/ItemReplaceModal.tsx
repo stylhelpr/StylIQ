@@ -111,15 +111,14 @@ const ItemReplaceModal = ({
       alignItems: 'center',
       gap: 14,
       paddingVertical: 12,
-      borderBottomWidth: tokens.borderWidth.hairline,
-      borderBottomColor: theme.colors.surfaceBorder,
     },
     thumbWrap: {
       width: 56,
       height: 56,
-      borderRadius: 10,
-      backgroundColor: theme.colors.surface2,
+      borderRadius: tokens.borderRadius.switch1,
+      backgroundColor: theme.colors.imageBackground,
       overflow: 'hidden',
+      padding: 6
     },
     thumb: {
       width: '100%',
@@ -158,8 +157,8 @@ const ItemReplaceModal = ({
           <View style={styles.header}>
             <Text style={styles.title}>Replace Item</Text>
             <AppleTouchFeedback onPress={onClose} hapticStyle="impactLight">
-              <View style={{backgroundColor: theme.colors.foreground, borderRadius: 50, padding: 6}}>
-                  <Icon name="close" size={22} color={theme.colors.background} />
+              <View style={{backgroundColor: 'white', borderRadius: 50, borderWidth: tokens.borderWidth.hairline, borderColor: 'black', padding: 6}}>
+                  <Icon name="close" size={22} color={'black'} />
               </View>
             </AppleTouchFeedback>
           </View>

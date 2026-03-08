@@ -275,8 +275,8 @@ export const createGlobalStyles = (theme: Theme) =>
     // ============================================================
     cardStyles1: {
       padding: isTablet ? 20 : isLargePhone ? 18 : isRegularPhone ? 14 : 14,
-      borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.surfaceBorder,
+      // borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius.xxxl,
       // borderRadius: tokens.borderRadius.sm,
       backgroundColor: theme.colors.surface,
@@ -531,8 +531,8 @@ export const createGlobalStyles = (theme: Theme) =>
             : 10,
     },
     title3: {
-      fontSize: font.xs,
-      fontWeight: tokens.fontWeight.medium,
+      fontSize: font.sm,
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.foreground,
       marginBottom: isTablet ? 8 : isLargePhone ? 6 : isRegularPhone ? 6 : 6,
       marginTop: isTablet ? 6 : isLargePhone ? 4 : isRegularPhone ? 4 : 4,
@@ -549,30 +549,30 @@ export const createGlobalStyles = (theme: Theme) =>
     // ============================================================
     label: {
       fontSize: font.xs,
-      fontWeight: tokens.fontWeight.medium,
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.foreground,
     },
     label2: {
       fontSize: font.xs,
-      fontWeight: tokens.fontWeight.medium,
+      fontWeight: tokens.fontWeight.semiBold,
       width: '25%',
       color: theme.colors.foreground2,
     },
     subLabel: {
       fontSize: font.xs,
-      // fontWeight: tokens.fontWeight.semiBold,
-      fontWeight: tokens.fontWeight.medium,
+      fontWeight: tokens.fontWeight.semiBold,
+      // fontWeight: tokens.fontWeight.medium,
       marginTop: 2,
       color: theme.colors.foreground2,
     },
     cardLabel: {
       fontSize: font.sm,
-      fontWeight: tokens.fontWeight.medium,
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.foreground,
     },
     cardSubLabel: {
       fontSize: font.xs,
-      fontWeight: tokens.fontWeight.medium,
+      fontWeight: tokens.fontWeight.semiBold,
       marginTop: 2,
       color: theme.colors.foreground2,
     },
@@ -658,13 +658,13 @@ export const createGlobalStyles = (theme: Theme) =>
           : isRegularPhone
             ? 8
             : 8,
-      paddingHorizontal: isTablet
-        ? 16
-        : isLargePhone
-          ? 8
-          : isRegularPhone
-            ? 8
-            : 8,
+      // paddingHorizontal: isTablet
+      //   ? 16
+      //   : isLargePhone
+      //     ? 8
+      //     : isRegularPhone
+      //       ? 8
+      //       : 8,
     },
     labelContainer2: {
       paddingHorizontal: isTablet
@@ -686,7 +686,7 @@ export const createGlobalStyles = (theme: Theme) =>
             : 12,
     },
     labelContainer4: {
-      backgroundColor: 'red',
+      // backgroundColor: 'red',
     },
     pillContainer: {
       flexDirection: 'row',
@@ -1013,7 +1013,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // height: image4Size,
       // backgroundColor: theme.colors.surface,
       // borderRadius: tokens.borderRadius.lg,
-      // borderRadius: tokens.borderRadius.sm,
+      borderRadius: tokens.borderRadius.switch1,
       // borderWidth: tokens.borderWidth.hairline,
       // borderColor: theme.colors.surfaceBorder,
       width: isTablet ? 160 : isLargePhone ? 120 : isRegularPhone ? 120 : 105,
@@ -1113,10 +1113,9 @@ export const createGlobalStyles = (theme: Theme) =>
       width: isTablet ? 160 : isLargePhone ? 195 : isRegularPhone ? 184 : 165,
       // marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
       alignItems: 'flex-start',
-      backgroundColor: theme.colors.surface,
       overflow: 'hidden',
       // borderRadius: tokens.borderRadius.lg,
-      borderRadius: tokens.borderRadius.sm,
+      borderRadius: tokens.borderRadius.switch1,
       // borderWidth: tokens.borderWidth.hairline,
       // borderColor: theme.colors.surfaceBorder,
     },
@@ -1125,10 +1124,9 @@ export const createGlobalStyles = (theme: Theme) =>
       width: isTablet ? 160 : isLargePhone ? 195 : isRegularPhone ? 184 : 165,
       // marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
       alignItems: 'flex-start',
-      backgroundColor: theme.colors.surface,
       overflow: 'hidden',
       // borderRadius: tokens.borderRadius.lg,
-      borderRadius: tokens.borderRadius.sm,
+      borderRadius: tokens.borderRadius.switch1,
       // borderWidth: tokens.borderWidth.hairline,
       // borderColor: theme.colors.surfaceBorder,
     },

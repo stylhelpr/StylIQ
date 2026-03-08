@@ -102,7 +102,7 @@ export default function SavedRecommendationsModal({
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 1)',
+      backgroundColor: theme.colors.background,
     },
     panel: {
       backgroundColor: theme.colors.background,
@@ -311,7 +311,7 @@ export default function SavedRecommendationsModal({
                   priority: FastImage.priority.normal,
                   cache: FastImage.cacheControl.immutable,
                 }}
-                style={{width: '100%', height: '100%'}}
+                style={{width: '100%', height: '100%',  backgroundColor: theme.colors.imageBackground}}
                 resizeMode={FastImage.resizeMode.cover}
               />
             ) : (
@@ -367,11 +367,11 @@ export default function SavedRecommendationsModal({
                 bottom: 12,
                 left: 8,
                 right: 8,
-                backgroundColor: 'rgba(0, 0, 0, 0.54)',
+                backgroundColor: 'rgba(0, 0, 0, 0.77)',
                 borderRadius: tokens.borderRadius.sm,
+                 borderColor: theme.colors.input,
+                borderWidth: tokens.borderWidth.hairline,
                 paddingVertical: 10,
-                // borderColor: theme.colors.foreground,
-                // borderWidth: tokens.borderWidth.hairline,
               }}>
               <Text
                 style={{
@@ -494,7 +494,7 @@ export default function SavedRecommendationsModal({
             style={styles.closeIcon}
             onPress={handleClosePress}
             hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-            <MaterialIcons name="close" size={20} color="#000" />
+            <MaterialIcons name="close" size={20} color="black" />
           </TouchableOpacity>
 
           <View

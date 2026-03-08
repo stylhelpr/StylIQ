@@ -365,7 +365,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             height: 300,
             borderRadius: tokens.borderRadius.xl,
             overflow: 'hidden',
-            backgroundColor: theme.colors.surface,
+            // backgroundColor: theme.colors.imageBackground,
             flexDirection: 'row',
             marginVertical: 12
           }}>
@@ -441,15 +441,17 @@ const AiStylistSuggestions: React.FC<Props> = ({
           backgroundColor: colors[rank],
           paddingHorizontal: moderateScale(tokens.spacing.xs),
           paddingVertical: 2,
-          borderRadius: tokens.borderRadius.sm,
+          borderRadius: 50,
           alignSelf: 'flex-start',
           // marginBottom: moderateScale(tokens.spacing.xs),
         }}>
         <Text
           style={{
-            color: rank === 1 ? '#fff' : theme.colors.foreground,
+            color: rank === 1 ? '#fff' : theme.colors.background,
             fontSize: fontScale(tokens.fontSize.xxs),
             fontWeight: tokens.fontWeight.semiBold,
+            paddingVertical: 3,
+            paddingHorizontal: 3
           }}>
           {labels[rank]}
         </Text>
@@ -634,8 +636,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
             paddingVertical: moderateScale(tokens.spacing.sm),
             borderRadius: tokens.borderRadius.sm,
             alignItems: 'center',
-            borderWidth: theme.borderWidth.hairline,
-            borderColor: theme.colors.muted,
+            // borderWidth: theme.borderWidth.hairline,
+            // borderColor: theme.colors.muted,
           }}>
           <Text
             style={{
@@ -654,8 +656,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
             paddingVertical: moderateScale(tokens.spacing.sm),
             borderRadius: tokens.borderRadius.sm,
             alignItems: 'center',
-            borderWidth: theme.borderWidth.hairline,
-            borderColor: theme.colors.muted,
+            backgroundColor: theme.colors.background,
+            // borderWidth: theme.borderWidth.hairline,
+            // borderColor: theme.colors.muted,
           }}>
           <Icon name="tune" size={20} color={theme.colors.foreground2} />
         </TouchableOpacity>
@@ -723,8 +726,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
             marginHorizontal: 16,
             backgroundColor: theme.colors.surface,
             borderRadius: tokens.borderRadius.xl,
-            borderColor: theme.colors.muted,
-            borderWidth: tokens.borderWidth.hairline,
+            // borderColor: theme.colors.muted,
+            // borderWidth: tokens.borderWidth.hairline,
             // borderTopLeftRadius: tokens.borderRadius.xl,
             // borderTopRightRadius: tokens.borderRadius.xl,
             padding: moderateScale(tokens.spacing.md),
@@ -806,8 +809,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   paddingHorizontal: moderateScale(tokens.spacing.sm),
                   paddingVertical: moderateScale(tokens.spacing.xs),
                   borderRadius: tokens.borderRadius.md,
-                  borderWidth: theme.borderWidth.hairline,
-                  borderColor: theme.colors.muted,
+                  // borderWidth: theme.borderWidth.hairline,
+                  // borderColor: theme.colors.muted,
                 }}>
                 <Text style={{color: theme.colors.foreground}}>{c.label}</Text>
               </TouchableOpacity>
@@ -1606,7 +1609,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
         <View
           style={{
             flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.92)',
+            backgroundColor: theme.colors.background,
           }}>
           {/* Close button */}
           <TouchableOpacity
@@ -1617,7 +1620,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
               right: 20,
               zIndex: 10,
               padding: 6,
-              backgroundColor: theme.colors.foreground,
+              backgroundColor: 'white',
+              borderColor: 'black',
+              borderWidth: tokens.borderWidth.hairline,
               borderRadius: 50
             }}>
             <Icon name="close" size={22} color="black" />
@@ -1686,7 +1691,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 )}
 
                 {/* Outfit Title */}
-                <Text style={{color: '#fff', fontSize: 16, fontWeight: '600', textAlign: 'center', marginBottom: 16, paddingHorizontal: 32}} numberOfLines={1}>
+                <Text style={{color: theme.colors.foreground, fontSize: 16, fontWeight: '600', textAlign: 'center', marginBottom: 16, paddingHorizontal: 32}} numberOfLines={1}>
                   {(currentOutfit as any)?.title ?? (currentOutfit as any)?.name ?? 'Outfit'}
                 </Text>
 
@@ -1694,7 +1699,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 <View
                   style={{
                     width: screenWidth - 16,
-                    borderRadius: tokens.borderRadius.xl,
+                    borderRadius: tokens.borderRadius.switch1,
                     backgroundColor: theme.colors.imageBackground,
                     flexDirection: 'row',
                     paddingVertical: 12,
@@ -1770,7 +1775,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   width: screenWidth - 32,
                   marginTop: 24,
                 }}>
-                  <Text style={{color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 12, opacity: 0.7}}>
+                  <Text style={{color: theme.colors.foreground, fontSize: 14, fontWeight: '600', marginBottom: 12, opacity: 0.7}}>
                     Items in this outfit
                   </Text>
                   <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 10}}>
@@ -1780,20 +1785,19 @@ const AiStylistSuggestions: React.FC<Props> = ({
                         style={{
                           width: (screenWidth - 52) / 2,
                           height: (screenWidth - 52) / 2,
-                          borderRadius: 12,
+                          borderRadius: tokens.borderRadius.switch1,
                           overflow: 'hidden',
-                           backgroundColor: theme.colors.imageBackground,
                         }}>
-                        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10}}>
+                        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10, backgroundColor: theme.colors.imageBackground}}>
                           <Image
                             source={{uri: item.imageUrl}}
-                            style={{width: 150, height: 150}}
+                            style={{width: 150, height: 150,}}
                             resizeMode="contain"
                           />
                         </View>
-                        <View style={{paddingHorizontal: 8, paddingVertical: 8, paddingBottom: 8,  backgroundColor: theme.colors.surface3,}}>
+                        <View style={{paddingVertical: 8, paddingBottom: 8}}>
                           <Text
-                            style={{color: theme.colors.foreground, fontSize: 11, textAlign: 'left', fontWeight: 'semibold'}}
+                            style={globalStyles.label}
                             numberOfLines={1}>
                             {item.name}
                           </Text>
@@ -1806,7 +1810,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 {/* Outfit Description — always render under images */}
                 <Text
                   style={{
-                    color: '#fff',
+                    color: theme.colors.foreground,
                     fontSize: 14,
                     fontWeight: '400',
                     textAlign: 'center',
