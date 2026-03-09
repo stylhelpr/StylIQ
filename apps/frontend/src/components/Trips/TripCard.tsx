@@ -78,6 +78,9 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
     },
     deleteBtn: {
       padding: 4,
+      backgroundColor: 'black',
+      borderRadius: 50,
+      borderWidth: tokens.borderWidth.hairline
     },
     dateRow: {
       flexDirection: 'row',
@@ -99,7 +102,7 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.colors.surface2,
+      backgroundColor: 'black',
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: tokens.borderRadius.lg,
@@ -107,7 +110,7 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
     tempText: {
       fontSize: 13,
       fontWeight: '600',
-      color: theme.colors.foreground,
+      color: 'white',
     },
     capsuleText: {
       fontSize: 13,
@@ -127,7 +130,7 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
             onPress={onDelete}
             style={styles.deleteBtn}
             hapticStyle="impactLight">
-            <Icon name="close" size={18} color={theme.colors.foreground2} />
+            <Icon name="delete" size={22} color={'red'} />
           </AppleTouchFeedback>
         </View>
         <View style={styles.dateRow}>
@@ -143,7 +146,7 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
             <Icon
               name={WEATHER_ICONS[dominantCondition]}
               size={16}
-              color={theme.colors.foreground}
+              color={'white'}
             />
             <Text style={styles.tempText}>
               {minLow}° – {maxHigh}°F
