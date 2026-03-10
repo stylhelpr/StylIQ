@@ -1972,6 +1972,7 @@ export default function SavedOutfitsScreen() {
         globalStyles.container,
         {backgroundColor: theme.colors.background, paddingBottom: 0},
       ]}>
+        
       {/* Hidden 2x2 grid composite for sharing */}
       {shareOutfit && (
         <View style={{position: 'absolute', left: -9999, top: -9999}}>
@@ -3112,7 +3113,7 @@ export default function SavedOutfitsScreen() {
                         key={item.id || idx}
                         style={{
                           width: (screenWidth - 52) / 2,
-                          height: (screenWidth - 52) / 2,
+                          height: (screenWidth - 0) / 2,
                           borderRadius: tokens.borderRadius.switch1,
                           overflow: 'hidden',
                         }}>

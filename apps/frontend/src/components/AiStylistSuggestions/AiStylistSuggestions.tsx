@@ -363,7 +363,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           style={{
             width: '100%',
             height: 300,
-            borderRadius: tokens.borderRadius.xl,
+            borderRadius: tokens.borderRadius.lg,
             overflow: 'hidden',
             // backgroundColor: theme.colors.imageBackground,
             flexDirection: 'row',
@@ -371,7 +371,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           }}>
 
           {/* Left column: Outerwear */}
-          <View style={{width: 110, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 80, backgroundColor: theme.colors.imageBackground}}>
+          <View style={{width: 110, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 80, backgroundColor: theme.colors.imageBackground2}}>
             {outerwearItem && (
               <Image
                 source={{uri: outerwearItem.imageUrl}}
@@ -382,7 +382,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
 
           {/* Center column: Top → Bottom → Shoes (overlapping) */}
-          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10, backgroundColor: theme.colors.imageBackground}}>
+          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10, backgroundColor: theme.colors.imageBackground2}}>
             {topItem && (
               <Image
                 source={{uri: topItem.imageUrl}}
@@ -407,7 +407,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
 
           {/* Right column: Accessories */}
-          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, gap: 8, backgroundColor: theme.colors.imageBackground}}>
+          <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, gap: 8, backgroundColor: theme.colors.imageBackground2}}>
             {accessoryItems.map((acc, idx) => (
               <Image
                 key={acc.id || idx}
@@ -636,8 +636,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
             paddingVertical: moderateScale(tokens.spacing.sm),
             borderRadius: tokens.borderRadius.sm,
             alignItems: 'center',
-            // borderWidth: theme.borderWidth.hairline,
-            // borderColor: theme.colors.muted,
+            borderWidth: theme.borderWidth.hairline,
+            borderColor: theme.colors.muted,
           }}>
           <Text
             style={{
@@ -657,8 +657,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
             borderRadius: tokens.borderRadius.sm,
             alignItems: 'center',
             backgroundColor: theme.colors.background,
-            // borderWidth: theme.borderWidth.hairline,
-            // borderColor: theme.colors.muted,
+            borderWidth: theme.borderWidth.hairline,
+            borderColor: theme.colors.muted,
           }}>
           <Icon name="tune" size={20} color={theme.colors.foreground2} />
         </TouchableOpacity>
@@ -726,8 +726,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
             marginHorizontal: 16,
             backgroundColor: theme.colors.surface,
             borderRadius: tokens.borderRadius.xl,
-            // borderColor: theme.colors.muted,
-            // borderWidth: tokens.borderWidth.hairline,
+            borderColor: theme.colors.muted,
+            borderWidth: tokens.borderWidth.hairline,
             // borderTopLeftRadius: tokens.borderRadius.xl,
             // borderTopRightRadius: tokens.borderRadius.xl,
             padding: moderateScale(tokens.spacing.md),
@@ -809,8 +809,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   paddingHorizontal: moderateScale(tokens.spacing.sm),
                   paddingVertical: moderateScale(tokens.spacing.xs),
                   borderRadius: tokens.borderRadius.md,
-                  // borderWidth: theme.borderWidth.hairline,
-                  // borderColor: theme.colors.muted,
+                  borderWidth: theme.borderWidth.hairline,
+                  borderColor: theme.colors.muted,
                 }}>
                 <Text style={{color: theme.colors.foreground}}>{c.label}</Text>
               </TouchableOpacity>
@@ -1288,7 +1288,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
       <ScrollView
         ref={containerRef}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[globalStyles.section, {marginTop: 6}]}>
+        contentContainerStyle={[globalStyles.section7, {marginTop: 6}]}>
         <Animatable.View
           animation="fadeInUp"
           delay={200}
@@ -1417,6 +1417,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     fontSize: fontScale(tokens.fontSize.md),
                     fontWeight: tokens.fontWeight.semiBold,
                     color: theme.colors.foreground,
+                    textAlign: 'center',
                     // lineHeight: 22,
                     // marginTop: moderateScale(tokens.spacing.xs),
                     // marginBottom: moderateScale(tokens.spacing.xs),
@@ -1784,7 +1785,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                         key={item.id || idx}
                         style={{
                           width: (screenWidth - 52) / 2,
-                          height: (screenWidth - 52) / 2,
+                          height: (screenWidth - 0) / 2,
                           borderRadius: tokens.borderRadius.switch1,
                           overflow: 'hidden',
                         }}>

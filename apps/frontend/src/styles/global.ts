@@ -197,6 +197,24 @@ export const createGlobalStyles = (theme: Theme) =>
             ? 16
             : 16,
     },
+      section7: {
+      // marginBottom: isTablet ? 32 : isLargePhone ? 20 : 20,
+      // paddingHorizontal: isTablet ? 38 : isLargePhone ? 16 : 16,
+      marginBottom: isTablet
+        ? 32
+        : isLargePhone
+          ? 20
+          : isRegularPhone
+            ? 20
+            : 20,
+      paddingHorizontal: isTablet
+        ? 38
+        : isLargePhone
+          ? 8
+          : isRegularPhone
+            ? 16
+            : 16,
+    },
     sectionScroll: {
       marginBottom: isTablet
         ? 36
@@ -355,6 +373,7 @@ export const createGlobalStyles = (theme: Theme) =>
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius.xxxl,
+          // borderRadius: tokens.borderRadius.xl,
        backgroundColor: theme.colors.surface,
 
       // shadowColor: '#000',
@@ -654,10 +673,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingVertical: isTablet
         ? 10
         : isLargePhone
-          ? 8
+          ? 6
           : isRegularPhone
-            ? 8
-            : 8,
+            ? 6
+            : 6,
       // paddingHorizontal: isTablet
       //   ? 16
       //   : isLargePhone
@@ -1016,7 +1035,7 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.switch1,
       // borderWidth: tokens.borderWidth.hairline,
       // borderColor: theme.colors.surfaceBorder,
-      width: isTablet ? 160 : isLargePhone ? 120 : isRegularPhone ? 120 : 105,
+      width: isTablet ? 160 : isLargePhone ? 122 : isRegularPhone ? 120 : 105,
       // height: isTablet ? 160 : isLargePhone ? 175 : 145,
       // height: isTablet ? 160 : isLargePhone ? 140 : 125,
       // height: isTablet ? 160 : isLargePhone ? 155 : 145,
@@ -1072,7 +1091,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // width: outfitCardSize,
       // marginRight: isTablet ? 16 : isLargePhone ? 12 : 10,
       // marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
-      marginRight: isTablet ? 16 : isLargePhone ? 10 : isRegularPhone ? 10 : 10,
+      marginRight: isTablet ? 16 : isLargePhone ? 8 : isRegularPhone ? 8 : 8,
       // alignItems: 'flex-start',
       // borderRadius: tokens.borderRadius.lg,
       borderRadius: tokens.borderRadius.sm,
@@ -1082,7 +1101,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // width: isTablet ? 160 : isLargePhone ? 180 : 160,
       width: isTablet ? 160 : isLargePhone ? 160 : isRegularPhone ? 160 : 160,
       // marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
-      marginRight: isTablet ? 16 : isLargePhone ? 10 : isRegularPhone ? 10 : 10,
+      marginRight: isTablet ? 16 : isLargePhone ? 8 : isRegularPhone ? 8 : 8,
       alignItems: 'flex-start',
       // backgroundColor: theme.colors.surface,
       overflow: 'hidden',

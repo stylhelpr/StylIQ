@@ -369,8 +369,8 @@ export default function SavedRecommendationsModal({
                 right: 8,
                 backgroundColor: 'rgba(0, 0, 0, 0.77)',
                 borderRadius: tokens.borderRadius.sm,
-                 borderColor: theme.colors.input,
-                borderWidth: tokens.borderWidth.hairline,
+                //  borderColor: theme.colors.input,
+                // borderWidth: tokens.borderWidth.hairline,
                 paddingVertical: 10,
               }}>
               <Text
@@ -393,7 +393,7 @@ export default function SavedRecommendationsModal({
                 color: theme.colors.foreground,
                 fontWeight: '600',
                 fontSize: 14,
-                // lineHeight: 16,
+                lineHeight: 18,
                 textTransform: 'uppercase'
               }}
                 numberOfLines={1}>
@@ -407,7 +407,7 @@ export default function SavedRecommendationsModal({
                 color: theme.colors.foreground2,
                 fontWeight: '400',
                 fontSize: 13,
-                // lineHeight: 18,
+                lineHeight: 18,
               }}
               numberOfLines={2}>
               {product.title ?? ''}
@@ -422,7 +422,7 @@ export default function SavedRecommendationsModal({
                 color: theme.colors.primary,
                 fontWeight: '600',
                 fontSize: 13,
-                // lineHeight: 20,
+                lineHeight: 18,
               }}>
               {product.price_raw || (product.price ? `$${product.price}` : '')}
             </Text>

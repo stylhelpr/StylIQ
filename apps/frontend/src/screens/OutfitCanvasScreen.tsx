@@ -585,7 +585,6 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
             </Text>
           </TouchableOpacity>
 
-        
         </View>
       </View>
 

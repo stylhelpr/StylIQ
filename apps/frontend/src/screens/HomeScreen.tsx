@@ -322,10 +322,10 @@ const HeroCarousel = React.memo(
         }}
         style={{
           width: '100%',
-          height: 300,
+          height: 350,
           overflow: 'hidden',
-          borderRadius: tokens.borderRadius.lg,
-          paddingHorizontal: 6
+          // borderRadius: tokens.borderRadius.lg,
+          // paddingHorizontal: 6
         }}>
         <Animated.View
           pointerEvents="none"
@@ -345,7 +345,7 @@ const HeroCarousel = React.memo(
               style={{
                 width: '100%',
                 height: '100%',
-                borderRadius: tokens.borderRadius.lg,
+                // borderRadius: tokens.borderRadius.lg,
                 backgroundColor: '#e5e1de'
               }}
               resizeMode={FastImage.resizeMode.cover}
@@ -1873,7 +1873,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             showsVerticalScrollIndicator={false}>
 
      {/* Header Row: Greeting + Menu */}
-            <View
+            {/* <View
               style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
@@ -1899,7 +1899,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   ? `Hi ${firstName}, let’s get you styled today!`
                   : 'Hi there, let’s make getting dressed easy!'}
               </Animatable.Text>
-            </View>
+            </View> */}
 
             {/* Hero Carousel - Memoized to prevent re-renders from interval */}
             <View style={{paddingBottom: 4}}>
@@ -1924,6 +1924,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   fontSize: fontScale(tokens.fontSize.md),
                   fontWeight: tokens.fontWeight.bold,
                   color: theme.colors.foreground,
+                  // textTransform: 'uppercase'
                 }}
                 >
             Today's Inspiration

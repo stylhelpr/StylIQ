@@ -477,8 +477,8 @@ export default function AllSavedLooksModal({
                 right: 8,
                 backgroundColor: 'rgba(0, 0, 0, 0.77)',
                 borderRadius: tokens.borderRadius.sm,
-                borderColor: theme.colors.input,
-                borderWidth: tokens.borderWidth.hairline,
+                // borderColor: theme.colors.input,
+                // borderWidth: tokens.borderWidth.hairline,
                 paddingVertical: 10,
                 opacity: loading ? 0.6 : 1,
               }}>
@@ -525,7 +525,7 @@ export default function AllSavedLooksModal({
               fontWeight: '600',
               fontSize: 13,
               marginBottom: 10,
-               textTransform: 'uppercase'
+              //  textTransform: 'uppercase'
             }}
             numberOfLines={1}>
             {look.name || 'Unnamed Look'}

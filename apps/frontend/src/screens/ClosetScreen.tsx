@@ -1183,7 +1183,7 @@ export default function ClosetScreen({navigate}: Props) {
         item.image_url;
 
       return (
-        <View style={{width: HORIZ_CARD_WIDTH, marginRight: 10}}>
+        <View style={{width: HORIZ_CARD_WIDTH, marginRight: 8}}>
           <ScalePressable
             style={[globalStyles.outfitCard5, {width: HORIZ_CARD_WIDTH}]}
             onPress={() => {
@@ -1530,8 +1530,8 @@ export default function ClosetScreen({navigate}: Props) {
                     globalStyles.sectionTitle5,
                     {
                       paddingHorizontal: ITEM_SPACING,
-                      marginTop: 8,
-                      marginBottom: 8,
+                      marginTop: 4,
+                      marginBottom: 4,
                       transform: [
                         {
                           translateY: screenFade.interpolate({
