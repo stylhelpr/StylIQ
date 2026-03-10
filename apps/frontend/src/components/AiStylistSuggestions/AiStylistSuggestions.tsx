@@ -363,7 +363,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           style={{
             width: '100%',
             height: 300,
-            borderRadius: tokens.borderRadius.lg,
+            borderRadius: tokens.borderRadius.xxl,
             overflow: 'hidden',
             // backgroundColor: theme.colors.imageBackground,
             flexDirection: 'row',

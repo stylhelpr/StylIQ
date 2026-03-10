@@ -88,7 +88,7 @@ function ProductCard({
 
   const handlePress = useCallback(() => {
     if (item.link) {
-      ReactNativeHapticFeedback.trigger('impactMedium');
+      // ReactNativeHapticFeedback.trigger('impactMedium');
       onPress(item.link);
     }
   }, [item.link, onPress]);
@@ -237,9 +237,10 @@ function PieceSection({
           </Text>
           <Text
             style={{
-              color: theme.colors.muted,
+              color: theme.colors.foreground3,
               fontSize: 12,
               marginTop: 2,
+              fontWeight: '500',
             }}>
             {piece.color} {piece.item}
             {piece.material ? ` • ${piece.material}` : ''}
@@ -278,7 +279,7 @@ function PieceSection({
           />
           <Text
             style={{
-              color: theme.colors.muted,
+              color: theme.colors.foreground,
               fontSize: 12,
               marginTop: 8,
               textAlign: 'center',
@@ -336,7 +337,7 @@ export default function VisualRecreateModal({
   }, []);
 
   const handleClose = useCallback(() => {
-    ReactNativeHapticFeedback.trigger('impactLight');
+    // ReactNativeHapticFeedback.trigger('impactLight');
     setSaved(false); // Reset saved state on close
     onClose();
   }, [onClose]);
@@ -635,7 +636,7 @@ export default function VisualRecreateModal({
             {hasPieces && (
               <Text
                 style={{
-                  color: theme.colors.muted,
+                  color: theme.colors.foreground2,
                   fontSize: 12,
                   marginBottom: 22,
                 }}>
@@ -744,10 +745,11 @@ export default function VisualRecreateModal({
                     )}
                     <Text
                       style={{
-                        color: theme.colors.muted,
-                        fontSize: 11,
+                        color: theme.colors.foreground,
+                        fontSize: 12,
                         marginTop: lookName ? 4 : 8,
                         textAlign: 'center',
+                        fontWeight: '600',
                       }}>
                       Your Inspired Style
                     </Text>

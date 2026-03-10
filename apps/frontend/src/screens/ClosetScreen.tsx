@@ -1222,7 +1222,7 @@ export default function ClosetScreen({navigate}: Props) {
                 style={{
                   position: 'absolute',
                   top: 8,
-                  right: 0,
+                  right: -2,
                   zIndex: 10,
                   padding: 4,
                 }}>
@@ -1236,20 +1236,20 @@ export default function ClosetScreen({navigate}: Props) {
                   }>
                   <MaterialIcons
                     name="favorite"
-                    size={18}
+                    size={22}
                     color={item.favorite ? 'red' : theme.colors.inputBorder}
                   />
                 </AppleTouchFeedback>
                  <View style={{marginTop: 6}}>
                   <MaterialIcons
                     name="place"
-                    size={18}
+                    size={22}
                     color={getLocationDotColor(item.location_id, theme.colors, locColorMap[item.location_id ?? 'home'])}
                   />
                 </View>
                 {item.care_status === 'at_cleaner' && (
                   <View style={{marginTop: 4, alignSelf: 'center'}}>
-                    <MaterialIcons name="dry-cleaning" size={18} color={theme.colors.warning ?? '#F59E0B'} />
+                    <MaterialIcons name="dry-cleaning" size={22} color={theme.colors.warning ?? '#F59E0B'} />
                   </View>
                 )}
               </View>

@@ -441,7 +441,7 @@ export default function AllSavedLooksModal({
                   priority: FastImage.priority.normal,
                   cache: FastImage.cacheControl.immutable,
                 }}
-                style={{width: '100%', height: '100%'}}
+                style={{width: '99%', height: '100%'}}
                 resizeMode={FastImage.resizeMode.cover}
               />
             ) : (
@@ -593,7 +593,7 @@ export default function AllSavedLooksModal({
           <TouchableOpacity
             style={[styles.closeIcon, {marginTop: 10}]}
             onPress={() => {
-              ReactNativeHapticFeedback.trigger('impactLight');
+              // ReactNativeHapticFeedback.trigger('impactLight');
               handleClose();
             }}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>

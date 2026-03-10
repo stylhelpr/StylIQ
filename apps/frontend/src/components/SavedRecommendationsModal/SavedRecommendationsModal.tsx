@@ -311,7 +311,7 @@ export default function SavedRecommendationsModal({
                   priority: FastImage.priority.normal,
                   cache: FastImage.cacheControl.immutable,
                 }}
-                style={{width: '100%', height: '100%',  backgroundColor: theme.colors.imageBackground}}
+                style={{width: '99%', height: '100%',  backgroundColor: theme.colors.imageBackground}}
                 resizeMode={FastImage.resizeMode.cover}
               />
             ) : (
