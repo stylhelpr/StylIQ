@@ -40,18 +40,11 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
       (a, b) => b[1] - a[1],
     )[0]?.[0] as WeatherCondition) || 'partly-cloudy';
 
-  const safeDate = (raw: string) => {
-    const d = new Date(raw + 'T00:00:00');
-    if (!isNaN(d.getTime())) return d;
-    const d2 = new Date(raw);
-    if (!isNaN(d2.getTime())) return d2;
-    return null;
-  };
-  const start = safeDate(trip.startDate);
-  const end = safeDate(trip.endDate);
-  const formatDate = (d: Date | null, fallback: string) =>
-    d ? d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : fallback;
-  const dateRange = `${formatDate(start, trip.startDate)} – ${formatDate(end, trip.endDate)}`;
+  const start = new Date(trip.startDate + 'T00:00:00');
+  const end = new Date(trip.endDate + 'T00:00:00');
+  const formatDate = (d: Date) =>
+    d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+  const dateRange = `${formatDate(start)} – ${formatDate(end)}`;
 
   const numOutfits = trip.capsule?.outfits?.length ?? 0;
   const backupCount = trip.capsule?.tripBackupKit?.length ?? 0;
@@ -167,7 +160,7 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
 };
 
 export default TripCard;
-
+[]
 
 //////////////////
 

@@ -2305,16 +2305,32 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       ReactNativeHapticFeedback.trigger('impactLight');
                       setSavedRecommendationsModalVisible(true);
                     }}>
-                    <Text
+                    {/* <Text
                       style={{
                         fontSize: fontScale(tokens.fontSize.sm),
                         color: theme.colors.foreground,
                         fontWeight: tokens.fontWeight.bold,
                         marginTop: -5,
-                        marginRight: moderateScale(tokens.spacing.sm),         
+                        marginRight: moderateScale(tokens.spacing.sm),    
+                         textDecorationLine: 'underline'     
                       }}>
                       See All Liked
-                    </Text>
+                    </Text> */}
+                      <Text
+                        style={{
+                          fontSize: fontScale(tokens.fontSize.sm),
+                          color: theme.colors.foreground,
+                          fontWeight: tokens.fontWeight.bold,
+                          marginTop: -5,
+                          marginRight: moderateScale(tokens.spacing.sm),
+
+                          borderBottomWidth: 1,
+                          borderBottomColor: theme.colors.foreground,
+                          paddingBottom: 0
+                        }}
+                      >
+                        See All Liked
+                      </Text>
                   </Pressable>
                 </View>
                 <DiscoverCarousel
@@ -2352,14 +2368,30 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         ReactNativeHapticFeedback.trigger('impactLight');
                         setImageModalVisible(true);
                       }}>
-                      <Text
+                      {/* <Text
                         style={{
                           fontSize: fontScale(tokens.fontSize.sm),
                           color: theme.colors.foreground,
                           fontWeight: tokens.fontWeight.bold,
                           marginTop: -5,
                           marginRight: moderateScale(tokens.spacing.md),
+                          textDecorationLine: 'underline'
                         }}>
+                        See All Saved
+                      </Text> */}
+                          <Text
+                        style={{
+                          fontSize: fontScale(tokens.fontSize.sm),
+                          color: theme.colors.foreground,
+                          fontWeight: tokens.fontWeight.bold,
+                          marginTop: -5,
+                          marginRight: moderateScale(tokens.spacing.sm),
+
+                          borderBottomWidth: 1,
+                          borderBottomColor: theme.colors.foreground,
+                          paddingBottom: 0
+                        }}
+                      >
                         See All Saved
                       </Text>
                     </Pressable>
@@ -2397,7 +2429,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 <Image
                                   source={img}
                                   style={[globalStyles.image8]}
-                                  resizeMode="cover"
+                                  // resizeMode="cover"
+                                  resizeMode="contain"
                                 />
                                 <View
                                   style={{
@@ -2753,14 +2786,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   ReactNativeHapticFeedback.trigger('impactLight');
                                 }}
                                 style={{
-                                  width: 130,
-                                  height: 130,
+                                  width: 120,
+                                  height: 120,
                                   borderRadius: tokens.borderRadius.switch1,
                                   overflow: 'hidden',
                                 }}>
                                 <Image
                                   source={img}
-                                  style={{width: 130, height: 130,}}
+                                  style={{width: 120, height: 120,}}
                                   resizeMode="cover"
                                 />
                                 <View
@@ -2817,11 +2850,16 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                     setIsSharedLookModalVisible(true);
                                   }}>
                        
-                                  <View>
+                                <View style={{
+                                  borderRadius: tokens.borderRadius.switch1,
+                                  backgroundColor: theme.colors.imageBackground,
+                                  overflow: 'hidden',
+                                  marginRight: 8
+                                }}>
                                     {look.image_url ? (
                                       <Image
                                         source={{uri: look.image_url}}
-                                        style={[globalStyles.image8, {borderRadius: tokens.borderRadius.switch1}]}
+                                        style={[globalStyles.image8]}
                                         resizeMode="cover"
                                         //  resizeMode="contain"
                                       />

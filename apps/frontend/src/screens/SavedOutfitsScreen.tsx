@@ -1869,7 +1869,7 @@ export default function SavedOutfitsScreen() {
 
   // 🔲 Grid View: minimal 2-column thumbnail + name only /
   // Sized so exactly 3 rows are visible on screen
-  const GRID_GAP = 10;
+  const GRID_GAP = 0;
   const GRID_PADDING_H = 10;
   const GRID_ITEM_WIDTH = (SCREEN_WIDTH - GRID_PADDING_H * 2 - GRID_GAP) / 2;
   const GRID_VISIBLE_ROWS = 3;
@@ -1898,7 +1898,7 @@ export default function SavedOutfitsScreen() {
           onPress={() => setFullScreenOutfit(outfit)}
           style={{
             width: GRID_ITEM_WIDTH,
-            height: 330,
+            height: 335,
             marginBottom: GRID_GAP,
             borderRadius: tokens.borderRadius.switch1,
             overflow: 'hidden',

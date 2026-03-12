@@ -869,7 +869,7 @@ export default function ClosetScreen({navigate}: Props) {
       backgroundColor: theme.colors.background,
     },
     itemContainer: {
-      width: ITEM_WIDTH,
+      // width: ITEM_WIDTH,
       marginBottom: 6,
       // backgroundColor: 'red'
     },
@@ -893,7 +893,7 @@ export default function ClosetScreen({navigate}: Props) {
     },
     imageSlot: {
       width: '60%',           
-      height: 160,           
+      height: 180,           
       borderRadius: tokens.borderRadius.switch1,
       overflow: 'hidden',
       justifyContent: 'center',
@@ -984,7 +984,7 @@ export default function ClosetScreen({navigate}: Props) {
         item.image_url;
 
       return (
-        <View style={[styles.itemContainer, {marginLeft: 6}]}>
+        <View style={[styles.itemContainer, {marginLeft: 4}]}>
           <ScalePressable
             // style={[globalStyles.outfitCard4]}
             onPress={() => {

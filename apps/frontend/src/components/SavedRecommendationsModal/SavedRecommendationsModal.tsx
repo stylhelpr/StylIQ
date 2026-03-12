@@ -394,6 +394,7 @@ export default function SavedRecommendationsModal({
                 fontWeight: '600',
                 fontSize: 14,
                 lineHeight: 18,
+                marginBottom: 4,
                 textTransform: 'uppercase'
               }}
                 numberOfLines={1}>

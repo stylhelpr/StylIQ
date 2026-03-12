@@ -1035,12 +1035,12 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.switch1,
       // borderWidth: tokens.borderWidth.hairline,
       // borderColor: theme.colors.surfaceBorder,
-      width: isTablet ? 160 : isLargePhone ? 122 : isRegularPhone ? 120 : 105,
+      width: isTablet ? 160 : isLargePhone ? 122 : isRegularPhone ? 122 : 105,
       // height: isTablet ? 160 : isLargePhone ? 175 : 145,
       // height: isTablet ? 160 : isLargePhone ? 140 : 125,
       // height: isTablet ? 160 : isLargePhone ? 155 : 145,
       // height: isTablet ? 160 : isLargePhone ? 120 : isRegularPhone ? 115 : 105,
-      height: isTablet ? 160 : isLargePhone ? 115 : isRegularPhone ? 115 : 105,
+      height: isTablet ? 160 : isLargePhone ? 122 : isRegularPhone ? 115 : 105,
     },
     image9: {
       width: isTablet
@@ -1071,8 +1071,8 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     bgContainer1: {
       height: isTablet ? 260 : isLargePhone ? 305 : isRegularPhone ? 260 : 260,
-      borderRadius: tokens.borderRadius.lg,
-      // borderRadius: tokens.borderRadius.sm,
+      // borderRadius: tokens.borderRadius.lg,
+      borderRadius: tokens.borderRadius.switch1,
       overflow: 'hidden',
       // shadowColor: '#000',
       // shadowOpacity: 0.35,

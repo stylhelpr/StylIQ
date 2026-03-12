@@ -523,9 +523,9 @@ export default function AllSavedLooksModal({
              paddingTop: 6,
               color: theme.colors.foreground,
               fontWeight: '600',
-              fontSize: 13,
+              fontSize: 12,
               marginBottom: 10,
-              //  textTransform: 'uppercase'
+               textTransform: 'uppercase'
             }}
             numberOfLines={1}>
             {look.name || 'Unnamed Look'}
