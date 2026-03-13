@@ -1773,13 +1773,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
                 {/* Individual Items Grid */}
                 <View style={{
-                  width: screenWidth - 32,
+                  width: screenWidth - 48,
                   marginTop: 24,
                 }}>
                   <Text style={{color: theme.colors.foreground, fontSize: 14, fontWeight: '600', marginBottom: 12, opacity: 0.7}}>
                     Items in this outfit
                   </Text>
-                  <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 10}}>
+                  <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 4}}>
                     {items.map((item, idx) => (
                       <View
                         key={item.id || idx}

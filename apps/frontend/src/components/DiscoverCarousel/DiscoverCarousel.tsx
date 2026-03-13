@@ -78,9 +78,9 @@ const ScalePressable = ({
 };
 
 // Thumb button style constants
-const THUMB_SIZE = 30;
+const THUMB_SIZE = 32;
 const THUMB_ICON_SIZE = 18;
-const THUMB_BG_DEFAULT = '#000000';
+const THUMB_BG_DEFAULT = '#0000007d';
 const THUMB_BG_LIKE = '#16A34A';
 const THUMB_BG_DISLIKE = '#DC2626';
 const THUMB_ICON_COLOR = '#FFFFFF';

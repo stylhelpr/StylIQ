@@ -167,7 +167,7 @@ export default function WardrobePickerModal({
       paddingVertical: 8,
       borderRadius: 20,
       marginRight: 8,
-      backgroundColor: theme.colors.surface3,
+      backgroundColor: theme.colors.surface,
     },
     categoryTabActive: {
       backgroundColor: theme.colors.foreground,

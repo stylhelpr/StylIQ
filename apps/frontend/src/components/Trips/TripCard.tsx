@@ -77,7 +77,7 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
       flex: 1,
     },
     deleteBtn: {
-      padding: 4,
+      padding: 6,
       backgroundColor: 'black',
       borderRadius: 50,
       borderWidth: tokens.borderWidth.hairline
@@ -130,7 +130,7 @@ const TripCard = ({trip, onPress, onDelete}: Props) => {
             onPress={onDelete}
             style={styles.deleteBtn}
             hapticStyle="impactLight">
-            <Icon name="delete" size={22} color={'red'} />
+            <Icon name="delete" size={22} color={'white'} />
           </AppleTouchFeedback>
         </View>
         <View style={styles.dateRow}>

@@ -7,7 +7,7 @@ import {CapsuleOutfit, BackupSuggestion} from '../../types/trips';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.75;
 const THUMB_SIZE = (CARD_WIDTH - 48 - 10) / 2;
-const BACKUP_KIT_IMG = 70;
+const BACKUP_KIT_IMG = 55;
 
 /** Map activity to stylized label based on occurrence count */
 function getStylizedLabel(
@@ -142,7 +142,7 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
       flexWrap: 'wrap',
       paddingHorizontal: 16,
       paddingBottom: 16,
-      gap: 10,
+      gap: 4,
     },
     thumbCell: {
       width: THUMB_SIZE,
@@ -208,7 +208,6 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
       width: BACKUP_KIT_IMG,
       height: BACKUP_KIT_IMG,
       borderRadius: tokens.borderRadius.switch1,
-      backgroundColor: theme.colors.imageBackground,
     },
     backupKitInfo: {
       flex: 1,
@@ -306,8 +305,10 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
           {tripBackupKit.map((b, idx) => (
             <React.Fragment key={b.wardrobeItemId}>
               {/* {idx > 0 && <View style={styles.backupKitDivider} />} */}
+            
               <View style={styles.backupKitItem}>
                 {b.imageUrl ? (
+                    <View style={{backgroundColor: theme.colors.imageBackground, padding: 6}}>
                   <FastImage
                     source={{
                       uri: b.imageUrl,
@@ -316,6 +317,7 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
                     style={styles.backupKitImage}
                     resizeMode={FastImage.resizeMode.contain}
                   />
+                  </View>
                 ) : (
                   <View style={styles.backupKitImage} />
                 )}

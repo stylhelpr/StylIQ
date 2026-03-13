@@ -246,7 +246,7 @@ export default function SavedRecommendationsModal({
 
       Alert.alert(
         'Remove from Saved',
-        `Are you sure you want to remove "${productTitle || 'this item'}" from your saved recommendations? You will not be able to get it back`,
+        `Are you sure you want to remove "${productTitle || 'this item'}" from your saved recommendations? You will not be able to get it back.`,
         [
           {
             text: 'Cancel',
@@ -335,8 +335,8 @@ export default function SavedRecommendationsModal({
                 position: 'absolute',
                 top: 8,
                 right: 8,
-                backgroundColor: 'rgb(0, 0, 0)',
-                borderRadius: 16,
+                backgroundColor: 'rgba(0, 0, 0, 0.47)',
+                borderRadius: 50,
                 padding: 6,
               }}
               onPress={() => confirmUnsave(product.product_id, product.title)}
@@ -349,7 +349,7 @@ export default function SavedRecommendationsModal({
                 product.product_id ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <MaterialIcons name="delete" size={18} color="red" />
+                <MaterialIcons name="delete" size={20} color="white" />
               )}
             </TouchableOpacity>
 
@@ -421,7 +421,7 @@ export default function SavedRecommendationsModal({
                 paddingTop: 4,
                 marginBottom: 10,
                 color: theme.colors.primary,
-                fontWeight: '600',
+                fontWeight: '800',
                 fontSize: 13,
                 lineHeight: 18,
               }}>

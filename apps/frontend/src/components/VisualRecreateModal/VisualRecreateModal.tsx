@@ -100,7 +100,7 @@ function ProductCard({
       style={{
         width: cardWidth,
         marginBottom: 12,
-        marginRight: small ? 4 : 0,
+        marginRight: small ? 8 : 0,
          borderRadius: tokens.borderRadius.switch1,
         overflow: 'hidden',
       }}>
@@ -213,7 +213,7 @@ function PieceSection({
             width: 36,
             height: 36,
             borderRadius: 18,
-            backgroundColor: theme.colors.button1 + '20',
+            backgroundColor: theme.colors.foreground + '20',
             justifyContent: 'center',
             alignItems: 'center',
             marginRight: 12,
@@ -221,7 +221,7 @@ function PieceSection({
           <MaterialIcons
             name={iconName}
             size={20}
-            color={theme.colors.buttonText1}
+            color={'theme.colors.buttonText1'}
           />
         </View>
         <View style={{flex: 1}}>
@@ -479,7 +479,7 @@ export default function VisualRecreateModal({
             }}>
             <View style={{flex: 1}}>
               <Text style={[globalStyles.sectionTitle, {marginTop: 8}]}>
-                RECREATE THIS STYLE
+                RECREATED STYLE
               </Text>
             </View>
 
@@ -520,6 +520,7 @@ export default function VisualRecreateModal({
                   borderRadius: tokens.borderRadius.sm,
                   borderColor: theme.colors.muted,
                   borderWidth: tokens.borderWidth.hairline,
+                  backgroundColor: theme.colors.button1,
                   paddingHorizontal: 14,
                   paddingVertical: 8,
                   flexDirection: 'row',
@@ -569,6 +570,7 @@ export default function VisualRecreateModal({
                   borderRadius: tokens.borderRadius.sm,
                   borderColor: theme.colors.muted,
                   borderWidth: tokens.borderWidth.hairline,
+                   backgroundColor: theme.colors.button1,
                   paddingHorizontal: 14,
                   paddingVertical: 8,
                   flexDirection: 'row',
@@ -602,6 +604,7 @@ export default function VisualRecreateModal({
                   borderRadius: tokens.borderRadius.sm,
                   borderColor: theme.colors.muted,
                   borderWidth: tokens.borderWidth.hairline,
+                   backgroundColor: theme.colors.error,
                   paddingHorizontal: 14,
                   paddingVertical: 8,
                   flexDirection: 'row',
@@ -611,11 +614,11 @@ export default function VisualRecreateModal({
                 <MaterialIcons
                   name="delete-outline"
                   size={18}
-                  color="#ef4444"
+                  color="white"
                 />
                 <Text
                   style={{
-                    color: theme.colors.error,
+                    color: theme.colors.foreground,
                     fontSize: 12,
                     fontWeight: '600',
                   }}>
