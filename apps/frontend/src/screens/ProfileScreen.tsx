@@ -757,15 +757,15 @@ export default function ProfileScreen({navigate}: Props) {
                     {/* Card - single image or 2x2 grid */}
                     <View
                       style={{
-                        width: 130,
-                        height: 130,
-                        borderRadius: tokens.borderRadius.switch1,
-                        overflow: 'hidden',
+                       borderRadius: tokens.borderRadius.switch1,
+                       backgroundColor: theme.colors.imageBackground,
+                       overflow: 'hidden',
+                       marginRight: 0
                       }}>
                       {look.image_url ? (
                         <Image
                           source={{uri: look.image_url}}
-                          style={{width: 130, height: 130}}
+                           style={[globalStyles.image8]}
                           resizeMode="cover"
                         />
                       ) : null}
@@ -791,15 +791,17 @@ export default function ProfileScreen({navigate}: Props) {
                           );
                         }}
                         style={{
-                          position: 'absolute',
-                          bottom: 4,
-                          right: 4,
-                          width: 20,
-                          height: 20,
-                          borderRadius: 10,
-                          backgroundColor: 'rgba(220, 38, 38, 0.9)',
-                          justifyContent: 'center',
-                          alignItems: 'center',
+                           position: 'absolute',
+                            top: 4,
+                            right: 4,
+                            width: 24,
+                            height: 24,
+                            borderRadius: 50,
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            // borderWidth: theme.borderWidth.sm, 
+                            // borderColor: 'black'
                         }}>
                         <Icon name="close" size={14} color="#fff" />
                       </Pressable>
@@ -809,7 +811,7 @@ export default function ProfileScreen({navigate}: Props) {
                     <Animatable.View
                       animation="fadeIn"
                       delay={2500 + index * 100}
-                      style={{marginTop: 6}}>
+                      style={{marginTop: 2}}>
                       <Text
                         style={[
                           globalStyles.cardSubLabel,

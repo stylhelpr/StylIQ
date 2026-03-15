@@ -78,9 +78,9 @@ const ScalePressable = ({
 };
 
 // Thumb button style constants
-const THUMB_SIZE = 32;
-const THUMB_ICON_SIZE = 18;
-const THUMB_BG_DEFAULT = '#0000007d';
+const THUMB_SIZE = 24;
+const THUMB_ICON_SIZE = 14;
+const THUMB_BG_DEFAULT = 'rgba(0,0,0,0.7)';
 const THUMB_BG_LIKE = '#16A34A';
 const THUMB_BG_DISLIKE = '#DC2626';
 const THUMB_ICON_COLOR = '#FFFFFF';
@@ -779,7 +779,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                         e.stopPropagation();
                         handleToggleSave(item);
                       }}
-                      iconName="thumb-up-off-alt"
+                      iconName="thumb-up"
                       activeIconName="thumb-up"
                       isActive={!!item.saved}
                       activeColor={THUMB_BG_LIKE}

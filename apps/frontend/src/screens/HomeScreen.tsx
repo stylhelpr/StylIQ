@@ -1728,7 +1728,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   }}>
                   <View
                     style={{
-                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      backgroundColor: 'rgba(0,0,0,0.4)',
                       paddingHorizontal: 32,
                       paddingVertical: 16,
                       borderRadius: 40,
@@ -2319,14 +2319,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       <Text
                         style={{
                           fontSize: fontScale(tokens.fontSize.sm),
-                          color: theme.colors.foreground,
-                          fontWeight: tokens.fontWeight.bold,
+                          color: theme.colors.input,
+                          fontWeight: tokens.fontWeight.semiBold,
                           marginTop: -5,
                           marginRight: moderateScale(tokens.spacing.sm),
 
-                          borderBottomWidth: 1,
-                          borderBottomColor: theme.colors.foreground,
-                          paddingBottom: 0
+                          // borderBottomWidth: 1,
+                          // borderBottomColor: theme.colors.foreground,
+                          // paddingBottom: 0
                         }}
                       >
                         See All Liked
@@ -2382,14 +2382,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           <Text
                         style={{
                           fontSize: fontScale(tokens.fontSize.sm),
-                          color: theme.colors.foreground,
-                          fontWeight: tokens.fontWeight.bold,
+                          color: theme.colors.input,
+                          fontWeight: tokens.fontWeight.semiBold,
                           marginTop: -5,
                           marginRight: moderateScale(tokens.spacing.sm),
 
-                          borderBottomWidth: 1,
-                          borderBottomColor: theme.colors.foreground,
-                          paddingBottom: 0
+                          // borderBottomWidth: 1,
+                          // borderBottomColor: theme.colors.foreground,
+                          // paddingBottom: 0
                         }}
                       >
                         See All Saved
@@ -2496,15 +2496,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   onPress={() => handleShareVibe(look)}
                                   style={{
                                     position: 'absolute',
-                                    top: 6,
-                                    right: 6,
-                                    backgroundColor: 'rgba(0,0,0,0.4)',
+                                    top: 4,
+                                    right: 4,
+                                    backgroundColor: 'rgba(0,0,0,0.7)',
                                     borderRadius: 20,
                                     padding: 6,
                                   }}>
                                   <Icon
                                     name="ios-share"
-                                    size={20}
+                                    size={14}
                                     color={theme.colors.buttonText1}
                                   />
                                 </TouchableOpacity>
@@ -2690,15 +2690,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                       onPress={() => handleShareVibe(c)}
                                       style={{
                                         position: 'absolute',
-                                        top: 6,
-                                        right: 6,
-                                        backgroundColor: 'rgba(0,0,0,0.4)',
+                                        top: 4,
+                                        right: 4,
+                                        backgroundColor: 'rgba(0,0,0,0.7)',
                                         borderRadius: 20,
                                         padding: 6,
                                       }}>
                                       <Icon
                                         name="ios-share"
-                                        size={20}
+                                        size={14}
                                         color={theme.colors.buttonText1}
                                       />
                                     </TouchableOpacity>
@@ -2885,16 +2885,18 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                       }}
                                       style={{
                                         position: 'absolute',
-                                        bottom: 4,
-                                        right: 14,
-                                        width: 20,
-                                        height: 20,
-                                        borderRadius: 10,
-                                        backgroundColor: 'rgba(220, 38, 38, 0.9)',
+                                        top: 4,
+                                        right: 4,
+                                        width: 24,
+                                        height: 24,
+                                        borderRadius: 50,
+                                        backgroundColor: 'rgba(0,0,0,0.7)',
                                         justifyContent: 'center',
                                         alignItems: 'center',
+                                        // borderWidth: theme.borderWidth.sm, 
+                                        // borderColor: 'black'
                                       }}>
-                                      <Icon name="close" size={14} color="#fff" />
+                                      <Icon name="close" size={16} color="white" />
                                     </Pressable>
                                   </View>
                                 </Pressable>
@@ -2981,7 +2983,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   </Text>
                 </AppleTouchFeedback>
               </Animatable.View> 
-{/* 
+
                <Animatable.View
                 animation={{
                   0: {scale: 1},
@@ -3015,10 +3017,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       globalStyles.buttonPrimaryText,
                       {textTransform: 'uppercase', fontWeight: '700'},
                     ]}>
-                    Media Inspo
+                    Inspo Media
                   </Text>
                 </AppleTouchFeedback>
-              </Animatable.View>  */}
+              </Animatable.View> 
              </Animatable.View>
 
         {/* Top Fashion Stories / News Carousel */}

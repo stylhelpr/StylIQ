@@ -311,7 +311,7 @@ export default function SavedRecommendationsModal({
                   priority: FastImage.priority.normal,
                   cache: FastImage.cacheControl.immutable,
                 }}
-                style={{width: '99%', height: '100%',  backgroundColor: theme.colors.imageBackground}}
+                style={{width: '99%', height: '100%', backgroundColor: theme.colors.imageBackground}}
                 resizeMode={FastImage.resizeMode.cover}
               />
             ) : (
@@ -333,9 +333,9 @@ export default function SavedRecommendationsModal({
             <TouchableOpacity
               style={{
                 position: 'absolute',
-                top: 8,
+                top: 6,
                 right: 8,
-                backgroundColor: 'rgba(0, 0, 0, 0.47)',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
                 borderRadius: 50,
                 padding: 6,
               }}

@@ -7,7 +7,7 @@ import {CapsuleOutfit, BackupSuggestion} from '../../types/trips';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.75;
 const THUMB_SIZE = (CARD_WIDTH - 48 - 10) / 2;
-const BACKUP_KIT_IMG = 55;
+const BACKUP_KIT_IMG = 45;
 
 /** Map activity to stylized label based on occurrence count */
 function getStylizedLabel(
@@ -199,6 +199,8 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
       alignItems: 'flex-start',
       gap: 14,
       paddingVertical: 12,
+      borderBottomWidth: tokens.borderWidth.hairline,
+      borderBottomColor: theme.colors.muted,
     },
     backupKitDivider: {
       height: tokens.borderWidth.hairline,
@@ -207,7 +209,6 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
     backupKitImage: {
       width: BACKUP_KIT_IMG,
       height: BACKUP_KIT_IMG,
-      borderRadius: tokens.borderRadius.switch1,
     },
     backupKitInfo: {
       flex: 1,
@@ -308,7 +309,7 @@ const OutfitCarousel = ({outfits, tripBackupKit}: Props) => {
             
               <View style={styles.backupKitItem}>
                 {b.imageUrl ? (
-                    <View style={{backgroundColor: theme.colors.imageBackground, padding: 6}}>
+                    <View style={{borderRadius: tokens.borderRadius.switch1, backgroundColor: theme.colors.imageBackground, padding: 6}}>
                   <FastImage
                     source={{
                       uri: b.imageUrl,

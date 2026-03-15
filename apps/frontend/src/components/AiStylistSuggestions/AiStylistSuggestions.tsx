@@ -410,7 +410,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           <View style={{width: 65, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 14, gap: 8, backgroundColor: theme.colors.imageBackground2}}>
             {accessoryItems.map((acc, idx) => (
               <Image
-                key={acc.id || idx}
+                key={`${acc.id}-${idx}`}
                 source={{uri: acc.imageUrl}}
                 style={{width: 110, height: 110, marginRight: 65, marginTop: 70}}
                 resizeMode="contain"
@@ -431,7 +431,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
       3: '3rd Pick',
     };
     const colors: Record<1 | 2 | 3, string> = {
-      1: theme.colors.button1,
+      1: theme.colors.background,
       2: theme.colors.foreground2,
       3: theme.colors.muted,
     };
@@ -632,7 +632,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           }
           style={{
             flex: 1,
-            backgroundColor: theme.colors.surface2,
+            backgroundColor: theme.colors.button1,
             paddingVertical: moderateScale(tokens.spacing.sm),
             borderRadius: tokens.borderRadius.sm,
             alignItems: 'center',
@@ -656,7 +656,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             paddingVertical: moderateScale(tokens.spacing.sm),
             borderRadius: tokens.borderRadius.sm,
             alignItems: 'center',
-            backgroundColor: theme.colors.background,
+            backgroundColor: theme.colors.button1,
             borderWidth: theme.borderWidth.hairline,
             borderColor: theme.colors.muted,
           }}>
@@ -805,7 +805,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   fetchSuggestion('tweak', c.value);
                 }}
                 style={{
-                  backgroundColor: theme.colors.surface2,
+                  backgroundColor: theme.colors.button1,
                   paddingHorizontal: moderateScale(tokens.spacing.sm),
                   paddingVertical: moderateScale(tokens.spacing.xs),
                   borderRadius: tokens.borderRadius.md,
@@ -1754,7 +1754,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8, gap: 10}}>
                     {accessoryItems.map((acc, idx) => (
                       <Image
-                        key={acc.id || idx}
+                        key={`${acc.id}-${idx}`}
                         source={{uri: acc.imageUrl}}
                         style={{width: 160, height: 160, marginRight: 10}}
                         resizeMode="contain"
@@ -1782,7 +1782,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 4}}>
                     {items.map((item, idx) => (
                       <View
-                        key={item.id || idx}
+                        key={`${item.id}-${idx}`}
                         style={{
                           width: (screenWidth - 52) / 2,
                           height: (screenWidth - 0) / 2,
@@ -1822,8 +1822,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   }}>
                   {currentOutfit?.summary ?? ' '}
                 </Text>
-
-
               </View>
             );
           })()}
@@ -1906,7 +1904,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 <View style={{width: 50, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12, gap: 8}}>
                   {accessoryItems.map((acc, idx) => (
                     <FastImage
-                      key={acc.id || idx}
+                      key={`${acc.id}-${idx}`}
                       source={{uri: acc.imageUrl}}
                       style={{width: 50, height: 50, marginTop: 80}}
                       resizeMode={FastImage.resizeMode.contain}

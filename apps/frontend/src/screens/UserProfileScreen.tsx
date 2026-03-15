@@ -709,18 +709,17 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                         {/* Card - single image or 2x2 grid */}
                         <View
                           style={{
-                            width: 130,
-                            height: 130,
-                            borderRadius: tokens.borderRadius.switch1,
-                            overflow: 'hidden',
-                            backgroundColor: '#000',
-                          }}>
+                          borderRadius: tokens.borderRadius.switch1,
+                          backgroundColor: theme.colors.imageBackground,
+                          overflow: 'hidden',
+                          marginRight: 0
+                        }}>
                           {look.image_url ? (
                             <Image
                               source={{uri: look.image_url}}
-                              style={{width: 130, height: 130}}
+                              style={[globalStyles.image8]}
                               resizeMode="cover"
-                            />
+                              />
                           ) : null}
                         </View>
 
@@ -728,7 +727,7 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                         <Animatable.View
                           animation="fadeIn"
                           delay={1900 + index * 100}
-                          style={{marginTop: 6}}>
+                          style={{marginTop: 2}}>
                           <Text
                             style={[
                               globalStyles.cardSubLabel,

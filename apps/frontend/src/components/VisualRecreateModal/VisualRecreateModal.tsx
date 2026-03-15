@@ -539,15 +539,15 @@ export default function VisualRecreateModal({
                       size={18}
                       color={
                         saved
-                          ? theme.colors.background
-                          : theme.colors.foreground
+                          ? theme.colors.buttonText1
+                          : theme.colors.buttonText1
                       }
                     />
                     <Text
                       style={{
                         color: saved
-                          ? theme.colors.background
-                          : theme.colors.foreground,
+                          ? theme.colors.buttonText1
+                          : theme.colors.buttonText1,
                         fontSize: 12,
                         fontWeight: '600',
                         marginLeft: 4,
@@ -580,11 +580,11 @@ export default function VisualRecreateModal({
                 <MaterialIcons
                   name="edit"
                   size={18}
-                  color={theme.colors.primary}
+                  color={theme.colors.buttonText1}
                 />
                 <Text
                   style={{
-                    color: theme.colors.primary,
+                    color: theme.colors.buttonText1,
                     fontSize: 12,
                     fontWeight: '600',
                   }}>
@@ -618,7 +618,7 @@ export default function VisualRecreateModal({
                 />
                 <Text
                   style={{
-                    color: theme.colors.foreground,
+                    color: theme.colors.buttonText1,
                     fontSize: 12,
                     fontWeight: '600',
                   }}>
